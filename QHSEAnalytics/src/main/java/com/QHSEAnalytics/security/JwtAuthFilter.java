@@ -1,5 +1,6 @@
 package com.QHSEAnalytics.security;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.QHSEAnalytics.auth.service.JwtService;
 import com.QHSEAnalytics.auth.service.UserDetailsServiceImpl;
 import jakarta.servlet.FilterChain;
@@ -15,6 +16,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
@@ -22,6 +25,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UserDetailsServiceImpl userDetailsService;
+    private final ObjectMapper objectMapper;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -37,10 +41,30 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         String token = authHeader.substring(7);
-        String email = jwtService.extractEmail(token);
+        String email;
+        try {
+            email = jwtService.extractEmail(token);
+        } catch (RuntimeException ex) {
+            if (isPublicPath(request)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+            writeUnauthorized(response, "Token invalide ou expiré.");
+            return;
+        }
 
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+            UserDetails userDetails;
+            try {
+                userDetails = userDetailsService.loadUserByUsername(email);
+            } catch (RuntimeException ex) {
+                if (isPublicPath(request)) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+                writeUnauthorized(response, "Utilisateur invalide.");
+                return;
+            }
 
             if (jwtService.isTokenValid(token, userDetails)) {
                 UsernamePasswordAuthenticationToken authToken =
@@ -51,9 +75,33 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                 SecurityContextHolder.getContext().setAuthentication(authToken);
+            } else if (!isPublicPath(request)) {
+                writeUnauthorized(response, "Token invalide ou expiré.");
+                return;
             }
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private boolean isPublicPath(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return path.startsWith("/api/auth/")
+                || path.startsWith("/v3/api-docs")
+                || path.startsWith("/swagger-ui")
+                || path.equals("/swagger-ui.html");
+    }
+
+    private void writeUnauthorized(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        Map<String, Object> payload = Map.of(
+                "status", HttpServletResponse.SC_UNAUTHORIZED,
+                "error", "Unauthorized",
+                "message", message,
+                "timestamp", LocalDateTime.now().toString()
+        );
+        objectMapper.writeValue(response.getWriter(), payload);
     }
 }

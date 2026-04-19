@@ -1,6 +1,7 @@
 package com.QHSEAnalytics.auth.service;
 
 
+import com.QHSEAnalytics.auth.exception.RefreshTokenInvalidException;
 import com.QHSEAnalytics.auth.entity.RefreshToken;
 import com.QHSEAnalytics.auth.entity.User;
 import com.QHSEAnalytics.auth.repository.RefreshTokenRepository;
@@ -40,16 +41,15 @@ public class RefreshTokenService {
     }
 
     // valide & retourne refresh token
-
+    @Transactional(readOnly = true)
     public RefreshToken validateRefreshToken(String token) {
         return refreshTokenRepository
                 .findByTokenAndRevokedFalse(token)
                 .filter(rt -> !rt.isExpired())
-                .orElseThrow(() -> new RuntimeException("Refresh token invalide ou expiré"));
+                .orElseThrow(() -> new RefreshTokenInvalidException("Refresh token invalide ou expiré"));
     }
 
     // révoque tt tokens d'un user
-
     @Transactional
     public void revokeAllForUser(User user) {
         refreshTokenRepository.revokeAllForUser(user);

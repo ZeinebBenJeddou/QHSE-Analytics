@@ -3,6 +3,7 @@ package com.QHSEAnalytics.config;
 import com.QHSEAnalytics.auth.entity.User;
 import com.QHSEAnalytics.auth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class AdminInitializer implements CommandLineRunner {
 
     private final UserRepository userRepository;
@@ -29,15 +31,22 @@ public class AdminInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        if (!userRepository.existsByEmail(email)) {
-            userRepository.save(User.builder()
-                    .email(email)
-                    .nom(nom)
-                    .prenom(prenom)
-                    .password(passwordEncoder.encode(password))
-                    .role(User.Role.ADMIN)
-                    .verified(true)
-                    .build());
+        try {
+            if (!userRepository.existsByEmail(email)) {
+                userRepository.save(User.builder()
+                        .email(email)
+                        .nom(nom)
+                        .prenom(prenom)
+                        .password(passwordEncoder.encode(password))
+                        .role(User.Role.ADMIN)
+                        .verified(true)
+                        .build());
+                log.info("Compte admin initial créé email={}", email);
+            }
+        } catch (Exception ex) {
+
+            log.error("Échec initialisation admin cause={}", ex.getMessage());
+            throw ex;
         }
     }
 }
