@@ -191,6 +191,22 @@ public class AuthService {
                 .build();
     }
 
+    // RESEND OTP
+    @Transactional
+    public MessageResponse resendOtp(String email) {
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("Utilisateur introuvable."));
+
+        if (!user.isVerified()) {
+            throw new AccountNotVerifiedException("Compte non vérifié.");
+        }
+
+        otpService.generateAndSendOtp(user);
+
+        return new MessageResponse("OTP renvoyé.");
+    }
+
     // REFRESH TOKEN
     @Transactional
     public AuthResponse refreshToken(RefreshTokenRequest request) {

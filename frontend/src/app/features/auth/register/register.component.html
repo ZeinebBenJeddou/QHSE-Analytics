@@ -1,0 +1,73 @@
+<div class="register-page">
+	<mat-card class="register-card">
+		<div class="brand">
+			<div class="brand-icon">
+				<mat-icon>person_add</mat-icon>
+			</div>
+			<span class="brand-name">QHSE Analytics</span>
+		</div>
+
+		<h1 class="card-title">Créer un compte</h1>
+		<p class="card-sub"></p>
+
+		<div class="name-grid">
+			<div>
+				<label class="field-label">Nom</label>
+				<mat-form-field appearance="outline" class="register-field">
+					<mat-icon matPrefix>badge</mat-icon>
+					<input matInput type="text" placeholder="Nom" [(ngModel)]="data.nom">
+				</mat-form-field>
+				<p class="field-error" *ngIf="fieldErrors.nom">{{ fieldErrors.nom }}</p>
+			</div>
+
+			<div>
+				<label class="field-label">Prénom</label>
+				<mat-form-field appearance="outline" class="register-field">
+					<mat-icon matPrefix>person_outline</mat-icon>
+					<input matInput type="text" placeholder="Prénom" [(ngModel)]="data.prenom">
+				</mat-form-field>
+				<p class="field-error" *ngIf="fieldErrors.prenom">{{ fieldErrors.prenom }}</p>
+			</div>
+		</div>
+
+		<label class="field-label">Adresse email</label>
+		<mat-form-field appearance="outline" class="register-field">
+			<mat-icon matPrefix>mail_outline</mat-icon>
+			<input matInput type="email" placeholder="vous@entreprise.com" [(ngModel)]="data.email">
+		</mat-form-field>
+		<p class="field-error" *ngIf="fieldErrors.email">{{ fieldErrors.email }}</p>
+
+		<label class="field-label">Mot de passe</label>
+		<mat-form-field appearance="outline" class="register-field">
+			<mat-icon matPrefix>lock_outline</mat-icon>
+			<input matInput [type]="hidePassword ? 'password' : 'text'" placeholder="••••••••••" [(ngModel)]="data.password">
+			<button mat-icon-button matSuffix type="button" (click)="hidePassword = !hidePassword">
+				<mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+			</button>
+		</mat-form-field>
+		<p class="field-hint">8+ caractères, 1 majuscule, 1 minuscule, 1 chiffre, 1 caractère spécial.</p>
+		<p class="field-error" *ngIf="fieldErrors.password">{{ fieldErrors.password }}</p>
+
+		<label class="field-label">Confirmer le mot de passe</label>
+		<mat-form-field appearance="outline" class="register-field">
+			<mat-icon matPrefix>verified_user</mat-icon>
+			<input matInput [type]="hideConfirmPassword ? 'password' : 'text'" placeholder="••••••••••" [(ngModel)]="data.confirmPassword">
+			<button mat-icon-button matSuffix type="button" (click)="hideConfirmPassword = !hideConfirmPassword">
+				<mat-icon>{{ hideConfirmPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+			</button>
+		</mat-form-field>
+		<p class="field-error" *ngIf="fieldErrors.confirmPassword">{{ fieldErrors.confirmPassword }}</p>
+
+		<p class="form-error" *ngIf="formError">{{ formError }}</p>
+		<p class="form-success" *ngIf="successMessage">{{ successMessage }}</p>
+
+		<button mat-flat-button class="btn-register" type="button" [disabled]="isSubmitting" (click)="register()">
+			{{ isSubmitting ? 'Inscription...' : 'S\'inscrire' }}
+			<mat-icon>arrow_forward</mat-icon>
+		</button>
+
+		<p class="login-link-line">
+			Déjà inscrit ? <a routerLink="/login">Se connecter</a>
+		</p>
+	</mat-card>
+</div>

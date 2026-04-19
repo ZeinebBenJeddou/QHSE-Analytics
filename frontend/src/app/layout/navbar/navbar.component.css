@@ -1,0 +1,207 @@
+:host {
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+
+.qhse-navbar {
+  background: transparent;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+  padding: 0;
+}
+
+.qhse-navbar.scrolled {
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(12px);
+}
+
+.qhse-navbar.scrolled .nav-logo .logo-mark {
+  color: #185FA5;
+}
+
+.qhse-navbar.scrolled .logo-name {
+  color: #0C447C;
+}
+
+.qhse-navbar.scrolled .logo-tag {
+  color: #378ADD;
+}
+
+.qhse-navbar.scrolled .nav-link {
+  color: #3a4a6b;
+}
+
+.qhse-navbar.scrolled .btn-login {
+  color: #185FA5;
+  border-color: #185FA5;
+}
+
+.nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 40px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.logo-mark {
+  width: 36px;
+  height: 36px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-mark svg {
+  width: 32px;
+  height: 32px;
+}
+
+.logo-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+
+.logo-name {
+  font-family: 'Sora', 'Segoe UI', sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.3px;
+}
+
+.logo-tag {
+  font-family: 'DM Sans', 'Segoe UI', sans-serif;
+  font-size: 10px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.65);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  margin-top: 1px;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+}
+
+.nav-link {
+  font-family: 'DM Sans', 'Segoe UI', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.8);
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.nav-link:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.btn-login {
+  font-family: 'DM Sans', 'Segoe UI', sans-serif !important;
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  border-radius: 8px !important;
+  padding: 0 20px !important;
+  height: 38px;
+  transition: all 0.2s !important;
+}
+
+.btn-login:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.8) !important;
+  color: #fff !important;
+}
+
+.btn-register {
+  font-family: 'DM Sans', 'Segoe UI', sans-serif !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  background: #378ADD !important;
+  color: #fff !important;
+  border-radius: 8px !important;
+  padding: 0 20px !important;
+  height: 38px;
+  transition: all 0.2s !important;
+}
+
+.btn-register:hover {
+  background: #85B7EB !important;
+  color: #042C53 !important;
+}
+
+.hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  margin-left: auto;
+}
+
+.hamburger span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: #fff;
+  border-radius: 2px;
+  transition: all 0.3s;
+}
+
+.hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+.hamburger.active span:nth-child(2) { opacity: 0; }
+.hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
+
+@media (max-width: 900px) {
+  .nav-container { padding: 0 20px; gap: 16px; }
+  .nav-links { display: none; }
+  .nav-links.open {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 72px;
+    left: 0;
+    right: 0;
+    background: rgba(4, 44, 83, 0.98);
+    padding: 16px 20px 24px;
+    gap: 4px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .nav-actions { display: none; }
+  .hamburger { display: flex; }
+}

@@ -1,0 +1,54 @@
+<div class="login-page">
+
+  <mat-card class="login-card">
+
+   
+    <div class="brand">
+      <div class="brand-icon">
+        <mat-icon>bar_chart</mat-icon>
+      </div>
+      <div>
+        <span class="brand-name">QHSE Analytics</span>
+        
+      </div>
+    </div>
+
+
+    <h1 class="card-title">Connexion</h1>
+    <p class="card-sub">  </p>
+
+    
+    <label class="field-label">Adresse email</label>
+    <mat-form-field appearance="outline" class="login-field">
+      <mat-icon matPrefix>mail_outline</mat-icon>
+      <input matInput type="email" placeholder="vous@entreprise.com" [(ngModel)]="data.email">
+    </mat-form-field>
+
+   
+    <div class="field-row">
+      <label class="field-label" style="margin-bottom:0">Mot de passe</label>
+      <a routerLink="/auth/forgot-password" class="forgot-link">Mot de passe oublié ?</a>
+    </div>
+    <mat-form-field appearance="outline" class="login-field">
+      <mat-icon matPrefix>lock_outline</mat-icon>
+      <input matInput [type]="hidePassword ? 'password' : 'text'" placeholder="••••••••••" [(ngModel)]="data.password">
+      <button mat-icon-button matSuffix (click)="hidePassword = !hidePassword" type="button">
+        <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+      </button>
+    </mat-form-field>
+
+    
+    <button mat-flat-button class="btn-login" (click)="login()">
+      Se connecter
+      <mat-icon>arrow_forward</mat-icon>
+    </button>
+
+   
+    <div class="secure-note">
+      <mat-icon>lock</mat-icon>
+      Connexion sécurisée 
+    </div>
+
+  </mat-card>
+
+</div>

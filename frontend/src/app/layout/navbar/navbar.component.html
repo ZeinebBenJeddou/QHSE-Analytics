@@ -1,0 +1,39 @@
+<nav class="qhse-navbar" [class.scrolled]="isScrolled">
+  <div class="nav-container">
+
+    <a routerLink="/" class="nav-logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16 3L4 9.5V22.5L16 29L28 22.5V9.5L16 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M16 16L28 9.5M16 16V29M16 16L4 9.5" stroke="currentColor" stroke-width="1.5" opacity="0.6"/>
+          <circle cx="16" cy="16" r="3" fill="currentColor" opacity="0.8"/>
+        </svg>
+      </div>
+      <div class="logo-text">
+        <span class="logo-name">QHSE</span>
+        <span class="logo-tag">Analytics</span>
+      </div>
+    </a>
+
+    <div class="nav-links" [class.open]="menuOpen">
+      
+      <a class="nav-link" (click)="scrollTo('fonctionnalites')">Fonctionnalités</a>
+     
+      <a class="nav-link" (click)="scrollTo('contact')">Contact</a>
+    </div>
+
+    <div class="nav-actions">
+      <button mat-stroked-button class="btn-login" routerLink="/auth/login">
+        Se connecter
+      </button>
+      <button mat-flat-button class="btn-register" routerLink="/auth/register">
+        Créer un compte
+      </button>
+    </div>
+
+    <button class="hamburger" (click)="toggleMenu()" [class.active]="menuOpen">
+      <span></span><span></span><span></span>
+    </button>
+
+  </div>
+</nav>

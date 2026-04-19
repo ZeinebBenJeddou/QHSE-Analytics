@@ -39,6 +39,11 @@ public class AuthController {
         return ResponseEntity.ok(authService.verifyOtpAndLogin(request));
     }
 
+    @PostMapping("/resend-otp")
+    public ResponseEntity<?> resendOtp(@RequestParam String email) {
+        return ResponseEntity.ok(authService.resendOtp(email));
+    }
+
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(@RequestBody RefreshTokenRequest request) {
         return ResponseEntity.ok(authService.refreshToken(request));

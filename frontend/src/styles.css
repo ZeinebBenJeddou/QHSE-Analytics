@@ -1,0 +1,14 @@
+body {
+  margin: 0;
+  font-family: Roboto, sans-serif;
+  background: #f5f7fa;
+}
+
+.primary-color {
+  color: #1976d2;
+}
+
+.btn-primary {
+  background-color: #1976d2 !important;
+  color: white !important;
+}
