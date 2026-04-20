@@ -1,0 +1,22 @@
+.app-shell {
+	min-height: 100vh;
+}
+
+.loading-overlay {
+	position: fixed;
+	inset: 0;
+	display: grid;
+	place-items: center;
+	background: rgba(255, 255, 255, 0.48);
+	backdrop-filter: blur(8px);
+	z-index: 2000;
+}
+
+.loading-card {
+	display: inline-flex;
+	align-items: center;
+	gap: 16px;
+	padding: 20px 24px;
+	font-weight: 700;
+	color: var(--text);
+}

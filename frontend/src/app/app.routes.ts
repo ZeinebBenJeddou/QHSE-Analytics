@@ -9,12 +9,14 @@ import { VerifyComponent } from './features/auth/verify/verify.component';
 import { AnalystComponent } from './pages/analyst/analyst.component';
 import { AdminComponent } from './pages/admin/admin.component';
 import { authGuard } from './core/guards/auth.guard';
+import { roleGuard } from './core/guards/role.guard';
 
 export const routes: Routes = [
   { path: '', component: HomeComponent },
   {
     path: 'auth',
     children: [
+      { path: '', pathMatch: 'full', redirectTo: 'login' },
       { path: 'login', component: LoginComponent },
       { path: 'register', component: RegisterComponent },
       { path: 'verify', component: VerifyComponent },
@@ -28,6 +30,7 @@ export const routes: Routes = [
   { path: 'forgot-password', component: ForgotPasswordComponent },
   { path: 'reset-password', component: ResetPasswordComponent },
   { path: 'otp', component: OtpComponent },
-  { path: 'analyst', component: AnalystComponent, canActivate: [authGuard] },
-  { path: 'admin', component: AdminComponent, canActivate: [authGuard] }
+  { path: 'analyst', component: AnalystComponent, canActivate: [authGuard, roleGuard], data: { roles: ['ANALYSTE'] } },
+  { path: 'admin', component: AdminComponent, canActivate: [authGuard, roleGuard], data: { roles: ['ADMIN'] } },
+  { path: '**', redirectTo: '' }
 ];

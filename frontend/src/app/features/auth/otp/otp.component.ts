@@ -165,7 +165,7 @@ export class OtpComponent implements OnInit, OnDestroy {
 
     this.auth.verifyOtp({ email, code: this.data.code }).subscribe({
       next: (res: any) => {
-        this.auth.saveToken(res.accessToken);
+        this.auth.saveSession(res);
         this.auth.clearPendingEmail();
         if (res.role === 'ADMIN') {
           this.router.navigate(['/admin']);

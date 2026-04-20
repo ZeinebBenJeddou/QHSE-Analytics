@@ -1,1 +1,123 @@
+<section class="page-shell admin-page">
+	<header class="surface-card hero-panel admin-hero">
+		<div>
+			<span class="soft-badge">Espace administration</span>
+			<h1 class="section-title">Supervisez les comptes, les KPI et les signaux critiques.</h1>
+			<p class="section-subtitle">
+				Gérez les utilisateurs, surveillez la qualité des indicateurs et gardez un contrôle direct sur la plateforme.
+			</p>
+		</div>
+		<div class="hero-actions">
+			<button mat-stroked-button type="button" (click)="reloadAll()">Rafraîchir</button>
+			<button mat-flat-button color="primary" type="button" (click)="toggleInactive()">
+				{{ showInactive ? 'Voir les KPI actifs' : 'Voir les KPI inactifs' }}
+			</button>
+		</div>
+	</header>
+
+	<div class="utility-grid cols-3 stats-grid">
+		<mat-card class="surface-card stat-card" *ngIf="stats as currentStats">
+			<span>Total analyses</span>
+			<strong>{{ currentStats.totalAnalyses }}</strong>
+		</mat-card>
+		<mat-card class="surface-card stat-card" *ngIf="stats as currentStats">
+			<span>KPI critiques</span>
+			<strong>{{ currentStats.totalKpisCritiques }}</strong>
+		</mat-card>
+		<mat-card class="surface-card stat-card" *ngIf="stats as currentStats">
+			<span>Analystes actifs</span>
+			<strong>{{ currentStats.nombreAnalystesActifs }}</strong>
+		</mat-card>
+	</div>
+
+	<div class="utility-grid cols-2">
+		<mat-card class="surface-card panel-card">
+			<mat-card-header>
+				<mat-card-title>Créer un analyste</mat-card-title>
+				<mat-card-subtitle>Accès instantané après création</mat-card-subtitle>
+			</mat-card-header>
+			<mat-card-content class="stack">
+				<div class="grid-2">
+					<mat-form-field appearance="outline"><mat-label>Nom</mat-label><input matInput [(ngModel)]="createForm.nom"></mat-form-field>
+					<mat-form-field appearance="outline"><mat-label>Prénom</mat-label><input matInput [(ngModel)]="createForm.prenom"></mat-form-field>
+				</div>
+				<mat-form-field appearance="outline"><mat-label>Email</mat-label><input matInput type="email" [(ngModel)]="createForm.email"></mat-form-field>
+				<mat-form-field appearance="outline"><mat-label>Mot de passe initial</mat-label><input matInput type="password" [(ngModel)]="createForm.password"></mat-form-field>
+				<button mat-flat-button color="primary" type="button" [disabled]="creatingUser" (click)="createAnalyste()">
+					{{ creatingUser ? 'Création...' : 'Créer l'analyste' }}
+				</button>
+			</mat-card-content>
+		</mat-card>
+
+		<mat-card class="surface-card panel-card">
+			<mat-card-header>
+				<mat-card-title>Catalogue KPI</mat-card-title>
+				<mat-card-subtitle>{{ kpis.length }} KPI affiché(s)</mat-card-subtitle>
+			</mat-card-header>
+			<mat-card-content class="stack">
+				<mat-form-field appearance="outline">
+					<mat-label>Filtrer par catégorie</mat-label>
+					<mat-select [(ngModel)]="selectedCategory" (selectionChange)="onCategoryChange()">
+						<mat-option value="">Toutes les catégories</mat-option>
+						<mat-option *ngFor="let category of categories" [value]="category.code">{{ category.code }} - {{ category.libelle }}</mat-option>
+					</mat-select>
+				</mat-form-field>
+
+				<article class="compact-item kpi-item" *ngFor="let kpi of kpis">
+					<div>
+						<h3>{{ kpi.nom }}</h3>
+						<p>{{ kpi.categorieLibelle }} · {{ kpi.unite }}</p>
+					</div>
+					<mat-chip-set>
+						<mat-chip [class.status-active]="kpi.isActive">{{ kpi.isActive ? 'Actif' : 'Inactif' }}</mat-chip>
+					</mat-chip-set>
+				</article>
+			</mat-card-content>
+		</mat-card>
+	</div>
+
+	<div class="utility-grid cols-2">
+		<mat-card class="surface-card panel-card">
+			<mat-card-header>
+				<mat-card-title>Utilisateurs</mat-card-title>
+				<mat-card-subtitle>{{ userCount }} compte(s) chargé(s)</mat-card-subtitle>
+			</mat-card-header>
+			<mat-card-content class="stack">
+				<article class="compact-item user-item" *ngFor="let user of users">
+					<div>
+						<h3>{{ user.prenom }} {{ user.nom }}</h3>
+						<p>{{ user.email }} · {{ userRoleLabel(user.role) }}</p>
+					</div>
+					<mat-chip-set>
+						<mat-chip>{{ user.verified ? 'Vérifié' : 'À vérifier' }}</mat-chip>
+						<mat-chip>{{ user.active ? 'Actif' : 'Inactif' }}</mat-chip>
+					</mat-chip-set>
+					<div class="action-row">
+						<button mat-icon-button type="button" (click)="verifyUser(user.id)"><mat-icon>verified</mat-icon></button>
+						<button mat-icon-button type="button" (click)="toggleUserActive(user)"><mat-icon>{{ user.active ? 'pause_circle' : 'play_circle' }}</mat-icon></button>
+						<button mat-icon-button type="button" (click)="user.role === 'ADMIN' ? demote(user) : promote(user)"><mat-icon>{{ user.role === 'ADMIN' ? 'south' : 'north' }}</mat-icon></button>
+						<button mat-icon-button type="button" (click)="resetPassword(user)"><mat-icon>lock_reset</mat-icon></button>
+						<button mat-icon-button color="warn" type="button" (click)="deleteUser(user)"><mat-icon>delete</mat-icon></button>
+					</div>
+				</article>
+			</mat-card-content>
+		</mat-card>
+
+		<mat-card class="surface-card panel-card">
+			<mat-card-header>
+				<mat-card-title>Top KPI critiques</mat-card-title>
+				<mat-card-subtitle>Signaux observés dans les analyses récentes</mat-card-subtitle>
+			</mat-card-header>
+			<mat-card-content class="stack">
+				<article class="compact-item critical-item" *ngFor="let item of criticalKpis">
+					<div>
+						<h3>{{ item.kpiNom }}</h3>
+						<p>{{ item.categorieCode }} · {{ item.categorieLibelle }}</p>
+					</div>
+					<span class="mini-pill">{{ item.nombreAnalystesAvecCritique }} analystes</span>
+				</article>
+			</mat-card-content>
+		</mat-card>
+	</div>
+</section>
 <h1>Bienvenue Admin 👑</h1>
