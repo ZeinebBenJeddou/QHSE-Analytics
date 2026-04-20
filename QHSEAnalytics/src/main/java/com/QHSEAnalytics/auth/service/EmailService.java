@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import java.nio.charset.StandardCharsets;
 
 @Service
 @RequiredArgsConstructor
@@ -60,6 +61,25 @@ public class EmailService {
         String subject = "Votre code de connexion QHSE Analytics";
         String body = buildOtpHtml(nom, code);
         sendEmail(to, subject, body);
+    }
+
+    @Async
+    public void sendWelcomeEmail(String to, String prenom, String tempPassword) {
+      String link = frontendUrl + "/auth/login";
+      String subject = "Bienvenue sur QHSE Analytics";
+      String body = buildWelcomeHtml(prenom, to, tempPassword, link);
+
+      try {
+        MimeMessage message = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
+        helper.setFrom(from);
+        helper.setTo(to);
+        helper.setSubject(subject);
+        helper.setText(body, true);
+        mailSender.send(message);
+      } catch (MessagingException e) {
+        log.error("Erreur envoi email de bienvenue");
+      }
     }
 
     // envoi générique
@@ -123,5 +143,30 @@ public class EmailService {
                 </body>
                 </html>
                 """.formatted(nom, code);
+    }
+
+    private String buildWelcomeHtml(String prenom, String email, String tempPassword, String loginLink) {
+        return """
+                <!DOCTYPE html>
+                <html>
+                <body style="font-family: Arial, sans-serif; background:#f4f4f4; padding:20px;">
+                  <div style="max-width:600px;margin:auto;background:#fff;border-radius:8px;padding:32px;">
+                    <h2 style="color:#1a3c5e;">QHSE Analytics</h2>
+                    <p style="color:#333;">Bonjour %s,</p>
+                    <p style="color:#555;">Votre compte analyste a été créé par un administrateur.</p>
+                    <p style="color:#555;">Identifiant : <strong>%s</strong></p>
+                    <p style="color:#555;">Mot de passe temporaire : <strong>%s</strong></p>
+                    <p style="color:#555;">Connectez-vous puis changez immédiatement votre mot de passe.</p>
+                    <div style="text-align:center;margin:32px 0;">
+                      <a href="%s"
+                         style="background:#1976d2;color:#fff;padding:12px 28px;border-radius:6px;
+                                text-decoration:none;font-weight:bold;">
+                        Accéder à la connexion
+                      </a>
+                    </div>
+                  </div>
+                </body>
+                </html>
+                """.formatted(prenom, email, tempPassword, loginLink);
     }
 }

@@ -46,6 +46,10 @@ public class User implements UserDetails {
     @Builder.Default
     private boolean verified = false;
 
+    @Column(name = "is_active", nullable = false)
+    @Builder.Default
+    private boolean active = true;
+
     @Column(name = "created_at", updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -72,5 +76,5 @@ public class User implements UserDetails {
     public boolean isCredentialsNonExpired() { return true; }
 
     @Override
-    public boolean isEnabled() { return verified; }
+    public boolean isEnabled() { return verified && active; }
 }

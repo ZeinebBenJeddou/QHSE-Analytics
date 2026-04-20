@@ -2,6 +2,7 @@ package com.QHSEAnalytics.auth.handler;
 
 import com.QHSEAnalytics.auth.exception.*;
 import com.QHSEAnalytics.exception.CategorieNotFoundException;
+import com.QHSEAnalytics.exception.AdminProtectedException;
 import com.QHSEAnalytics.exception.AnalyseGenerationException;
 import com.QHSEAnalytics.exception.AnalyseNotFoundException;
 import com.QHSEAnalytics.exception.FileTooLargeException;
@@ -15,6 +16,11 @@ import com.QHSEAnalytics.exception.InvalidTemplateException;
 import com.QHSEAnalytics.exception.KpiAlreadyExistsException;
 import com.QHSEAnalytics.exception.KpiNotFoundException;
 import com.QHSEAnalytics.exception.MappingNotFoundException;
+import com.QHSEAnalytics.exception.UserAlreadyActiveException;
+import com.QHSEAnalytics.exception.UserAlreadyAdminException;
+import com.QHSEAnalytics.exception.UserAlreadyAnalysteException;
+import com.QHSEAnalytics.exception.UserAlreadyInactiveException;
+import com.QHSEAnalytics.exception.WrongPasswordException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -118,6 +124,36 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AnalyseGenerationException.class)
     public ResponseEntity<?> handleAnalyseGeneration(AnalyseGenerationException ex) {
         return buildError(HttpStatus.SERVICE_UNAVAILABLE, "La génération des analyses a échoué. Veuillez réessayer.");
+    }
+
+    @ExceptionHandler(AdminProtectedException.class)
+    public ResponseEntity<?> handleAdminProtected(AdminProtectedException ex) {
+        return buildError(HttpStatus.FORBIDDEN, ex.getMessage());
+    }
+
+    @ExceptionHandler(UserAlreadyActiveException.class)
+    public ResponseEntity<?> handleUserAlreadyActive(UserAlreadyActiveException ex) {
+        return buildError(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(UserAlreadyInactiveException.class)
+    public ResponseEntity<?> handleUserAlreadyInactive(UserAlreadyInactiveException ex) {
+        return buildError(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(UserAlreadyAdminException.class)
+    public ResponseEntity<?> handleUserAlreadyAdmin(UserAlreadyAdminException ex) {
+        return buildError(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(UserAlreadyAnalysteException.class)
+    public ResponseEntity<?> handleUserAlreadyAnalyste(UserAlreadyAnalysteException ex) {
+        return buildError(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(WrongPasswordException.class)
+    public ResponseEntity<?> handleWrongPassword(WrongPasswordException ex) {
+        return buildError(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

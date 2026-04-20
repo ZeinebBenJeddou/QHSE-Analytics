@@ -5,6 +5,7 @@ import com.QHSEAnalytics.auth.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -17,4 +18,8 @@ public interface EmailTokenRepository extends JpaRepository<EmailToken, Long> {
     @Modifying
     @Query("UPDATE EmailToken t SET t.used = true WHERE t.user = :user AND t.type = :type AND t.used = false")
     void invalidateAllForUser(User user, EmailToken.EmailTokenType type);
+
+    @Modifying
+    @Transactional
+    void deleteByUserId(Long userId);
 }

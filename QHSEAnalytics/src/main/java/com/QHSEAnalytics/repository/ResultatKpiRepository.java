@@ -3,7 +3,9 @@ package com.QHSEAnalytics.repository;
 import com.QHSEAnalytics.entity.ResultatKpi;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -28,5 +30,7 @@ public interface ResultatKpiRepository extends JpaRepository<ResultatKpi, Long> 
 
     boolean existsByImportSessionId(Long sessionId);
 
+    @Modifying
+    @Transactional
     void deleteByImportSessionId(Long sessionId);
 }
