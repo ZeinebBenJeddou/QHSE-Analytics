@@ -17,7 +17,15 @@ public interface ImportSessionRepository extends JpaRepository<ImportSession, Lo
     @EntityGraph(attributePaths = {"user"})
     List<ImportSession> findByUserIdOrderByCreatedAtDesc(Long userId);
 
+    Optional<ImportSession> findTopByUserIdAndStatutOrderByCreatedAtDesc(Long userId, com.QHSEAnalytics.enums.ImportStatut statut);
+
+
+    @EntityGraph(attributePaths = {"user"})
+    List<ImportSession> findByStatutOrderByCreatedAtDesc(com.QHSEAnalytics.enums.ImportStatut statut);
+
     List<ImportSession> findAllByOrderByCreatedAtDesc();
+
+    long countByStatut(com.QHSEAnalytics.enums.ImportStatut statut);
 
     Optional<ImportSession> findByIdAndUserId(Long id, Long userId);
 
