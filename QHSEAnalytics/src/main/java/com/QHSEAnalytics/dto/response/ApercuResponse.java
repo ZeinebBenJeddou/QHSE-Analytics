@@ -1,17 +1,16 @@
 package com.QHSEAnalytics.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 @Data
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class KpiDeleteResponse {
-    private String message;
-    private boolean deleted;
+public class ApercuResponse {
+    private ImportSessionResponse importSession;
+    private List<StagingDonneeResponse> donnees;
+    private boolean peutConfirmer;
 }

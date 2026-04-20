@@ -112,6 +112,27 @@
 			<version>2.5.0</version>
 		</dependency>
 
+		<!-- Apache POI pour Excel -->
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-ooxml</artifactId>
+			<version>5.2.5</version>
+		</dependency>
+
+		<!-- OpenCSV pour CSV -->
+		<dependency>
+			<groupId>com.opencsv</groupId>
+			<artifactId>opencsv</artifactId>
+			<version>5.9</version>
+		</dependency>
+
+		<!-- Apache Commons Text pour similarité colonnes -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-text</artifactId>
+			<version>1.11.0</version>
+		</dependency>
+
 	</dependencies>
 
 	<build>

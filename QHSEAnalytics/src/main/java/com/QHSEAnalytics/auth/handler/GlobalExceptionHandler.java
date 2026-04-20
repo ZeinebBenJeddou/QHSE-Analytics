@@ -2,9 +2,18 @@ package com.QHSEAnalytics.auth.handler;
 
 import com.QHSEAnalytics.auth.exception.*;
 import com.QHSEAnalytics.exception.CategorieNotFoundException;
+import com.QHSEAnalytics.exception.FileTooLargeException;
+import com.QHSEAnalytics.exception.GroqApiException;
+import com.QHSEAnalytics.exception.ImportNotFoundException;
+import com.QHSEAnalytics.exception.ImportNotReadyException;
+import com.QHSEAnalytics.exception.ImportValidationException;
+import com.QHSEAnalytics.exception.InvalidFileFormatException;
 import com.QHSEAnalytics.exception.InvalidSeuilException;
+import com.QHSEAnalytics.exception.InvalidTemplateException;
 import com.QHSEAnalytics.exception.KpiAlreadyExistsException;
 import com.QHSEAnalytics.exception.KpiNotFoundException;
+import com.QHSEAnalytics.exception.MappingNotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.http.*;
@@ -16,6 +25,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(KpiNotFoundException.class)
@@ -73,6 +83,31 @@ public class GlobalExceptionHandler {
         return buildError(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
+    @ExceptionHandler({InvalidTemplateException.class, InvalidFileFormatException.class, ImportValidationException.class})
+    public ResponseEntity<?> handleImportBadRequest(RuntimeException ex) {
+        return buildError(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(FileTooLargeException.class)
+    public ResponseEntity<?> handleFileTooLarge(FileTooLargeException ex) {
+        return buildError(HttpStatus.PAYLOAD_TOO_LARGE, ex.getMessage());
+    }
+
+    @ExceptionHandler({ImportNotFoundException.class, MappingNotFoundException.class})
+    public ResponseEntity<?> handleImportNotFound(RuntimeException ex) {
+        return buildError(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(ImportNotReadyException.class)
+    public ResponseEntity<?> handleImportNotReady(ImportNotReadyException ex) {
+        return buildError(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(GroqApiException.class)
+    public ResponseEntity<?> handleGroqUnavailable(GroqApiException ex) {
+        return buildError(HttpStatus.SERVICE_UNAVAILABLE, "Analyse IA temporairement indisponible");
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<?> handleValidation(MethodArgumentNotValidException ex) {
         Map<String, String> fieldErrors = new LinkedHashMap<>();
@@ -100,6 +135,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleAll(Exception ex) {
+        log.error("Unhandled exception", ex);
         return buildError(HttpStatus.INTERNAL_SERVER_ERROR, "Une erreur inattendue est survenue.");
     }
 
