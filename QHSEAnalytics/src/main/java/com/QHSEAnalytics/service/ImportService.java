@@ -37,7 +37,7 @@ public class ImportService {
     private final SimilariteService similariteService;
     private final NettoyageService nettoyageService;
     private final VariationService variationService;
-    private final GroqService groqService;
+    private final AnalyseIaService analyseIaService;
 
     private final ImportSessionRepository importSessionRepository;
     private final StagingDonneeRepository stagingDonneeRepository;
@@ -250,25 +250,10 @@ public class ImportService {
                     continue;
                 }
 
-                log.info("Appel Groq par KPI sessionId={} kpiId={} kpiNom={}", sessionId, s.getKpi().getId(), s.getKpi().getNom());
                 double variationAbs = variationService.calculerVariationAbsolue(s.getValeurN1(), s.getValeurN());
                 double variationRel = variationService.calculerVariationRelative(s.getValeurN1(), s.getValeurN());
                 NiveauVariation niveau = variationService.classifierVariation(variationRel, s.getKpi());
                 Tendance tendance = variationService.determinerTendance(variationRel);
-
-                String analyseIa = groqService.analyserKpi(
-                        s.getKpi().getNom(),
-                        s.getKpi().getDefinition(),
-                        s.getKpi().getUnite().name(),
-                        s.getKpi().getCategorieKpi().getLibelle(),
-                        s.getValeurN1(),
-                        s.getValeurN(),
-                        variationRel,
-                        niveau,
-                        tendance,
-                        session.getPeriodeN1(),
-                        session.getPeriodeN()
-                );
 
                 resultats.add(ResultatKpi.builder()
                         .importSession(session)
@@ -282,12 +267,25 @@ public class ImportService {
                         .variationRelative(variationRel)
                         .niveauVariation(niveau)
                         .tendance(tendance)
-                        .analyseIa(analyseIa)
                         .build());
             }
 
             List<ResultatKpi> saved = resultatKpiRepository.saveAll(resultats);
-            String synthese = groqService.genererSyntheseGlobale(saved, session.getPeriodeN1(), session.getPeriodeN());
+
+            try {
+                analyseIaService.genererToutesLesAnalyses(sessionId, userId);
+                log.info("Analyses IA générées pour la session {}", sessionId);
+            } catch (Exception ex) {
+                log.error("Erreur génération analyses IA (non bloquante) : {}", ex.getMessage());
+            }
+
+            List<ResultatKpi> resultatsEnrichis = resultatKpiRepository.findByImportSessionIdOrderByCreatedAtDesc(sessionId);
+            String synthese;
+            try {
+                synthese = analyseIaService.getAnalyseGlobale(sessionId, userId, false).getSynthese();
+            } catch (Exception ex) {
+                synthese = "Analyse IA temporairement indisponible.";
+            }
 
             stagingDonneeRepository.deleteByImportSessionId(sessionId);
             log.info("Staging supprimé sessionId={}", sessionId);
@@ -297,7 +295,7 @@ public class ImportService {
             importSessionRepository.save(session);
             log.info("Traitement terminé sessionId={} resultats={}", sessionId, saved.size());
 
-            return toResultatGlobalResponse(session, saved, synthese);
+            return toResultatGlobalResponse(session, resultatsEnrichis, synthese);
         } catch (Exception ex) {
             resultatKpiRepository.deleteByImportSessionId(sessionId);
             session.setStatut(ImportStatut.ERREUR);

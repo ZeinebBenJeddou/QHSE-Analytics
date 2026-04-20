@@ -2,6 +2,8 @@ package com.QHSEAnalytics.auth.handler;
 
 import com.QHSEAnalytics.auth.exception.*;
 import com.QHSEAnalytics.exception.CategorieNotFoundException;
+import com.QHSEAnalytics.exception.AnalyseGenerationException;
+import com.QHSEAnalytics.exception.AnalyseNotFoundException;
 import com.QHSEAnalytics.exception.FileTooLargeException;
 import com.QHSEAnalytics.exception.GroqApiException;
 import com.QHSEAnalytics.exception.ImportNotFoundException;
@@ -106,6 +108,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(GroqApiException.class)
     public ResponseEntity<?> handleGroqUnavailable(GroqApiException ex) {
         return buildError(HttpStatus.SERVICE_UNAVAILABLE, "Analyse IA temporairement indisponible");
+    }
+
+    @ExceptionHandler(AnalyseNotFoundException.class)
+    public ResponseEntity<?> handleAnalyseNotFound(AnalyseNotFoundException ex) {
+        return buildError(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(AnalyseGenerationException.class)
+    public ResponseEntity<?> handleAnalyseGeneration(AnalyseGenerationException ex) {
+        return buildError(HttpStatus.SERVICE_UNAVAILABLE, "La génération des analyses a échoué. Veuillez réessayer.");
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
