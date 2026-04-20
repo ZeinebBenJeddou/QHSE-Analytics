@@ -110,7 +110,7 @@ public class AdminUserService {
 
         User saved = userRepository.save(user);
         emailService.sendWelcomeEmail(saved.getEmail(), saved.getPrenom(), temporaryPassword);
-        log.info("Analyste créé par admin : {}", saved.getEmail());
+        log.info("Analyste créé par admin id={}", saved.getId());
         return toUserResponse(saved);
     }
 
@@ -162,7 +162,7 @@ public class AdminUserService {
         userMappingTemplateRepository.deleteByUserId(id);
         userRepository.delete(user);
 
-        log.info("Utilisateur supprimé avec toutes ses données : {}", user.getEmail());
+        log.info("Utilisateur supprimé avec toutes ses données id={}", user.getId());
         return new MessageResponse("Utilisateur supprimé avec succès.");
     }
 
@@ -216,7 +216,7 @@ public class AdminUserService {
         }
 
         user.setRole(User.Role.ADMIN);
-        log.info("Utilisateur promu ADMIN : {}", user.getEmail());
+        log.info("Utilisateur promu ADMIN id={}", user.getId());
         return toUserResponse(userRepository.save(user));
     }
 
@@ -231,7 +231,7 @@ public class AdminUserService {
 
         user.setRole(User.Role.ANALYSTE);
         refreshTokenRepository.revokeAllForUser(user);
-        log.info("Utilisateur rétrogradé ANALYSTE : {}", user.getEmail());
+        log.info("Utilisateur rétrogradé ANALYSTE id={}", user.getId());
         return toUserResponse(userRepository.save(user));
     }
 
@@ -249,8 +249,8 @@ public class AdminUserService {
 
         emailTokenRepository.save(token);
         emailService.sendPasswordResetEmail(user.getEmail(), user.getPrenom(), token.getToken());
-        log.info("Reset mdp déclenché par admin pour : {}", user.getEmail());
-        return new MessageResponse("Un email de réinitialisation a été envoyé à " + user.getEmail());
+        log.info("Reset mdp déclenché par admin id={}", user.getId());
+        return new MessageResponse("Un email de réinitialisation a été envoyé.");
     }
 
     private User getUserByIdInternal(Long id) {

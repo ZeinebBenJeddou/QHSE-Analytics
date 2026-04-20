@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -61,7 +62,8 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(@RequestParam String email) {
-        return ResponseEntity.ok(authService.logout(email));
+        public ResponseEntity<?> logout() {
+            String email = SecurityContextHolder.getContext().getAuthentication().getName();
+            return ResponseEntity.ok(authService.logout(email));
     }
 }

@@ -5,6 +5,7 @@ import com.QHSEAnalytics.auth.repository.UserRepository;
 import com.QHSEAnalytics.dto.response.AdminAnalysteItemResponse;
 import com.QHSEAnalytics.dto.response.AdminGraphiquesDataResponse;
 import com.QHSEAnalytics.dto.response.AdminKpiCritiqueResponse;
+import com.QHSEAnalytics.dto.response.AdminRepartitionResponse;
 import com.QHSEAnalytics.dto.response.AdminStatsResponse;
 import com.QHSEAnalytics.dto.response.BarreGroupeeData;
 import com.QHSEAnalytics.entity.ImportSession;
@@ -57,6 +58,19 @@ public class DashboardAdminService {
             LinkedHashMap::new
         ));
 
+        Map<Long, Long> critiquesBySession = resultatKpiRepository
+            .countByImportSessionIdsAndNiveauVariation(
+                latestByUser.values().stream().map(ImportSession::getId).toList(),
+                NiveauVariation.CRITIQUE
+            )
+            .stream()
+            .collect(Collectors.toMap(
+                ResultatKpiRepository.ImportSessionCountView::getImportSessionId,
+                view -> view.getTotal() == null ? 0L : view.getTotal(),
+                (left, right) -> left,
+                LinkedHashMap::new
+            ));
+
         return analystes.stream().map(user -> {
             ImportSession latest = latestByUser.get(user.getId());
 
@@ -73,7 +87,7 @@ public class DashboardAdminService {
                         .build();
             }
 
-            int critiques = (int) resultatKpiRepository.countByImportSessionIdAndNiveauVariation(latest.getId(), NiveauVariation.CRITIQUE);
+                    int critiques = critiquesBySession.getOrDefault(latest.getId(), 0L).intValue();
             String statut = critiques > 0 ? "ALERTE" : "OK";
             return AdminAnalysteItemResponse.builder()
                     .userId(user.getId())
@@ -151,6 +165,43 @@ public class DashboardAdminService {
                 .evolutionParCategorie(evolution)
                 .build();
     }
+
+            @Transactional(readOnly = true)
+            public AdminRepartitionResponse getRepartitionComplete() {
+            List<ResultatKpi> all = resultatKpiRepository.findAllWithDetails();
+
+            Map<String, List<ResultatKpi>> byCategorie = all.stream()
+                .filter(r -> r.getKpi() != null && r.getKpi().getCategorieKpi() != null)
+                .collect(Collectors.groupingBy(
+                    r -> r.getKpi().getCategorieKpi().getCode(),
+                    LinkedHashMap::new,
+                    Collectors.toList()
+                ));
+
+            List<AdminRepartitionResponse.RepartitionCategorieItem> categories = byCategorie.values().stream()
+                .map(list -> {
+                    int faibles = (int) list.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.FAIBLE).count();
+                    int moderes = (int) list.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.MODERE).count();
+                    int critiques = (int) list.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.CRITIQUE).count();
+                    int total = faibles + moderes + critiques;
+
+                    ResultatKpi first = list.get(0);
+                    return AdminRepartitionResponse.RepartitionCategorieItem.builder()
+                        .categorieCode(first.getKpi().getCategorieKpi().getCode())
+                        .categorieLibelle(first.getKpi().getCategorieKpi().getLibelle())
+                        .nombreFaibles(faibles)
+                        .nombreModeres(moderes)
+                        .nombreCritiques(critiques)
+                        .total(total)
+                        .build();
+                })
+                .sorted(Comparator.comparing(AdminRepartitionResponse.RepartitionCategorieItem::getCategorieCode, Comparator.nullsLast(String::compareTo)))
+                .toList();
+
+            return AdminRepartitionResponse.builder()
+                .categories(categories)
+                .build();
+            }
 
     private int analysteStatusRank(String statut) {
         if ("ALERTE".equals(statut)) {

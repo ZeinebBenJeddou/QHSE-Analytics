@@ -16,6 +16,7 @@ import com.QHSEAnalytics.exception.InvalidTemplateException;
 import com.QHSEAnalytics.exception.KpiAlreadyExistsException;
 import com.QHSEAnalytics.exception.KpiNotFoundException;
 import com.QHSEAnalytics.exception.MappingNotFoundException;
+import com.QHSEAnalytics.exception.PdfGenerationException;
 import com.QHSEAnalytics.exception.UserAlreadyActiveException;
 import com.QHSEAnalytics.exception.UserAlreadyAdminException;
 import com.QHSEAnalytics.exception.UserAlreadyAnalysteException;
@@ -154,6 +155,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(WrongPasswordException.class)
     public ResponseEntity<?> handleWrongPassword(WrongPasswordException ex) {
         return buildError(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(PdfGenerationException.class)
+    public ResponseEntity<?> handlePdfGeneration(PdfGenerationException ex) {
+        return buildError(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

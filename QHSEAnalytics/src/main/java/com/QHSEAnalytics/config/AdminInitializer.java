@@ -41,7 +41,7 @@ public class AdminInitializer implements CommandLineRunner {
                         .role(User.Role.ADMIN)
                         .verified(true)
                         .build());
-                log.info("Compte admin initial créé email={}", email);
+                log.info("Compte admin initial créé");
             }
         } catch (Exception ex) {
 

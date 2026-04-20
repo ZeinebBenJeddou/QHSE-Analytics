@@ -34,6 +34,9 @@ public interface ResultatKpiRepository extends JpaRepository<ResultatKpi, Long> 
 
     long countByImportSessionIdAndNiveauVariation(Long importSessionId, com.QHSEAnalytics.enums.NiveauVariation niveau);
 
+    @Query("select r.importSession.id as importSessionId, count(r) as total from ResultatKpi r where r.importSession.id in :importSessionIds and r.niveauVariation = :niveau group by r.importSession.id")
+    List<ImportSessionCountView> countByImportSessionIdsAndNiveauVariation(@Param("importSessionIds") List<Long> importSessionIds, @Param("niveau") com.QHSEAnalytics.enums.NiveauVariation niveau);
+
     long countByNiveauVariation(com.QHSEAnalytics.enums.NiveauVariation niveau);
 
     @Query("select r from ResultatKpi r join fetch r.kpi k join fetch k.categorieKpi where r.niveauVariation = :niveau")
@@ -44,4 +47,10 @@ public interface ResultatKpiRepository extends JpaRepository<ResultatKpi, Long> 
     @Modifying
     @Transactional
     void deleteByImportSessionId(Long sessionId);
+
+    interface ImportSessionCountView {
+        Long getImportSessionId();
+
+        Long getTotal();
+    }
 }

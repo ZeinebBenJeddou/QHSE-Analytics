@@ -53,7 +53,7 @@ public class ProfilService {
         user.setPassword(passwordEncoder.encode(request.getNouveauPassword()));
         userRepository.save(user);
         refreshTokenRepository.revokeAllForUser(user);
-        log.info("Mot de passe modifié pour : {}", user.getEmail());
+        log.info("Mot de passe modifié pour userId={}", user.getId());
         return new MessageResponse("Mot de passe modifié avec succès. Veuillez vous reconnecter.");
     }
 

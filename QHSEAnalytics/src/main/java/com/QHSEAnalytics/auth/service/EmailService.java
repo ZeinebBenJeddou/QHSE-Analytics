@@ -92,9 +92,9 @@ public class EmailService {
             helper.setSubject(subject);
             helper.setText(htmlBody, true);
             mailSender.send(message);
-            log.info("Email envoyé à {}", to);
+            log.info("Email envoyé avec succès");
         } catch (MessagingException e) {
-            log.error("Erreur envoi email à {} : {}", to, e.getMessage());
+            log.error("Erreur envoi email : {}", e.getMessage());
         }
     }
 

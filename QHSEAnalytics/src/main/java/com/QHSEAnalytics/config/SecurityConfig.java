@@ -27,7 +27,18 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> {})
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
+                    .requestMatchers(
+                        "/api/auth/register",
+                        "/api/auth/verify",
+                        "/api/auth/resend-verification",
+                        "/api/auth/login",
+                        "/api/auth/verify-otp",
+                        "/api/auth/resend-otp",
+                        "/api/auth/refresh",
+                        "/api/auth/forgot-password",
+                        "/api/auth/reset-password"
+                    ).permitAll()
+                    .requestMatchers("/api/auth/logout").authenticated()
                         .requestMatchers(
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
@@ -37,6 +48,8 @@ public class SecurityConfig {
                     .requestMatchers("/api/profil/**").hasAnyRole("ADMIN", "ANALYSTE")
                         .requestMatchers("/api/dashboard/analyste/**").hasRole("ANALYSTE")
                         .requestMatchers("/api/dashboard/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/export/analyste/**").hasRole("ANALYSTE")
+                        .requestMatchers("/api/export/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session ->

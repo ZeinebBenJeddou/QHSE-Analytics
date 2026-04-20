@@ -3,6 +3,7 @@ package com.QHSEAnalytics.controller;
 import com.QHSEAnalytics.dto.response.AdminAnalysteItemResponse;
 import com.QHSEAnalytics.dto.response.AdminGraphiquesDataResponse;
 import com.QHSEAnalytics.dto.response.AdminKpiCritiqueResponse;
+import com.QHSEAnalytics.dto.response.AdminRepartitionResponse;
 import com.QHSEAnalytics.dto.response.AdminStatsResponse;
 import com.QHSEAnalytics.dto.response.AnalyseCompleteResponse;
 import com.QHSEAnalytics.dto.response.ComparatifTableauResponse;
@@ -42,6 +43,11 @@ public class DashboardAdminController {
     @GetMapping("/kpis-critiques")
     public ResponseEntity<List<AdminKpiCritiqueResponse>> getKpisCritiques() {
         return ResponseEntity.ok(dashboardAdminService.getTopKpisCritiques());
+    }
+
+    @GetMapping("/repartition")
+    public ResponseEntity<AdminRepartitionResponse> getRepartitionComplete() {
+        return ResponseEntity.ok(dashboardAdminService.getRepartitionComplete());
     }
 
     @GetMapping("/graphiques")
