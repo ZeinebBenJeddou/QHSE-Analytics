@@ -1,0 +1,26 @@
+
+.env
+*.env
+!.env.example
+
+# Docker
+docker-compose.override.yml
+
+# Backend
+QHSEAnalytics/target/
+QHSEAnalytics/**/*.log
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db

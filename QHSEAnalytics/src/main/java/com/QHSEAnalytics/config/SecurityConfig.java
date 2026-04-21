@@ -36,7 +36,8 @@ public class SecurityConfig {
                         "/api/auth/resend-otp",
                         "/api/auth/refresh",
                         "/api/auth/forgot-password",
-                        "/api/auth/reset-password"
+                        "/api/auth/reset-password",
+                        "/actuator/health"
                     ).permitAll()
                     .requestMatchers("/api/auth/logout").authenticated()
                         .requestMatchers(

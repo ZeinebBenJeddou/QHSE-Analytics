@@ -1,0 +1,94 @@
+version: '3.9'
+
+services:
+
+  # ── Base de données PostgreSQL ──────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: qhse_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: qhse_db
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - qhse_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d qhse_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── Backend Spring Boot ─────────────────────────────────
+  backend:
+    build:
+      context: ./QHSEAnalytics
+      dockerfile: Dockerfile
+    container_name: qhse_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Base de données
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/qhse_db
+      # Mail
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      # JWT
+      JWT_SECRET: ${JWT_SECRET}
+      # Admin
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_DEFAULT_PASSWORD: ${ADMIN_DEFAULT_PASSWORD}
+      # Groq IA
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      # Frontend URL (pour les liens dans les emails)
+      APP_FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+    ports:
+      - "8080:8080"
+    networks:
+      - qhse_network
+    healthcheck:
+      test: ["CMD-SHELL",
+             "wget -qO- http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ── Frontend Angular + Nginx ────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: qhse_frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+    networks:
+      - qhse_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+# ── Volumes persistants ─────────────────────────────────
+volumes:
+  postgres_data:
+    driver: local
+
+# ── Réseau interne ──────────────────────────────────────
+networks:
+  qhse_network:
+    driver: bridge
