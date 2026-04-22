@@ -1,3 +1,22 @@
 import { Routes } from '@angular/router';
+import { AuthGuard } from './shared/guards/auth.guard';
+import { DashboardPage } from './pages/dashboard-page.component';
+import { ForgotPasswordPage } from './pages/forgot-password-page.component';
+import { HomePage } from './pages/home-page.component';
+import { LoginPage } from './pages/login-page.component';
+import { RegisterPage } from './pages/register-page.component';
+import { ResetPasswordPage } from './pages/reset-password-page.component';
+import { VerifyOtpPage } from './pages/verify-otp-page.component';
+import { VerifyPage } from './pages/verify-page.component';
 
-export const routes: Routes = [];
+export const routes: Routes = [
+  { path: '', component: HomePage },
+  { path: 'login', component: LoginPage },
+  { path: 'register', component: RegisterPage },
+  { path: 'verify', component: VerifyPage },
+  { path: 'verify-otp', component: VerifyOtpPage },
+  { path: 'forgot-password', component: ForgotPasswordPage },
+  { path: 'reset-password', component: ResetPasswordPage },
+  { path: 'dashboard', component: DashboardPage, canActivate: [AuthGuard] },
+  { path: '**', redirectTo: '' }
+];
