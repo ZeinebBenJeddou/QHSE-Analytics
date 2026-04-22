@@ -152,6 +152,10 @@ public class AuthService {
             throw new AccountNotVerifiedException("Compte non vérifié.");
         }
 
+        if (!user.isActive()) {
+            throw new AccountNotVerifiedException("Compte désactivé.");
+        }
+
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())

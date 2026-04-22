@@ -216,6 +216,7 @@ public class AdminUserService {
         }
 
         user.setRole(User.Role.ADMIN);
+        refreshTokenRepository.revokeAllForUser(user);
         log.info("Utilisateur promu ADMIN id={}", user.getId());
         return toUserResponse(userRepository.save(user));
     }

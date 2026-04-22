@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
 
   # ── Base de données PostgreSQL ──────────────────────────
@@ -52,7 +50,7 @@ services:
       # Frontend URL (pour les liens dans les emails)
       APP_FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
     ports:
-      - "8080:8080"
+      - "8081:8080"
     networks:
       - qhse_network
     healthcheck:
