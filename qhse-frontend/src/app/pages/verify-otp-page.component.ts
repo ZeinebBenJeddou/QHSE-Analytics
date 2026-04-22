@@ -4,6 +4,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -23,6 +24,7 @@ import { VerifyOtpRequest } from '../shared/models/auth.models';
     MatInputModule,
     MatButtonModule,
     MatIconModule,
+    MatCheckboxModule,
     MatSnackBarModule,
     MatProgressSpinnerModule
   ],
@@ -42,6 +44,13 @@ import { VerifyOtpRequest } from '../shared/models/auth.models';
             <mat-label>Code OTP</mat-label>
             <input matInput formControlName="code" type="text" autocomplete="one-time-code" />
           </mat-form-field>
+
+          <div class="remember-me-group">
+            <mat-checkbox formControlName="rememberMe">
+              Se souvenir de moi pour 7 jours
+            </mat-checkbox>
+            <p class="remember-me-hint">Vous ne devrez pas entrer le code OTP la prochaine fois</p>
+          </div>
 
           <button mat-flat-button color="primary" class="submit-button" type="submit" [disabled]="form.invalid || loading">
             <span *ngIf="!loading">Valider le code</span>
@@ -80,9 +89,30 @@ import { VerifyOtpRequest } from '../shared/models/auth.models';
       line-height: 1.65;
     }
 
+    .remember-me-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin: 1.25rem 0 1.75rem;
+      padding: 1rem;
+      border-radius: 0.75rem;
+      background: rgba(11, 74, 148, 0.04);
+      border: 1px solid rgba(11, 74, 148, 0.1);
+    }
+
+    .remember-me-group mat-checkbox {
+      --mdc-checkbox-selected-checkmark-color: #0b4a94;
+    }
+
+    .remember-me-hint {
+      margin: 0;
+      font-size: 0.85rem;
+      color: #64748b;
+      line-height: 1.4;
+    }
+
     .submit-button {
       width: 100%;
-      margin-top: 1rem;
       min-height: 3rem;
     }
 
@@ -116,7 +146,8 @@ export class VerifyOtpPage {
   ) {
     this.form = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
-      code: ['', [Validators.required, Validators.minLength(6), Validators.pattern('^[0-9]+$')]]
+      code: ['', [Validators.required, Validators.minLength(6), Validators.pattern('^[0-9]+$')]],
+      rememberMe: [false]
     });
 
     const email = this.activatedRoute.snapshot.queryParamMap.get('email');
@@ -132,7 +163,11 @@ export class VerifyOtpPage {
     }
 
     this.loading = true;
-    const payload: VerifyOtpRequest = this.form.value as VerifyOtpRequest;
+    const payload: VerifyOtpRequest = {
+      email: this.form.value.email,
+      code: this.form.value.code,
+      rememberMe: this.form.value.rememberMe
+    };
 
     this.authService.verifyOtp(payload).subscribe({
       next: (response) => {

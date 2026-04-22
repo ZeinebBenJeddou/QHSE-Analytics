@@ -26,6 +26,14 @@ export class AuthStorageService {
     return localStorage.getItem(this.userRoleKey);
   }
 
+  isAdmin(): boolean {
+    return this.userRole === 'ADMIN';
+  }
+
+  isAnalyste(): boolean {
+    return this.userRole === 'ANALYSTE';
+  }
+
   setAuth(auth: AuthResponse): void {
     localStorage.setItem(this.accessTokenKey, auth.accessToken);
     localStorage.setItem(this.refreshTokenKey, auth.refreshToken);

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -10,6 +10,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { AuthService } from '../shared/services/auth.service';
+import { AuthStorageService } from '../shared/services/auth-storage.service';
 import { LoginRequest } from '../shared/models/auth.models';
 
 @Component({
@@ -113,13 +114,14 @@ import { LoginRequest } from '../shared/models/auth.models';
     }
   `]
 })
-export class LoginPage {
+export class LoginPage implements OnInit {
   loading = false;
   form: FormGroup;
 
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
+    private authStorage: AuthStorageService,
     private snackBar: MatSnackBar,
     private router: Router
   ) {
@@ -127,6 +129,20 @@ export class LoginPage {
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required]]
     });
+  }
+
+  ngOnInit(): void {
+    if (this.authStorage.authState()) {
+      this.router.navigate(['/dashboard']);
+      return;
+    }
+
+    if (this.authStorage.refreshToken) {
+      this.authService.refreshToken({ refreshToken: this.authStorage.refreshToken }).subscribe({
+        next: () => this.router.navigate(['/dashboard']),
+        error: () => this.authStorage.clear()
+      });
+    }
   }
 
   submit(): void {

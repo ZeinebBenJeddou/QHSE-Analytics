@@ -10,6 +10,7 @@ import {
   MessageResponse,
   RegisterRequest,
   ResetPasswordRequest,
+  RefreshTokenRequest,
   VerifyOtpRequest
 } from '../models/auth.models';
 import { AuthStorageService } from './auth-storage.service';
@@ -53,6 +54,12 @@ export class AuthService {
 
   resetPassword(request: ResetPasswordRequest): Observable<MessageResponse> {
     return this.http.post<MessageResponse>(`${API_BASE_URL}/auth/reset-password`, request);
+  }
+
+  refreshToken(request: RefreshTokenRequest): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${API_BASE_URL}/auth/refresh`, request).pipe(
+      tap((auth) => this.authStorage.setAuth(auth))
+    );
   }
 
   logout(): Observable<MessageResponse> {
