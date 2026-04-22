@@ -10,6 +10,7 @@
     <a mat-button routerLink="/" routerLinkActive="active-link" [routerLinkActiveOptions]="{ exact: true }">Accueil</a>
     <a mat-button routerLink="/dashboard" routerLinkActive="active-link" *ngIf="authStorage.authState()">Tableau de bord</a>
     <a mat-button routerLink="/kpis" routerLinkActive="active-link" *ngIf="authStorage.authState()">KPI</a>
+    <a mat-button routerLink="/users" routerLinkActive="active-link" *ngIf="authStorage.isAdmin()">Utilisateurs</a>
     <a mat-button routerLink="/login" routerLinkActive="active-link" *ngIf="!authStorage.authState()">Connexion</a>
     <a mat-flat-button color="accent" routerLink="/register" *ngIf="!authStorage.authState()">Inscription</a>
     <span class="user-chip" *ngIf="authStorage.authState()">{{ authStorage.userName }}</span>

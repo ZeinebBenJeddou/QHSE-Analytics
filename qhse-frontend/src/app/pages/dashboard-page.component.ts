@@ -24,6 +24,7 @@ import { Kpi } from '../shared/models/kpi.models';
         <div class="hero-actions">
           <a mat-flat-button color="primary" routerLink="/">Retour à l’accueil</a>
           <a mat-flat-button color="accent" routerLink="/kpis">Voir les KPI</a>
+          <a mat-flat-button color="warn" routerLink="/users" *ngIf="authStorage.isAdmin()">Gérer les utilisateurs</a>
         </div>
       </div>
 
@@ -71,7 +72,7 @@ import { Kpi } from '../shared/models/kpi.models';
         <mat-card class="overview-card" *ngIf="authStorage.isAdmin()">
           <h2>Actions administrateur</h2>
           <p>Utilisez la page KPI pour créer, modifier, supprimer et restaurer des indicateurs métier.</p>
-          <p>Le backend valide toutes les requêtes et protège les ressources sensibles via les rôles.</p>
+          <p>Gérez les utilisateurs de la plateforme : créez des comptes analystes, vérifiez des comptes non vérifiés, modifiez les informations, activez/désactivez des comptes et réinitialisez les mots de passe.</p>
         </mat-card>
       </div>
     </section>

@@ -7,6 +7,7 @@ import { KpiPage } from './pages/kpi-page.component';
 import { LoginPage } from './pages/login-page.component';
 import { RegisterPage } from './pages/register-page.component';
 import { ResetPasswordPage } from './pages/reset-password-page.component';
+import { UsersPage } from './pages/users-page.component';
 import { VerifyOtpPage } from './pages/verify-otp-page.component';
 import { VerifyPage } from './pages/verify-page.component';
 
@@ -28,5 +29,6 @@ export const routes: Routes = [
   },
   { path: 'dashboard', component: DashboardPage, canActivate: [AuthGuard] },
   { path: 'kpis', component: KpiPage, canActivate: [AuthGuard] },
+  { path: 'users', component: UsersPage, canActivate: [AuthGuard], data: { roles: ['ADMIN'] } },
   { path: '**', redirectTo: '' }
 ];
