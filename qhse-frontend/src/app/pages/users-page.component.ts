@@ -128,9 +128,12 @@ import { RouterModule } from '@angular/router';
           <ng-container matColumnDef="role">
             <th mat-header-cell *matHeaderCellDef>Rôle</th>
             <td mat-cell *matCellDef="let user">
-              <mat-chip [color]="user.role === 'ADMIN' ? 'primary' : 'accent'" selected>
-                {{ user.role }}
-              </mat-chip>
+              <div class="role-container">
+                <mat-chip [color]="user.role === 'ADMIN' ? 'primary' : 'accent'" selected>
+                  {{ user.role }}
+                </mat-chip>
+                <mat-icon *ngIf="user.isSystemAdmin" class="system-admin-icon" title="Administrateur système">shield</mat-icon>
+              </div>
             </td>
           </ng-container>
 
@@ -156,6 +159,16 @@ import { RouterModule } from '@angular/router';
                 </button>
                 <button mat-icon-button color="accent" aria-label="Réinitialiser mot de passe" (click)="resetPassword(user.id)">
                   <mat-icon>lock_reset</mat-icon>
+                </button>
+                <button mat-icon-button color="secondary" aria-label="Promouvoir admin" 
+                        *ngIf="user.role === 'ANALYSTE' && !user.isSystemAdmin" 
+                        (click)="promoteToAdmin(user)">
+                  <mat-icon>admin_panel_settings</mat-icon>
+                </button>
+                <button mat-icon-button color="secondary" aria-label="Rétrograder analyste" 
+                        *ngIf="user.role === 'ADMIN' && !user.isSystemAdmin" 
+                        (click)="demoteToAnalyste(user)">
+                  <mat-icon>person</mat-icon>
                 </button>
                 <button mat-icon-button [color]="user.active ? 'warn' : 'primary'"
                         [attr.aria-label]="user.active ? 'Désactiver' : 'Activer'"
@@ -268,6 +281,15 @@ import { RouterModule } from '@angular/router';
     .action-buttons {
       display: flex;
       gap: 0.25rem;
+    }
+    .role-container {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .system-admin-icon {
+      color: #0b4a94;
+      font-size: 1rem;
     }
     .empty-message {
       margin: 2rem 0 0;
@@ -409,6 +431,48 @@ export class UsersPage implements OnInit {
           alert('Ce compte est déjà vérifié.');
         } else {
           alert('Erreur lors de la vérification du compte.');
+        }
+      });
+    }
+  }
+
+  promoteToAdmin(user: User): void {
+    if (user.isSystemAdmin) {
+      alert('L\'administrateur système ne peut pas être modifié.');
+      return;
+    }
+    if (confirm(`Êtes-vous sûr de vouloir promouvoir ${user.prenom} ${user.nom} en administrateur ? Il aura accès à toutes les fonctionnalités d'administration.`)) {
+      this.userService.promoteToAdmin(user.id).subscribe(() => {
+        this.loadUsers();
+        alert('Utilisateur promu administrateur avec succès.');
+      }, (error) => {
+        if (error.status === 400) {
+          alert('Cet utilisateur est déjà administrateur.');
+        } else if (error.status === 403) {
+          alert('Vous n\'avez pas les permissions pour effectuer cette action.');
+        } else {
+          alert('Erreur lors de la promotion de l\'utilisateur.');
+        }
+      });
+    }
+  }
+
+  demoteToAnalyste(user: User): void {
+    if (user.isSystemAdmin) {
+      alert('L\'administrateur système ne peut pas être modifié.');
+      return;
+    }
+    if (confirm(`Êtes-vous sûr de vouloir rétrograder ${user.prenom} ${user.nom} en analyste ? Il perdra ses droits d'administration.`)) {
+      this.userService.demoteToAnalyste(user.id).subscribe(() => {
+        this.loadUsers();
+        alert('Utilisateur rétrogradé analyste avec succès.');
+      }, (error) => {
+        if (error.status === 400) {
+          alert('Cet utilisateur est déjà analyste.');
+        } else if (error.status === 403) {
+          alert('Vous n\'avez pas les permissions pour effectuer cette action.');
+        } else {
+          alert('Erreur lors de la rétrogradation de l\'utilisateur.');
         }
       });
     }

@@ -5,6 +5,7 @@ import { ForgotPasswordPage } from './pages/forgot-password-page.component';
 import { HomePage } from './pages/home-page.component';
 import { KpiPage } from './pages/kpi-page.component';
 import { LoginPage } from './pages/login-page.component';
+import { ProfilPage } from './pages/profil-page.component';
 import { RegisterPage } from './pages/register-page.component';
 import { ResetPasswordPage } from './pages/reset-password-page.component';
 import { UsersPage } from './pages/users-page.component';
@@ -30,5 +31,6 @@ export const routes: Routes = [
   { path: 'dashboard', component: DashboardPage, canActivate: [AuthGuard] },
   { path: 'kpis', component: KpiPage, canActivate: [AuthGuard] },
   { path: 'users', component: UsersPage, canActivate: [AuthGuard], data: { roles: ['ADMIN'] } },
+  { path: 'profil', component: ProfilPage, canActivate: [AuthGuard] },
   { path: '**', redirectTo: '' }
 ];

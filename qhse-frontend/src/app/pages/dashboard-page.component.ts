@@ -25,6 +25,7 @@ import { Kpi } from '../shared/models/kpi.models';
           <a mat-flat-button color="primary" routerLink="/">Retour à l’accueil</a>
           <a mat-flat-button color="accent" routerLink="/kpis">Voir les KPI</a>
           <a mat-flat-button color="warn" routerLink="/users" *ngIf="authStorage.isAdmin()">Gérer les utilisateurs</a>
+          <a mat-flat-button color="accent" routerLink="/profil">Mon profil</a>
         </div>
       </div>
 
