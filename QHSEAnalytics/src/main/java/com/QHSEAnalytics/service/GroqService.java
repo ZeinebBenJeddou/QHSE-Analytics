@@ -33,7 +33,7 @@ public class GroqService {
     @Value("${app.groq.api-key:}")
     private String apiKey;
 
-    @Value("${app.groq.model:llama3-8b-8192}")
+    @Value("${app.groq.model:llama-3.1-8b-instant}")
     private String model;
 
     @Value("${app.groq.timeout:30}")

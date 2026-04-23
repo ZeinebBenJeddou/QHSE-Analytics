@@ -1,60 +1,58 @@
-import { Injectable, signal } from '@angular/core';
-import { AuthResponse } from '../models/auth.models';
+import { Injectable } from '@angular/core';
+import { AuthResponse } from '../models/auth-response';
 
-@Injectable({ providedIn: 'root' })
+const ACCESS_TOKEN_KEY = 'QHSE_ACCESS_TOKEN';
+const REFRESH_TOKEN_KEY = 'QHSE_REFRESH_TOKEN';
+const USER_KEY = 'QHSE_USER_INFO';
+
+@Injectable({
+  providedIn: 'root'
+})
 export class AuthStorageService {
-  private readonly accessTokenKey = 'qhse_access_token';
-  private readonly refreshTokenKey = 'qhse_refresh_token';
-  private readonly userNameKey = 'qhse_user_name';
-  private readonly userRoleKey = 'qhse_user_role';
-
-  readonly authState = signal<boolean>(this.hasAccessToken());
+  saveAuthData(response: AuthResponse): void {
+    localStorage.setItem(ACCESS_TOKEN_KEY, response.accessToken);
+    localStorage.setItem(REFRESH_TOKEN_KEY, response.refreshToken);
+    localStorage.setItem(USER_KEY, JSON.stringify({
+      email: response.email,
+      nom: response.nom,
+      prenom: response.prenom,
+      role: response.role
+    }));
+  }
 
   get accessToken(): string | null {
-    return localStorage.getItem(this.accessTokenKey);
+    return localStorage.getItem(ACCESS_TOKEN_KEY);
   }
 
   get refreshToken(): string | null {
-    return localStorage.getItem(this.refreshTokenKey);
+    return localStorage.getItem(REFRESH_TOKEN_KEY);
   }
 
-  get userName(): string | null {
-    return localStorage.getItem(this.userNameKey);
+  get user(): { email: string; nom: string; prenom: string; role: string } | null {
+    const data = localStorage.getItem(USER_KEY);
+    return data ? JSON.parse(data) : null;
   }
 
-  get userRole(): string | null {
-    return localStorage.getItem(this.userRoleKey);
+  authState(): boolean {
+    return !!this.accessToken;
+  }
+
+  get userName(): string {
+    const user = this.user;
+    return user ? `${user.prenom} ${user.nom}` : '';
   }
 
   isAdmin(): boolean {
-    return this.userRole === 'ADMIN';
+    return this.user?.role === 'ADMIN';
   }
 
   isAnalyste(): boolean {
-    return this.userRole === 'ANALYSTE';
-  }
-
-  setAuth(auth: AuthResponse): void {
-    localStorage.setItem(this.accessTokenKey, auth.accessToken);
-    localStorage.setItem(this.refreshTokenKey, auth.refreshToken);
-    localStorage.setItem(this.userNameKey, `${auth.prenom} ${auth.nom}`);
-    localStorage.setItem(this.userRoleKey, auth.role);
-    this.authState.set(true);
+    return this.user?.role === 'ANALYSTE';
   }
 
   clear(): void {
-    localStorage.removeItem(this.accessTokenKey);
-    localStorage.removeItem(this.refreshTokenKey);
-    localStorage.removeItem(this.userNameKey);
-    localStorage.removeItem(this.userRoleKey);
-    this.authState.set(false);
-  }
-
-  isAuthenticated(): boolean {
-    return this.authState();
-  }
-
-  private hasAccessToken(): boolean {
-    return !!localStorage.getItem(this.accessTokenKey);
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
   }
 }

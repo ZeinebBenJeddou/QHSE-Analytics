@@ -1,0 +1,4 @@
+export enum ImportMode {
+  TEMPLATE_OFFICIEL = 'TEMPLATE_OFFICIEL',
+  FICHIER_LIBRE = 'FICHIER_LIBRE'
+}

@@ -1,24 +1,4 @@
-﻿<mat-toolbar color="primary" class="app-toolbar">
-  <div class="brand" routerLink="/">
-    <span class="brand-mark">QHSE</span>
-    <span class="brand-text">Analytics</span>
-  </div>
+﻿
 
-  <span class="spacer"></span>
-
-  <nav class="top-nav">
-    <a mat-button routerLink="/" routerLinkActive="active-link" [routerLinkActiveOptions]="{ exact: true }">Accueil</a>
-    <a mat-button routerLink="/dashboard" routerLinkActive="active-link" *ngIf="authStorage.authState()">Tableau de bord</a>
-    <a mat-button routerLink="/kpis" routerLinkActive="active-link" *ngIf="authStorage.authState()">KPI</a>
-    <a mat-button routerLink="/users" routerLinkActive="active-link" *ngIf="authStorage.isAdmin()">Utilisateurs</a>
-    <a mat-button routerLink="/profil" routerLinkActive="active-link" *ngIf="authStorage.authState()">Profil</a>
-    <a mat-button routerLink="/login" routerLinkActive="active-link" *ngIf="!authStorage.authState()">Connexion</a>
-    <a mat-flat-button color="accent" routerLink="/register" *ngIf="!authStorage.authState()">Inscription</a>
-    <span class="user-chip" *ngIf="authStorage.authState()">{{ authStorage.userName }}</span>
-    <button mat-stroked-button color="accent" *ngIf="authStorage.authState()" (click)="logout()">Déconnexion</button>
-  </nav>
-</mat-toolbar>
-
-<main class="app-shell">
   <router-outlet></router-outlet>
-</main>
+
