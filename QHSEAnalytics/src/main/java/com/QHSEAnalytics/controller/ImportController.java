@@ -4,12 +4,10 @@ import com.QHSEAnalytics.auth.dto.response.MessageResponse;
 import com.QHSEAnalytics.auth.entity.User;
 import com.QHSEAnalytics.auth.exception.UserNotFoundException;
 import com.QHSEAnalytics.auth.repository.UserRepository;
-import com.QHSEAnalytics.dto.request.CorrectionRequest;
 import com.QHSEAnalytics.dto.request.SaveMappingRequest;
 import com.QHSEAnalytics.dto.response.*;
 import com.QHSEAnalytics.enums.ImportMode;
 import com.QHSEAnalytics.service.ImportService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -88,28 +86,18 @@ public class ImportController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @GetMapping("/{sessionId}/apercu")
+    @PostMapping("/upload-and-process")
     @PreAuthorize("hasRole('ANALYSTE')")
-    public ResponseEntity<ApercuResponse> getApercu(@PathVariable Long sessionId) {
-        User user = getCurrentUser();
-        return ResponseEntity.ok(importService.getApercu(user.getId(), false, sessionId));
-    }
-
-    @PatchMapping("/{sessionId}/corriger")
-    @PreAuthorize("hasRole('ANALYSTE')")
-    public ResponseEntity<StagingDonneeResponse> corriger(
-            @PathVariable Long sessionId,
-            @Valid @RequestBody CorrectionRequest request
+    public ResponseEntity<ResultatGlobalResponse> uploadAndProcess(
+            @RequestParam ImportMode mode,
+            @RequestParam(required = false) Long mappingTemplateId,
+            @RequestParam int periodeN1,
+            @RequestParam int periodeN,
+            @RequestParam MultipartFile file
     ) {
         User user = getCurrentUser();
-        return ResponseEntity.ok(importService.corriger(user.getId(), sessionId, request));
-    }
-
-    @PostMapping("/{sessionId}/confirmer")
-    @PreAuthorize("hasRole('ANALYSTE')")
-    public ResponseEntity<ResultatGlobalResponse> confirmer(@PathVariable Long sessionId) {
-        User user = getCurrentUser();
-        return ResponseEntity.ok(importService.confirmer(user.getId(), sessionId));
+        ResultatGlobalResponse response = importService.uploadAndConfirm(user.getId(), mode, mappingTemplateId, periodeN1, periodeN, file);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping

@@ -65,6 +65,26 @@ export class ImportService {
     return this.api.post<ImportSessionResponse>('/imports/upload', formData);
   }
 
+  // Upload and automatically process (confirm & analyze)
+  uploadAndProcess(
+    mode: ImportMode,
+    mappingTemplateId: number | null,
+    periodeN1: number,
+    periodeN: number,
+    file: File
+  ): Observable<ResultatGlobalResponse> {
+    const formData = new FormData();
+    formData.append('mode', mode);
+    if (mappingTemplateId) {
+      formData.append('mappingTemplateId', mappingTemplateId.toString());
+    }
+    formData.append('periodeN1', periodeN1.toString());
+    formData.append('periodeN', periodeN.toString());
+    formData.append('file', file);
+
+    return this.api.post<ResultatGlobalResponse>('/imports/upload-and-process', formData);
+  }
+
   // Staging and preview
   getApercu(sessionId: number): Observable<ApercuResponse> {
     return this.api.get<ApercuResponse>(`/imports/${sessionId}/apercu`);

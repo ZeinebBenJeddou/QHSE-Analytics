@@ -8,23 +8,18 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
-import { MatPaginatorModule } from '@angular/material/paginator';
+import { MatTableModule } from '@angular/material/table';
 import { Router } from '@angular/router';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner.component';
 import { ImportService } from '../../core/services/import.service';
 import { ImportMode } from '../../shared/enums/import-mode.enum';
 import { TypeValeur } from '../../shared/enums/type-valeur.enum';
-import { StatutNettoyage } from '../../shared/enums/statut-nettoyage.enum';
 import { ColonneDetecteeResponse } from '../../shared/models/colonne-detectee-response';
 import { UserMappingTemplateResponse } from '../../shared/models/user-mapping-template-response';
-import { CorrectionDialogComponent } from './correction-dialog.component';
 
 @Component({
   selector: 'app-import-page',
@@ -40,13 +35,10 @@ import { CorrectionDialogComponent } from './correction-dialog.component';
     MatIconModule,
     MatSelectModule,
     MatTableModule,
-    MatPaginatorModule,
     MatSnackBarModule,
     MatProgressBarModule,
     MatChipsModule,
     MatToolbarModule,
-    MatTooltipModule,
-    MatDialogModule,
     FormsModule,
     LoadingSpinnerComponent
   ],
@@ -84,11 +76,11 @@ import { CorrectionDialogComponent } from './correction-dialog.component';
             </div>
           </mat-step>
 
-          <!-- Step 2: File Upload & Periods -->
+          <!-- Step 2: File Upload & Process -->
           <mat-step [stepControl]="uploadForm" [completed]="uploadForm.valid && currentStep > 1">
-            <ng-template matStepLabel>Upload fichier</ng-template>
+            <ng-template matStepLabel>Upload et traitement</ng-template>
             <div class="step-content">
-              <h2>Téléchargez votre fichier</h2>
+              <h2>Téléchargez votre fichier et lancez le traitement automatique</h2>
               <form [formGroup]="uploadForm">
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label>Période N-1</mat-label>
@@ -173,124 +165,25 @@ import { CorrectionDialogComponent } from './correction-dialog.component';
               </form>
               <div class="step-actions">
                 <button mat-raised-button matStepperPrevious>Précédent</button>
-                <button mat-raised-button color="primary" (click)="uploadFile(stepper)" [disabled]="!uploadForm.valid || !selectedFile || isLoading || (selectedMode === ImportMode.FICHIER_LIBRE && !selectedMappingId)">
+                <button mat-raised-button color="primary" (click)="uploadAndProcessFile(stepper)" [disabled]="!uploadForm.valid || !selectedFile || isLoading || (selectedMode === ImportMode.FICHIER_LIBRE && !selectedMappingId)">
                   <mat-icon *ngIf="isLoading">pending</mat-icon>
-                  {{ isLoading ? 'Upload en cours...' : 'Télécharger' }}
+                  {{ isLoading ? 'Traitement en cours...' : 'Télécharger et traiter' }}
                 </button>
               </div>
             </div>
           </mat-step>
 
-          <!-- Step 3: Staging & Preview -->
-          <mat-step [completed]="stagingData.length > 0 && currentStep > 2">
-            <ng-template matStepLabel>Aperçu et nettoyage</ng-template>
-            <div class="step-content">
-              <h2>Données en staging</h2>
-              <app-loading-spinner [isLoading]="isLoading" message="Chargement de l'aperçu..."></app-loading-spinner>
-
-              <div *ngIf="!isLoading && stagingData.length > 0" class="staging-section">
-                <div class="summary">
-                  <mat-chip-set>
-                    <mat-chip>Total: {{ stagingData.length }}</mat-chip>
-                    <mat-chip class="ok">OK: {{ countByStatus(StatutNettoyage.OK) }}</mat-chip>
-                    <mat-chip class="corrige">Corrigé: {{ countByStatus(StatutNettoyage.CORRIGE) }}</mat-chip>
-                    <mat-chip class="suspect">Suspect: {{ countByStatus(StatutNettoyage.SUSPECT) }}</mat-chip>
-                    <mat-chip class="invalide">Invalide: {{ countByStatus(StatutNettoyage.INVALIDE) }}</mat-chip>
-                    <mat-chip class="manquant">Manquant: {{ countByStatus(StatutNettoyage.MANQUANT) }}</mat-chip>
-                  </mat-chip-set>
-                </div>
-
-                <div class="mat-elevation-z8 table-container">
-                  <table mat-table [dataSource]="stagingDataSource" class="staging-table">
-                    <!-- KPI -->
-                    <ng-container matColumnDef="kpiNom">
-                      <th mat-header-cell *matHeaderCellDef>KPI</th>
-                      <td mat-cell *matCellDef="let element">{{ element.kpiNom }}</td>
-                    </ng-container>
-
-                    <!-- Catégorie -->
-                    <ng-container matColumnDef="categorie">
-                      <th mat-header-cell *matHeaderCellDef>Catégorie</th>
-                      <td mat-cell *matCellDef="let element">{{ element.categorieCode }}</td>
-                    </ng-container>
-
-                    <!-- Valeur N-1 -->
-                    <ng-container matColumnDef="valeurN1">
-                      <th mat-header-cell *matHeaderCellDef>Valeur N-1</th>
-                      <td mat-cell *matCellDef="let element">
-                        {{ element.valeurN1 || element.valeurBruteN1 }}
-                      </td>
-                    </ng-container>
-
-                    <!-- Valeur N -->
-                    <ng-container matColumnDef="valeurN">
-                      <th mat-header-cell *matHeaderCellDef>Valeur N</th>
-                      <td mat-cell *matCellDef="let element">
-                        {{ element.valeurN || element.valeurBruteN }}
-                      </td>
-                    </ng-container>
-
-                    <!-- Statut -->
-                    <ng-container matColumnDef="statut">
-                      <th mat-header-cell *matHeaderCellDef>Statut</th>
-                      <td mat-cell *matCellDef="let element">
-                        <mat-chip-set>
-                          <mat-chip [ngClass]="'status-' + element.statutNettoyage.toLowerCase()">
-                            {{ element.statutNettoyage }}
-                          </mat-chip>
-                        </mat-chip-set>
-                      </td>
-                    </ng-container>
-
-                    <!-- Notes -->
-                    <ng-container matColumnDef="notes">
-                      <th mat-header-cell *matHeaderCellDef>Notes</th>
-                      <td mat-cell *matCellDef="let element">
-                        <span [title]="element.noteNettoyage">
-                          {{ element.noteNettoyage ? (element.noteNettoyage | slice:0:30) + '...' : '-' }}
-                        </span>
-                      </td>
-                    </ng-container>
-
-                    <!-- Actions -->
-                    <ng-container matColumnDef="actions">
-                      <th mat-header-cell *matHeaderCellDef>Actions</th>
-                      <td mat-cell *matCellDef="let element">
-                        <button mat-icon-button matTooltip="Corriger" 
-                                (click)="openCorrectionDialog(element)">
-                          <mat-icon>edit</mat-icon>
-                        </button>
-                      </td>
-                    </ng-container>
-
-                    <tr mat-header-row *matHeaderRowDef="stagingColumns"></tr>
-                    <tr mat-row *matRowDef="let row; columns: stagingColumns;"></tr>
-                  </table>
-                </div>
-              </div>
-
-              <div class="step-actions">
-                <button mat-raised-button matStepperPrevious>Précédent</button>
-                <button mat-raised-button color="primary" 
-                        (click)="confirmerImport(stepper)"
-                        [disabled]="stagingData.length === 0 || isLoading">
-                  Confirmer l'import
-                </button>
-              </div>
-            </div>
-          </mat-step>
-
-          <!-- Step 4: Results -->
+          <!-- Step 3: Results -->
           <mat-step>
             <ng-template matStepLabel>Résultats</ng-template>
             <div class="step-content">
-              <h2>Résultats de l'import</h2>
-              <p *ngIf="resultats">Import complété avec succès!</p>
-            <div class="result-actions">
-              <button mat-stroked-button color="primary" (click)="router.navigate(['/resultats'], { queryParams: { sessionId: currentSessionId } })">
-                Voir les résultats détaillés
-              </button>
-            </div>
+              <h2>Résultats du traitement automatique</h2>
+              <p *ngIf="resultats">Traitement complété avec succès!</p>
+              <div class="result-actions">
+                <button mat-stroked-button color="primary" (click)="router.navigate(['/resultats'], { queryParams: { sessionId: currentSessionId } })">
+                  Voir les résultats détaillés
+                </button>
+              </div>
             </div>
           </mat-step>
         </mat-stepper>
@@ -344,42 +237,6 @@ import { CorrectionDialogComponent } from './correction-dialog.component';
       justify-content: flex-end;
       margin-top: 2rem;
     }
-
-    .staging-section {
-      margin-top: 2rem;
-    }
-
-    .summary {
-      margin-bottom: 1rem;
-    }
-
-    mat-chip-set {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
-
-    .table-container {
-      overflow-x: auto;
-      margin-bottom: 1rem;
-    }
-
-    .staging-table {
-      width: 100%;
-    }
-
-    .status-ok { background-color: #c8e6c9; color: #1b5e20; }
-    .status-corrige { background-color: #bbdefb; color: #0d47a1; }
-    .status-suspect { background-color: #ffe0b2; color: #e65100; }
-    .status-invalide { background-color: #ffcdd2; color: #b71c1c; }
-    .status-manquant { background-color: #e0e0e0; color: #424242; }
-    .status-ignore { background-color: #e0e0e0; color: #424242; }
-
-    .ok { background-color: #c8e6c9; }
-    .corrige { background-color: #bbdefb; }
-    .suspect { background-color: #ffe0b2; }
-    .invalide { background-color: #ffcdd2; }
-    .manquant { background-color: #e0e0e0; }
   `]
 })
 export class ImportPage implements OnInit {
@@ -387,16 +244,12 @@ export class ImportPage implements OnInit {
 
   ImportMode = ImportMode;
   TypeValeur = TypeValeur;
-  StatutNettoyage = StatutNettoyage;
 
   modeForm: FormGroup;
   uploadForm: FormGroup;
 
   selectedMode: ImportMode | null = ImportMode.TEMPLATE_OFFICIEL;
   selectedFile: File | null = null;
-  stagingData: any[] = [];
-  stagingDataSource = new MatTableDataSource<any>();
-  stagingColumns = ['kpiNom', 'categorie', 'valeurN1', 'valeurN', 'statut', 'notes', 'actions'];
   savedMappings: UserMappingTemplateResponse[] = [];
   selectedMappingId: number | null = null;
   detectedColumns: Array<ColonneDetecteeResponse & { typeValeur: TypeValeur }> = [];
@@ -411,7 +264,6 @@ export class ImportPage implements OnInit {
     private formBuilder: FormBuilder,
     private importService: ImportService,
     private snackBar: MatSnackBar,
-    private dialog: MatDialog,
     public router: Router
   ) {
     this.modeForm = this.formBuilder.group({
@@ -458,7 +310,7 @@ export class ImportPage implements OnInit {
     }
   }
 
-  uploadFile(stepper: MatStepper): void {
+  uploadAndProcessFile(stepper: MatStepper): void {
     if (!this.uploadForm.valid || !this.selectedFile || !this.selectedMode) return;
 
     this.isLoading = true;
@@ -476,40 +328,29 @@ export class ImportPage implements OnInit {
       return;
     }
 
-    this.importService.upload(
+    this.importService.uploadAndProcess(
       this.selectedMode,
       mappingTemplateId,
       periodeN1,
       periodeN,
       this.selectedFile
     ).subscribe({
-      next: (response) => {
+      next: (response: any) => {
         this.currentSessionId = response.id;
+        this.resultats = response;
         this.isLoading = false;
-        this.snackBar.open('Fichier téléchargé avec succès', 'Fermer', { duration: 3000 });
+        this.snackBar.open('Fichier traité avec succès', 'Fermer', { duration: 3000 });
         this.currentStep = 2;
         stepper.next();
-        this.loadApercu();
       },
-      error: (err) => {
+      error: (err: any) => {
         this.isLoading = false;
         console.error('Erreur:', err);
-      }
-    });
-  }
-
-  loadApercu(): void {
-    if (!this.currentSessionId) return;
-    this.isLoading = true;
-    this.importService.getApercu(this.currentSessionId).subscribe({
-      next: (response) => {
-        this.stagingData = response.donnees;
-        this.stagingDataSource.data = this.stagingData;
-        this.isLoading = false;
-      },
-      error: (err) => {
-        this.isLoading = false;
-        console.error('Erreur:', err);
+        this.snackBar.open('Erreur lors du traitement automatique. Veuillez réessayer ou utiliser le mode manuel.', 'Fermer', {
+          duration: 5000,
+          horizontalPosition: 'end',
+          verticalPosition: 'bottom'
+        });
       }
     });
   }
@@ -543,62 +384,6 @@ export class ImportPage implements OnInit {
       error: (err) => {
         this.isLoading = false;
         console.error('Erreur détection colonnes:', err);
-      }
-    });
-  }
-
-  countByStatus(status: StatutNettoyage): number {
-    return this.stagingData.filter(d => d.statutNettoyage === status).length;
-  }
-
-  openCorrectionDialog(donnee: any): void {
-    if (!this.currentSessionId) {
-      return;
-    }
-
-    const dialogRef = this.dialog.open(CorrectionDialogComponent, {
-      width: '480px',
-      data: donnee
-    });
-
-    dialogRef.afterClosed().subscribe((correction) => {
-      if (!correction) {
-        return;
-      }
-
-      this.isLoading = true;
-      this.importService.corriger(this.currentSessionId as number, correction).subscribe({
-        next: (updatedDonnee) => {
-          const index = this.stagingData.findIndex((item) => item.id === updatedDonnee.id);
-          if (index !== -1) {
-            this.stagingData[index] = updatedDonnee;
-            this.stagingDataSource.data = [...this.stagingData];
-          }
-          this.isLoading = false;
-          this.snackBar.open('Correction appliquée', 'Fermer', { duration: 3000 });
-        },
-        error: (err) => {
-          this.isLoading = false;
-          console.error('Erreur:', err);
-        }
-      });
-    });
-  }
-
-  confirmerImport(stepper: MatStepper): void {
-    if (!this.currentSessionId) return;
-    this.isLoading = true;
-    this.importService.confirmer(this.currentSessionId).subscribe({
-      next: (response) => {
-        this.resultats = response;
-        this.isLoading = false;
-        this.currentStep = 3;
-        stepper.next();
-        this.snackBar.open('Import confirmé avec succès', 'Fermer', { duration: 3000 });
-      },
-      error: (err) => {
-        this.isLoading = false;
-        console.error('Erreur:', err);
       }
     });
   }

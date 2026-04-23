@@ -1,11 +1,9 @@
 package com.QHSEAnalytics.service;
 
-import com.QHSEAnalytics.auth.dto.response.MessageResponse;
 import com.QHSEAnalytics.auth.entity.User;
 import com.QHSEAnalytics.auth.exception.UserNotFoundException;
 import com.QHSEAnalytics.auth.repository.UserRepository;
 import com.QHSEAnalytics.dto.request.ColonneMappingRequest;
-import com.QHSEAnalytics.dto.request.CorrectionRequest;
 import com.QHSEAnalytics.dto.request.SaveMappingRequest;
 import com.QHSEAnalytics.dto.response.*;
 import com.QHSEAnalytics.entity.*;
@@ -177,51 +175,6 @@ public class ImportService {
         return toImportSessionResponse(session);
     }
 
-    @Transactional(readOnly = true)
-    public ApercuResponse getApercu(Long userId, boolean isAdmin, Long sessionId) {
-        ImportSession session = loadSessionWithOwnership(userId, isAdmin, sessionId);
-        List<StagingDonnee> donnees = stagingDonneeRepository.findByImportSessionId(session.getId());
-        Map<StatutNettoyage, Long> counts = getStagingCounts(session.getId());
-        boolean peutConfirmer = counts.getOrDefault(StatutNettoyage.MANQUANT, 0L) == 0
-            && counts.getOrDefault(StatutNettoyage.INVALIDE, 0L) == 0;
-
-        return ApercuResponse.builder()
-                .importSession(toImportSessionResponse(session))
-                .donnees(donnees.stream().map(this::toStagingResponse).toList())
-                .peutConfirmer(peutConfirmer)
-                .build();
-    }
-
-    @Transactional
-    public StagingDonneeResponse corriger(Long userId, Long sessionId, CorrectionRequest request) {
-        ImportSession session = loadSessionWithOwnership(userId, false, sessionId);
-
-        StagingDonnee staging = stagingDonneeRepository.findById(request.getStagingDonneeId())
-                .orElseThrow(() -> new ImportNotFoundException("Donnée staging introuvable"));
-
-        if (!staging.getImportSession().getId().equals(session.getId())) {
-            throw new ImportNotFoundException("Donnée staging introuvable");
-        }
-
-        if (request.getValeurN1() != null) {
-            staging.setValeurN1(request.getValeurN1());
-        }
-        if (request.getValeurN() != null) {
-            staging.setValeurN(request.getValeurN());
-        }
-
-        NettoyageService.ValidationResult n1Validation = nettoyageService.validateManualValue(staging.getValeurN1(), staging.getKpi().getUnite());
-        NettoyageService.ValidationResult nValidation = nettoyageService.validateManualValue(staging.getValeurN(), staging.getKpi().getUnite());
-
-        StatutNettoyage status = mergeStatus(n1Validation.status(), nValidation.status());
-        staging.setStatutNettoyage(status);
-        staging.setNoteNettoyage(n1Validation.note() + " | " + nValidation.note());
-
-        StagingDonnee saved = stagingDonneeRepository.save(staging);
-        log.info("Correction manuelle sessionId={} stagingId={}", sessionId, saved.getId());
-        return toStagingResponse(saved);
-    }
-
     @Transactional(noRollbackFor = ImportValidationException.class)
     public ResultatGlobalResponse confirmer(Long userId, Long sessionId) {
         ImportSession session = loadSessionWithOwnership(userId, false, sessionId);
@@ -306,6 +259,42 @@ public class ImportService {
         }
     }
 
+    @Transactional(noRollbackFor = ImportValidationException.class)
+    public ResultatGlobalResponse uploadAndConfirm(
+            Long userId,
+            ImportMode mode,
+            Long mappingTemplateId,
+            int periodeN1,
+            int periodeN,
+            MultipartFile file
+    ) {
+        log.info("Upload & confirm automatique démarré userId={} mode={}", userId, mode);
+        
+        // Step 1: Upload normalement
+        ImportSessionResponse uploadResponse = upload(userId, mode, mappingTemplateId, periodeN1, periodeN, file);
+        Long sessionId = uploadResponse.getId();
+        
+        // Step 2: Vérifier la qualité des données
+        Map<StatutNettoyage, Long> counts = getStagingCounts(sessionId);
+        long missing = counts.getOrDefault(StatutNettoyage.MANQUANT, 0L);
+        long invalid = counts.getOrDefault(StatutNettoyage.INVALIDE, 0L);
+        
+        if (missing > 0 || invalid > 0) {
+            // Données non prêtes, nettoyer le staging et retourner l'erreur
+            stagingDonneeRepository.deleteByImportSessionId(sessionId);
+            ImportSession session = importSessionRepository.findById(sessionId).orElseThrow();
+            session.setStatut(ImportStatut.ERREUR);
+            session.setMessageErreur(String.format("Données non valides: %d manquante(s), %d invalide(s)", missing, invalid));
+            importSessionRepository.save(session);
+            log.warn("Upload & confirm échoué sessionId={} - données invalides", sessionId);
+            throw new ImportValidationException(String.format("Données non valides: %d manquante(s), %d invalide(s). Veuillez utiliser le mode détaillé.", missing, invalid));
+        }
+        
+        // Step 3: Confirmer automatiquement
+        log.info("Données valides - confirmation automatique sessionId={}", sessionId);
+        return confirmer(userId, sessionId);
+    }
+
     @Transactional(readOnly = true)
     public ResultatGlobalResponse getResultats(Long userId, boolean isAdmin, Long sessionId) {
         ImportSession session = loadSessionWithOwnership(userId, isAdmin, sessionId);
@@ -386,22 +375,6 @@ public class ImportService {
                 .build();
     }
 
-    private StagingDonneeResponse toStagingResponse(StagingDonnee s) {
-        return StagingDonneeResponse.builder()
-                .id(s.getId())
-                .kpiId(s.getKpi().getId())
-                .kpiNom(s.getKpi().getNom())
-                .kpiUnite(s.getKpi().getUnite().name())
-                .categorieCode(s.getKpi().getCategorieKpi().getCode())
-                .valeurBruteN1(s.getValeurBruteN1())
-                .valeurBruteN(s.getValeurBruteN())
-                .valeurN1(s.getValeurN1())
-                .valeurN(s.getValeurN())
-                .statutNettoyage(s.getStatutNettoyage())
-                .noteNettoyage(s.getNoteNettoyage())
-                .build();
-    }
-
     private ResultatGlobalResponse toResultatGlobalResponse(ImportSession session, List<ResultatKpi> resultats, String synthese) {
         List<ResultatKpi> ordered = resultats.stream()
             .sorted(Comparator.comparing(ResultatKpi::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder())).reversed())
@@ -468,21 +441,6 @@ public class ImportService {
                 .build();
     }
 
-    private StatutNettoyage mergeStatus(StatutNettoyage a, StatutNettoyage b) {
-        if (a == StatutNettoyage.INVALIDE || b == StatutNettoyage.INVALIDE) {
-            return StatutNettoyage.INVALIDE;
-        }
-        if (a == StatutNettoyage.MANQUANT || b == StatutNettoyage.MANQUANT) {
-            return StatutNettoyage.MANQUANT;
-        }
-        if (a == StatutNettoyage.SUSPECT || b == StatutNettoyage.SUSPECT) {
-            return StatutNettoyage.SUSPECT;
-        }
-        if (a == StatutNettoyage.CORRIGE || b == StatutNettoyage.CORRIGE) {
-            return StatutNettoyage.CORRIGE;
-        }
-        return StatutNettoyage.OK;
-    }
 
     private Map<StatutNettoyage, Long> getStagingCounts(Long sessionId) {
         Map<StatutNettoyage, Long> counts = new EnumMap<>(StatutNettoyage.class);
