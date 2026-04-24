@@ -3,8 +3,6 @@ package com.QHSEAnalytics.service;
 import com.QHSEAnalytics.auth.entity.User;
 import com.QHSEAnalytics.auth.exception.UserNotFoundException;
 import com.QHSEAnalytics.auth.repository.UserRepository;
-import com.QHSEAnalytics.dto.request.ColonneMappingRequest;
-import com.QHSEAnalytics.dto.request.SaveMappingRequest;
 import com.QHSEAnalytics.dto.response.*;
 import com.QHSEAnalytics.entity.*;
 import com.QHSEAnalytics.enums.*;
@@ -32,7 +30,6 @@ public class ImportService {
 
     private final TemplateExcelService templateExcelService;
     private final ExcelParserService excelParserService;
-    private final SimilariteService similariteService;
     private final NettoyageService nettoyageService;
     private final VariationService variationService;
     private final AnalyseIaService analyseIaService;
@@ -40,8 +37,6 @@ public class ImportService {
     private final ImportSessionRepository importSessionRepository;
     private final StagingDonneeRepository stagingDonneeRepository;
     private final ResultatKpiRepository resultatKpiRepository;
-    private final UserMappingTemplateRepository userMappingTemplateRepository;
-    private final UserMappingColonneRepository userMappingColonneRepository;
     private final KpiRepository kpiRepository;
     private final UserRepository userRepository;
 
@@ -50,107 +45,32 @@ public class ImportService {
         return templateExcelService.generateTemplate();
     }
 
-    @Transactional(readOnly = true)
-    public List<ColonneDetecteeResponse> detecterColonnes(MultipartFile file, int ligneEntete) {
-        log.info("Détection colonnes fichier={} ligneEntete={}", file.getOriginalFilename(), ligneEntete);
-        List<String> colonnes = excelParserService.detecterColonnes(file, ligneEntete);
-        return similariteService.detecterEtSuggerer(colonnes);
-    }
-
-    @Transactional(readOnly = true)
-    public List<UserMappingTemplateResponse> getMappings(Long userId) {
-        return userMappingTemplateRepository.findByUserId(userId)
-                .stream()
-                .sorted(Comparator.comparing(UserMappingTemplate::getCreatedAt).reversed())
-                .map(this::toMappingResponse)
-                .toList();
-    }
-
-    @Transactional
-    public UserMappingTemplateResponse saveMapping(Long userId, SaveMappingRequest req) {
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new UserNotFoundException("Utilisateur introuvable"));
-
-        UserMappingTemplate template = UserMappingTemplate.builder()
-            .user(user)
-                .nom(req.getNom().trim())
-                .ligneEntete(req.getLigneEntete())
-                .build();
-
-        UserMappingTemplate savedTemplate = userMappingTemplateRepository.save(template);
-        List<UserMappingColonne> cols = new ArrayList<>();
-
-        for (ColonneMappingRequest colReq : req.getColonnes()) {
-            Kpi kpi = null;
-            if (colReq.getKpiId() != null) {
-                kpi = kpiRepository.findById(colReq.getKpiId())
-                        .orElseThrow(() -> new KpiNotFoundException("KPI introuvable avec id=" + colReq.getKpiId()));
-            }
-
-            cols.add(UserMappingColonne.builder()
-                    .mappingTemplate(savedTemplate)
-                    .nomColonne(colReq.getNomColonne().trim())
-                    .indexColonne(colReq.getIndexColonne())
-                    .kpi(kpi)
-                    .typeValeur(colReq.getTypeValeur())
-                    .build());
-        }
-
-        userMappingColonneRepository.saveAll(cols);
-        savedTemplate.setColonnes(cols);
-        log.info("Mapping sauvegardé userId={} mappingId={}", userId, savedTemplate.getId());
-        return toMappingResponse(savedTemplate);
-    }
-
-    @Transactional
-    public void deleteMapping(Long userId, Long mappingId) {
-        UserMappingTemplate template = userMappingTemplateRepository.findByIdAndUserId(mappingId, userId)
-                .orElseThrow(() -> new MappingNotFoundException("Mapping introuvable"));
-
-        userMappingColonneRepository.deleteByMappingTemplateId(template.getId());
-        userMappingTemplateRepository.delete(template);
-        log.info("Mapping supprimé userId={} mappingId={}", userId, mappingId);
-    }
 
     @Transactional
     public ImportSessionResponse upload(
             Long userId,
-            ImportMode mode,
-            Long mappingTemplateId,
             int periodeN1,
             int periodeN,
             MultipartFile file
     ) {
-        log.info("Upload démarré userId={} mode={} fichier={}", userId, mode, file.getOriginalFilename());
-        validateUpload(mode, periodeN1, periodeN, file);
+        log.info("Upload démarré userId={} fichier={}", userId, file.getOriginalFilename());
+        validateUpload(periodeN1, periodeN, file);
 
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new UserNotFoundException("Utilisateur introuvable"));
 
         ImportSession session = ImportSession.builder()
             .user(user)
-                .mode(mode)
+                .mode(ImportMode.TEMPLATE_OFFICIEL)
                 .nomFichier(file.getOriginalFilename())
-                .templateVersion(mode == ImportMode.TEMPLATE_OFFICIEL ? "V1" : null)
+                .templateVersion("V1")
                 .periodeN1(periodeN1)
                 .periodeN(periodeN)
                 .statut(ImportStatut.EN_ATTENTE)
                 .build();
         session = importSessionRepository.save(session);
 
-        List<ExcelParserService.DonneeExtraite> donnees;
-        if (mode == ImportMode.TEMPLATE_OFFICIEL) {
-            donnees = excelParserService.parseTemplateOfficiel(file);
-        } else {
-            if (mappingTemplateId == null) {
-                throw new ImportValidationException("mappingTemplateId requis pour mode FICHIER_LIBRE");
-            }
-            UserMappingTemplate mapping = userMappingTemplateRepository.findByIdAndUserId(mappingTemplateId, userId)
-                    .orElseThrow(() -> new MappingNotFoundException("Mapping introuvable"));
-            session.setMappingTemplate(mapping);
-            List<UserMappingColonne> cols = userMappingColonneRepository.findByMappingTemplateId(mapping.getId());
-            donnees = excelParserService.parseAvecMapping(file, cols, mapping.getLigneEntete());
-        }
+        List<ExcelParserService.DonneeExtraite> donnees = excelParserService.parseTemplateOfficiel(file);
 
         List<StagingDonnee> staging = new ArrayList<>();
         for (ExcelParserService.DonneeExtraite donnee : donnees) {
@@ -171,7 +91,7 @@ public class ImportService {
             stats.getOrDefault(StatutNettoyage.MANQUANT, 0L),
             stats.getOrDefault(StatutNettoyage.INVALIDE, 0L),
             stats.getOrDefault(StatutNettoyage.SUSPECT, 0L));
-        log.info("Upload terminé sessionId={} userId={} mode={} lignes={}", session.getId(), userId, mode, staging.size());
+        log.info("Upload terminé sessionId={} userId={} lignes={}", session.getId(), userId, staging.size());
         return toImportSessionResponse(session);
     }
 
@@ -262,16 +182,14 @@ public class ImportService {
     @Transactional(noRollbackFor = ImportValidationException.class)
     public ResultatGlobalResponse uploadAndConfirm(
             Long userId,
-            ImportMode mode,
-            Long mappingTemplateId,
             int periodeN1,
             int periodeN,
             MultipartFile file
     ) {
-        log.info("Upload & confirm automatique démarré userId={} mode={}", userId, mode);
+        log.info("Upload & confirm automatique démarré userId={}", userId);
         
         // Step 1: Upload normalement
-        ImportSessionResponse uploadResponse = upload(userId, mode, mappingTemplateId, periodeN1, periodeN, file);
+        ImportSessionResponse uploadResponse = upload(userId, periodeN1, periodeN, file);
         Long sessionId = uploadResponse.getId();
         
         // Step 2: Vérifier la qualité des données
@@ -324,7 +242,7 @@ public class ImportService {
         log.info("Import annulé sessionId={} userId={}", sessionId, userId);
     }
 
-    private void validateUpload(ImportMode mode, int periodeN1, int periodeN, MultipartFile file) {
+    private void validateUpload(int periodeN1, int periodeN, MultipartFile file) {
         if (periodeN != periodeN1 + 1) {
             throw new ImportValidationException("La période N doit être égale à N-1 + 1");
         }
@@ -335,9 +253,7 @@ public class ImportService {
         if (file.getSize() > MAX_FILE_SIZE) {
             throw new FileTooLargeException("La taille du fichier dépasse 10MB");
         }
-        if (mode == ImportMode.TEMPLATE_OFFICIEL) {
-            templateExcelService.validateTemplateSignature(file);
-        }
+        templateExcelService.validateTemplateSignature(file);
     }
 
     private ImportSession loadSessionWithOwnership(Long userId, boolean isAdmin, Long sessionId) {
@@ -413,34 +329,6 @@ public class ImportService {
                 .analyseGlobaleIa(synthese)
                 .build();
     }
-
-    private UserMappingTemplateResponse toMappingResponse(UserMappingTemplate template) {
-        List<UserMappingColonne> cols = template.getColonnes();
-        if (cols == null || cols.isEmpty()) {
-            cols = userMappingColonneRepository.findByMappingTemplateId(template.getId());
-        }
-
-        List<ColonneMappingResponse> colResponses = cols.stream()
-                .sorted(Comparator.comparing(UserMappingColonne::getIndexColonne))
-                .map(c -> ColonneMappingResponse.builder()
-                        .id(c.getId())
-                        .nomColonne(c.getNomColonne())
-                        .indexColonne(c.getIndexColonne())
-                        .kpiId(c.getKpi() != null ? c.getKpi().getId() : null)
-                        .kpiNom(c.getKpi() != null ? c.getKpi().getNom() : null)
-                        .typeValeur(c.getTypeValeur())
-                        .build())
-                .toList();
-
-        return UserMappingTemplateResponse.builder()
-                .id(template.getId())
-                .nom(template.getNom())
-                .ligneEntete(template.getLigneEntete())
-                .createdAt(template.getCreatedAt())
-                .colonnes(colResponses)
-                .build();
-    }
-
 
     private Map<StatutNettoyage, Long> getStagingCounts(Long sessionId) {
         Map<StatutNettoyage, Long> counts = new EnumMap<>(StatutNettoyage.class);

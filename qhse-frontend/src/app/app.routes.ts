@@ -10,7 +10,6 @@ import { KpiPage } from './features/kpi/kpi-page.component';
 import { LoginPage } from './pages/login-page.component';
 import { ResultatsPage } from './features/resultats/resultats-page.component';
 import { HistoriquePage } from './features/historique/historique-page.component';
-import { MappingPage } from './features/mapping/mapping-page.component';
 import { AnalyseIaPage } from './features/analyse-ia/analyse-ia-page.component';
 
 export const routes: Routes = [
@@ -32,7 +31,6 @@ export const routes: Routes = [
   { path: 'dashboard', component: DashboardPage, canActivate: [AuthGuard] },
   { path: 'kpis', component: KpiPage, canActivate: [AuthGuard] },
   { path: 'import', component: ImportPage, canActivate: [AuthGuard], data: { roles: ['ANALYSTE'] } },
-  { path: 'mapping', component: MappingPage, canActivate: [AuthGuard], data: { roles: ['ANALYSTE'] } },
   { path: 'historique', component: HistoriquePage, canActivate: [AuthGuard], data: { roles: ['ANALYSTE'] } },
   { path: 'resultats', component: ResultatsPage, canActivate: [AuthGuard], data: { roles: ['ANALYSTE'] } },
   { path: 'analyse-ia/:importId', component: AnalyseIaPage, canActivate: [AuthGuard], data: { roles: ['ANALYSTE', 'ADMIN'] } },

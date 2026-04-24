@@ -125,7 +125,7 @@
 			<version>5.2.5</version>
 		</dependency>
 
-		<!-- OpenCSV pour CSV -->
+
 		<dependency>
 			<groupId>com.opencsv</groupId>
 			<artifactId>opencsv</artifactId>

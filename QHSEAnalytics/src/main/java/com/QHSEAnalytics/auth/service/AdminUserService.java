@@ -17,8 +17,6 @@ import com.QHSEAnalytics.auth.repository.RefreshTokenRepository;
 import com.QHSEAnalytics.auth.repository.UserRepository;
 import com.QHSEAnalytics.entity.ImportSession;
 import com.QHSEAnalytics.entity.ResultatKpi;
-import com.QHSEAnalytics.entity.UserMappingColonne;
-import com.QHSEAnalytics.entity.UserMappingTemplate;
 import com.QHSEAnalytics.exception.AdminProtectedException;
 import com.QHSEAnalytics.exception.UserAlreadyActiveException;
 import com.QHSEAnalytics.exception.UserAlreadyAdminException;
@@ -29,8 +27,6 @@ import com.QHSEAnalytics.repository.AnalyseGlobaleRepository;
 import com.QHSEAnalytics.repository.ImportSessionRepository;
 import com.QHSEAnalytics.repository.ResultatKpiRepository;
 import com.QHSEAnalytics.repository.StagingDonneeRepository;
-import com.QHSEAnalytics.repository.UserMappingColonneRepository;
-import com.QHSEAnalytics.repository.UserMappingTemplateRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -66,8 +62,6 @@ public class AdminUserService {
     private final ResultatKpiRepository resultatKpiRepository;
     private final AnalyseCategorieRepository analyseCategorieRepository;
     private final AnalyseGlobaleRepository analyseGlobaleRepository;
-    private final UserMappingTemplateRepository userMappingTemplateRepository;
-    private final UserMappingColonneRepository userMappingColonneRepository;
 
     @Value("${app.admin.email}")
     private String adminEmail;
@@ -155,11 +149,6 @@ public class AdminUserService {
         otpCodeRepository.deleteByUserId(id);
         refreshTokenRepository.deleteByUserId(id);
 
-        List<UserMappingTemplate> templates = userMappingTemplateRepository.findByUserId(id);
-        for (UserMappingTemplate template : templates) {
-            userMappingColonneRepository.deleteByMappingTemplateId(template.getId());
-        }
-        userMappingTemplateRepository.deleteByUserId(id);
         userRepository.delete(user);
 
         log.info("Utilisateur supprimé avec toutes ses données id={}", user.getId());

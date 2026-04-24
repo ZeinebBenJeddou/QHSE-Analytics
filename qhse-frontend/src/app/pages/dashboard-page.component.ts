@@ -204,13 +204,6 @@ import {
                     <span>Historique</span>
                     <mat-icon class="action-arrow">chevron_right</mat-icon>
                   </button>
-                  <button class="action-item" (click)="goToMapping()">
-                    <div class="action-icon-wrap">
-                      <mat-icon>link</mat-icon>
-                    </div>
-                    <span>Mappings</span>
-                    <mat-icon class="action-arrow">chevron_right</mat-icon>
-                  </button>
                 </div>
               </div>
 
@@ -361,11 +354,6 @@ import {
                         <button class="action-item" (click)="goToHistorique()">
                           <div class="action-icon-wrap"><mat-icon>history</mat-icon></div>
                           <span>Historique</span>
-                          <mat-icon class="action-arrow">chevron_right</mat-icon>
-                        </button>
-                        <button class="action-item" (click)="goToMapping()">
-                          <div class="action-icon-wrap"><mat-icon>link</mat-icon></div>
-                          <span>Mappings</span>
                           <mat-icon class="action-arrow">chevron_right</mat-icon>
                         </button>
                         <button class="action-item" (click)="goToUsers()">
@@ -1198,6 +1186,5 @@ export class DashboardPage implements OnInit {
   goToImport():     void { this.router.navigate(['/import']); }
   goToKpi():        void { this.router.navigate(['/kpis']); }
   goToHistorique(): void { this.router.navigate(['/historique']); }
-  goToMapping():    void { this.router.navigate(['/mapping']); }
   goToUsers():      void { this.router.navigate(['/users']); }
 }

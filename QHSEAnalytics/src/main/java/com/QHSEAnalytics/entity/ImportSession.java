@@ -29,10 +29,6 @@ public class ImportSession {
     @Column(nullable = false, length = 30)
     private ImportMode mode;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "mapping_template_id")
-    private UserMappingTemplate mappingTemplate;
-
     @Column(nullable = false)
     private String nomFichier;
 
