@@ -1,4 +1,9 @@
-@import "@angular/material/prebuilt-themes/indigo-pink.css";
+/* Plus besoin du @import ici, il est dans angular.json */
+
+@font-face {
+  font-family: 'Material Icons';
+  font-display: block;
+}
 
 :root {
   --mdc-theme-primary: #0b4a94;
@@ -15,8 +20,7 @@
   box-sizing: border-box;
 }
 
-html,
-body {
+html, body {
   margin: 0;
   min-height: 100%;
   background: #eff6ff;
@@ -36,7 +40,14 @@ button {
   font: inherit;
 }
 
-.mat-form-field {
+/* Force rendu immédiat Material */
+.mat-mdc-form-field,
+.mf {
   width: 100%;
 }
 
+.material-icons,
+.material-icons-outlined {
+  font-display: block;
+  -webkit-font-smoothing: antialiased;
+}

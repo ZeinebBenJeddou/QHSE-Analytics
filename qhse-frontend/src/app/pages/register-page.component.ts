@@ -1,16 +1,24 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
+import { Router, RouterModule } from '@angular/router';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../core/services/auth.service';
 import { RegisterRequest } from '../shared/models/auth-requests';
+
+function passwordStrengthValidator(control: AbstractControl): ValidationErrors | null {
+  const val = control.value || '';
+  const pattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/;
+  if (val.length >= 8 && pattern.test(val)) return null;
+  return { passwordWeak: true };
+}
+
+function passwordMatchValidator(g: FormGroup): ValidationErrors | null {
+  const pw = g.get('password')?.value;
+  const cpw = g.get('confirmPassword')?.value;
+  return pw === cpw ? null : { passwordMismatch: true };
+}
 
 @Component({
   selector: 'app-register-page',
@@ -18,196 +26,175 @@ import { RegisterRequest } from '../shared/models/auth-requests';
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
+    RouterModule,
     MatSnackBarModule,
     MatProgressSpinnerModule
   ],
   template: `
     <div class="page-wrapper">
-
-      <!-- Animated background -->
       <div class="bg-grid"></div>
-      <div class="bg-orb orb-1"></div>
-      <div class="bg-orb orb-2"></div>
-      <div class="bg-orb orb-3"></div>
 
-      <!-- Left panel — branding -->
-      <div class="left-panel">
-        <div class="left-inner">
+      <div class="card">
 
-          <div class="brand">
-            <div class="brand-icon">
-              <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-                <path d="M14 2L24 8V20L14 26L4 20V8L14 2Z" stroke="#1E6FD9" stroke-width="2" fill="none"/>
-                <path d="M14 7L20 10.5V17.5L14 21L8 17.5V10.5L14 7Z" fill="#1E6FD9" opacity="0.3"/>
-                <circle cx="14" cy="14" r="3" fill="#1E6FD9"/>
+        <div class="logo">
+          <span class="logo-name">QHSE <strong>Analytics</strong></span>
+        </div>
+
+        <p class="form-subtitle">Créez votre compte </p>
+
+        <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="form" novalidate>
+
+          
+          <div class="field-row">
+            <div class="field-group">
+              <label class="field-label">Nom</label>
+              <div class="input-wrap" [class.input-error]="f['nom'].invalid && f['nom'].touched">
+                <svg class="input-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                </svg>
+                <input class="field-input" type="text" formControlName="nom"
+                       placeholder="Nom" autocomplete="family-name">
+              </div>
+              <span class="field-error" *ngIf="f['nom'].invalid && f['nom'].touched">Champ requis</span>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label">Prénom</label>
+              <div class="input-wrap" [class.input-error]="f['prenom'].invalid && f['prenom'].touched">
+                <svg class="input-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                </svg>
+                <input class="field-input" type="text" formControlName="prenom"
+                       placeholder="Prénom" autocomplete="given-name">
+              </div>
+              <span class="field-error" *ngIf="f['prenom'].invalid && f['prenom'].touched">Champ requis</span>
+            </div>
+          </div>
+
+          
+          <div class="field-group">
+            <label class="field-label">Adresse email professionnelle</label>
+            <div class="input-wrap" [class.input-error]="f['email'].invalid && f['email'].touched">
+              <svg class="input-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <polyline points="22,6 12,13 2,6"/>
               </svg>
+              <input class="field-input" type="email" formControlName="email"
+                     placeholder="Adresse email" autocomplete="email">
             </div>
-            <span class="brand-name">QHSE <strong>Analytics</strong></span>
+            <span class="field-error" *ngIf="f['email'].hasError('required') && f['email'].touched">L'email est requis</span>
+            <span class="field-error" *ngIf="f['email'].hasError('email') && f['email'].touched">Format invalide</span>
           </div>
 
-          <div class="left-copy">
-            <div class="hero-badge">
-              <span class="badge-dot"></span>
-              Plateforme IA nouvelle génération
+          
+          <div class="field-group">
+            <label class="field-label">Mot de passe</label>
+            <div class="input-wrap" [class.input-error]="f['password'].invalid && f['password'].touched">
+              <svg class="input-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2"/>
+                <path d="M7 11V7a5 5 0 0110 0v4"/>
+              </svg>
+              <input class="field-input" [type]="showPw ? 'text' : 'password'"
+                     formControlName="password"
+                     placeholder="Minimum 8 caractères" autocomplete="new-password">
+              <button type="button" class="eye-btn" (click)="showPw = !showPw">
+                <svg *ngIf="!showPw" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                </svg>
+                <svg *ngIf="showPw" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/>
+                  <line x1="1" y1="1" x2="23" y2="23"/>
+                </svg>
+              </button>
             </div>
-            <h2 class="left-title">
-              Rejoignez la plateforme<br>
-              <span class="title-accent">QHSE intelligente</span>
-            </h2>
-            <p class="left-desc">
-              Analysez vos indicateurs, détectez les dérives critiques et générez des synthèses grâce à l'IA.
-            </p>
+
+            
+            <div class="pw-strength">
+              <div class="pw-bar" [class]="getBarClass(0)"></div>
+              <div class="pw-bar" [class]="getBarClass(1)"></div>
+              <div class="pw-bar" [class]="getBarClass(2)"></div>
+              <div class="pw-bar" [class]="getBarClass(3)"></div>
+            </div>
+            <span class="pw-label" [style.color]="pwLabelColor">{{ pwLabelText }}</span>
+
+            <span class="field-error" *ngIf="f['password'].hasError('required') && f['password'].touched">Requis</span>
+            <span class="field-error" *ngIf="f['password'].hasError('passwordWeak') && f['password'].touched && !f['password'].hasError('required')">
+              Doit contenir majuscule, minuscule, chiffre et caractère spécial (@$!%*?&)
+            </span>
           </div>
 
-          <div class="trust-list">
-            <div class="trust-item">
-              <div class="trust-icon">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1E6FD9" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-              </div>
-              <span>Sécurité JWT & 2FA</span>
+        
+          <div class="field-group">
+            <label class="field-label">Confirmer le mot de passe</label>
+            <div class="input-wrap" [class.input-error]="
+              (registerForm.hasError('passwordMismatch') || f['confirmPassword'].hasError('required'))
+              && f['confirmPassword'].touched">
+              <svg class="input-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2"/>
+                <path d="M7 11V7a5 5 0 0110 0v4"/>
+              </svg>
+              <input class="field-input" [type]="showConfirm ? 'text' : 'password'"
+                     formControlName="confirmPassword"
+                     placeholder="Répétez le mot de passe" autocomplete="new-password">
+              <button type="button" class="eye-btn" (click)="showConfirm = !showConfirm">
+                <svg *ngIf="!showConfirm" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                </svg>
+                <svg *ngIf="showConfirm" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/>
+                  <line x1="1" y1="1" x2="23" y2="23"/>
+                </svg>
+              </button>
             </div>
-            <div class="trust-item">
-              <div class="trust-icon">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1E6FD9" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-              </div>
-              <span>Analyse en temps réel</span>
-            </div>
-            <div class="trust-item">
-              <div class="trust-icon">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1E6FD9" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-              </div>
-              <span>Export PDF / Excel</span>
-            </div>
+            <span class="field-error"
+              *ngIf="f['confirmPassword'].hasError('required') && f['confirmPassword'].touched">
+              Requis
+            </span>
+            <span class="field-error"
+              *ngIf="registerForm.hasError('passwordMismatch') && f['confirmPassword'].touched && !f['confirmPassword'].hasError('required')">
+              Les mots de passe ne correspondent pas
+            </span>
           </div>
 
+         
+          <button class="btn-submit" type="submit" [disabled]="registerForm.invalid || isLoading">
+            <mat-spinner diameter="17" *ngIf="isLoading"></mat-spinner>
+            <ng-container *ngIf="!isLoading">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+                <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                <circle cx="8.5" cy="7" r="4"/>
+                <line x1="20" y1="8" x2="20" y2="14"/>
+                <line x1="23" y1="11" x2="17" y2="11"/>
+              </svg>
+              Créer mon compte
+            </ng-container>
+            <span *ngIf="isLoading">Création en cours…</span>
+          </button>
+
+        </form>
+
+        <div class="form-footer">
+          Déjà un compte ? <a routerLink="/login" class="link">Se connecter</a>
         </div>
+
+        
       </div>
-
-      <!-- Right panel — form -->
-      <div class="right-panel">
-        <div class="form-card">
-
-          <div class="form-header">
-            <h1 class="form-title">Créer un compte</h1>
-            <p class="form-subtitle">Remplissez le formulaire pour commencer</p>
-          </div>
-
-          <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="register-form" novalidate>
-
-            <!-- Nom & Prénom row -->
-            <div class="field-row">
-              <div class="field-group">
-                <label class="field-label">Nom</label>
-                <div class="input-wrap" [class.input-error]="registerForm.get('nom')?.invalid && registerForm.get('nom')?.touched">
-                  <mat-icon class="input-icon">person</mat-icon>
-                  <input matInput formControlName="nom" placeholder="Votre nom" class="qhse-input">
-                </div>
-                <span class="error-msg" *ngIf="registerForm.get('nom')?.hasError('required') && registerForm.get('nom')?.touched">
-                  Le nom est requis
-                </span>
-              </div>
-
-              <div class="field-group">
-                <label class="field-label">Prénom</label>
-                <div class="input-wrap" [class.input-error]="registerForm.get('prenom')?.invalid && registerForm.get('prenom')?.touched">
-                  <mat-icon class="input-icon">person_outline</mat-icon>
-                  <input matInput formControlName="prenom" placeholder="Votre prénom" class="qhse-input">
-                </div>
-                <span class="error-msg" *ngIf="registerForm.get('prenom')?.hasError('required') && registerForm.get('prenom')?.touched">
-                  Le prénom est requis
-                </span>
-              </div>
-            </div>
-
-            <!-- Email -->
-            <div class="field-group">
-              <label class="field-label">Adresse e-mail</label>
-              <div class="input-wrap" [class.input-error]="registerForm.get('email')?.invalid && registerForm.get('email')?.touched">
-                <mat-icon class="input-icon">email</mat-icon>
-                <input matInput formControlName="email" type="email" placeholder="votre.email@exemple.com" class="qhse-input">
-              </div>
-              <span class="error-msg" *ngIf="registerForm.get('email')?.hasError('required') && registerForm.get('email')?.touched">L'email est requis</span>
-              <span class="error-msg" *ngIf="registerForm.get('email')?.hasError('email') && registerForm.get('email')?.touched">Format d'email invalide</span>
-            </div>
-
-            <!-- Password -->
-            <div class="field-group">
-              <label class="field-label">Mot de passe</label>
-              <div class="input-wrap" [class.input-error]="registerForm.get('password')?.invalid && registerForm.get('password')?.touched">
-                <mat-icon class="input-icon">lock</mat-icon>
-                <input matInput formControlName="password"
-                       [type]="showPassword ? 'text' : 'password'"
-                       placeholder="8 caractères minimum"
-                       class="qhse-input">
-                <button type="button" class="toggle-pw" (click)="showPassword = !showPassword">
-                  <mat-icon>{{ showPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
-                </button>
-              </div>
-              <span class="error-msg" *ngIf="registerForm.get('password')?.hasError('required') && registerForm.get('password')?.touched">Le mot de passe est requis</span>
-              <span class="error-msg" *ngIf="registerForm.get('password')?.hasError('minlength') && registerForm.get('password')?.touched">8 caractères minimum</span>
-            </div>
-
-            <!-- Confirm Password -->
-            <div class="field-group">
-              <label class="field-label">Confirmer le mot de passe</label>
-              <div class="input-wrap" [class.input-error]="(registerForm.hasError('passwordMismatch') || registerForm.get('confirmPassword')?.hasError('required')) && registerForm.get('confirmPassword')?.touched">
-                <mat-icon class="input-icon">lock_outline</mat-icon>
-                <input matInput formControlName="confirmPassword"
-                       [type]="showConfirm ? 'text' : 'password'"
-                       placeholder="Répétez le mot de passe"
-                       class="qhse-input">
-                <button type="button" class="toggle-pw" (click)="showConfirm = !showConfirm">
-                  <mat-icon>{{ showConfirm ? 'visibility_off' : 'visibility' }}</mat-icon>
-                </button>
-              </div>
-              <span class="error-msg" *ngIf="registerForm.get('confirmPassword')?.hasError('required') && registerForm.get('confirmPassword')?.touched">La confirmation est requise</span>
-              <span class="error-msg" *ngIf="registerForm.hasError('passwordMismatch') && registerForm.get('confirmPassword')?.touched">Les mots de passe ne correspondent pas</span>
-            </div>
-
-            <!-- Submit -->
-            <button type="submit" class="btn-submit" [disabled]="registerForm.invalid || isLoading">
-              <mat-progress-spinner diameter="18" mode="indeterminate" *ngIf="isLoading" class="white-spinner"></mat-progress-spinner>
-              <ng-container *ngIf="!isLoading">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                Créer mon compte
-              </ng-container>
-            </button>
-
-          </form>
-
-          <div class="form-footer">
-            <p>Déjà un compte ?
-              <button class="link-btn" (click)="goToLogin()">Se connecter</button>
-            </p>
-          </div>
-
-        </div>
-      </div>
-
     </div>
   `,
   styles: [`
-    /* ── RESET ── */
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    /* ── LAYOUT ── */
     .page-wrapper {
+      display: flex;
       min-height: 100vh;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+      align-items: center;
+      justify-content: center;
       background: #F4F7FF;
       font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-      color: #0D1B3E;
+      padding: 2rem 1rem;
       position: relative;
-      overflow: hidden;
     }
 
-    /* ── BACKGROUND ── */
     .bg-grid {
       position: fixed;
       inset: 0;
@@ -218,344 +205,152 @@ import { RegisterRequest } from '../shared/models/auth-requests';
       pointer-events: none;
       z-index: 0;
     }
-    .bg-orb {
-      position: fixed;
-      border-radius: 50%;
-      filter: blur(80px);
-      pointer-events: none;
-      z-index: 0;
-      animation: floatOrb 12s ease-in-out infinite;
-    }
-    .orb-1 { width:500px; height:500px; background:rgba(30,111,217,0.10); top:-150px; right:-100px; animation-delay:0s; }
-    .orb-2 { width:350px; height:350px; background:rgba(100,180,255,0.08); bottom:10%; left:-80px; animation-delay:-4s; }
-    .orb-3 { width:280px; height:280px; background:rgba(30,111,217,0.06); top:40%; left:35%; animation-delay:-8s; }
-    @keyframes floatOrb {
-      0%,100% { transform:translate(0,0) scale(1); }
-      50%      { transform:translate(20px,-30px) scale(1.05); }
-    }
 
-    /* ── LEFT PANEL ── */
-    .left-panel {
+    .card {
       position: relative;
       z-index: 1;
-      background: linear-gradient(160deg, #0D1B3E 0%, #1E3A5F 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 3rem 3.5rem;
-      overflow: hidden;
-    }
-    /* subtle grid overlay on left panel */
-    .left-panel::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-      background-size: 40px 40px;
-      pointer-events: none;
-    }
-
-    .left-inner {
-      position: relative;
-      z-index: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 2.5rem;
-      max-width: 380px;
-      animation: fadeSlideIn 0.6s ease both;
-    }
-
-    /* Brand */
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 0.65rem;
-    }
-    .brand-icon {
-      width: 44px; height: 44px;
-      background: rgba(30,111,217,0.2);
-      border: 1px solid rgba(30,111,217,0.35);
-      border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .brand-name {
-      font-size: 1.1rem;
-      letter-spacing: -0.02em;
-      color: rgba(255,255,255,0.9);
-    }
-    .brand-name strong { color: #5BA4F5; }
-
-    /* Hero badge */
-    .hero-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.35rem 0.9rem;
-      background: rgba(30,111,217,0.2);
-      border: 1px solid rgba(30,111,217,0.35);
-      border-radius: 100px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: #7CC3FF;
-      letter-spacing: 0.03em;
-      width: fit-content;
-      margin-bottom: 0.5rem;
-    }
-    .badge-dot {
-      width: 7px; height: 7px;
-      background: #5BA4F5;
-      border-radius: 50%;
-      animation: pulse 2s ease-in-out infinite;
-    }
-    @keyframes pulse {
-      0%,100% { opacity:1; transform:scale(1); }
-      50%      { opacity:0.5; transform:scale(0.8); }
-    }
-
-    .left-title {
-      font-size: clamp(1.6rem, 2.2vw, 2rem);
-      font-weight: 800;
-      line-height: 1.25;
-      letter-spacing: -0.03em;
-      color: white;
-    }
-    .title-accent {
-      background: linear-gradient(135deg, #5BA4F5 0%, #7CC3FF 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .left-desc {
-      font-size: 0.9rem;
-      line-height: 1.7;
-      color: rgba(255,255,255,0.55);
-      margin-top: 0.75rem;
-    }
-
-    /* Trust list */
-    .trust-list {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-    .trust-item {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      font-size: 0.85rem;
-      color: rgba(255,255,255,0.7);
-      font-weight: 500;
-    }
-    .trust-icon {
-      width: 26px; height: 26px;
-      background: rgba(30,111,217,0.2);
-      border-radius: 6px;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-    }
-
-    /* ── RIGHT PANEL ── */
-    .right-panel {
-      position: relative;
-      z-index: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 2.5rem 2rem;
-      overflow-y: auto;
-    }
-
-    .form-card {
-      background: white;
-      border-radius: 20px;
-      border: 1px solid rgba(30,111,217,0.12);
-      box-shadow: 0 8px 40px rgba(30,111,217,0.10), 0 2px 8px rgba(0,0,0,0.05);
-      padding: 2.5rem 2.25rem 2rem;
       width: 100%;
       max-width: 460px;
-      animation: fadeSlideIn 0.65s 0.1s ease both;
-    }
-
-    .form-header {
-      margin-bottom: 2rem;
-    }
-    .form-title {
-      font-size: 1.5rem;
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      color: #0D1B3E;
-      line-height: 1.2;
-    }
-    .form-subtitle {
-      font-size: 0.85rem;
-      color: #718096;
-      margin-top: 0.35rem;
-    }
-
-    /* ── FORM ── */
-    .register-form {
-      display: flex;
-      flex-direction: column;
-      gap: 1.1rem;
-    }
-
-    .field-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.9rem;
-    }
-
-    .field-group {
-      display: flex;
-      flex-direction: column;
-      gap: 0.3rem;
-    }
-
-    .field-label {
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: #0D1B3E;
-      letter-spacing: 0.01em;
-    }
-
-    .input-wrap {
-      display: flex;
-      align-items: center;
-      gap: 0;
-      border: 1.5px solid rgba(30,111,217,0.20);
-      border-radius: 10px;
-      background: #F8FAFF;
-      transition: border-color 0.2s, box-shadow 0.2s;
-      overflow: hidden;
-    }
-    .input-wrap:focus-within {
-      border-color: #1E6FD9;
-      box-shadow: 0 0 0 3px rgba(30,111,217,0.10);
       background: white;
-    }
-    .input-wrap.input-error {
-      border-color: #EF4444;
-    }
-    .input-wrap.input-error:focus-within {
-      box-shadow: 0 0 0 3px rgba(239,68,68,0.10);
-    }
-
-    .input-icon {
-      font-size: 1rem;
-      width: 1rem; height: 1rem;
-      color: #9CA3AF;
-      margin-left: 0.85rem;
-      flex-shrink: 0;
+      border-radius: 20px;
+      padding: 2.25rem 2.25rem 2rem;
+      box-shadow:
+        0 0 0 1px rgba(30,111,217,0.07),
+        0 8px 32px rgba(30,111,217,0.09),
+        0 2px 8px rgba(0,0,0,0.04);
+      animation: fadeUp 0.5s ease both;
     }
 
-    .qhse-input {
-      flex: 1;
-      border: none;
-      background: transparent;
-      padding: 0.75rem 0.85rem;
-      font-size: 0.875rem;
-      color: #0D1B3E;
-      outline: none;
-      font-family: inherit;
-    }
-    .qhse-input::placeholder { color: #9CA3AF; }
-
-    .toggle-pw {
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 0 0.75rem;
-      color: #9CA3AF;
-      display: flex; align-items: center;
-      transition: color 0.2s;
-      flex-shrink: 0;
-    }
-    .toggle-pw:hover { color: #1E6FD9; }
-    .toggle-pw mat-icon { font-size: 1.1rem; width:1.1rem; height:1.1rem; }
-
-    .error-msg {
-      font-size: 0.72rem;
-      color: #EF4444;
-      font-weight: 500;
-      padding-left: 0.2rem;
-    }
-
-    /* ── SUBMIT ── */
-    .btn-submit {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      width: 100%;
-      padding: 0.85rem;
-      background: linear-gradient(135deg, #1E6FD9, #2B8AFF);
-      color: white;
-      font-size: 0.925rem;
-      font-weight: 700;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      box-shadow: 0 4px 20px rgba(30,111,217,0.35);
-      transition: all 0.25s;
-      margin-top: 0.5rem;
-      font-family: inherit;
-    }
-    .btn-submit:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 28px rgba(30,111,217,0.45);
-    }
-    .btn-submit:disabled {
-      opacity: 0.55;
-      cursor: not-allowed;
-      transform: none;
-    }
-    .white-spinner ::ng-deep circle { stroke: white !important; }
-
-    /* ── FOOTER ── */
-    .form-footer {
-      margin-top: 1.5rem;
-      text-align: center;
-      font-size: 0.85rem;
-      color: #718096;
-    }
-    .link-btn {
-      background: none;
-      border: none;
-      color: #1E6FD9;
-      font-weight: 600;
-      font-size: inherit;
-      cursor: pointer;
-      font-family: inherit;
-      padding: 0;
-      margin-left: 0.25rem;
-      transition: color 0.2s;
-    }
-    .link-btn:hover { color: #1558B0; text-decoration: underline; }
-
-    /* ── ANIMATION ── */
-    @keyframes fadeSlideIn {
+    @keyframes fadeUp {
       from { opacity: 0; transform: translateY(16px); }
       to   { opacity: 1; transform: translateY(0); }
     }
 
-    /* ── RESPONSIVE ── */
-    @media (max-width: 860px) {
-      .page-wrapper { grid-template-columns: 1fr; }
-      .left-panel { display: none; }
-      .right-panel { padding: 2rem 1rem; background: #F4F7FF; min-height: 100vh; }
+    .logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.6rem;
     }
+    .logo-name { font-size: 0.95rem; color: #0D1B3E; font-weight: 400; letter-spacing: -0.01em; }
+    .logo-name strong { color: #1E6FD9; font-weight: 600; }
+
+    .form-subtitle { font-size: 0.855rem; color: #718096; text-align: center; margin-bottom: 1.5rem; }
+
+    .form { display: flex; flex-direction: column; gap: 0.85rem; }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    .field-group { display: flex; flex-direction: column; gap: 4px; }
+    .field-label { font-size: 0.78rem; font-weight: 600; color: #2D3748; }
+
+    .input-wrap {
+      display: flex;
+      align-items: center;
+      background: #F8FAFF;
+      border: 1.5px solid #E2EAF6;
+      border-radius: 10px;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    }
+    .input-wrap:focus-within {
+      border-color: #1E6FD9;
+      background: white;
+      box-shadow: 0 0 0 3px rgba(30,111,217,0.09);
+    }
+    .input-wrap.input-error { border-color: #FC8181; }
+    .input-wrap.input-error:focus-within { box-shadow: 0 0 0 3px rgba(229,62,62,0.09); }
+
+    .input-icon { flex-shrink: 0; margin-left: 0.8rem; color: #A0AEC0; }
+
+    .field-input {
+      flex: 1;
+      border: none; background: transparent;
+      padding: 0.68rem 0.5rem 0.68rem 0.6rem;
+      font-size: 0.875rem; color: #0D1B3E;
+      outline: none; font-family: inherit;
+    }
+    .field-input::placeholder { color: #A0AEC0; }
+
+    .eye-btn {
+      background: none; border: none; cursor: pointer;
+      padding: 0.45rem 0.75rem; color: #A0AEC0;
+      display: flex; align-items: center; transition: color 0.2s;
+    }
+    .eye-btn:hover { color: #1E6FD9; }
+
+    .field-error { font-size: 0.74rem; color: #E53E3E; font-weight: 500; }
+
+   
+    .pw-strength {
+      display: flex;
+      gap: 4px;
+      margin-top: 4px;
+    }
+    .pw-bar {
+      flex: 1;
+      height: 3px;
+      border-radius: 2px;
+      background: #E2EAF6;
+      transition: background 0.3s;
+    }
+    .pw-bar.weak   { background: #FC8181; }
+    .pw-bar.medium { background: #F6AD55; }
+    .pw-bar.strong { background: #68D391; }
+    .pw-label { font-size: 0.7rem; color: #A0AEC0; }
+
+    .btn-submit {
+      width: 100%;
+      padding: 0.78rem;
+      background: #1E6FD9;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+      margin-top: 0.3rem;
+      transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 2px 10px rgba(30,111,217,0.25);
+      font-family: inherit;
+    }
+    .btn-submit:hover:not(:disabled) {
+      background: #1558B0;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(30,111,217,0.35);
+    }
+    .btn-submit:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+    .form-footer {
+      text-align: center;
+      margin-top: 1.2rem;
+      font-size: 0.83rem;
+      color: #718096;
+    }
+    .link { color: #1E6FD9; font-weight: 600; text-decoration: none; }
+    .link:hover { text-decoration: underline; }
+
+    .security-note {
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+      margin-top: 0.9rem;
+      font-size: 0.71rem;
+      color: #A0AEC0;
+    }
+
     @media (max-width: 480px) {
+      .card { padding: 2rem 1.5rem; }
       .field-row { grid-template-columns: 1fr; }
-      .form-card { padding: 2rem 1.25rem 1.5rem; border-radius: 14px; }
     }
   `]
 })
 export class RegisterPageComponent {
   registerForm: FormGroup;
   isLoading = false;
-  showPassword = false;
+  showPw = false;
   showConfirm = false;
 
   constructor(
@@ -565,46 +360,72 @@ export class RegisterPageComponent {
     private snackBar: MatSnackBar
   ) {
     this.registerForm = this.fb.group({
-      nom: ['', Validators.required],
-      prenom: ['', Validators.required],
-      email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(8)]],
+      nom:             ['', Validators.required],
+      prenom:          ['', Validators.required],
+      email:           ['', [Validators.required, Validators.email]],
+      password:        ['', [Validators.required, passwordStrengthValidator]],
       confirmPassword: ['', Validators.required]
-    }, {
-      validators: this.passwordMatchValidator
-    });
+    }, { validators: passwordMatchValidator });
   }
 
-  passwordMatchValidator(group: FormGroup): any {
-    const password = group.get('password');
-    const confirmPassword = group.get('confirmPassword');
-    return password && confirmPassword && password.value === confirmPassword.value
-      ? null : { passwordMismatch: true };
+  get f() { return this.registerForm.controls; }
+
+  get pwScore(): number {
+    const val = this.f['password'].value || '';
+    let score = 0;
+    if (val.length >= 8) score++;
+    if (/[A-Z]/.test(val) && /[a-z]/.test(val)) score++;
+    if (/\d/.test(val)) score++;
+    if (/[@$!%*?&]/.test(val)) score++;
+    return score;
+  }
+
+  getBarClass(index: number): string {
+    const score = this.pwScore;
+    if (index >= score) return 'pw-bar';
+    if (score <= 1) return 'pw-bar weak';
+    if (score <= 2) return 'pw-bar medium';
+    return 'pw-bar strong';
+  }
+
+  get pwLabelText(): string {
+    const val = this.f['password'].value || '';
+    if (!val) return 'Majuscule, minuscule, chiffre et caractère spécial requis';
+    const score = this.pwScore;
+    const missing: string[] = [];
+    if (!/[A-Z]/.test(val)) missing.push('majuscule');
+    if (!/[a-z]/.test(val)) missing.push('minuscule');
+    if (!/\d/.test(val)) missing.push('chiffre');
+    if (!/[@$!%*?&]/.test(val)) missing.push('caractère spécial');
+    if (val.length < 8) missing.push('8 caractères minimum');
+    if (missing.length) return 'Manquant : ' + missing.join(', ');
+    return score <= 2 ? 'Moyen' : 'Fort — mot de passe valide';
+  }
+
+  get pwLabelColor(): string {
+    const score = this.pwScore;
+    if (!this.f['password'].value) return '#A0AEC0';
+    if (score <= 1) return '#E53E3E';
+    if (score <= 2) return '#DD6B20';
+    if (score <= 3) return '#DD6B20';
+    return '#38A169';
   }
 
   onSubmit(): void {
-    if (this.registerForm.valid) {
-      this.isLoading = true;
-      const registerRequest: RegisterRequest = this.registerForm.value;
-
-      this.authService.register(registerRequest).subscribe({
-        next: (response) => {
-          this.isLoading = false;
-          this.snackBar.open(response.message, 'Fermer', { duration: 5000 });
-          this.router.navigate(['/verify-otp'], {
-            queryParams: { email: registerRequest.email }
-          });
-        },
-        error: (error) => {
-          this.isLoading = false;
-          const errorMessage = error.error?.message || 'Erreur lors de l\'inscription';
-          this.snackBar.open(errorMessage, 'Fermer', { duration: 5000 });
-        }
-      });
-    }
-  }
-
-  goToLogin(): void {
-    this.router.navigate(['/login']);
+    if (this.registerForm.invalid) return;
+    this.isLoading = true;
+    const req: RegisterRequest = this.registerForm.value;
+    this.authService.register(req).subscribe({
+      next: (res) => {
+        this.isLoading = false;
+        this.snackBar.open(res.message, 'Fermer', { duration: 5000 });
+        this.router.navigate(['/verify-otp'], { queryParams: { email: req.email } });
+      },
+      error: (err) => {
+        this.isLoading = false;
+        const msg = err.error?.message || "Erreur lors de l'inscription";
+        this.snackBar.open(msg, 'Fermer', { duration: 5000 });
+      }
+    });
   }
 }

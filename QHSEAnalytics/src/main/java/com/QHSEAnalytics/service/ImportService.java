@@ -171,6 +171,7 @@ public class ImportService {
             return toResultatGlobalResponse(session, resultatsEnrichis, synthese);
         } catch (Exception ex) {
             resultatKpiRepository.deleteByImportSessionId(sessionId);
+            stagingDonneeRepository.deleteByImportSessionId(sessionId);
             session.setStatut(ImportStatut.ERREUR);
             session.setMessageErreur(ex.getMessage());
             importSessionRepository.save(session);

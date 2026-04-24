@@ -10,44 +10,41 @@ import { RouterModule } from '@angular/router';
   template: `
     <div class="page-wrapper">
 
-      <!-- Animated background grid -->
+      
       <div class="bg-grid"></div>
       <div class="bg-orb orb-1"></div>
       <div class="bg-orb orb-2"></div>
       <div class="bg-orb orb-3"></div>
 
-      <!-- ─── NAVBAR ─── -->
+      
       <nav class="navbar">
         <div class="nav-inner">
           <div class="brand">
-            <div class="brand-icon">
+            <!--<div class="brand-icon">
               <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
                 <path d="M14 2L24 8V20L14 26L4 20V8L14 2Z" stroke="#1E6FD9" stroke-width="2" fill="none"/>
                 <path d="M14 7L20 10.5V17.5L14 21L8 17.5V10.5L14 7Z" fill="#1E6FD9" opacity="0.3"/>
                 <circle cx="14" cy="14" r="3" fill="#1E6FD9"/>
               </svg>
-            </div>
+            </div>-->
             <span class="brand-name">QHSE <strong>Analytics</strong></span>
           </div>
           <div class="nav-links">
-            <a class="nav-link" href="#features">Fonctionnalités</a>
-            <a class="nav-link" href="#stats">Indicateurs</a>
-            <a class="nav-link" href="#about">À propos</a>
+            <a class="nav-link" href="#features"></a>
+            <a class="nav-link" href="#stats"></a>
+            <a class="nav-link" href="#about"></a>
           </div>
           <div class="nav-cta">
             <a routerLink="/login" class="btn-nav-outline">Connexion</a>
-            <a routerLink="/register" class="btn-nav-filled">Commencer</a>
+            <a routerLink="/register" class="btn-nav-filled">Inscription</a>
           </div>
         </div>
       </nav>
 
-      <!-- ─── HERO ─── -->
+     
       <section class="hero">
         <div class="hero-content">
-          <div class="hero-badge">
-            <span class="badge-dot"></span>
-            Plateforme IA nouvelle génération
-          </div>
+          
 
           <h1 class="hero-title">
             Analysez vos performances<br>
@@ -72,7 +69,7 @@ import { RouterModule } from '@angular/router';
           <div class="hero-trust">
             <div class="trust-item">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1E6FD9" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-              <span>Sécurité JWT</span>
+              <span>Sécurité </span>
             </div>
             <div class="trust-sep">·</div>
             <div class="trust-item">
@@ -82,12 +79,12 @@ import { RouterModule } from '@angular/router';
             <div class="trust-sep">·</div>
             <div class="trust-item">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1E6FD9" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-              <span>Export PDF/Excel</span>
+              <span>Export PDF</span>
             </div>
           </div>
         </div>
 
-        <!-- Dashboard Preview Card -->
+        
         <div class="hero-visual">
           <div class="dashboard-card">
             <div class="dc-header">
@@ -97,7 +94,7 @@ import { RouterModule } from '@angular/router';
               <span class="dc-title">Tableau de bord QHSE — 2025</span>
             </div>
             <div class="dc-body">
-              <!-- KPI Row -->
+              
               <div class="kpi-row">
                 <div class="kpi-card kpi-green">
                   <div class="kpi-label">Conformité</div>
@@ -115,7 +112,7 @@ import { RouterModule } from '@angular/router';
                   <div class="kpi-trend up">▼ -3</div>
                 </div>
               </div>
-              <!-- Mini bar chart -->
+              
               <div class="mini-chart">
                 <div class="chart-label">Évolution mensuelle (NC)</div>
                 <div class="bars">
@@ -129,7 +126,7 @@ import { RouterModule } from '@angular/router';
                   <span class="leg leg-curr">2025</span>
                 </div>
               </div>
-              <!-- AI insight -->
+              
               <div class="ai-insight">
                 <div class="ai-icon">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1E6FD9" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>
@@ -143,21 +140,9 @@ import { RouterModule } from '@angular/router';
         </div>
       </section>
 
-      <!-- ─── FEATURES ─── -->
-      <section id="features" class="features-section">
-        <div class="section-label">Fonctionnalités clés</div>
-        <h2 class="section-title">Tout ce dont vous avez besoin<br>pour piloter votre QHSE</h2>
+     
 
-        <div class="features-grid">
-          <div class="feat-card" *ngFor="let f of features; let i = index" [style.animation-delay]="(i * 0.1) + 's'">
-            <div class="feat-icon" [innerHTML]="f.icon"></div>
-            <h3 class="feat-title">{{ f.title }}</h3>
-            <p class="feat-desc">{{ f.desc }}</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- ─── STATS BANNER ─── -->
+   
       <section id="stats" class="stats-section">
         <div class="stats-inner">
           <div class="stat-item" *ngFor="let s of stats">
@@ -167,41 +152,23 @@ import { RouterModule } from '@angular/router';
         </div>
       </section>
 
-      <!-- ─── CTA ─── -->
-      <section class="cta-section">
-        <div class="cta-box">
-          <div class="cta-icon">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-          </div>
-          <h2 class="cta-title">Prêt à transformer votre analyse QHSE ?</h2>
-          <p class="cta-desc">Rejoignez les organisations qui pilotent leur performance avec l'intelligence artificielle.</p>
-          <div class="cta-actions">
-            <a routerLink="/register" class="btn-cta-white">Créer un compte</a>
-            <a routerLink="/login" class="btn-cta-outline">Se connecter</a>
-          </div>
-        </div>
-      </section>
+      
 
-      <!-- ─── FOOTER ─── -->
+      
       <footer class="footer">
         <div class="footer-inner">
           <div class="brand">
-            <div class="brand-icon">
-              <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
-                <path d="M14 2L24 8V20L14 26L4 20V8L14 2Z" stroke="#1E6FD9" stroke-width="2" fill="none"/>
-                <circle cx="14" cy="14" r="3" fill="#1E6FD9"/>
-              </svg>
-            </div>
-            <span class="brand-name" style="font-size:0.95rem">QHSE <strong>Analytics</strong></span>
+            
+            <span class="brand-name" style="font-size:0.95rem"></span>
           </div>
-          <p class="footer-copy">© 2025 Qualipro by Imagine Human — Tous droits réservés</p>
+          <p class="footer-copy">© 2026 QHSE Analytics — Tous droits réservés</p>
         </div>
       </footer>
 
     </div>
   `,
   styles: [`
-    /* ── RESET & BASE ── */
+   
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     .page-wrapper {
@@ -213,7 +180,7 @@ import { RouterModule } from '@angular/router';
       position: relative;
     }
 
-    /* ── ANIMATED BACKGROUND ── */
+   
     .bg-grid {
       position: fixed;
       inset: 0;
@@ -240,7 +207,7 @@ import { RouterModule } from '@angular/router';
       50% { transform: translate(20px, -30px) scale(1.05); }
     }
 
-    /* ── NAVBAR ── */
+   
     .navbar {
       position: sticky;
       top: 0;
@@ -319,7 +286,7 @@ import { RouterModule } from '@angular/router';
     }
     .btn-nav-filled:hover { background: #1558B0; }
 
-    /* ── HERO ── */
+    
     .hero {
       position: relative;
       z-index: 1;
@@ -440,7 +407,7 @@ import { RouterModule } from '@angular/router';
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* ── DASHBOARD CARD ── */
+
     .hero-visual {
       animation: fadeSlideIn 0.7s 0.2s ease both;
     }
@@ -525,7 +492,7 @@ import { RouterModule } from '@angular/router';
     }
     .ai-text { font-size: 0.75rem; color: #4A5568; line-height: 1.5; }
 
-    /* ── FEATURES ── */
+    
     .features-section {
       position: relative;
       z-index: 1;
@@ -584,7 +551,7 @@ import { RouterModule } from '@angular/router';
     .feat-title { font-size: 1rem; font-weight: 700; color: #0D1B3E; margin-bottom: 0.5rem; }
     .feat-desc { font-size: 0.875rem; color: #718096; line-height: 1.65; }
 
-    /* ── STATS ── */
+   
     .stats-section {
       position: relative;
       z-index: 1;
@@ -611,7 +578,7 @@ import { RouterModule } from '@angular/router';
     }
     .stat-label { font-size: 0.85rem; color: rgba(255,255,255,0.6); margin-top: 0.25rem; font-weight: 500; }
 
-    /* ── CTA ── */
+    
     .cta-section {
       position: relative;
       z-index: 1;
@@ -690,7 +657,7 @@ import { RouterModule } from '@angular/router';
     }
     .btn-cta-outline:hover { background: rgba(255,255,255,0.1); border-color: white; }
 
-    /* ── FOOTER ── */
+    
     .footer {
       position: relative;
       z-index: 1;
@@ -708,7 +675,7 @@ import { RouterModule } from '@angular/router';
     }
     .footer-copy { font-size: 0.82rem; color: rgba(255,255,255,0.4); }
 
-    /* ── RESPONSIVE ── */
+    
     @media (max-width: 900px) {
       .hero { grid-template-columns: 1fr; }
       .hero-visual { display: none; }
@@ -734,38 +701,7 @@ export class HomePage implements OnInit, OnDestroy {
     { prev: 35, curr: 18 },
   ];
 
-  features = [
-    {
-      title: 'Import Excel intelligent',
-      desc: 'Importez vos fichiers N et N-1 via un template standard ou un fichier personnalisé avec système de mapping automatique.',
-      icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E6FD9" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`
-    },
-    {
-      title: 'Analyse comparative KPI',
-      desc: 'Calcul automatique des variations absolues et relatives, classifiées en niveaux faible, modéré ou critique.',
-      icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E6FD9" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`
-    },
-    {
-      title: 'Synthèse IA par LLM',
-      desc: 'L\'IA génère des commentaires contextualisés, identifie les causes probables et propose des plans d\'action concrets.',
-      icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E6FD9" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>`
-    },
-    {
-      title: 'Tableaux de bord interactifs',
-      desc: 'Visualisez vos performances QHSE avec des graphiques dynamiques et des tableaux comparatifs clairs et lisibles.',
-      icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E6FD9" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>`
-    },
-    {
-      title: 'Export PDF & Rapports',
-      desc: 'Générez des rapports complets au format PDF, partageables avec votre équipe et vos parties prenantes.',
-      icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E6FD9" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`
-    },
-    {
-      title: 'Sécurité & Authentification',
-      desc: 'Authentification JWT à deux facteurs avec contrôle d\'accès par rôle (Administrateur / Analyste).',
-      icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E6FD9" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`
-    },
-  ];
+  
 
   stats = [
     { value: '4', label: 'Catégories QHSE couvertes' },
