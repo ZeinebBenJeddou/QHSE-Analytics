@@ -4,6 +4,7 @@ import com.QHSEAnalytics.auth.dto.response.MessageResponse;
 import com.QHSEAnalytics.auth.entity.User;
 import com.QHSEAnalytics.auth.exception.UserNotFoundException;
 import com.QHSEAnalytics.auth.repository.UserRepository;
+import com.QHSEAnalytics.dto.response.AutoImportResultResponse;
 import com.QHSEAnalytics.dto.response.*;
 import com.QHSEAnalytics.service.ImportService;
 import lombok.RequiredArgsConstructor;
@@ -48,6 +49,18 @@ public class ImportController {
     ) {
         User user = getCurrentUser();
         ImportSessionResponse response = importService.upload(user.getId(), periodeN1, periodeN, file);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/auto")
+    @PreAuthorize("hasRole('ANALYSTE')")
+    public ResponseEntity<AutoImportResultResponse> uploadAuto(
+            @RequestParam int periodeN1,
+            @RequestParam int periodeN,
+            @RequestParam MultipartFile file
+    ) {
+        User user = getCurrentUser();
+        AutoImportResultResponse response = importService.uploadAuto(user.getId(), periodeN1, periodeN, file);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

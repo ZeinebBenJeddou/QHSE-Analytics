@@ -7,6 +7,7 @@ import com.QHSEAnalytics.dto.response.*;
 import com.QHSEAnalytics.entity.*;
 import com.QHSEAnalytics.enums.*;
 import com.QHSEAnalytics.exception.*;
+import com.QHSEAnalytics.importengine.AutoImportEngine;
 import com.QHSEAnalytics.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +17,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -29,15 +29,9 @@ public class ImportService {
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024;
 
     private final TemplateExcelService templateExcelService;
-    private final ExcelParserService excelParserService;
-    private final NettoyageService nettoyageService;
-    private final VariationService variationService;
-
+    private final AutoImportEngine autoImportEngine;
     private final ImportSessionRepository importSessionRepository;
-    private final StagingDonneeRepository stagingDonneeRepository;
     private final ResultatKpiRepository resultatKpiRepository;
-    private final KpiRepository kpiRepository;
-    private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
     public byte[] downloadTemplate() {
@@ -52,68 +46,51 @@ public class ImportService {
             int periodeN,
             MultipartFile file
     ) {
-        log.info("Upload démarré userId={} fichier={}", userId, file.getOriginalFilename());
+        log.info("Upload automatique démarré userId={} fichier={}", userId, file.getOriginalFilename());
         validateUpload(periodeN1, periodeN, file);
 
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new UserNotFoundException("Utilisateur introuvable"));
+        AutoImportEngine.AutoImportResult result = autoImportEngine.process(file, userId, periodeN1, periodeN);
+        log.info("Import automatique traité sessionId={} userId={} resultats={} rejets={}",
+                result.session().getId(), userId, result.records().size(), result.rejectedCount());
 
-        ImportSession session = ImportSession.builder()
-            .user(user)
-                .mode(ImportMode.TEMPLATE_OFFICIEL)
-                .nomFichier(file.getOriginalFilename())
-                .templateVersion("V1")
-                .periodeN1(periodeN1)
-                .periodeN(periodeN)
-                .statut(ImportStatut.EN_TRAITEMENT)
+        return toImportSessionResponse(result.session(), result.records().size(), result.rejectedCount());
+    }
+
+    @Transactional
+    public AutoImportResultResponse uploadAuto(Long userId, int periodeN1, int periodeN, MultipartFile file) {
+        log.info("Import automatique full pipeline démarré userId={} fichier={}", userId, file.getOriginalFilename());
+        validateUpload(periodeN1, periodeN, file);
+
+        AutoImportEngine.AutoImportResult result = autoImportEngine.process(file, userId, periodeN1, periodeN);
+        log.info("Import automatique complet sessionId={} userId={} resultats={} rejets={}",
+                result.session().getId(), userId, result.records().size(), result.rejectedCount());
+
+        List<ResultatKpiResponse> responses = result.records().stream().map(r -> ResultatKpiResponse.builder()
+                .id(r.getId())
+                .kpiId(r.getKpi().getId())
+                .kpiNom(r.getKpi().getNom())
+                .kpiUnite(r.getKpi().getUnite().name())
+                .categorieCode(r.getKpi().getCategorieKpi().getCode())
+                .categorieLibelle(r.getKpi().getCategorieKpi().getLibelle())
+                .periodeN1(r.getPeriodeN1())
+                .periodeN(r.getPeriodeN())
+                .valeurN1(r.getValeurN1())
+                .valeurN(r.getValeurN())
+                .variationAbsolue(r.getVariationAbsolue())
+                .variationRelative(r.getVariationRelative())
+                .niveauVariation(r.getNiveauVariation())
+                .tendance(r.getTendance())
+                .confidenceScore(r.getConfidenceScore())
+                .qualityStatus(r.getQualityStatus())
+                .analyseIa(r.getAnalyseIa())
+                .createdAt(r.getCreatedAt())
+                .build()).toList();
+
+        return AutoImportResultResponse.builder()
+                .importSession(toImportSessionResponse(result.session(), result.records().size(), result.rejectedCount()))
+                .resultats(responses)
+                .nombreRejetes(result.rejectedCount())
                 .build();
-        session = importSessionRepository.save(session);
-
-        try {
-            List<ExcelParserService.DonneeExtraite> donnees = excelParserService.parseTemplateOfficiel(file);
-
-            List<StagingDonnee> staging = new ArrayList<>();
-            for (ExcelParserService.DonneeExtraite donnee : donnees) {
-                if (donnee.kpiId() == null) {
-                    continue;
-                }
-                Kpi kpi = kpiRepository.findById(donnee.kpiId())
-                        .orElseThrow(() -> new KpiNotFoundException("KPI introuvable avec id=" + donnee.kpiId()));
-                staging.add(nettoyageService.nettoyerDonnee(donnee, session, kpi));
-            }
-
-            stagingDonneeRepository.saveAll(staging);
-            Map<StatutNettoyage, Long> stats = countByStatus(staging);
-            log.info("Nettoyage terminé sessionId={} ok={} corrige={} manquant={} invalide={} suspect={}",
-                    session.getId(),
-                    stats.getOrDefault(StatutNettoyage.OK, 0L),
-                    stats.getOrDefault(StatutNettoyage.CORRIGE, 0L),
-                    stats.getOrDefault(StatutNettoyage.MANQUANT, 0L),
-                    stats.getOrDefault(StatutNettoyage.INVALIDE, 0L),
-                    stats.getOrDefault(StatutNettoyage.SUSPECT, 0L));
-
-            List<ResultatKpi> resultats = buildResultats(session, staging);
-            resultatKpiRepository.saveAll(resultats);
-
-            // La donnée brute n'est pas conservée après calcul des variations et classifications.
-            stagingDonneeRepository.deleteByImportSessionId(session.getId());
-
-            session.setStatut(ImportStatut.TRAITE);
-            session.setMessageErreur(null);
-            importSessionRepository.save(session);
-
-            log.info("Upload traité sessionId={} userId={} lignesImportees={} resultats={}",
-                    session.getId(), userId, staging.size(), resultats.size());
-            return toImportSessionResponse(session);
-        } catch (Exception ex) {
-            resultatKpiRepository.deleteByImportSessionId(session.getId());
-            stagingDonneeRepository.deleteByImportSessionId(session.getId());
-            session.setStatut(ImportStatut.ERREUR);
-            session.setMessageErreur(ex.getMessage());
-            importSessionRepository.save(session);
-            log.error("Erreur traitement upload sessionId={} cause={}", session.getId(), ex.getMessage());
-            throw new ImportValidationException("Erreur durant le traitement: " + ex.getMessage());
-        }
     }
 
     @Transactional(readOnly = true)
@@ -130,7 +107,9 @@ public class ImportService {
                 ? importSessionRepository.findAllByOrderByCreatedAtDesc()
                 : importSessionRepository.findByUserIdOrderByCreatedAtDesc(userId);
 
-        return sessions.stream().map(this::toImportSessionResponse).toList();
+        return sessions.stream()
+                .map(session -> toImportSessionResponse(session, 0, 0))
+                .toList();
     }
 
     @Transactional
@@ -140,7 +119,7 @@ public class ImportService {
             throw new ImportNotReadyException("Seul un import EN_ATTENTE peut être annulé");
         }
 
-        stagingDonneeRepository.deleteByImportSessionId(sessionId);
+        resultatKpiRepository.deleteByImportSessionId(sessionId);
         importSessionRepository.delete(session);
         log.info("Import annulé sessionId={} userId={}", sessionId, userId);
     }
@@ -156,38 +135,6 @@ public class ImportService {
         if (file.getSize() > MAX_FILE_SIZE) {
             throw new FileTooLargeException("La taille du fichier dépasse 10MB");
         }
-        templateExcelService.validateTemplateSignature(file);
-    }
-
-    private List<ResultatKpi> buildResultats(ImportSession session, List<StagingDonnee> stagingList) {
-        List<ResultatKpi> resultats = new ArrayList<>();
-
-        for (StagingDonnee s : stagingList) {
-            if (s.getStatutNettoyage() == StatutNettoyage.IGNORE || s.getValeurN1() == null || s.getValeurN() == null) {
-                continue;
-            }
-
-            double variationAbs = variationService.calculerVariationAbsolue(s.getValeurN1(), s.getValeurN());
-            double variationRel = variationService.calculerVariationRelative(s.getValeurN1(), s.getValeurN());
-            NiveauVariation niveau = variationService.classifierVariation(variationRel, s.getKpi());
-            Tendance tendance = variationService.determinerTendance(variationRel);
-
-            resultats.add(ResultatKpi.builder()
-                    .importSession(session)
-                    .kpi(s.getKpi())
-                    .user(session.getUser())
-                    .periodeN1(session.getPeriodeN1())
-                    .periodeN(session.getPeriodeN())
-                    .valeurN1(s.getValeurN1())
-                    .valeurN(s.getValeurN())
-                    .variationAbsolue(variationAbs)
-                    .variationRelative(variationRel)
-                    .niveauVariation(niveau)
-                    .tendance(tendance)
-                    .build());
-        }
-
-        return resultats;
     }
 
     private ImportSession loadSessionWithOwnership(Long userId, boolean isAdmin, Long sessionId) {
@@ -198,14 +145,7 @@ public class ImportService {
                 .orElseThrow(() -> new ImportNotFoundException("Import introuvable"));
     }
 
-    private ImportSessionResponse toImportSessionResponse(ImportSession session) {
-        Map<StatutNettoyage, Long> counts = getStagingCounts(session.getId());
-        long ok = counts.getOrDefault(StatutNettoyage.OK, 0L);
-        long corrige = counts.getOrDefault(StatutNettoyage.CORRIGE, 0L);
-        long manquant = counts.getOrDefault(StatutNettoyage.MANQUANT, 0L);
-        long invalide = counts.getOrDefault(StatutNettoyage.INVALIDE, 0L);
-        long suspect = counts.getOrDefault(StatutNettoyage.SUSPECT, 0L);
-
+    private ImportSessionResponse toImportSessionResponse(ImportSession session, int acceptedCount, int rejectedCount) {
         return ImportSessionResponse.builder()
                 .id(session.getId())
                 .mode(session.getMode())
@@ -216,12 +156,12 @@ public class ImportService {
                 .messageErreur(session.getMessageErreur())
                 .createdAt(session.getCreatedAt())
                 .updatedAt(session.getUpdatedAt())
-                .nombreTotal(ok + corrige + manquant + invalide + suspect)
-                .nombreOk(ok)
-                .nombreCorrige(corrige)
-                .nombreManquant(manquant)
-                .nombreInvalide(invalide)
-                .nombreSuspect(suspect)
+                .nombreTotal(acceptedCount + rejectedCount)
+                .nombreOk(acceptedCount)
+                .nombreCorrige(rejectedCount)
+                .nombreManquant(0)
+                .nombreInvalide(0)
+                .nombreSuspect(0)
                 .build();
     }
 
@@ -245,6 +185,8 @@ public class ImportService {
                 .variationRelative(r.getVariationRelative())
                 .niveauVariation(r.getNiveauVariation())
                 .tendance(r.getTendance())
+                .confidenceScore(r.getConfidenceScore())
+                .qualityStatus(r.getQualityStatus())
                 .analyseIa(r.getAnalyseIa())
                 .createdAt(r.getCreatedAt())
                 .build()).toList();
@@ -264,18 +206,4 @@ public class ImportService {
                 .build();
     }
 
-    private Map<StatutNettoyage, Long> getStagingCounts(Long sessionId) {
-        Map<StatutNettoyage, Long> counts = new EnumMap<>(StatutNettoyage.class);
-        stagingDonneeRepository.countByImportSessionIdGrouped(sessionId)
-                .forEach(view -> counts.put(view.getStatutNettoyage(), view.getTotal()));
-        return counts;
-    }
-
-    private Map<StatutNettoyage, Long> countByStatus(List<StagingDonnee> staging) {
-        Map<StatutNettoyage, Long> counts = new EnumMap<>(StatutNettoyage.class);
-        staging.stream()
-                .collect(Collectors.groupingBy(StagingDonnee::getStatutNettoyage, Collectors.counting()))
-                .forEach(counts::put);
-        return counts;
-    }
 }

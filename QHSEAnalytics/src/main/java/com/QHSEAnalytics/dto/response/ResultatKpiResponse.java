@@ -1,6 +1,7 @@
 package com.QHSEAnalytics.dto.response;
 
 import com.QHSEAnalytics.enums.NiveauVariation;
+import com.QHSEAnalytics.enums.QualityStatus;
 import com.QHSEAnalytics.enums.Tendance;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;
@@ -26,6 +27,8 @@ public class ResultatKpiResponse {
     private Double variationRelative;
     private NiveauVariation niveauVariation;
     private Tendance tendance;
+    private Double confidenceScore;
+    private QualityStatus qualityStatus;
     private String analyseIa;
     private LocalDateTime createdAt;
 }

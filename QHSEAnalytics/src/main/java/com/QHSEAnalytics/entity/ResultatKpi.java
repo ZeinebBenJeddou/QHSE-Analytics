@@ -2,6 +2,7 @@ package com.QHSEAnalytics.entity;
 
 import com.QHSEAnalytics.auth.entity.User;
 import com.QHSEAnalytics.enums.NiveauVariation;
+import com.QHSEAnalytics.enums.QualityStatus;
 import com.QHSEAnalytics.enums.Tendance;
 import jakarta.persistence.*;
 import lombok.*;
@@ -58,6 +59,13 @@ public class ResultatKpi {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Tendance tendance;
+
+    @Column(nullable = false)
+    private Double confidenceScore;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private QualityStatus qualityStatus;
 
     @Column(columnDefinition = "TEXT")
     private String analyseIa;
