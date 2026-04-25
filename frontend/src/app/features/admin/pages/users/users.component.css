@@ -1,0 +1,43 @@
+.admin-users-shell {
+  padding: 24px;
+  display: grid;
+  gap: 20px;
+}
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.nav-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.users-table th,
+.users-table td {
+  border: 1px solid rgba(0, 0, 0, .08);
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.actions-cell {
+  display: grid;
+  gap: 8px;
+}
+
+.loading-state,
+.error-message,
+.empty-state {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+}

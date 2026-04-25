@@ -2,6 +2,11 @@
   <mat-card class="dashboard-card">
     <h2>Dashboard</h2>
     <p>Welcome to the mock dashboard. Your JWT token is attached to API requests automatically.</p>
-    <button mat-raised-button color="primary" (click)="logout()">Logout</button>
+    <div class="actions">
+      <button mat-raised-button color="primary" (click)="logout()">Logout</button>
+      <button *ngIf="isAdmin" mat-stroked-button color="accent" (click)="goToAdminOverview()">
+        Go to Admin Dashboard
+      </button>
+    </div>
   </mat-card>
 </section>

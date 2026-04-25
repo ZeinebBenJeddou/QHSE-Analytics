@@ -8,7 +8,13 @@ import { ResetPasswordComponent } from './features/auth/pages/reset-password/res
 
 import { VerifyAccountComponent } from './features/auth/pages/verify-account/verify-account.component';
 import { DashboardComponent } from './features/auth/pages/dashboard/dashboard.component';
+import { AdminShellComponent } from './features/admin/admin-shell.component';
+import { AdminOverviewComponent } from './features/admin/pages/overview/overview.component';
+import { AdminUsersComponent } from './features/admin/pages/users/users.component';
+import { AdminKpisComponent } from './features/admin/pages/kpis/kpis.component';
+import { AdminProfileComponent } from './features/admin/pages/profile/profile.component';
 import { authGuard } from './core/guards/auth.guard';
+import { adminGuard } from './core/guards/admin.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'auth', pathMatch: 'full' },
@@ -21,5 +27,17 @@ export const routes: Routes = [
 
   { path: 'auth/verify', component: VerifyAccountComponent },
   { path: 'dashboard', component: DashboardComponent, canActivate: [authGuard] },
+  {
+    path: 'admin',
+    component: AdminShellComponent,
+    canActivate: [adminGuard],
+    children: [
+      { path: '', redirectTo: 'overview', pathMatch: 'full' },
+      { path: 'overview', component: AdminOverviewComponent },
+      { path: 'users', component: AdminUsersComponent },
+      { path: 'kpis', component: AdminKpisComponent },
+      { path: 'profile', component: AdminProfileComponent }
+    ]
+  },
   { path: '**', redirectTo: 'auth' }
 ];

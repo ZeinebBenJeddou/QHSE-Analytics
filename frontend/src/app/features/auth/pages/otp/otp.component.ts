@@ -135,10 +135,12 @@ export class OtpComponent {
       next: (response) => {
         this.tokenService.clearPendingEmail();
         this.tokenService.setToken(response.accessToken);
+        this.tokenService.setUserRole(response.role);
+        const targetRoute = response.role === 'ADMIN' ? '/admin/overview' : '/dashboard';
         this.snackBar.open('OTP verified. Redirecting to dashboard.', 'Close', {
           duration: 3000
         });
-        this.router.navigate(['/dashboard']);
+        this.router.navigate([targetRoute]);
       },
       error: (error) => {
         const fieldError = error?.error?.fieldErrors?.code;

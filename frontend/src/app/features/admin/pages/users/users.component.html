@@ -1,0 +1,65 @@
+<div class="admin-users-shell">
+  <div class="admin-header">
+    <div>
+      <h1>Administrer les utilisateurs</h1>
+      <p>Gérez la vérification, l&#39;activation et les rôles des utilisateurs.</p>
+    </div>
+    <div class="nav-actions">
+      <button mat-stroked-button color="primary" routerLink="/admin/overview">Retour au tableau de bord</button>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading-state">
+    <mat-progress-spinner diameter="48" mode="indeterminate"></mat-progress-spinner>
+    <span>Chargement des utilisateurs...</span>
+  </div>
+
+  <div *ngIf="errorMessage && !loading" class="error-message">
+    {{ errorMessage }}
+  </div>
+
+  <table *ngIf="!loading && users.length" class="users-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Nom</th>
+        <th>Email</th>
+        <th>Rôle</th>
+        <th>Vérifié</th>
+        <th>Actif</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let user of users">
+        <td>{{ user.id }}</td>
+        <td>{{ user.nom }} {{ user.prenom }}</td>
+        <td>{{ user.email }}</td>
+        <td>{{ user.role }}</td>
+        <td>{{ user.verified ? 'Oui' : 'Non' }}</td>
+        <td>{{ user.active ? 'Oui' : 'Non' }}</td>
+        <td class="actions-cell">
+          <button mat-stroked-button color="primary" (click)="verifyUser(user)" [disabled]="actionInProgressId === user.id || user.verified">
+            Vérifier
+          </button>
+          <button mat-stroked-button color="accent" (click)="toggleActivation(user)" [disabled]="actionInProgressId === user.id">
+            {{ user.active ? 'Désactiver' : 'Activer' }}
+          </button>
+          <button mat-stroked-button color="warn" (click)="toggleAdmin(user)" [disabled]="actionInProgressId === user.id || user.isSystemAdmin">
+            {{ user.role === 'ADMIN' ? 'Rétrograder' : 'Promouvoir' }}
+          </button>
+          <button mat-stroked-button color="primary" (click)="resetUserPassword(user)" [disabled]="actionInProgressId === user.id">
+            Réinitialiser mot de passe
+          </button>
+          <button mat-stroked-button color="warn" (click)="deleteUser(user)" [disabled]="actionInProgressId === user.id">
+            Supprimer
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div *ngIf="!loading && !users.length" class="empty-state">
+    Aucune donnée utilisateur disponible pour le moment.
+  </div>
+</div>

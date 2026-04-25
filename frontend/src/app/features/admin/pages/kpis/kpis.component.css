@@ -1,0 +1,59 @@
+.admin-kpis-shell {
+  padding: 24px;
+  display: grid;
+  gap: 20px;
+}
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.kpi-form {
+  display: grid;
+  gap: 16px;
+}
+
+.grid-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.kpi-table-wrapper {
+  overflow-x: auto;
+}
+
+.kpi-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.kpi-table th,
+.kpi-table td {
+  border: 1px solid rgba(0, 0, 0, .08);
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.actions-cell {
+  display: grid;
+  gap: 8px;
+}
+
+.loading-state,
+.error-message,
+.empty-state {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+}
