@@ -1,0 +1,96 @@
+<div class="auth-shell">
+  <div class="mesh-bg"></div>
+  <div class="grain"></div>
+
+  <div class="auth-panel">
+
+  
+    <div class="brand">
+      
+      <span class="brand-text">QHSE <strong>Analytics</strong></span>
+    </div>
+
+    
+    <div class="panel-header">
+    
+      <h1 class="panel-title"></h1>
+      <p class="panel-sub">Saisissez le code à 6 chiffres envoyé à votre adresse email.</p>
+    </div>
+
+   
+    <form [formGroup]="otpForm" (ngSubmit)="submit()" novalidate>
+      <input type="hidden" formControlName="code" />
+
+      <div class="otp-group">
+        <div class="otp-boxes" [class.otp-boxes--error]="code?.invalid && code?.touched">
+          <input
+            *ngFor="let i of [0,1,2,3,4,5]"
+            class="otp-box"
+            type="text"
+            inputmode="numeric"
+            maxlength="1"
+            [value]="getDigit(i)"
+            (input)="onDigitInput($event, i)"
+            (keydown)="onDigitKeydown($event, i)"
+            (paste)="onPaste($event)"
+            autocomplete="one-time-code"
+          />
+        </div>
+        <span class="field-hint field-hint--error" *ngIf="code?.hasError('required') && code?.touched">
+          Le code OTP est requis
+        </span>
+        <span class="field-hint field-hint--error" *ngIf="code?.hasError('pattern') && code?.touched">
+          Veuillez saisir un code valide à 6 chiffres
+        </span>
+      </div>
+
+      
+      <label class="remember-row">
+        <span class="custom-checkbox" [class.custom-checkbox--checked]="otpForm.get('rememberMe')?.value">
+          <input type="checkbox" formControlName="rememberMe" class="sr-only" />
+          <svg *ngIf="otpForm.get('rememberMe')?.value" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </span>
+        <span class="remember-label">Se souvenir de moi sur cet appareil</span>
+      </label>
+
+      
+      <div class="alert alert--error" *ngIf="backendError">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        {{ backendError }}
+      </div>
+
+      
+      <button class="btn-primary" type="submit">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        Vérifier le code
+      </button>
+
+    </form>
+
+
+    <div class="panel-footer">
+      <a routerLink="/auth/login" class="back-btn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M19 12H5M12 5l-7 7 7 7"/>
+        </svg>
+        Retour à la connexion
+      </a>
+    </div>
+
+    <div class="secure-badge">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+      Connexion sécurisée 
+    </div>
+
+  </div>
+</div>

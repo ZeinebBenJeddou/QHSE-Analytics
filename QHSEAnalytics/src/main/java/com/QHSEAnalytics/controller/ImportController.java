@@ -51,18 +51,6 @@ public class ImportController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @PostMapping("/upload-and-process")
-    @PreAuthorize("hasRole('ANALYSTE')")
-    public ResponseEntity<ResultatGlobalResponse> uploadAndProcess(
-            @RequestParam int periodeN1,
-            @RequestParam int periodeN,
-            @RequestParam MultipartFile file
-    ) {
-        User user = getCurrentUser();
-        ResultatGlobalResponse response = importService.uploadAndConfirm(user.getId(), periodeN1, periodeN, file);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','ANALYSTE')")
     public ResponseEntity<List<ImportSessionResponse>> getHistorique() {

@@ -1,0 +1,77 @@
+<div class="auth-shell">
+  <div class="mesh-bg"></div>
+  <div class="grain"></div>
+
+  <div class="auth-panel">
+
+    <div class="brand">
+      <span class="brand-text">QHSE <strong>Analytics</strong></span>
+    </div>
+
+    
+    <div class="status-card status-card--loading" *ngIf="!isError && statusMessage === 'Verifying your account...'">
+      <div class="spinner-wrap">
+        <svg class="spinner" width="36" height="36" viewBox="0 0 36 36" fill="none">
+          <circle cx="18" cy="18" r="15" stroke="var(--border)" stroke-width="3"/>
+          <path d="M18 3a15 15 0 0 1 15 15" stroke="var(--blue)" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="status-content">
+        <h2 class="status-title">Vérification en cours…</h2>
+        <p class="status-sub">Veuillez patienter quelques instants.</p>
+      </div>
+    </div>
+
+    
+    <div class="status-card status-card--success" *ngIf="!isError && statusMessage !== 'Verifying your account...'">
+      <div class="status-icon status-icon--success">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+      </div>
+      <div class="status-content">
+        <h2 class="status-title">Compte vérifié !</h2>
+        <p class="status-sub">{{ statusMessage }}</p>
+      </div>
+    </div>
+
+   
+    <div class="status-card status-card--error" *ngIf="isError">
+      <div class="status-icon status-icon--error">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="15" y1="9" x2="9" y2="15"/>
+          <line x1="9" y1="9" x2="15" y2="15"/>
+        </svg>
+      </div>
+      <div class="status-content">
+        <h2 class="status-title">Échec de la vérification</h2>
+        <p class="status-sub">{{ statusMessage }}</p>
+      </div>
+    </div>
+
+    
+    <div class="action-group" *ngIf="statusMessage !== 'Verifying your account...'">
+      <a routerLink="/auth/login" class="btn-primary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/>
+          <polyline points="10 17 15 12 10 7"/>
+          <line x1="15" y1="12" x2="3" y2="12"/>
+        </svg>
+        Se connecter
+      </a>
+      <a routerLink="/auth/register" class="btn-secondary">
+        Créer un compte
+      </a>
+    </div>
+
+    <div class="secure-badge">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+      Connexion sécurisée
+    </div>
+
+  </div>
+</div>

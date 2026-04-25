@@ -37,22 +37,6 @@ public class NettoyageService {
                 .build();
     }
 
-    public ValidationResult validateManualValue(Double value, UniteKpi unite) {
-        if (value == null) {
-            return new ValidationResult(StatutNettoyage.MANQUANT, "valeur manquante");
-        }
-
-        if (isNegativeInvalid(value, unite)) {
-            return new ValidationResult(StatutNettoyage.INVALIDE, "valeur négative impossible");
-        }
-
-        if (unite == UniteKpi.POURCENTAGE && value > 100.0d) {
-            return new ValidationResult(StatutNettoyage.SUSPECT, "valeur > 100% à vérifier");
-        }
-
-        return new ValidationResult(StatutNettoyage.OK, "correction validée");
-    }
-
     private CleanedValue cleanRawValue(String rawInput, UniteKpi unite) {
         String raw = rawInput == null ? null : rawInput.trim();
         if (raw == null || raw.isBlank()) {
@@ -191,6 +175,4 @@ public class NettoyageService {
     }
 
     private record CleanedValue(Double value, StatutNettoyage status, String note) {}
-
-    public record ValidationResult(StatutNettoyage status, String note) {}
 }

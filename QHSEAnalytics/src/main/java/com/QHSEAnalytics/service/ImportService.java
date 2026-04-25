@@ -32,7 +32,6 @@ public class ImportService {
     private final ExcelParserService excelParserService;
     private final NettoyageService nettoyageService;
     private final VariationService variationService;
-    private final AnalyseIaService analyseIaService;
 
     private final ImportSessionRepository importSessionRepository;
     private final StagingDonneeRepository stagingDonneeRepository;
@@ -66,152 +65,55 @@ public class ImportService {
                 .templateVersion("V1")
                 .periodeN1(periodeN1)
                 .periodeN(periodeN)
-                .statut(ImportStatut.EN_ATTENTE)
+                .statut(ImportStatut.EN_TRAITEMENT)
                 .build();
         session = importSessionRepository.save(session);
 
-        List<ExcelParserService.DonneeExtraite> donnees = excelParserService.parseTemplateOfficiel(file);
-
-        List<StagingDonnee> staging = new ArrayList<>();
-        for (ExcelParserService.DonneeExtraite donnee : donnees) {
-            if (donnee.kpiId() == null) {
-                continue;
-            }
-            Kpi kpi = kpiRepository.findById(donnee.kpiId())
-                    .orElseThrow(() -> new KpiNotFoundException("KPI introuvable avec id=" + donnee.kpiId()));
-            staging.add(nettoyageService.nettoyerDonnee(donnee, session, kpi));
-        }
-
-        stagingDonneeRepository.saveAll(staging);
-        Map<StatutNettoyage, Long> stats = countByStatus(staging);
-        log.info("Nettoyage terminé sessionId={} ok={} corrige={} manquant={} invalide={} suspect={}",
-            session.getId(),
-            stats.getOrDefault(StatutNettoyage.OK, 0L),
-            stats.getOrDefault(StatutNettoyage.CORRIGE, 0L),
-            stats.getOrDefault(StatutNettoyage.MANQUANT, 0L),
-            stats.getOrDefault(StatutNettoyage.INVALIDE, 0L),
-            stats.getOrDefault(StatutNettoyage.SUSPECT, 0L));
-        log.info("Upload terminé sessionId={} userId={} lignes={}", session.getId(), userId, staging.size());
-        return toImportSessionResponse(session);
-    }
-
-    @Transactional(noRollbackFor = ImportValidationException.class)
-    public ResultatGlobalResponse confirmer(Long userId, Long sessionId) {
-        ImportSession session = loadSessionWithOwnership(userId, false, sessionId);
-
-        if (session.getStatut() != ImportStatut.EN_ATTENTE) {
-            throw new ImportNotReadyException("Import non confirmable dans l'état actuel");
-        }
-
-        Map<StatutNettoyage, Long> counts = getStagingCounts(session.getId());
-        long missing = counts.getOrDefault(StatutNettoyage.MANQUANT, 0L);
-        long invalid = counts.getOrDefault(StatutNettoyage.INVALIDE, 0L);
-        if (missing > 0 || invalid > 0) {
-            throw new ImportNotReadyException("Import non prêt: " + missing + " donnée(s) MANQUANT et " + invalid + " donnée(s) INVALIDE.");
-        }
-
-        session.setStatut(ImportStatut.EN_TRAITEMENT);
-        importSessionRepository.save(session);
-        log.info("Traitement démarré sessionId={}", sessionId);
-
         try {
-            List<StagingDonnee> stagingList = stagingDonneeRepository.findByImportSessionId(sessionId);
-            List<ResultatKpi> resultats = new ArrayList<>();
+            List<ExcelParserService.DonneeExtraite> donnees = excelParserService.parseTemplateOfficiel(file);
 
-            for (StagingDonnee s : stagingList) {
-                if (s.getStatutNettoyage() == StatutNettoyage.IGNORE || s.getValeurN1() == null || s.getValeurN() == null) {
+            List<StagingDonnee> staging = new ArrayList<>();
+            for (ExcelParserService.DonneeExtraite donnee : donnees) {
+                if (donnee.kpiId() == null) {
                     continue;
                 }
-
-                double variationAbs = variationService.calculerVariationAbsolue(s.getValeurN1(), s.getValeurN());
-                double variationRel = variationService.calculerVariationRelative(s.getValeurN1(), s.getValeurN());
-                NiveauVariation niveau = variationService.classifierVariation(variationRel, s.getKpi());
-                Tendance tendance = variationService.determinerTendance(variationRel);
-
-                resultats.add(ResultatKpi.builder()
-                        .importSession(session)
-                        .kpi(s.getKpi())
-                        .user(session.getUser())
-                        .periodeN1(session.getPeriodeN1())
-                        .periodeN(session.getPeriodeN())
-                        .valeurN1(s.getValeurN1())
-                        .valeurN(s.getValeurN())
-                        .variationAbsolue(variationAbs)
-                        .variationRelative(variationRel)
-                        .niveauVariation(niveau)
-                        .tendance(tendance)
-                        .build());
+                Kpi kpi = kpiRepository.findById(donnee.kpiId())
+                        .orElseThrow(() -> new KpiNotFoundException("KPI introuvable avec id=" + donnee.kpiId()));
+                staging.add(nettoyageService.nettoyerDonnee(donnee, session, kpi));
             }
 
-            List<ResultatKpi> saved = resultatKpiRepository.saveAll(resultats);
+            stagingDonneeRepository.saveAll(staging);
+            Map<StatutNettoyage, Long> stats = countByStatus(staging);
+            log.info("Nettoyage terminé sessionId={} ok={} corrige={} manquant={} invalide={} suspect={}",
+                    session.getId(),
+                    stats.getOrDefault(StatutNettoyage.OK, 0L),
+                    stats.getOrDefault(StatutNettoyage.CORRIGE, 0L),
+                    stats.getOrDefault(StatutNettoyage.MANQUANT, 0L),
+                    stats.getOrDefault(StatutNettoyage.INVALIDE, 0L),
+                    stats.getOrDefault(StatutNettoyage.SUSPECT, 0L));
 
-            try {
-                analyseIaService.genererToutesLesAnalyses(sessionId, userId);
-                log.info("Analyses IA générées pour la session {}", sessionId);
-            } catch (Exception ex) {
-                log.error("Erreur génération analyses IA (non bloquante) : {}", ex.getMessage());
-            }
+            List<ResultatKpi> resultats = buildResultats(session, staging);
+            resultatKpiRepository.saveAll(resultats);
 
-            List<ResultatKpi> resultatsEnrichis = resultatKpiRepository.findByImportSessionIdOrderByCreatedAtDesc(sessionId);
-            String synthese;
-            try {
-                synthese = analyseIaService.getAnalyseGlobale(sessionId, userId, false).getSynthese();
-            } catch (Exception ex) {
-                synthese = "Analyse IA temporairement indisponible.";
-            }
-
-            stagingDonneeRepository.deleteByImportSessionId(sessionId);
-            log.info("Staging supprimé sessionId={}", sessionId);
+            // La donnée brute n'est pas conservée après calcul des variations et classifications.
+            stagingDonneeRepository.deleteByImportSessionId(session.getId());
 
             session.setStatut(ImportStatut.TRAITE);
             session.setMessageErreur(null);
             importSessionRepository.save(session);
-            log.info("Traitement terminé sessionId={} resultats={}", sessionId, saved.size());
 
-            return toResultatGlobalResponse(session, resultatsEnrichis, synthese);
+            log.info("Upload traité sessionId={} userId={} lignesImportees={} resultats={}",
+                    session.getId(), userId, staging.size(), resultats.size());
+            return toImportSessionResponse(session);
         } catch (Exception ex) {
-            resultatKpiRepository.deleteByImportSessionId(sessionId);
-            stagingDonneeRepository.deleteByImportSessionId(sessionId);
+            resultatKpiRepository.deleteByImportSessionId(session.getId());
+            stagingDonneeRepository.deleteByImportSessionId(session.getId());
             session.setStatut(ImportStatut.ERREUR);
             session.setMessageErreur(ex.getMessage());
             importSessionRepository.save(session);
-            log.error("Erreur traitement sessionId={} cause={}", sessionId, ex.getMessage());
+            log.error("Erreur traitement upload sessionId={} cause={}", session.getId(), ex.getMessage());
             throw new ImportValidationException("Erreur durant le traitement: " + ex.getMessage());
         }
-    }
-
-    @Transactional(noRollbackFor = ImportValidationException.class)
-    public ResultatGlobalResponse uploadAndConfirm(
-            Long userId,
-            int periodeN1,
-            int periodeN,
-            MultipartFile file
-    ) {
-        log.info("Upload & confirm automatique démarré userId={}", userId);
-        
-        // Step 1: Upload normalement
-        ImportSessionResponse uploadResponse = upload(userId, periodeN1, periodeN, file);
-        Long sessionId = uploadResponse.getId();
-        
-        // Step 2: Vérifier la qualité des données
-        Map<StatutNettoyage, Long> counts = getStagingCounts(sessionId);
-        long missing = counts.getOrDefault(StatutNettoyage.MANQUANT, 0L);
-        long invalid = counts.getOrDefault(StatutNettoyage.INVALIDE, 0L);
-        
-        if (missing > 0 || invalid > 0) {
-            // Données non prêtes, nettoyer le staging et retourner l'erreur
-            stagingDonneeRepository.deleteByImportSessionId(sessionId);
-            ImportSession session = importSessionRepository.findById(sessionId).orElseThrow();
-            session.setStatut(ImportStatut.ERREUR);
-            session.setMessageErreur(String.format("Données non valides: %d manquante(s), %d invalide(s)", missing, invalid));
-            importSessionRepository.save(session);
-            log.warn("Upload & confirm échoué sessionId={} - données invalides", sessionId);
-            throw new ImportValidationException(String.format("Données non valides: %d manquante(s), %d invalide(s). Veuillez utiliser le mode détaillé.", missing, invalid));
-        }
-        
-        // Step 3: Confirmer automatiquement
-        log.info("Données valides - confirmation automatique sessionId={}", sessionId);
-        return confirmer(userId, sessionId);
     }
 
     @Transactional(readOnly = true)
@@ -255,6 +157,37 @@ public class ImportService {
             throw new FileTooLargeException("La taille du fichier dépasse 10MB");
         }
         templateExcelService.validateTemplateSignature(file);
+    }
+
+    private List<ResultatKpi> buildResultats(ImportSession session, List<StagingDonnee> stagingList) {
+        List<ResultatKpi> resultats = new ArrayList<>();
+
+        for (StagingDonnee s : stagingList) {
+            if (s.getStatutNettoyage() == StatutNettoyage.IGNORE || s.getValeurN1() == null || s.getValeurN() == null) {
+                continue;
+            }
+
+            double variationAbs = variationService.calculerVariationAbsolue(s.getValeurN1(), s.getValeurN());
+            double variationRel = variationService.calculerVariationRelative(s.getValeurN1(), s.getValeurN());
+            NiveauVariation niveau = variationService.classifierVariation(variationRel, s.getKpi());
+            Tendance tendance = variationService.determinerTendance(variationRel);
+
+            resultats.add(ResultatKpi.builder()
+                    .importSession(session)
+                    .kpi(s.getKpi())
+                    .user(session.getUser())
+                    .periodeN1(session.getPeriodeN1())
+                    .periodeN(session.getPeriodeN())
+                    .valeurN1(s.getValeurN1())
+                    .valeurN(s.getValeurN())
+                    .variationAbsolue(variationAbs)
+                    .variationRelative(variationRel)
+                    .niveauVariation(niveau)
+                    .tendance(tendance)
+                    .build());
+        }
+
+        return resultats;
     }
 
     private ImportSession loadSessionWithOwnership(Long userId, boolean isAdmin, Long sessionId) {

@@ -1,6 +1,0 @@
-export enum ImportStatus {
-  EN_ATTENTE = 'EN_ATTENTE',
-  EN_TRAITEMENT = 'EN_TRAITEMENT',
-  TRAITE = 'TRAITE',
-  ERREUR = 'ERREUR'
-}
