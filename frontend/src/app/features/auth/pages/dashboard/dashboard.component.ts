@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';import { MatCardModule } from '@angular/material/card';import { CommonModule } from '@angular/common';
 import { TokenService } from '../../../../core/services/token.service';
@@ -19,12 +19,28 @@ export class DashboardComponent {
     return this.tokenService.isAdmin();
   }
 
+  get isAnalyste(): boolean {
+    return this.tokenService.isAnalyste();
+  }
+
+  ngOnInit(): void {
+    if (this.tokenService.isAdmin()) {
+      this.router.navigate(['/admin/overview']);
+    } else if (this.tokenService.isAnalyste()) {
+      this.router.navigate(['/analyste/dashboard']);
+    }
+  }
+
   logout(): void {
     this.tokenService.removeToken();
     this.router.navigate(['/auth/login']);
   }
 
   goToAdminOverview(): void {
-    this.router.navigate(['/admin']);
+    this.router.navigate(['/admin/overview']);
+  }
+
+  goToAnalysteDashboard(): void {
+    this.router.navigate(['/analyste/dashboard']);
   }
 }

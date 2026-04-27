@@ -1,0 +1,255 @@
+<div class="dashboard-page">
+
+  <!-- ── Loading ──────────────────────────────────────────── -->
+  @if (loading()) {
+    <div class="loader-overlay">
+      <mat-spinner diameter="60" color="accent"></mat-spinner>
+      <p>Chargement du tableau de bord...</p>
+    </div>
+  }
+
+  <!-- ── Error / Empty ────────────────────────────────────── -->
+  @if (!loading() && error()) {
+    <div class="empty-state">
+      <mat-icon>inbox</mat-icon>
+      <h2>{{ error() }}</h2>
+      <button mat-raised-button class="primary-btn" (click)="goToImport()">
+        <mat-icon>upload_file</mat-icon>
+        Importer des données
+      </button>
+    </div>
+  }
+
+  @if (!loading() && !error()) {
+    <!-- ── Page Header ──────────────────────────────────────── -->
+    <div class="page-header">
+      <div class="header-left">
+        <mat-icon class="header-icon">dashboard</mat-icon>
+        <div>
+          <h1>Tableau de bord QHSE</h1>
+          <p class="subtitle" *ngIf="comparatif()">
+            Analyse {{ comparatif()!.periodeN1 }} → {{ comparatif()!.periodeN }}
+          </p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button mat-stroked-button class="ia-btn" (click)="goToIA()">
+          <mat-icon>psychology</mat-icon>
+          Voir l'Analyse IA
+        </button>
+      </div>
+    </div>
+
+    <!-- ── KPI Summary Cards ────────────────────────────────── -->
+    <div class="summary-grid">
+      @for (card of summaryCards; track card.label) {
+        <mat-card class="summary-card glass-card" [ngClass]="'card-' + card.color">
+          <mat-card-content>
+            <div class="card-body">
+              <div class="card-info">
+                <p class="card-label">{{ card.label }}</p>
+                <p class="card-value">{{ card.value }}</p>
+              </div>
+              <div class="card-icon-wrap" [ngClass]="'icon-' + card.color">
+                <mat-icon>{{ card.icon }}</mat-icon>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      }
+    </div>
+
+    <!-- ── Charts ───────────────────────────────────────────── -->
+    <mat-card class="glass-card charts-card">
+      <mat-card-header>
+        <mat-icon mat-card-avatar class="card-av-icon">bar_chart</mat-icon>
+        <mat-card-title>Visualisations</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <mat-tab-group class="chart-tabs" animationDuration="200ms">
+          <mat-tab label="📊 Comparaison N vs N-1">
+            @if (graphiques()?.barresGroupees?.length) {
+              <app-bar-comparison
+                [data]="graphiques()!.barresGroupees"
+                [labelN1]="comparatif()?.periodeN1?.toString() ?? 'N-1'"
+                [labelN]="comparatif()?.periodeN?.toString() ?? 'N'"
+              />
+            } @else {
+              <div class="no-data">Aucune donnée disponible</div>
+            }
+          </mat-tab>
+
+          <mat-tab label="🎯 Radar performance">
+            @if (graphiques()?.radarData?.length) {
+              <app-radar-performance [data]="graphiques()!.radarData" />
+            } @else {
+              <div class="no-data">Aucune donnée disponible</div>
+            }
+          </mat-tab>
+
+          <mat-tab label="🍩 Distribution">
+            @if (comparatif()) {
+              <app-pie-distribution
+                [critiques]="comparatif()!.nombreCritiques"
+                [moderes]="comparatif()!.nombreModeres"
+                [faibles]="comparatif()!.nombreFaibles"
+              />
+            }
+          </mat-tab>
+
+          <mat-tab label="⚠️ Top KPIs dégradés">
+            <div class="top-degraded">
+              @for (kpi of graphiques()?.topKpisDegrades ?? []; track kpi.kpiNom) {
+                <div class="degraded-row">
+                  <div class="degraded-info">
+                    <span class="degraded-name">{{ kpi.kpiNom }}</span>
+                    <span class="degraded-cat">{{ kpi.categorieCode }}</span>
+                  </div>
+                  <div class="degraded-right">
+                    <span class="variation-badge" [ngClass]="variationStyle(kpi.variationRelative)">
+                      {{ kpi.variationRelative > 0 ? '+' : '' }}{{ kpi.variationRelative | number:'1.1-1' }}%
+                    </span>
+                    <mat-icon [ngClass]="tendanceClass(kpi.tendance)">{{ tendanceIcon(kpi.tendance) }}</mat-icon>
+                  </div>
+                </div>
+              }
+            </div>
+          </mat-tab>
+        </mat-tab-group>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- ── KPI Comparison Table ─────────────────────────────── -->
+    <mat-card class="glass-card table-card">
+      <mat-card-header>
+        <mat-icon mat-card-avatar class="card-av-icon">table_chart</mat-icon>
+        <mat-card-title>Comparatif KPIs</mat-card-title>
+        <mat-card-subtitle>{{ filteredLignes().length }} indicateurs</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <!-- Filters -->
+        <div class="filters-row">
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Rechercher un KPI</mat-label>
+            <input matInput [ngModel]="searchFilter()" (ngModelChange)="searchFilter.set($event)" />
+            <mat-icon matSuffix>search</mat-icon>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="filter-field-sm">
+            <mat-label>Catégorie</mat-label>
+            <mat-select [ngModel]="categorieFilter()" (ngModelChange)="categorieFilter.set($event)">
+              <mat-option value="">Toutes</mat-option>
+              @for (cat of categories(); track cat) {
+                <mat-option [value]="cat">{{ cat }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="filter-field-sm">
+            <mat-label>Niveau</mat-label>
+            <mat-select [ngModel]="niveauFilter()" (ngModelChange)="niveauFilter.set($event)">
+              <mat-option value="">Tous</mat-option>
+              <mat-option value="CRITIQUE">🔴 Critique</mat-option>
+              <mat-option value="MODERE">🟡 Modéré</mat-option>
+              <mat-option value="FAIBLE">🟢 Faible</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="table-container">
+          <table mat-table [dataSource]="filteredLignes()" class="kpi-table">
+
+            <ng-container matColumnDef="kpiNom">
+              <th mat-header-cell *matHeaderCellDef>Indicateur</th>
+              <td mat-cell *matCellDef="let row" class="kpi-name-cell">{{ row.kpiNom }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="categorieLibelle">
+              <th mat-header-cell *matHeaderCellDef>Catégorie</th>
+              <td mat-cell *matCellDef="let row">
+                <span class="cat-badge">{{ row.categorieCode }}</span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="valeurN1">
+              <th mat-header-cell *matHeaderCellDef>N-1</th>
+              <td mat-cell *matCellDef="let row" class="num-cell">{{ row.valeurN1 | number:'1.0-2' }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="valeurN">
+              <th mat-header-cell *matHeaderCellDef>N</th>
+              <td mat-cell *matCellDef="let row" class="num-cell">{{ row.valeurN | number:'1.0-2' }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="variationAbsolue">
+              <th mat-header-cell *matHeaderCellDef>Δ Abs.</th>
+              <td mat-cell *matCellDef="let row" class="num-cell">
+                {{ row.variationAbsolue > 0 ? '+' : '' }}{{ row.variationAbsolue | number:'1.0-2' }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="variationRelative">
+              <th mat-header-cell *matHeaderCellDef>Δ %</th>
+              <td mat-cell *matCellDef="let row">
+                <span class="var-badge" [ngClass]="variationStyle(row.variationRelative)">
+                  {{ row.variationRelative > 0 ? '+' : '' }}{{ row.variationRelative | number:'1.1-1' }}%
+                </span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="niveauVariation">
+              <th mat-header-cell *matHeaderCellDef>Niveau</th>
+              <td mat-cell *matCellDef="let row">
+                <span class="niveau-chip" [ngClass]="niveauClass(row.niveauVariation)">
+                  {{ row.niveauVariation }}
+                </span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="tendance">
+              <th mat-header-cell *matHeaderCellDef>Tendance</th>
+              <td mat-cell *matCellDef="let row">
+                <mat-icon [ngClass]="tendanceClass(row.tendance)" class="trend-icon">
+                  {{ tendanceIcon(row.tendance) }}
+                </mat-icon>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="analyseIa">
+              <th mat-header-cell *matHeaderCellDef>Note IA</th>
+              <td mat-cell *matCellDef="let row" class="ia-cell">
+                @if (row.analyseIa) {
+                  <span class="ia-note" [matTooltip]="row.analyseIa" matTooltipClass="ia-tooltip">
+                    <mat-icon class="ia-icon">psychology</mat-icon>
+                    {{ row.analyseIa | slice:0:60 }}...
+                  </span>
+                }
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="tableColumns; sticky: true"></tr>
+            <tr mat-row *matRowDef="let row; columns: tableColumns;" class="kpi-row"></tr>
+          </table>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- ── AI Global Synthesis ──────────────────────────────── -->
+    @if (analysesIa()?.analyseGlobale) {
+      <mat-card class="glass-card ia-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar class="ia-av-icon">auto_awesome</mat-icon>
+          <mat-card-title>Synthèse IA Globale</mat-card-title>
+          <mat-card-subtitle>Analyse générée par LLaMA via Groq</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="ia-text">{{ analysesIa()!.analyseGlobale!.synthese }}</div>
+          <button mat-stroked-button class="more-ia-btn" (click)="goToIA()">
+            <mat-icon>open_in_new</mat-icon>
+            Voir l'analyse complète + Plan d'actions
+          </button>
+        </mat-card-content>
+      </mat-card>
+    }
+  }
+</div>

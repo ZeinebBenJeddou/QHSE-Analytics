@@ -1,0 +1,144 @@
+<div class="ia-page">
+  <!-- Header -->
+  <div class="page-header">
+    <button mat-icon-button (click)="goBack()" class="back-btn">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <div class="header-left">
+      <mat-icon class="header-icon">psychology</mat-icon>
+      <div>
+        <h1>Analyse IA Complète</h1>
+        <p class="subtitle">Insights générés par LLaMA via Groq AI</p>
+      </div>
+    </div>
+    <button mat-raised-button class="regen-btn"
+            [disabled]="regenerating()"
+            (click)="regenerer()">
+      @if (regenerating()) {
+        <mat-spinner diameter="18" color="accent" style="display:inline-block"></mat-spinner>
+      } @else {
+        <mat-icon>refresh</mat-icon>
+      }
+      Régénérer les analyses
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="loader-wrap">
+      <mat-spinner diameter="56" color="accent"></mat-spinner>
+      <p>Chargement des analyses IA...</p>
+    </div>
+  } @else if (error()) {
+    <div class="error-banner"><mat-icon>error_outline</mat-icon>{{ error() }}</div>
+  } @else if (analyse()) {
+
+    <!-- ── Periods banner ──────────────────────────────── -->
+    <div class="period-banner">
+      <mat-icon>calendar_month</mat-icon>
+      Période analysée :
+      <strong>{{ analyse()!.periodeN1 }}</strong>
+      <mat-icon>arrow_forward</mat-icon>
+      <strong>{{ analyse()!.periodeN }}</strong>
+    </div>
+
+    <!-- ── Global Synthesis ────────────────────────────── -->
+    @if (analyse()!.analyseGlobale) {
+      <mat-card class="glass-card synthese-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar class="synthese-icon">auto_awesome</mat-icon>
+          <mat-card-title>Synthèse Globale</mat-card-title>
+          <mat-card-subtitle>Vue d'ensemble de la performance QHSE</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="ia-text">{{ analyse()!.analyseGlobale!.synthese }}</div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- ── Action Plan ────────────────────────────────── -->
+      <mat-card class="glass-card plan-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar class="plan-icon">task_alt</mat-icon>
+          <mat-card-title>Plan d'Actions</mat-card-title>
+          <mat-card-subtitle>Recommandations préventives et d'amélioration continue</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="ia-text plan-text">{{ analyse()!.analyseGlobale!.planActions }}</div>
+        </mat-card-content>
+      </mat-card>
+    }
+
+    <!-- ── Category Analyses ───────────────────────────── -->
+    @if (analyse()!.analysesCategories.length) {
+      <mat-card class="glass-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar class="cat-icon">category</mat-icon>
+          <mat-card-title>Analyses par Catégorie</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <mat-accordion class="cat-accordion" multi>
+            @for (cat of analyse()!.analysesCategories; track cat.id) {
+              <mat-expansion-panel class="cat-panel">
+                <mat-expansion-panel-header>
+                  <mat-panel-title class="cat-title">
+                    <mat-icon class="cat-bullet">folder</mat-icon>
+                    {{ cat.categorieLibelle }}
+                    <span class="cat-code">{{ cat.categorieCode }}</span>
+                  </mat-panel-title>
+                </mat-expansion-panel-header>
+                <div class="ia-text cat-content">{{ cat.contenu }}</div>
+              </mat-expansion-panel>
+            }
+          </mat-accordion>
+        </mat-card-content>
+      </mat-card>
+    }
+
+    <!-- ── Per-KPI AI Notes ────────────────────────────── -->
+    @if (analyse()!.analysesKpis.length) {
+      <mat-card class="glass-card kpi-ia-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar class="kpi-ia-icon">insights</mat-icon>
+          <mat-card-title>Analyse IA par KPI</mat-card-title>
+          <mat-card-subtitle>{{ analyse()!.analysesKpis.length }} indicateurs analysés</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <mat-accordion multi>
+            @for (kpi of analyse()!.analysesKpis; track kpi.id) {
+              @if (kpi.analyseIa) {
+                <mat-expansion-panel class="kpi-panel">
+                  <mat-expansion-panel-header>
+                    <mat-panel-title class="kpi-ia-title">
+                      <span class="kpi-ia-name">{{ kpi.kpiNom }}</span>
+                      <span class="kpi-cat-badge">{{ kpi.categorieCode }}</span>
+                      <span class="niveau-chip" [ngClass]="niveauClass(kpi.niveauVariation)">
+                        {{ kpi.niveauVariation }}
+                      </span>
+                      <span class="variation-val"
+                            [ngClass]="kpi.variationRelative > 0 ? 'var-up' : 'var-down'">
+                        {{ kpi.variationRelative > 0 ? '+' : '' }}{{ kpi.variationRelative | number:'1.1-1' }}%
+                        <mat-icon class="trend-sm">{{ tendanceIcon(kpi.tendance) }}</mat-icon>
+                      </span>
+                    </mat-panel-title>
+                  </mat-expansion-panel-header>
+                  <div class="kpi-values-row">
+                    <div class="kv-item">
+                      <span class="kv-label">{{ kpi.periodeN1 }}</span>
+                      <span class="kv-val">{{ kpi.valeurN1 | number:'1.0-2' }} <small>{{ kpi.kpiUnite }}</small></span>
+                    </div>
+                    <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+                    <div class="kv-item">
+                      <span class="kv-label">{{ kpi.periodeN }}</span>
+                      <span class="kv-val">{{ kpi.valeurN | number:'1.0-2' }} <small>{{ kpi.kpiUnite }}</small></span>
+                    </div>
+                  </div>
+                  <mat-divider class="kpi-divider"></mat-divider>
+                  <div class="ia-text kpi-ia-text">{{ kpi.analyseIa }}</div>
+                </mat-expansion-panel>
+              }
+            }
+          </mat-accordion>
+        </mat-card-content>
+      </mat-card>
+    }
+  }
+</div>

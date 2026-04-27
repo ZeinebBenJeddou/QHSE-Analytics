@@ -1,0 +1,114 @@
+<div class="mapping-page">
+  <div class="page-header">
+    <button mat-icon-button (click)="goBack()" class="back-btn"><mat-icon>arrow_back</mat-icon></button>
+    <div class="header-left">
+      <mat-icon class="header-icon">tune</mat-icon>
+      <div>
+        <h1>Mapping des colonnes</h1>
+        <p class="subtitle">Associez les colonnes Excel à vos indicateurs QHSE</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="mapping-grid">
+    <!-- ── Mapping Table ────────────────────────────────── -->
+    <mat-card class="glass-card main-card">
+      <mat-card-header>
+        <mat-icon mat-card-avatar class="card-icon">table_chart</mat-icon>
+        <mat-card-title>Association colonnes → KPIs</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="mapping-header-row">
+          <span class="col-label">Colonne Excel</span>
+          <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+          <span class="col-label">KPI / Champ cible</span>
+          <span></span>
+        </div>
+
+        @for (m of mappings(); track $index; let i = $index) {
+          <div class="mapping-row">
+            <mat-form-field appearance="outline" class="mapping-field">
+              <mat-label>Colonne source</mat-label>
+              <input matInput [value]="m.excelColumn"
+                     (input)="updateColumn(i, $any($event.target).value)"
+                     placeholder="ex: Date Accident" />
+              <mat-icon matSuffix>view_column</mat-icon>
+            </mat-form-field>
+
+            <mat-icon class="row-arrow">arrow_forward</mat-icon>
+
+            <mat-form-field appearance="outline" class="mapping-field">
+              <mat-label>Saisir le KPI cible</mat-label>
+              <input matInput [value]="m.kpiId ?? ''"
+                     (input)="updateKpi(i, +$any($event.target).value)"
+                     placeholder="ID du KPI" type="number" />
+              <mat-icon matSuffix>analytics</mat-icon>
+            </mat-form-field>
+
+            <button mat-icon-button class="remove-btn" (click)="removeRow(i)"
+                    matTooltip="Supprimer cette ligne">
+              <mat-icon>delete_outline</mat-icon>
+            </button>
+          </div>
+        }
+
+        <button mat-stroked-button class="add-btn" (click)="addRow()">
+          <mat-icon>add</mat-icon>
+          Ajouter une ligne
+        </button>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- ── Template Management ──────────────────────────── -->
+    <div class="sidebar">
+      <mat-card class="glass-card template-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar class="card-icon">bookmark</mat-icon>
+          <mat-card-title>Sauvegarder</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <mat-form-field appearance="outline" class="full-field">
+            <mat-label>Nom du template</mat-label>
+            <input matInput [(ngModel)]="templateName" placeholder="ex: Mappage Sécurité 2024" />
+          </mat-form-field>
+          <button mat-raised-button class="save-btn" [disabled]="saving()" (click)="saveTemplate()">
+            @if (saving()) { <mat-spinner diameter="18"></mat-spinner> }
+            @else { <mat-icon>save</mat-icon> }
+            Sauvegarder le template
+          </button>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="glass-card templates-list-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar class="card-icon">folder_open</mat-icon>
+          <mat-card-title>Templates sauvegardés</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          @if (templates().length === 0) {
+            <p class="no-templates">Aucun template sauvegardé.</p>
+          }
+          @for (t of templates(); track t.id) {
+            <div class="template-row">
+              <div class="template-info">
+                <mat-icon class="tpl-icon">description</mat-icon>
+                <div>
+                  <p class="tpl-name">{{ t.templateName }}</p>
+                  <p class="tpl-count">{{ t.mappings.length }} colonnes</p>
+                </div>
+              </div>
+              <div class="tpl-actions">
+                <button mat-icon-button matTooltip="Charger" (click)="loadTemplate(t)">
+                  <mat-icon>download</mat-icon>
+                </button>
+                <button mat-icon-button matTooltip="Supprimer" class="del-btn" (click)="deleteTemplate(t.id)">
+                  <mat-icon>delete_outline</mat-icon>
+                </button>
+              </div>
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+</div>

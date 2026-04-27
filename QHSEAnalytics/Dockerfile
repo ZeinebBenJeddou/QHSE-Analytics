@@ -1,5 +1,5 @@
 # build avec maven
-FROM eclipse-temurin:21-jdk-alpine AS builder
+FROM eclipse-temurin:17-jdk-alpine AS builder
 WORKDIR /app
 COPY .mvn/ .mvn/
 COPY mvnw pom.xml ./
@@ -9,7 +9,7 @@ COPY src/ src/
 RUN ./mvnw package -DskipTests -B
 
 # image  production legere
-FROM eclipse-temurin:21-jre-alpine AS production
+FROM eclipse-temurin:17-jre-alpine AS production
 WORKDIR /app
 # user non-root pr  securite
 RUN addgroup -S qhse && adduser -S qhse -G qhse

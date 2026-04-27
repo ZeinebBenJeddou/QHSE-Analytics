@@ -1,0 +1,53 @@
+<mat-sidenav-container class="shell-container">
+  <!-- ── Sidenav ────────────────────────────────────────── -->
+  <mat-sidenav
+    #sidenav
+    [opened]="sidenavOpen"
+    mode="side"
+    class="sidenav"
+  >
+    <div class="brand">
+      <mat-icon class="brand-icon">security</mat-icon>
+      <span class="brand-text">QHSE Analytics</span>
+    </div>
+
+    <mat-nav-list class="nav-list">
+      @for (item of navItems; track item.route) {
+        <a
+          mat-list-item
+          [routerLink]="item.route"
+          routerLinkActive="active-link"
+          class="nav-item"
+        >
+          <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+          <span matListItemTitle>{{ item.label }}</span>
+        </a>
+      }
+    </mat-nav-list>
+
+    <div class="sidenav-footer">
+      <a mat-list-item class="nav-item logout-btn" (click)="logout()">
+        <mat-icon matListItemIcon>logout</mat-icon>
+        <span matListItemTitle>Déconnexion</span>
+      </a>
+    </div>
+  </mat-sidenav>
+
+  <!-- ── Main content ──────────────────────────────────── -->
+  <mat-sidenav-content class="main-content">
+    <mat-toolbar class="toolbar">
+      <button mat-icon-button (click)="toggleSidenav()">
+        <mat-icon>menu</mat-icon>
+      </button>
+      <span class="toolbar-title">Espace Analyste</span>
+      <span class="spacer"></span>
+      <button mat-icon-button matTooltip="Déconnexion" (click)="logout()">
+        <mat-icon>logout</mat-icon>
+      </button>
+    </mat-toolbar>
+
+    <div class="content-area">
+      <router-outlet />
+    </div>
+  </mat-sidenav-content>
+</mat-sidenav-container>

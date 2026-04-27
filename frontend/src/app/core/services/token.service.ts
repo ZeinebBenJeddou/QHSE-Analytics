@@ -37,6 +37,10 @@ export class TokenService {
     return this.getUserRole() === 'ADMIN';
   }
 
+  isAnalyste(): boolean {
+    return this.getUserRole() === 'ANALYSTE';
+  }
+
   savePendingEmail(email: string): void {
     localStorage.setItem(this.pendingEmailKey, email);
   }

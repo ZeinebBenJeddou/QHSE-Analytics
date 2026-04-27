@@ -1,0 +1,132 @@
+package com.QHSEAnalytics.service;
+
+import com.QHSEAnalytics.dto.request.MappingTemplateRequest;
+import com.QHSEAnalytics.dto.response.MappingTemplateResponse;
+import com.QHSEAnalytics.dto.response.MappingTemplateResponse.MappingItemResponse;
+import com.QHSEAnalytics.entity.Kpi;
+import com.QHSEAnalytics.entity.MappingConfig;
+import com.QHSEAnalytics.exception.KpiNotFoundException;
+import com.QHSEAnalytics.repository.KpiRepository;
+import com.QHSEAnalytics.repository.MappingConfigRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+@Service
+@Slf4j
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class MappingService {
+
+    private final MappingConfigRepository mappingConfigRepository;
+    private final KpiRepository kpiRepository;
+
+    // ── Read ─────────────────────────────────────────────────────────────────
+
+    /**
+     * Returns all mapping templates owned by the given user, grouped as response objects.
+     */
+    public List<MappingTemplateResponse> getTemplates(Long userId) {
+        List<MappingConfig> configs = mappingConfigRepository
+                .findByUserIdOrderByTemplateNameAscCreatedAtDesc(userId);
+
+        // Group by (id of first item in template, templateName) – use templateName as key for grouping
+        Map<String, List<MappingConfig>> grouped = configs.stream()
+                .collect(Collectors.groupingBy(MappingConfig::getTemplateName, LinkedHashMap::new, Collectors.toList()));
+
+        return grouped.entrySet().stream()
+                .map(entry -> toTemplateResponse(entry.getKey(), entry.getValue()))
+                .toList();
+    }
+
+    // ── Write ─────────────────────────────────────────────────────────────────
+
+    /**
+     * Creates or replaces a named template for the user.
+     */
+    @Transactional
+    public MappingTemplateResponse saveTemplate(Long userId, MappingTemplateRequest request) {
+        // Delete existing rows for this template name (idempotent save)
+        mappingConfigRepository.deleteByUserIdAndTemplateName(userId, request.getTemplateName().trim());
+
+        List<MappingConfig> toSave = new ArrayList<>();
+        for (MappingTemplateRequest.MappingConfigItemRequest item : request.getMappings()) {
+            MappingConfig.MappingConfigBuilder builder = MappingConfig.builder()
+                    .templateName(request.getTemplateName().trim())
+                    .excelColumn(item.getExcelColumn().trim())
+                    .userId(userId)
+                    .categorieCode(item.getCategorieCode());
+
+            if (item.getKpiId() != null) {
+                Kpi kpi = kpiRepository.findById(item.getKpiId())
+                        .orElseThrow(() -> new KpiNotFoundException("KPI introuvable id=" + item.getKpiId()));
+                builder.kpi(kpi);
+            }
+            toSave.add(builder.build());
+        }
+
+        List<MappingConfig> saved = mappingConfigRepository.saveAll(toSave);
+        log.info("Template '{}' sauvegardé pour userId={} ({} colonnes)", request.getTemplateName(), userId, saved.size());
+        return toTemplateResponse(request.getTemplateName(), saved);
+    }
+
+    // ── Delete ─────────────────────────────────────────────────────────────────
+
+    @Transactional
+    public void deleteTemplate(Long id, Long userId) {
+        // Find the config to get the templateName
+        MappingConfig config = mappingConfigRepository.findById(id)
+                .filter(c -> c.getUserId().equals(userId))
+                .orElseThrow(() -> new IllegalArgumentException("Template introuvable ou accès refusé."));
+        mappingConfigRepository.deleteByUserIdAndTemplateName(userId, config.getTemplateName());
+        log.info("Template '{}' supprimé pour userId={}", config.getTemplateName(), userId);
+    }
+
+    // ── Mapping ─────────────────────────────────────────────────────────────────
+
+    /**
+     * Returns the KPI match for a given Excel column label from a user's saved template.
+     * Used by the manual import flow.
+     */
+    public Map<String, Kpi> resolveMapping(Long userId, String templateName) {
+        List<MappingConfig> configs = mappingConfigRepository
+                .findByUserIdAndTemplateName(userId, templateName);
+        Map<String, Kpi> result = new LinkedHashMap<>();
+        for (MappingConfig c : configs) {
+            if (c.getKpi() != null) {
+                result.put(c.getExcelColumn().toLowerCase().trim(), c.getKpi());
+            }
+        }
+        return result;
+    }
+
+    // ── Helpers ─────────────────────────────────────────────────────────────────
+
+    private MappingTemplateResponse toTemplateResponse(String name, List<MappingConfig> configs) {
+        // Use the ID of the first record as the template ID (client-facing)
+        Long templateId = configs.isEmpty() ? null : configs.get(0).getId();
+        return MappingTemplateResponse.builder()
+                .id(templateId)
+                .templateName(name)
+                .createdAt(configs.isEmpty() ? null : configs.get(0).getCreatedAt())
+                .mappings(configs.stream().map(this::toItemResponse).toList())
+                .build();
+    }
+
+    private MappingItemResponse toItemResponse(MappingConfig config) {
+        return MappingItemResponse.builder()
+                .id(config.getId())
+                .excelColumn(config.getExcelColumn())
+                .kpiId(config.getKpi() != null ? config.getKpi().getId() : null)
+                .kpiNom(config.getKpi() != null ? config.getKpi().getNom() : null)
+                .categorieCode(config.getCategorieCode())
+                .build();
+    }
+}
