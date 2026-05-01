@@ -1,6 +1,6 @@
 package com.QHSEAnalytics.auth.service;
 
-import com.QHSEAnalytics.auth.entity.User;
+
 import com.QHSEAnalytics.auth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.*;

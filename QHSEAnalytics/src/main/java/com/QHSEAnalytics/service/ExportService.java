@@ -16,7 +16,6 @@ import com.QHSEAnalytics.entity.AnalyseCategorie;
 import com.QHSEAnalytics.entity.AnalyseGlobale;
 import com.QHSEAnalytics.entity.ImportSession;
 import com.QHSEAnalytics.entity.ResultatKpi;
-import com.QHSEAnalytics.enums.ImportStatut;
 import com.QHSEAnalytics.enums.NiveauVariation;
 import com.QHSEAnalytics.exception.AnalyseNotFoundException;
 import com.QHSEAnalytics.exception.ImportNotFoundException;
@@ -62,7 +61,7 @@ public class ExportService {
         ImportSession session = importSessionRepository.findByIdAndUserId(importId, userId)
                 .orElseThrow(() -> new ImportNotFoundException("Import introuvable"));
 
-        if (session.getStatut() != ImportStatut.TRAITE) {
+        if (!session.getStatut().isReadyForAi()) {
             throw new ImportNotReadyException("Impossible d'exporter un import non traite.");
         }
 

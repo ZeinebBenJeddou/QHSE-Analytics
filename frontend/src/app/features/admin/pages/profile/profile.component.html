@@ -1,0 +1,138 @@
+<div class="profile-page">
+
+  
+  <div class="page-header">
+    <div class="header-left">
+      <div class="header-icon-wrap">
+        <mat-icon class="header-icon">manage_accounts</mat-icon>
+      </div>
+      <div>
+        <h1>Mon profil</h1>
+        <p class="subtitle">Informations de compte et sécurité</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button mat-stroked-button class="ia-btn" [routerLink]="homeRoute">
+        <mat-icon>arrow_back</mat-icon>
+        Retour
+      </button>
+    </div>
+  </div>
+
+  
+  <div *ngIf="loading" class="loader-overlay">
+    <mat-progress-spinner diameter="40" mode="indeterminate"></mat-progress-spinner>
+    <span>Chargement du profil…</span>
+  </div>
+
+ 
+  <div *ngIf="!loading && errorMessage" class="error-banner">
+    <mat-icon>error_outline</mat-icon>
+    <span>{{ errorMessage }}</span>
+  </div>
+
+  <div *ngIf="!loading && profile" class="profile-grid">
+
+    
+    <mat-card class="glass-card identity-card">
+      <div class="identity-body">
+        <div class="big-avatar">{{ avatarInitials }}</div>
+        <div class="identity-info">
+          <h2 class="identity-name">{{ profile.prenom }} {{ profile.nom }}</h2>
+          <div class="identity-meta">
+            <span class="meta-row">
+              <mat-icon class="meta-icon">alternate_email</mat-icon>
+              {{ profile.email }}
+            </span>
+            <span class="meta-row">
+              <mat-icon class="meta-icon">badge</mat-icon>
+              {{ profile.role }}
+            </span>
+            <span class="meta-row">
+              <mat-icon class="meta-icon">calendar_today</mat-icon>
+              Membre depuis {{ profile.createdAt | date:'mediumDate' }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </mat-card>
+
+   
+    <mat-card class="glass-card">
+      <mat-card-header>
+        <div mat-card-avatar class="card-av-icon-wrap">
+          <mat-icon class="card-av-icon">edit</mat-icon>
+        </div>
+        <mat-card-title>Modifier le profil</mat-card-title>
+        <mat-card-subtitle>Nom et prénom affichés dans l'application</mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" class="form-grid">
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Nom</mat-label>
+            <mat-icon matPrefix class="field-icon">person_outline</mat-icon>
+            <input matInput formControlName="nom" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Prénom</mat-label>
+            <mat-icon matPrefix class="field-icon">person_outline</mat-icon>
+            <input matInput formControlName="prenom" />
+          </mat-form-field>
+
+          <div class="form-actions">
+            <button mat-flat-button class="primary-btn" type="submit"
+              [disabled]="profileForm.invalid || savingProfile">
+              <mat-icon>{{ savingProfile ? 'hourglass_empty' : 'save' }}</mat-icon>
+              {{ savingProfile ? 'Enregistrement…' : 'Enregistrer les modifications' }}
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+
+   
+    <mat-card class="glass-card">
+      <mat-card-header>
+        <div mat-card-avatar class="card-av-icon-wrap danger">
+          <mat-icon class="card-av-icon danger">lock_reset</mat-icon>
+        </div>
+        <mat-card-title>Changer le mot de passe</mat-card-title>
+        <mat-card-subtitle>Vous serez déconnecté après la modification</mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" class="form-grid">
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Ancien mot de passe</mat-label>
+            <mat-icon matPrefix class="field-icon">lock_outline</mat-icon>
+            <input matInput type="password" formControlName="ancienPassword" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Nouveau mot de passe</mat-label>
+            <mat-icon matPrefix class="field-icon">lock_outline</mat-icon>
+            <input matInput type="password" formControlName="nouveauPassword" />
+            <mat-hint>8 caractères minimum</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Confirmer le mot de passe</mat-label>
+            <mat-icon matPrefix class="field-icon">lock_outline</mat-icon>
+            <input matInput type="password" formControlName="confirmPassword" />
+          </mat-form-field>
+
+          <div class="form-actions">
+            <button mat-flat-button class="danger-btn" type="submit"
+              [disabled]="passwordForm.invalid || savingPassword">
+              <mat-icon>{{ savingPassword ? 'hourglass_empty' : 'lock_reset' }}</mat-icon>
+              {{ savingPassword ? 'Modification…' : 'Changer le mot de passe' }}
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+
+  </div>
+</div>

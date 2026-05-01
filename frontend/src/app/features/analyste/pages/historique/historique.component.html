@@ -1,40 +1,56 @@
 <div class="historique-page">
-  <!-- Header -->
+
+ 
   <div class="page-header">
     <div class="header-left">
-      <mat-icon class="header-icon">history</mat-icon>
+      <div class="header-icon-wrap">
+        <mat-icon class="header-icon">history</mat-icon>
+      </div>
       <div>
         <h1>Historique des imports</h1>
         <p class="subtitle">Retrouvez tous vos imports passés et accédez aux analyses</p>
       </div>
     </div>
-    <button mat-raised-button class="new-import-btn" routerLink="/analyste/import">
+    <button mat-flat-button class="new-import-btn" (click)="goToImport()">
       <mat-icon>add</mat-icon>
       Nouvel import
     </button>
   </div>
 
+ 
   @if (loading()) {
     <div class="loader-wrap">
-      <mat-spinner diameter="52" color="accent"></mat-spinner>
+      <mat-spinner diameter="44" color="primary"></mat-spinner>
     </div>
-  } @else if (error()) {
-    <div class="error-banner"><mat-icon>error_outline</mat-icon>{{ error() }}</div>
-  } @else if (items().length === 0) {
+  }
+
+ 
+  @else if (error()) {
+    <div class="error-banner">
+      <mat-icon>error_outline</mat-icon>
+      {{ error() }}
+    </div>
+  }
+
+
+  @else if (items().length === 0) {
     <div class="empty-state">
       <mat-icon>inbox</mat-icon>
       <p>Aucun import trouvé. Commencez par importer des données.</p>
-      <button mat-raised-button routerLink="/analyste/import" class="new-import-btn">
+      <button mat-flat-button class="new-import-btn" (click)="goToImport()">
         <mat-icon>upload_file</mat-icon>
         Importer maintenant
       </button>
     </div>
-  } @else {
+  }
+
+ 
+  @else {
     <mat-card class="table-card glass-card">
       <mat-card-content>
         <table mat-table [dataSource]="items()" class="hist-table">
 
-          <!-- Nom fichier -->
+       
           <ng-container matColumnDef="nomFichier">
             <th mat-header-cell *matHeaderCellDef>Fichier</th>
             <td mat-cell *matCellDef="let row">
@@ -45,7 +61,7 @@
             </td>
           </ng-container>
 
-          <!-- Périodes -->
+       
           <ng-container matColumnDef="periodes">
             <th mat-header-cell *matHeaderCellDef>Périodes</th>
             <td mat-cell *matCellDef="let row">
@@ -53,23 +69,30 @@
             </td>
           </ng-container>
 
-          <!-- Date -->
           <ng-container matColumnDef="dateImport">
             <th mat-header-cell *matHeaderCellDef>Date d'import</th>
-            <td mat-cell *matCellDef="let row">{{ row.dateImport | date:'dd/MM/yyyy HH:mm' }}</td>
+            <td mat-cell *matCellDef="let row">
+              {{ row.dateImport | date:'dd/MM/yyyy HH:mm' }}
+            </td>
           </ng-container>
 
-          <!-- Statut -->
+        
           <ng-container matColumnDef="statut">
             <th mat-header-cell *matHeaderCellDef>Statut</th>
             <td mat-cell *matCellDef="let row">
               <span class="status-chip" [ngClass]="statutColor(row.statut)">
                 {{ row.statut }}
               </span>
+              @if (row.messageErreur) {
+                <div class="status-error" [matTooltip]="row.messageErreur">
+                  <mat-icon class="error-icon">warning_amber</mat-icon>
+                  {{ row.messageErreur }}
+                </div>
+              }
             </td>
           </ng-container>
 
-          <!-- KPIs critiques -->
+       
           <ng-container matColumnDef="critiques">
             <th mat-header-cell *matHeaderCellDef>KPIs critiques</th>
             <td mat-cell *matCellDef="let row">
@@ -81,22 +104,27 @@
             </td>
           </ng-container>
 
-          <!-- Actions -->
+         
           <ng-container matColumnDef="actions">
             <th mat-header-cell *matHeaderCellDef>Actions</th>
             <td mat-cell *matCellDef="let row">
               <div class="actions-cell">
-                <button mat-icon-button matTooltip="Tableau de bord"
-                        [disabled]="row.statut !== 'TRAITE'"
+                <button mat-icon-button type="button" matTooltip="Tableau de bord"
+                        [disabled]="row.statut !== 'CALCULATED' && row.statut !== 'READY_FOR_AI' && row.statut !== 'TRAITE'"
                         (click)="viewDashboard(row)">
                   <mat-icon>dashboard</mat-icon>
                 </button>
-                <button mat-icon-button matTooltip="Analyse IA"
-                        [disabled]="row.statut !== 'TRAITE'"
+                <button mat-icon-button type="button" matTooltip="Analyse IA"
+                        [disabled]="row.statut !== 'READY_FOR_AI' && row.statut !== 'TRAITE'"
                         (click)="viewIA(row)">
                   <mat-icon>psychology</mat-icon>
                 </button>
-                <button mat-icon-button matTooltip="Supprimer" class="delete-btn"
+                <button mat-icon-button type="button" matTooltip="Exporter PDF"
+                        [disabled]="downloadingImportId() === row.importId"
+                        (click)="exportPdf(row)">
+                  <mat-icon>picture_as_pdf</mat-icon>
+                </button>
+                <button mat-icon-button type="button" matTooltip="Supprimer" class="delete-btn"
                         (click)="delete(row)">
                   <mat-icon>delete_outline</mat-icon>
                 </button>
@@ -104,10 +132,13 @@
             </td>
           </ng-container>
 
+          
+
           <tr mat-header-row *matHeaderRowDef="columns"></tr>
           <tr mat-row *matRowDef="let row; columns: columns;" class="table-row"></tr>
         </table>
       </mat-card-content>
     </mat-card>
   }
+
 </div>

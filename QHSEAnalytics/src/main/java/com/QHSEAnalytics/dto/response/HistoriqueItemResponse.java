@@ -19,6 +19,10 @@ public class HistoriqueItemResponse {
     private Integer periodeN1;
     private Integer periodeN;
     private String statut;
+    private String messageErreur;
     private int nombreKpisCritiques;
     private LocalDateTime dateImport;
+    private Long utilisateurId;
+    private String utilisateurNom;
+    private String utilisateurEmail;
 }

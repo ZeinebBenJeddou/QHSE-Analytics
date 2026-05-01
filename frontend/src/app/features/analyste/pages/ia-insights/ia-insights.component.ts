@@ -9,6 +9,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { DashboardService } from '../../../../core/services/dashboard.service';
 import { AiAnalysisService } from '../../../../core/services/ai-analysis.service';
 import { AnalyseCompleteResponse } from '../../../../core/models/analyse-ia.model';
@@ -20,7 +21,7 @@ import { AnalyseCompleteResponse } from '../../../../core/models/analyse-ia.mode
     CommonModule,
     MatCardModule, MatButtonModule, MatIconModule,
     MatExpansionModule, MatProgressSpinnerModule,
-    MatDividerModule, MatSnackBarModule, MatChipsModule,
+    MatDividerModule, MatSnackBarModule, MatChipsModule, MatTooltipModule,
   ],
   templateUrl: './ia-insights.component.html',
   styleUrls: ['./ia-insights.component.css'],
@@ -36,6 +37,7 @@ export class IaInsightsComponent implements OnInit {
   analyse = signal<AnalyseCompleteResponse | null>(null);
   loading = signal(true);
   regenerating = signal(false);
+  polling = signal(false);
   error = signal('');
 
   ngOnInit() {
@@ -51,28 +53,62 @@ export class IaInsightsComponent implements OnInit {
 
   load(importId: number) {
     this.loading.set(true);
+    this.error.set('');
     this.dashboardService.getAnalysesIa(importId).subscribe({
-      next: res => { this.analyse.set(res); this.loading.set(false); },
+      next: res => {
+        this.analyse.set(res);
+        this.loading.set(false);
+      },
       error: () => {
-        this.error.set("Impossible de charger l'analyse IA.");
+        this.error.set("Impossible de charger la synthèse et le résumé KPI.");
         this.loading.set(false);
       }
     });
   }
 
-  regenerer() {
+  runAi() {
     const id = this.importId();
-    if (!id) return;
+    if (!id) {
+      this.snackBar.open('Aucun import sélectionné pour l’analyse IA.', 'OK', { duration: 3000 });
+      return;
+    }
     this.regenerating.set(true);
-    this.aiService.regenerer(id).subscribe({
-      next: res => {
-        this.analyse.set(res);
-        this.regenerating.set(false);
-        this.snackBar.open('Analyses régénérées avec succès !', 'OK', { duration: 3000 });
+    this.loading.set(true);
+    this.error.set('');
+    this.polling.set(true);
+
+    this.aiService.runAi(id).subscribe({
+      next: () => {
+        this.snackBar.open('Analyse IA lancée, récupération des résultats en arrière-plan.', 'OK', { duration: 3000 });
+        this.pollAnalyse(id, 0);
       },
       error: () => {
         this.regenerating.set(false);
-        this.snackBar.open("Erreur lors de la régénération.", 'OK', { duration: 3000 });
+        this.loading.set(false);
+        this.polling.set(false);
+        this.snackBar.open('Erreur lors de l’analyse IA.', 'OK', { duration: 3000 });
+      }
+    });
+  }
+
+  private pollAnalyse(importId: number, attempt: number) {
+    if (attempt >= 12) {
+      this.loading.set(false);
+      this.regenerating.set(false);
+      this.polling.set(false);
+      this.error.set('Impossible de récupérer l’analyse IA. Réessayez dans quelques instants.');
+      return;
+    }
+
+    this.dashboardService.getAnalysesIa(importId).subscribe({
+      next: res => {
+        this.analyse.set(res);
+        this.loading.set(false);
+        this.regenerating.set(false);
+        this.polling.set(false);
+      },
+      error: () => {
+        window.setTimeout(() => this.pollAnalyse(importId, attempt + 1), 2500);
       }
     });
   }

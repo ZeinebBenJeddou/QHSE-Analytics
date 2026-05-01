@@ -33,14 +33,7 @@ public class ImportSessionModeConstraintUpdater {
                     "WHERE conrelid = 'import_sessions'::regclass AND contype = 'c'"
             );
 
-            boolean hasAutoAllowed = constraints.stream()
-                    .map(entry -> (String) entry.get("definition"))
-                    .anyMatch(definition -> definition.contains("mode") && definition.contains("AUTO"));
-
-            if (hasAutoAllowed) {
-                log.info("import_sessions.mode constraint already allows AUTO.");
-                return;
-            }
+            // Always replace any existing check constraint on `mode` with the comprehensive set
 
             for (Map<String, Object> constraint : constraints) {
                 String definition = (String) constraint.get("definition");
@@ -51,9 +44,9 @@ public class ImportSessionModeConstraintUpdater {
                 }
             }
 
-            jdbcTemplate.execute("ALTER TABLE import_sessions ADD CONSTRAINT import_sessions_mode_check " +
-                    "CHECK (mode IN ('TEMPLATE_OFFICIEL', 'FICHIER_LIBRE', 'AUTO'))");
-            log.info("import_sessions.mode constraint updated to include AUTO.");
+                jdbcTemplate.execute("ALTER TABLE import_sessions ADD CONSTRAINT import_sessions_mode_check " +
+                    "CHECK (mode IN ('MANUAL', 'TEMPLATE', 'FLEXIBLE', 'TEMPLATE_OFFICIEL', 'FICHIER_LIBRE', 'AUTO'))");
+                log.info("import_sessions.mode constraint updated for current import modes.");
         } catch (Exception ex) {
             log.warn("Unable to update import_sessions.mode constraint automatically: {}", ex.getMessage());
             log.debug("Constraint update failure details", ex);

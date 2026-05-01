@@ -2,7 +2,7 @@ import {
   Component, inject, OnInit, signal, computed
 } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -19,7 +19,7 @@ import { HistoriqueItemResponse } from '../../../../core/models/import-session.m
   selector: 'app-historique',
   standalone: true,
   imports: [
-    CommonModule, DatePipe,
+    CommonModule, DatePipe, RouterModule,
     MatCardModule, MatButtonModule, MatIconModule,
     MatTableModule, MatChipsModule, MatTooltipModule,
     MatProgressSpinnerModule, MatDialogModule, MatSnackBarModule,
@@ -37,6 +37,7 @@ export class HistoriqueComponent implements OnInit {
   error = signal('');
 
   columns = ['nomFichier', 'periodes', 'dateImport', 'statut', 'critiques', 'actions'];
+  downloadingImportId = signal<number | null>(null);
 
   ngOnInit() {
     this.load();
@@ -64,6 +65,35 @@ export class HistoriqueComponent implements OnInit {
     this.router.navigate(['/analyste/ia', item.importId]);
   }
 
+  exportPdf(item: HistoriqueItemResponse) {
+    this.downloadingImportId.set(item.importId);
+    this.importService.exportAnalyste(item.importId).subscribe({
+      next: (blob) => {
+        this.downloadBlob(blob, `rapport-import-${item.importId}.pdf`);
+        this.snackBar.open('Export PDF lancé.', 'OK', { duration: 3000 });
+      },
+      error: () => {
+        this.snackBar.open('Erreur lors de l’export PDF.', 'OK', { duration: 3000 });
+      },
+      complete: () => this.downloadingImportId.set(null),
+    });
+  }
+
+  private downloadBlob(blob: Blob, filename: string): void {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  }
+
+  goToImport(): void {
+    this.router.navigate(['/analyste/import']);
+  }
+
   delete(item: HistoriqueItemResponse) {
     if (!confirm(`Supprimer l'import du fichier "${item.nomFichier}" ?`)) return;
     this.importService.annuler(item.importId).subscribe({
@@ -77,7 +107,7 @@ export class HistoriqueComponent implements OnInit {
 
   statutColor(statut: string): string {
     const map: Record<string, string> = {
-      TRAITE: 'success', ERREUR: 'error', EN_TRAITEMENT: 'warn', ANNULE: 'default'
+      TRAITE: 'success', READY_FOR_AI: 'success', CALCULATED: 'accent', IMPORTED: 'primary', ERREUR: 'error', EN_TRAITEMENT: 'warn', ANNULE: 'default'
     };
     return map[statut] ?? 'default';
   }

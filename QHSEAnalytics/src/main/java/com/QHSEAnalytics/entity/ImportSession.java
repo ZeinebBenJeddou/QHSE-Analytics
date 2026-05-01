@@ -35,6 +35,10 @@ public class ImportSession {
     @Column(length = 20)
     private String templateVersion;
 
+    @Lob
+    @Column(name = "file_content")
+    private byte[] fileContent;
+
     @Column(nullable = false)
     private Integer periodeN1;
 

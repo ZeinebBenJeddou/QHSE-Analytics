@@ -1,0 +1,68 @@
+<mat-sidenav-container class="shell-container">
+
+  <mat-sidenav
+    #sidenav
+    [opened]="sidenavOpen"
+    mode="side"
+    class="sidenav"
+  >
+    <div class="brand">
+      
+      <div class="brand-info">
+        <span class="brand-name">QHSE <strong>Admin</strong></span>
+        <span class="brand-role">Console d'administration</span>
+      </div>
+    </div>
+
+    <nav class="nav-section">
+      <p class="nav-label">Navigation</p>
+      <mat-nav-list class="nav-list">
+        <a mat-list-item
+           *ngFor="let item of navItems; trackBy: trackByRoute"
+           [routerLink]="item.route"
+           routerLinkActive="active-link"
+           class="nav-item"
+           [matTooltip]="item.label"
+           matTooltipPosition="right"
+           [matTooltipDisabled]="sidenavOpen"
+        >
+          <mat-icon matListItemIcon class="nav-icon">{{ item.icon }}</mat-icon>
+          <span matListItemTitle class="nav-item-title">{{ item.label }}</span>
+          <span class="nav-badge" *ngIf="item.badge">{{ item.badge }}</span>
+        </a>
+      </mat-nav-list>
+    </nav>
+
+    <div class="sidenav-footer">
+      <a mat-list-item class="nav-item logout-btn" (click)="logout()">
+        <mat-icon matListItemIcon>logout</mat-icon>
+        <span matListItemTitle>Déconnexion</span>
+      </a>
+    </div>
+
+  </mat-sidenav>
+
+  <mat-sidenav-content class="main-content">
+
+    <mat-toolbar class="toolbar">
+      <button mat-icon-button class="menu-btn" (click)="toggleSidenav()" matTooltip="Menu">
+        <mat-icon>{{ sidenavOpen ? 'menu_open' : 'menu' }}</mat-icon>
+      </button>
+
+      <div class="toolbar-breadcrumb">
+        <span class="breadcrumb-root">Admin</span>
+        <mat-icon class="breadcrumb-sep">chevron_right</mat-icon>
+        <span class="breadcrumb-current">{{ activeLabel }}</span>
+      </div>
+
+      <span class="spacer"></span>
+
+      
+    </mat-toolbar>
+
+    <div class="content-area">
+      <router-outlet />
+    </div>
+
+  </mat-sidenav-content>
+</mat-sidenav-container>

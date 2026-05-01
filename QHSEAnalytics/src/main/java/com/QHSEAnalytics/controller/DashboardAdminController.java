@@ -6,6 +6,7 @@ import com.QHSEAnalytics.dto.response.AdminKpiCritiqueResponse;
 import com.QHSEAnalytics.dto.response.AdminRepartitionResponse;
 import com.QHSEAnalytics.dto.response.AdminStatsResponse;
 import com.QHSEAnalytics.dto.response.AnalyseCompleteResponse;
+import com.QHSEAnalytics.dto.response.HistoriqueAnalysteResponse;
 import com.QHSEAnalytics.dto.response.ComparatifTableauResponse;
 import com.QHSEAnalytics.service.AnalyseIaService;
 import com.QHSEAnalytics.service.DashboardAdminService;
@@ -53,6 +54,11 @@ public class DashboardAdminController {
     @GetMapping("/graphiques")
     public ResponseEntity<AdminGraphiquesDataResponse> getGraphiques() {
         return ResponseEntity.ok(dashboardAdminService.getGraphiques());
+    }
+
+    @GetMapping("/historique")
+    public ResponseEntity<HistoriqueAnalysteResponse> getHistorique() {
+        return ResponseEntity.ok(dashboardAdminService.getHistorique());
     }
 
     @GetMapping("/analystes/{userId}/comparatif/{importId}")

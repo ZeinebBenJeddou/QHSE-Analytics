@@ -174,6 +174,40 @@ public class GroqPromptBuilder {
                 + "utilisable en réunion de direction QHSE.";
     }
 
+    public String buildColumnMappingPrompt(List<String> headers) {
+        String headerList = headers.stream()
+                .map(header -> "- " + safe(header))
+                .collect(Collectors.joining("\n"));
+
+        return "Tu es un expert QHSE responsable de la normalisation des données d'import Excel.\n\n"
+                + "Voici les en-têtes trouvées dans un fichier Excel :\n"
+                + headerList + "\n\n"
+                + "Fournis uniquement un objet JSON valide avec les clés suivantes :\n"
+                + "{\n"
+                + "  \"kpi\": \"nom de la colonne KPI\",\n"
+                + "  \"categorie\": \"nom de la colonne catégorie\",\n"
+                + "  \"unite\": \"nom de la colonne unité\",\n"
+                + "  \"annee_n\": \"nom de la colonne année N\",\n"
+                + "  \"annee_n_1\": \"nom de la colonne année N-1\",\n"
+                + "  \"valeur_n\": \"nom de la colonne valeur N\",\n"
+                + "  \"valeur_n_1\": \"nom de la colonne valeur N-1\"\n"
+                + "}\n\n"
+                + "Ne fournis aucun texte supplémentaire, uniquement l'objet JSON.";
+    }
+
+    public String buildKpiMatchingPrompt(String rawLabel, String rawCategorie, List<com.QHSEAnalytics.entity.Kpi> candidates) {
+        String candidateList = candidates.stream()
+                .map(kpi -> "- " + safe(kpi.getNom()) + " (" + safe(kpi.getCategorieKpi().getLibelle()) + ")")
+                .collect(Collectors.joining("\n"));
+
+        return "Tu es un expert QHSE. En te basant sur le label suivant et la catégorie éventuellement fournie, retourne exactement le nom du KPI correspondant parmi la liste ci-dessous.\n\n"
+                + "Label brut : \"" + safe(rawLabel) + "\"\n"
+                + "Categorie : \"" + safe(rawCategorie) + "\"\n\n"
+                + "Liste des KPI disponibles :\n"
+                + candidateList + "\n\n"
+                + "Réponds uniquement par le nom exact du KPI correspondant.\n";
+    }
+
     private void appendCategoryBlock(StringBuilder builder, String title, List<ResultatKpi> resultats) {
         builder.append(title).append(" :\n");
         if (resultats == null || resultats.isEmpty()) {

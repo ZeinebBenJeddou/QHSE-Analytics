@@ -8,12 +8,13 @@ import com.QHSEAnalytics.dto.response.AdminKpiCritiqueResponse;
 import com.QHSEAnalytics.dto.response.AdminRepartitionResponse;
 import com.QHSEAnalytics.dto.response.AdminStatsResponse;
 import com.QHSEAnalytics.dto.response.BarreGroupeeData;
+import com.QHSEAnalytics.dto.response.HistoriqueAnalysteResponse;
+import com.QHSEAnalytics.dto.response.HistoriqueItemResponse;
 import com.QHSEAnalytics.entity.ImportSession;
 import com.QHSEAnalytics.entity.ResultatKpi;
 import com.QHSEAnalytics.enums.ImportStatut;
 import com.QHSEAnalytics.enums.NiveauVariation;
 import com.QHSEAnalytics.repository.ImportSessionRepository;
-import com.QHSEAnalytics.repository.KpiRepository;
 import com.QHSEAnalytics.repository.ResultatKpiRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,11 +37,11 @@ public class DashboardAdminService {
     private final ImportSessionRepository importSessionRepository;
     private final ResultatKpiRepository resultatKpiRepository;
     private final UserRepository userRepository;
-    private final KpiRepository kpiRepository;
+
 
     public AdminStatsResponse getStats() {
         return AdminStatsResponse.builder()
-                .totalAnalyses((int) importSessionRepository.countByStatut(ImportStatut.TRAITE))
+                .totalAnalyses((int) importSessionRepository.countByStatutIn(List.of(ImportStatut.TRAITE, ImportStatut.READY_FOR_AI)))
                 .totalKpisCritiques((int) resultatKpiRepository.countByNiveauVariation(NiveauVariation.CRITIQUE))
                 .nombreAnalystesActifs((int) userRepository.countByRoleAndActiveTrue(User.Role.ANALYSTE))
                 .nombreAdmins((int) userRepository.countByRole(User.Role.ADMIN))
@@ -50,7 +51,7 @@ public class DashboardAdminService {
     public List<AdminAnalysteItemResponse> getAnalystes() {
         List<User> analystes = userRepository.findByRoleOrderByNomAsc(User.Role.ANALYSTE);
 
-        List<ImportSession> treatedSessions = importSessionRepository.findByStatutOrderByCreatedAtDesc(ImportStatut.TRAITE);
+        List<ImportSession> treatedSessions = importSessionRepository.findByStatutInOrderByCreatedAtDesc(List.of(ImportStatut.TRAITE, ImportStatut.READY_FOR_AI));
         Map<Long, ImportSession> latestByUser = treatedSessions.stream().collect(Collectors.toMap(
             session -> session.getUser().getId(),
             session -> session,
@@ -163,6 +164,57 @@ public class DashboardAdminService {
                 .repartitionNiveaux(repartition)
                 .kpisCritiquesByCategorie(critiquesByCategorie)
                 .evolutionParCategorie(evolution)
+                .build();
+    }
+
+    public HistoriqueAnalysteResponse getHistorique() {
+        List<ImportSession> sessions = importSessionRepository.findAllByOrderByCreatedAtDesc();
+
+        Map<Long, Long> critiquesBySession;
+        if (sessions.isEmpty()) {
+            critiquesBySession = Map.of();
+        } else {
+            List<ResultatKpiRepository.ImportSessionCountView> counts = resultatKpiRepository.countByImportSessionIdsAndNiveauVariation(
+                sessions.stream().map(ImportSession::getId).toList(),
+                NiveauVariation.CRITIQUE
+            );
+
+            critiquesBySession = counts.stream()
+                .collect(Collectors.toMap(
+                    ResultatKpiRepository.ImportSessionCountView::getImportSessionId,
+                    view -> view.getTotal() == null ? 0L : view.getTotal()
+                ));
+        }
+
+        List<HistoriqueItemResponse> items = sessions.stream().map(session ->
+            HistoriqueItemResponse.builder()
+                .importId(session.getId())
+                .nomFichier(session.getNomFichier())
+                .periodeN1(session.getPeriodeN1())
+                .periodeN(session.getPeriodeN())
+                .statut(session.getStatut().name())
+                .messageErreur(session.getMessageErreur())
+                .nombreKpisCritiques(critiquesBySession.getOrDefault(session.getId(), 0L).intValue())
+                .dateImport(session.getCreatedAt())
+                .utilisateurId(session.getUser().getId())
+                .utilisateurNom(session.getUser().getPrenom() + " " + session.getUser().getNom())
+                .utilisateurEmail(session.getUser().getEmail())
+                .build()
+        ).toList();
+
+        int totalTraites = (int) sessions.stream()
+            .filter(session -> session.getStatut() == ImportStatut.TRAITE || session.getStatut() == ImportStatut.READY_FOR_AI)
+            .count();
+
+        int totalErreurs = (int) sessions.stream()
+            .filter(session -> session.getStatut() == ImportStatut.ERREUR)
+            .count();
+
+        return HistoriqueAnalysteResponse.builder()
+                .items(items)
+                .totalImports(items.size())
+                .totalTraites(totalTraites)
+                .totalErreurs(totalErreurs)
                 .build();
     }
 

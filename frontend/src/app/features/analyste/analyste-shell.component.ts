@@ -1,5 +1,5 @@
-import { Component, inject, OnInit } from '@angular/core';
-import { Router, RouterModule, RouterOutlet } from '@angular/router';
+import { Component, inject } from '@angular/core';
+import { Router, RouterModule, RouterOutlet, NavigationEnd } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -9,6 +9,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatBadgeModule } from '@angular/material/badge';
 import { TokenService } from '../../core/services/token.service';
+import { filter } from 'rxjs/operators';
 
 @Component({
   selector: 'app-analyste-shell',
@@ -33,14 +34,26 @@ export class AnalysteShellComponent {
   private router = inject(Router);
 
   sidenavOpen = true;
+  activeLabel = 'Tableau de bord';
 
   navItems = [
-    { label: 'Tableau de bord', icon: 'dashboard', route: '/analyste/dashboard' },
-    { label: "Importer des données", icon: 'upload_file', route: '/analyste/import' },
-    { label: 'Historique', icon: 'history', route: '/analyste/historique' },
-    { label: 'Analyse IA', icon: 'psychology', route: '/analyste/ia' },
-    { label: 'Mapping colonnes', icon: 'tune', route: '/analyste/mapping' },
+    { label: 'Profil',            icon: 'person',       route: '/analyste/profile',    badge: null },
+    { label: 'Tableau de bord',   icon: 'dashboard',    route: '/analyste/dashboard',  badge: null },
+    { label: 'Importer des données', icon: 'upload_file', route: '/analyste/import',   badge: null },
+    { label: 'Historique',        icon: 'history',      route: '/analyste/historique', badge: null },
+    { label: 'Analyse IA',        icon: 'psychology',   route: '/analyste/ia',         badge: 'IA' },
   ];
+
+  constructor() {
+    this.router.events
+      .pipe(filter(e => e instanceof NavigationEnd))
+      .subscribe(() => {
+        const match = this.navItems.find(i =>
+          this.router.isActive(i.route, { paths: 'subset', queryParams: 'ignored', fragment: 'ignored', matrixParams: 'ignored' })
+        );
+        if (match) this.activeLabel = match.label;
+      });
+  }
 
   logout(): void {
     this.tokenService.removeToken();

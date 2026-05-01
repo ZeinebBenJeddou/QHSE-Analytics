@@ -1,6 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 import {
   AdminAnalysteItemResponse,
   AdminGraphiquesDataResponse,
@@ -21,16 +22,17 @@ import {
   UserListResponse,
   UserResponse
 } from '../../features/admin/models/admin.models';
+import { HistoriqueAnalysteResponse } from '../models/import-session.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AdminService {
-  private readonly adminBase = 'http://localhost:8080/api/admin';
-  private readonly kpiBase = 'http://localhost:8080/api/kpis';
-  private readonly dashboardBase = 'http://localhost:8080/api/dashboard/admin';
-  private readonly profilBase = 'http://localhost:8080/api/profil';
-  private readonly exportBase = 'http://localhost:8080/api/export';
+  private readonly adminBase = `${environment.apiUrl}/api/admin`;
+  private readonly kpiBase = `${environment.apiUrl}/api/kpis`;
+  private readonly dashboardBase = `${environment.apiUrl}/api/dashboard/admin`;
+  private readonly profilBase = `${environment.apiUrl}/api/profil`;
+  private readonly exportBase = `${environment.apiUrl}/api/export`;
 
   constructor(private readonly http: HttpClient) {}
 
@@ -149,5 +151,9 @@ export class AdminService {
 
   getAnalyses(userId: number, importId: number): Observable<AnalyseCompleteResponse> {
     return this.http.get<AnalyseCompleteResponse>(`${this.dashboardBase}/analystes/${userId}/analyses/${importId}`);
+  }
+
+  getHistorique(): Observable<HistoriqueAnalysteResponse> {
+    return this.http.get<HistoriqueAnalysteResponse>(`${this.dashboardBase}/historique`);
   }
 }

@@ -4,6 +4,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { catchError, finalize, of } from 'rxjs';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -51,13 +52,19 @@ export class DashboardAnalysteComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private dashboardService = inject(DashboardService);
+  private importService = inject(ImportService);
   private snackBar = inject(MatSnackBar);
 
   importId = signal<number | null>(null);
+  exporting = signal(false);
   loading = signal(true);
   error = signal('');
 
   resume = signal<ResumeAnalysteResponse | null>(null);
+
+  get hasImport(): boolean {
+    return !!this.importId();
+  }
   comparatif = signal<ComparatifTableauResponse | null>(null);
   graphiques = signal<GraphiquesDataResponse | null>(null);
   analysesIa = signal<AnalyseCompleteResponse | null>(null);
@@ -90,9 +97,9 @@ export class DashboardAnalysteComponent implements OnInit {
       const id = params.get('id');
       if (id) {
         this.importId.set(+id);
-        this.loadAll(+id);
+        this.loadSelectedImport(+id);
       } else {
-        // Load most recent
+        
         this.loadResume();
       }
     });
@@ -103,33 +110,91 @@ export class DashboardAnalysteComponent implements OnInit {
       next: res => {
         this.resume.set(res);
         this.importId.set(res.dernierImportId);
-        this.loadAll(res.dernierImportId);
+        this.loadDashboardData(res.dernierImportId, { includeComparatif: true });
       },
-      error: () => {
-        this.error.set('Aucune donnée disponible. Veuillez importer des données.');
+      error: err => {
+        this.error.set(this.extractErrorMessage(err, 'Aucune donnée disponible. Veuillez importer des données.'));
         this.loading.set(false);
       }
     });
   }
 
-  loadAll(importId: number) {
+  loadSelectedImport(importId: number) {
     this.loading.set(true);
     this.error.set('');
-    let done = 0;
-    const check = () => { if (++done === 3) this.loading.set(false); };
+    this.comparatif.set(null);
+    this.graphiques.set(null);
+    this.analysesIa.set(null);
 
     this.dashboardService.getComparatif(importId).subscribe({
-      next: r => { this.comparatif.set(r); check(); },
-      error: () => check(),
+      next: res => {
+        this.comparatif.set(res);
+        this.loadDashboardData(importId, { includeComparatif: false });
+      },
+      error: err => {
+        this.error.set(this.extractErrorMessage(err, 'Import non disponible. Sélectionnez un import traité depuis l’historique.'));
+        this.loading.set(false);
+      }
     });
-    this.dashboardService.getGraphiques(importId).subscribe({
-      next: r => { this.graphiques.set(r); check(); },
-      error: () => check(),
-    });
-    this.dashboardService.getAnalysesIa(importId).subscribe({
-      next: r => { this.analysesIa.set(r); check(); },
-      error: () => check(),
-    });
+  }
+
+  loadDashboardData(importId: number, options: { includeComparatif?: boolean } = {}) {
+    const { includeComparatif = false } = options;
+    this.loading.set(true);
+    this.error.set('');
+    
+    const endpoints = includeComparatif ? 3 : 2;
+    let done = 0;
+    const check = () => { if (++done === endpoints) this.loading.set(false); };
+
+    if (includeComparatif) {
+      this.dashboardService.getComparatif(importId)
+        .pipe(
+          catchError(err => {
+            this.error.set(this.extractErrorMessage(err, 'Impossible de charger le comparatif.'));
+            return of(null);
+          }),
+          finalize(check)
+        )
+        .subscribe({ next: r => { if (r) this.comparatif.set(r); } });
+    }
+
+    this.dashboardService.getGraphiques(importId)
+      .pipe(
+        catchError(err => {
+          this.error.set(this.extractErrorMessage(err, 'Impossible de charger les graphiques.'));
+          return of(null);
+        }),
+        finalize(check)
+      )
+      .subscribe({ next: r => { if (r) this.graphiques.set(r); } });
+
+    this.dashboardService.getAnalysesIa(importId)
+      .pipe(
+        catchError(err => {
+          const msg = this.extractErrorMessage(err, 'Analyse IA indisponible pour le moment.');
+          this.snackBar.open(msg, 'OK', { duration: 6000 });
+          return of(null);
+        }),
+        finalize(check)
+      )
+      .subscribe({ next: r => { if (r) this.analysesIa.set(r); } });
+  }
+
+  private extractErrorMessage(err: any, fallback: string): string {
+    if (!err) {
+      return fallback;
+    }
+    if (err.error && typeof err.error === 'object' && err.error.message) {
+      return err.error.message;
+    }
+    if (typeof err.error === 'string') {
+      return err.error;
+    }
+    if (err.message) {
+      return err.message;
+    }
+    return fallback;
   }
 
   get summaryCards() {
@@ -161,9 +226,38 @@ export class DashboardAnalysteComponent implements OnInit {
     return { HAUSSE: 'trend-up', BAISSE: 'trend-down', STABLE: 'trend-stable' }[t] ?? '';
   }
 
+  exportPdf() {
+    const id = this.importId();
+    if (!id) {
+      this.snackBar.open('Aucun import sélectionné pour l’export.', 'OK', { duration: 3000 });
+      return;
+    }
+    this.exporting.set(true);
+    this.importService.exportAnalyste(id).subscribe({
+      next: (blob) => this.downloadFile(blob, `rapport-import-${id}.pdf`),
+      error: () => this.snackBar.open('Erreur lors de l’export PDF.', 'OK', { duration: 4000 }),
+      complete: () => this.exporting.set(false),
+    });
+  }
+
   goToIA() {
     const id = this.importId();
-    if (id) this.router.navigate(['/analyste/ia', id]);
+    if (!id) {
+      this.snackBar.open('Aucun import sélectionné pour l’analyse IA.', 'OK', { duration: 3000 });
+      return;
+    }
+    this.router.navigate(['/analyste/ia', id]);
+  }
+
+  private downloadFile(blob: Blob, filename: string): void {
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    window.URL.revokeObjectURL(url);
   }
 
   goToImport() {

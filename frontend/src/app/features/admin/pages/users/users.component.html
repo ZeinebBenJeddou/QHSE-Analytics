@@ -1,65 +1,183 @@
-<div class="admin-users-shell">
-  <div class="admin-header">
+<div class="users-page">
+ 
+ 
+  <div class="page-header">
+    <div class="header-left">
+      <div class="header-icon-wrap">
+        <mat-icon class="header-icon">group</mat-icon>
+      </div>
+      <div>
+        <h1>Utilisateurs</h1>
+        <p class="subtitle">Vérification, activation et gestion des rôles</p>
+      </div>
+    </div>
     <div>
-      <h1>Administrer les utilisateurs</h1>
-      <p>Gérez la vérification, l&#39;activation et les rôles des utilisateurs.</p>
+      <button mat-stroked-button class="ia-btn" routerLink="/admin/overview">
+        <mat-icon>arrow_back</mat-icon>
+        Retour
+      </button>
     </div>
-    <div class="nav-actions">
-      <button mat-stroked-button color="primary" routerLink="/admin/overview">Retour au tableau de bord</button>
-    </div>
   </div>
-
-  <div *ngIf="loading" class="loading-state">
-    <mat-progress-spinner diameter="48" mode="indeterminate"></mat-progress-spinner>
-    <span>Chargement des utilisateurs...</span>
+ 
+  
+  <div *ngIf="errorMessage" class="error-banner">
+    <mat-icon>error_outline</mat-icon>
+    <span>{{ errorMessage }}</span>
   </div>
-
-  <div *ngIf="errorMessage && !loading" class="error-message">
-    {{ errorMessage }}
-  </div>
-
-  <table *ngIf="!loading && users.length" class="users-table">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Nom</th>
-        <th>Email</th>
-        <th>Rôle</th>
-        <th>Vérifié</th>
-        <th>Actif</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let user of users">
-        <td>{{ user.id }}</td>
-        <td>{{ user.nom }} {{ user.prenom }}</td>
-        <td>{{ user.email }}</td>
-        <td>{{ user.role }}</td>
-        <td>{{ user.verified ? 'Oui' : 'Non' }}</td>
-        <td>{{ user.active ? 'Oui' : 'Non' }}</td>
-        <td class="actions-cell">
-          <button mat-stroked-button color="primary" (click)="verifyUser(user)" [disabled]="actionInProgressId === user.id || user.verified">
-            Vérifier
-          </button>
-          <button mat-stroked-button color="accent" (click)="toggleActivation(user)" [disabled]="actionInProgressId === user.id">
-            {{ user.active ? 'Désactiver' : 'Activer' }}
-          </button>
-          <button mat-stroked-button color="warn" (click)="toggleAdmin(user)" [disabled]="actionInProgressId === user.id || user.isSystemAdmin">
-            {{ user.role === 'ADMIN' ? 'Rétrograder' : 'Promouvoir' }}
-          </button>
-          <button mat-stroked-button color="primary" (click)="resetUserPassword(user)" [disabled]="actionInProgressId === user.id">
-            Réinitialiser mot de passe
-          </button>
-          <button mat-stroked-button color="warn" (click)="deleteUser(user)" [disabled]="actionInProgressId === user.id">
-            Supprimer
-          </button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-
-  <div *ngIf="!loading && !users.length" class="empty-state">
-    Aucune donnée utilisateur disponible pour le moment.
+ 
+  <div class="page-grid">
+ 
+    
+    <mat-card class="glass-card">
+      <mat-card-header>
+        <div mat-card-avatar class="card-av-icon-wrap">
+          <mat-icon class="card-av-icon">person_add</mat-icon>
+        </div>
+        <mat-card-title>Créer un analyste</mat-card-title>
+        <mat-card-subtitle>Un email de bienvenue sera envoyé automatiquement</mat-card-subtitle>
+      </mat-card-header>
+ 
+      <mat-card-content>
+        <form [formGroup]="createUserForm" (ngSubmit)="submitCreateUser()" class="form-grid">
+ 
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Nom</mat-label>
+              <mat-icon matPrefix class="field-icon">person_outline</mat-icon>
+              <input matInput formControlName="nom" />
+            </mat-form-field>
+ 
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Prénom</mat-label>
+              <mat-icon matPrefix class="field-icon">person_outline</mat-icon>
+              <input matInput formControlName="prenom" />
+            </mat-form-field>
+          </div>
+ 
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Adresse e-mail</mat-label>
+            <mat-icon matPrefix class="field-icon">alternate_email</mat-icon>
+            <input matInput formControlName="email" type="email" />
+          </mat-form-field>
+ 
+          <div class="form-actions">
+            <button mat-flat-button class="primary-btn" type="submit"
+              [disabled]="creating || createUserForm.invalid">
+              <mat-icon>{{ creating ? 'hourglass_empty' : 'add' }}</mat-icon>
+              {{ creating ? 'Création…' : 'Créer l\'analyste' }}
+            </button>
+          </div>
+ 
+        </form>
+      </mat-card-content>
+    </mat-card>
+ 
+    
+    <mat-card class="glass-card">
+      <mat-card-header>
+        <div mat-card-avatar class="card-av-icon-wrap">
+          <mat-icon class="card-av-icon">manage_accounts</mat-icon>
+        </div>
+        <mat-card-title>
+          Comptes
+          <span class="count-badge">{{ users.length }}</span>
+        </mat-card-title>
+        <mat-card-subtitle>Liste de tous les utilisateurs enregistrés</mat-card-subtitle>
+      </mat-card-header>
+ 
+      <mat-card-content>
+ 
+        
+        <div *ngIf="loading" class="loader-overlay">
+          <mat-progress-spinner diameter="36" mode="indeterminate"></mat-progress-spinner>
+          <span>Chargement des utilisateurs…</span>
+        </div>
+ 
+       
+        <div *ngIf="!loading && !users.length" class="empty-state">
+          <mat-icon>person_off</mat-icon>
+          <span>Aucun utilisateur enregistré pour le moment.</span>
+        </div>
+ 
+        
+        <div *ngIf="!loading && users.length" class="user-list">
+          <div class="user-row" *ngFor="let user of users">
+ 
+           
+            <div class="user-avatar" [class.inactive]="!user.active">
+              {{ (user.prenom?.[0] ?? '') + (user.nom?.[0] ?? '') }}
+            </div>
+ 
+            
+            <div class="user-info">
+              <span class="user-name">{{ user.prenom }} {{ user.nom }}</span>
+              <span class="user-email">{{ user.email }}</span>
+            </div>
+ 
+        
+            <div class="user-badges">
+              <span class="badge" [ngClass]="user.role === 'ADMIN' ? 'role-admin' : 'role-analyst'">
+                {{ user.role === 'ADMIN' ? 'Admin' : 'Analyste' }}
+              </span>
+              <span class="badge" [ngClass]="user.verified ? 'verified' : 'unverified'">
+                {{ user.verified ? 'Vérifié' : 'Non vérifié' }}
+              </span>
+              <span class="badge" [ngClass]="user.active ? 'active' : 'inactive'">
+                {{ user.active ? 'Actif' : 'Inactif' }}
+              </span>
+            </div>
+ 
+           
+            <div class="user-actions">
+ 
+             
+              <button mat-icon-button class="row-icon-btn green"
+                matTooltip="Vérifier le compte"
+                (click)="verifyUser(user)"
+                [disabled]="actionInProgressId === user.id || user.verified">
+                <mat-icon>verified_user</mat-icon>
+              </button>
+ 
+            
+              <button mat-icon-button class="row-icon-btn"
+                [matTooltip]="user.active ? 'Désactiver' : 'Activer'"
+                [class.amber]="user.active"
+                [class.green]="!user.active"
+                (click)="toggleActivation(user)"
+                [disabled]="actionInProgressId === user.id">
+                <mat-icon>{{ user.active ? 'block' : 'check_circle' }}</mat-icon>
+              </button>
+ 
+              
+              <button mat-icon-button class="row-icon-btn purple"
+                [matTooltip]="user.role === 'ADMIN' ? 'Rétrograder en analyste' : 'Promouvoir en admin'"
+                (click)="toggleAdmin(user)"
+                [disabled]="actionInProgressId === user.id || user.isSystemAdmin">
+                <mat-icon>{{ user.role === 'ADMIN' ? 'arrow_downward' : 'arrow_upward' }}</mat-icon>
+              </button>
+ 
+              
+              <button mat-icon-button class="row-icon-btn"
+                matTooltip="Réinitialiser le mot de passe"
+                (click)="resetUserPassword(user)"
+                [disabled]="actionInProgressId === user.id">
+                <mat-icon>lock_reset</mat-icon>
+              </button>
+ 
+             
+              <button mat-icon-button class="row-icon-btn red"
+                matTooltip="Supprimer l'utilisateur"
+                (click)="deleteUser(user)"
+                [disabled]="actionInProgressId === user.id">
+                <mat-icon>delete_outline</mat-icon>
+              </button>
+ 
+            </div>
+          </div>
+        </div>
+ 
+      </mat-card-content>
+    </mat-card>
+ 
   </div>
 </div>

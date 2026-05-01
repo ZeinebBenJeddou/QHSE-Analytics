@@ -19,9 +19,14 @@ export class AiAnalysisService {
     return this.http.get<AnalyseCompleteResponse>(`${this.iaBase}/${importSessionId}/complete`);
   }
 
+  /** Run or regenerate AI analysis for the import session */
+  runAi(importSessionId: number): Observable<void> {
+    return this.http.post<void>(`${environment.apiUrl}/api/analysis/${importSessionId}/ai`, {});
+  }
+
   /** Regenerate all AI analyses */
-  regenerer(importSessionId: number): Observable<AnalyseCompleteResponse> {
-    return this.http.post<AnalyseCompleteResponse>(`${this.iaBase}/${importSessionId}/regenerer`, {});
+  regenerer(importSessionId: number): Observable<void> {
+    return this.runAi(importSessionId);
   }
 
   /** Save a column-mapping template */

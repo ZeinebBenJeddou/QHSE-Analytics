@@ -1,49 +1,57 @@
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
 :root {
-	color-scheme: light;
-	--qhse-blue-900: #0c2f5e;
-	--qhse-blue-800: #123c77;
-	--qhse-blue-700: #1a56aa;
-	--qhse-blue-600: #2563eb;
-	--qhse-blue-500: #3b82f6;
-	--qhse-blue-100: #dbeafe;
-	--qhse-blue-50: #f4f8ff;
-	--qhse-surface: rgba(255, 255, 255, 0.84);
-	--qhse-border: rgba(18, 60, 119, 0.12);
-	--qhse-shadow: 0 24px 80px rgba(12, 47, 94, 0.12);
-	--qhse-text: #18304f;
-	--qhse-muted: #5d718a;
-	--qhse-success: #11875b;
-	--qhse-danger: #cc3d3d;
+  color-scheme: light;
+  --qhse-blue-900: #0c2f5e;
+  --qhse-blue-800: #123c77;
+  --qhse-blue-700: #1a56aa;
+  --qhse-blue-600: #2563eb;
+  --qhse-blue-500: #3b82f6;
+  --qhse-blue-100: #dbeafe;
+  --qhse-blue-50:  #f4f8ff;
+  --qhse-surface:  rgba(255,255,255,0.84);
+  --qhse-border:   rgba(18,60,119,0.12);
+  --qhse-shadow:   0 24px 80px rgba(12,47,94,0.12);
+  --qhse-text:     #18304f;
+  --qhse-muted:    #5d718a;
+  --qhse-success:  #11875b;
+  --qhse-danger:   #cc3d3d;
 }
 
-html,
-body {
-	height: 100%;
-}
+html, body { height: 100%; }
 
 body {
-	margin: 0;
-	font-family: Inter, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-	color: var(--qhse-text);
-	background:
-		radial-gradient(circle at top left, rgba(59, 130, 246, 0.14), transparent 30%),
-		radial-gradient(circle at bottom right, rgba(37, 99, 235, 0.1), transparent 28%),
-		linear-gradient(180deg, #ffffff 0%, #f5f8ff 100%);
-	-webkit-font-smoothing: antialiased;
-	-moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  font-family: 'DM Sans', Inter, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  color: var(--qhse-text);
+  background:
+    radial-gradient(circle at top left, rgba(59,130,246,0.14), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(37,99,235,0.1), transparent 28%),
+    linear-gradient(180deg, #ffffff 0%, #f5f8ff 100%);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-	color: inherit;
+/* Force le chargement immédiat de la font avant le premier rendu */
+.material-icons {
+  font-family: 'Material Icons', serif;
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  display: inline-block;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'liga';
 }
 
-* {
-	box-sizing: border-box;
-}
-
-button,
-input,
-textarea,
-select {
-	font: inherit;
-}
+a { color: inherit; }
+* { box-sizing: border-box; }
+button, input, textarea, select { font: inherit; }

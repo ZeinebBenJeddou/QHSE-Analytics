@@ -96,11 +96,13 @@ export interface AdminGraphiquesDataResponse {
   evolutionParCategorie: Array<{ categorie: string; serieA: number; serieB: number; serieC: number }>;
 }
 
+export type UniteKpi = 'POURCENTAGE' | 'NOMBRE' | 'KWH' | 'KG';
+
 export interface KpiResponse {
   id: number;
   nom: string;
   definition: string;
-  unite: string;
+  unite: UniteKpi;
   categorieCode: string;
   categorieLibelle: string;
   seuilFaible: number;
@@ -123,7 +125,7 @@ export interface CategorieKpiResponse {
 export interface CreateKpiRequest {
   nom: string;
   definition: string;
-  unite: string;
+  unite: UniteKpi;
   categorieCode: string;
   seuilFaible: number;
   seuilModere: number;

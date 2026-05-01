@@ -1,38 +1,54 @@
 <div class="ia-page">
-  <!-- Header -->
+
+ 
   <div class="page-header">
-    <button mat-icon-button (click)="goBack()" class="back-btn">
+    <button mat-icon-button type="button" (click)="goBack()" class="back-btn" matTooltip="Retour au dashboard">
       <mat-icon>arrow_back</mat-icon>
     </button>
     <div class="header-left">
-      <mat-icon class="header-icon">psychology</mat-icon>
+      <div class="header-icon-wrap">
+        <mat-icon class="header-icon">psychology</mat-icon>
+      </div>
       <div>
-        <h1>Analyse IA Complète</h1>
-        <p class="subtitle">Insights générés par LLaMA via Groq AI</p>
+        <h1>Analyse IA</h1>
+        <p class="subtitle">Synthèse globale et recommandations par indicateur</p>
       </div>
     </div>
-    <button mat-raised-button class="regen-btn"
-            [disabled]="regenerating()"
-            (click)="regenerer()">
+    <button mat-flat-button class="regen-btn"
+            type="button"
+            [disabled]="regenerating() || !importId()"
+            (click)="runAi()"
+            matTooltip="Aucun import sélectionné"
+            [matTooltipDisabled]="importId() !== null">
       @if (regenerating()) {
-        <mat-spinner diameter="18" color="accent" style="display:inline-block"></mat-spinner>
+        <mat-spinner diameter="16" color="accent" style="display:inline-block"></mat-spinner>
       } @else {
-        <mat-icon>refresh</mat-icon>
+        <mat-icon>rocket_launch</mat-icon>
       }
-      Régénérer les analyses
+      Analyser avec IA
     </button>
   </div>
 
+  
   @if (loading()) {
     <div class="loader-wrap">
-      <mat-spinner diameter="56" color="accent"></mat-spinner>
-      <p>Chargement des analyses IA...</p>
+      <mat-spinner diameter="44" color="primary"></mat-spinner>
+      <p>Chargement des analyses IA…</p>
     </div>
-  } @else if (error()) {
-    <div class="error-banner"><mat-icon>error_outline</mat-icon>{{ error() }}</div>
-  } @else if (analyse()) {
+  }
 
-    <!-- ── Periods banner ──────────────────────────────── -->
+ 
+  @else if (error()) {
+    <div class="error-banner">
+      <mat-icon>error_outline</mat-icon>
+      {{ error() }}
+    </div>
+  }
+
+  
+  @else if (analyse()) {
+
+    
     <div class="period-banner">
       <mat-icon>calendar_month</mat-icon>
       Période analysée :
@@ -41,7 +57,21 @@
       <strong>{{ analyse()!.periodeN }}</strong>
     </div>
 
-    <!-- ── Global Synthesis ────────────────────────────── -->
+    
+    <mat-card class="glass-card summary-card">
+      <mat-card-header>
+        <mat-icon mat-card-avatar class="summary-icon">assessment</mat-icon>
+        <mat-card-title>Résumé KPI</mat-card-title>
+        <mat-card-subtitle>Vue d'ensemble de la session</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <p>{{ analyse()!.analysesKpis.length }} KPI calculés pour cette session</p>
+        <p>Analyse IA disponible : <strong>{{ analyse()!.analyseGlobale ? 'Oui' : 'Non' }}</strong></p>
+        <p>Catégories détectées : <strong>{{ analyse()!.analysesCategories.length }}</strong></p>
+      </mat-card-content>
+    </mat-card>
+
+   
     @if (analyse()!.analyseGlobale) {
       <mat-card class="glass-card synthese-card">
         <mat-card-header>
@@ -54,7 +84,7 @@
         </mat-card-content>
       </mat-card>
 
-      <!-- ── Action Plan ────────────────────────────────── -->
+      
       <mat-card class="glass-card plan-card">
         <mat-card-header>
           <mat-icon mat-card-avatar class="plan-icon">task_alt</mat-icon>
@@ -67,12 +97,13 @@
       </mat-card>
     }
 
-    <!-- ── Category Analyses ───────────────────────────── -->
+   
     @if (analyse()!.analysesCategories.length) {
       <mat-card class="glass-card">
         <mat-card-header>
           <mat-icon mat-card-avatar class="cat-icon">category</mat-icon>
           <mat-card-title>Analyses par Catégorie</mat-card-title>
+          <mat-card-subtitle>{{ analyse()!.analysesCategories.length }} catégories</mat-card-subtitle>
         </mat-card-header>
         <mat-card-content>
           <mat-accordion class="cat-accordion" multi>
@@ -93,7 +124,7 @@
       </mat-card>
     }
 
-    <!-- ── Per-KPI AI Notes ────────────────────────────── -->
+  
     @if (analyse()!.analysesKpis.length) {
       <mat-card class="glass-card kpi-ia-card">
         <mat-card-header>
@@ -120,6 +151,7 @@
                       </span>
                     </mat-panel-title>
                   </mat-expansion-panel-header>
+
                   <div class="kpi-values-row">
                     <div class="kv-item">
                       <span class="kv-label">{{ kpi.periodeN1 }}</span>
@@ -131,6 +163,7 @@
                       <span class="kv-val">{{ kpi.valeurN | number:'1.0-2' }} <small>{{ kpi.kpiUnite }}</small></span>
                     </div>
                   </div>
+
                   <mat-divider class="kpi-divider"></mat-divider>
                   <div class="ia-text kpi-ia-text">{{ kpi.analyseIa }}</div>
                 </mat-expansion-panel>
@@ -140,5 +173,7 @@
         </mat-card-content>
       </mat-card>
     }
+
   }
+
 </div>

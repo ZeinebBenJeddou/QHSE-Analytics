@@ -17,11 +17,8 @@ import com.QHSEAnalytics.enums.ImportStatut;
 import com.QHSEAnalytics.enums.NiveauVariation;
 import com.QHSEAnalytics.exception.ImportNotFoundException;
 import com.QHSEAnalytics.exception.ImportNotReadyException;
-import com.QHSEAnalytics.repository.AnalyseCategorieRepository;
-import com.QHSEAnalytics.repository.AnalyseGlobaleRepository;
 import com.QHSEAnalytics.repository.ImportSessionRepository;
 import com.QHSEAnalytics.repository.ResultatKpiRepository;
-import com.QHSEAnalytics.auth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -42,14 +39,12 @@ public class DashboardAnalysteService {
 
     private final ImportSessionRepository importSessionRepository;
     private final ResultatKpiRepository resultatKpiRepository;
-    private final AnalyseCategorieRepository analyseCategorieRepository;
-    private final AnalyseGlobaleRepository analyseGlobaleRepository;
-    private final UserRepository userRepository;
+
     private final AnalyseIaService analyseIaService;
 
     public ResumeAnalysteResponse getResume(Long userId) {
         ImportSession session = importSessionRepository
-                .findTopByUserIdAndStatutOrderByCreatedAtDesc(userId, ImportStatut.TRAITE)
+                .findTopByUserIdAndStatutInOrderByCreatedAtDesc(userId, List.of(ImportStatut.CALCULATED, ImportStatut.READY_FOR_AI, ImportStatut.TRAITE))
                 .orElseThrow(() -> new ImportNotFoundException("Aucune analyse disponible. Veuillez importer des données."));
 
         List<ResultatKpi> resultats = resultatKpiRepository.findByImportSessionIdWithKpi(session.getId());
@@ -78,7 +73,7 @@ public class DashboardAnalysteService {
     }
 
     public ComparatifTableauResponse getComparatif(Long userId, Long importId) {
-        ImportSession session = loadOwnedTraiteSession(userId, importId);
+        ImportSession session = loadOwnedCompletedSession(userId, importId);
         List<ResultatKpi> resultats = resultatKpiRepository.findByImportSessionIdWithKpi(importId);
 
         List<ResultatKpi> sorted = resultats.stream()
@@ -104,7 +99,7 @@ public class DashboardAnalysteService {
     }
 
     public GraphiquesDataResponse getGraphiques(Long userId, Long importId) {
-        loadOwnedTraiteSession(userId, importId);
+        loadOwnedCompletedSession(userId, importId);
         List<ResultatKpi> resultats = resultatKpiRepository.findByImportSessionIdWithKpi(importId);
         Map<String, List<ResultatKpi>> byCategorie = groupByCategorie(resultats);
 
@@ -160,7 +155,7 @@ public class DashboardAnalysteService {
             .collect(Collectors.groupingBy(r -> r.getImportSession().getId(), Collectors.counting()));
 
         List<HistoriqueItemResponse> items = sessions.stream().map(session -> {
-            int critiques = session.getStatut() == ImportStatut.TRAITE
+            int critiques = session.getStatut().isReadyForAi()
                 ? critiquesBySession.getOrDefault(session.getId(), 0L).intValue()
                 : 0;
 
@@ -170,13 +165,14 @@ public class DashboardAnalysteService {
                     .periodeN1(session.getPeriodeN1())
                     .periodeN(session.getPeriodeN())
                     .statut(session.getStatut().name())
+                    .messageErreur(session.getMessageErreur())
                     .nombreKpisCritiques(critiques)
                     .dateImport(session.getCreatedAt())
                     .build();
         }).toList();
 
         int totalImports = sessions.size();
-        int totalTraites = (int) sessions.stream().filter(s -> s.getStatut() == ImportStatut.TRAITE).count();
+        int totalTraites = (int) sessions.stream().filter(s -> s.getStatut().isReadyForAi()).count();
         int totalErreurs = (int) sessions.stream().filter(s -> s.getStatut() == ImportStatut.ERREUR).count();
 
         return HistoriqueAnalysteResponse.builder()
@@ -192,13 +188,32 @@ public class DashboardAnalysteService {
         return analyseIaService.getAnalyseComplete(importId, userId, false);
     }
 
+    private ImportSession loadOwnedCompletedSession(Long userId, Long importId) {
+        ImportSession session = importSessionRepository.findByIdAndUserId(importId, userId)
+                .orElseThrow(() -> new ImportNotFoundException("Import introuvable"));
+        if (!session.getStatut().canViewComparatif()) {
+            throw new ImportNotReadyException(createNotReadyMessage(session));
+        }
+        return session;
+    }
+
     private ImportSession loadOwnedTraiteSession(Long userId, Long importId) {
         ImportSession session = importSessionRepository.findByIdAndUserId(importId, userId)
                 .orElseThrow(() -> new ImportNotFoundException("Import introuvable"));
-        if (session.getStatut() != ImportStatut.TRAITE) {
-            throw new ImportNotReadyException("Import non traité");
+        if (!session.getStatut().canViewAnalysesIa()) {
+            throw new ImportNotReadyException(createNotReadyMessage(session));
         }
         return session;
+    }
+
+    private String createNotReadyMessage(ImportSession session) {
+        if (session.getStatut().isFailed()) {
+            return "Import échoué.";
+        }
+        if (session.getStatut().isProcessing()) {
+            return "Import en cours. Veuillez réessayer plus tard.";
+        }
+        return "Import non traité.";
     }
 
     private ResumeCategorieResponse toResumeCategorie(List<ResultatKpi> resultats) {

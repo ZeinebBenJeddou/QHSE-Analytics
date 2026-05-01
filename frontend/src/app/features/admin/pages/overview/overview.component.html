@@ -1,55 +1,210 @@
-<div class="admin-overview">
-  <h1>Admin Dashboard</h1>
+<div class="overview-page">
 
-  <div *ngIf="loading" class="loading-state">
-    <mat-progress-spinner diameter="50" mode="indeterminate"></mat-progress-spinner>
-    <p>Loading admin dashboard...</p>
-  </div>
-
-  <div *ngIf="errorMessage && !loading" class="error-message">
-    <p>{{ errorMessage }}</p>
-  </div>
-
-  <div *ngIf="!loading && stats" class="cards-grid">
-    <mat-card>
-      <h2>Statistics</h2>
-      <p>Total analyses: {{ stats.totalAnalyses }}</p>
-      <p>Critical KPIs: {{ stats.totalKpisCritiques }}</p>
-      <p>Active analysts: {{ stats.nombreAnalystesActifs }}</p>
-      <p>Admins: {{ stats.nombreAdmins }}</p>
-    </mat-card>
-
-    <mat-card>
-      <h2>Actions</h2>
-      <button mat-flat-button color="primary" (click)="exportPdf()" [disabled]="exportInProgress">
-        {{ exportInProgress ? 'Exporting PDF…' : 'Export admin report' }}
-      </button>
-      <div class="admin-links">
-        <button mat-stroked-button color="accent" routerLink="/admin/users">Manage users</button>
-        <button mat-stroked-button color="accent" routerLink="/admin/kpis">Manage KPIs</button>
+  
+  <div class="page-header">
+    <div class="header-left">
+      <div class="header-icon-wrap">
+        <mat-icon class="header-icon">bar_chart</mat-icon>
       </div>
-    </mat-card>
+      <div>
+        <h1>Overview</h1>
+        <p class="subtitle">Tableau de bord d'administration</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button type="button" mat-stroked-button class="export-btn" (click)="exportPdf()" [disabled]="exportInProgress">
+        <mat-icon>picture_as_pdf</mat-icon>
+        {{ exportInProgress ? 'Export en cours…' : 'Exporter le rapport' }}
+      </button>
+    </div>
   </div>
 
-  <div *ngIf="!loading" class="list-grid">
-    <mat-card class="list-card">
-      <h2>Analystes</h2>
-      <div *ngIf="analystes.length === 0">No analyst data available.</div>
-      <ul>
-        <li *ngFor="let analyste of analystes">
-          {{ analyste.nom }} {{ analyste.prenom }} – {{ analyste.email }}
-        </li>
-      </ul>
+
+  <div *ngIf="errorMessage" class="error-banner">
+    <mat-icon>error_outline</mat-icon>
+    <span>{{ errorMessage }}</span>
+  </div>
+
+ 
+  <div *ngIf="stats" class="summary-grid">
+
+    <mat-card class="glass-card summary-card">
+      <mat-card-content>
+        <div class="card-body">
+          <div>
+            <p class="card-label">Analyses totales</p>
+            <p class="card-value">{{ stats.totalAnalyses }}</p>
+          </div>
+          <div class="card-icon-wrap icon-blue">
+            <mat-icon>assessment</mat-icon>
+          </div>
+        </div>
+      </mat-card-content>
     </mat-card>
 
-    <mat-card class="list-card">
-      <h2>Critical KPIs</h2>
-      <div *ngIf="kpisCritiques.length === 0">No critical KPI data available.</div>
-      <ul>
-        <li *ngFor="let kpi of kpisCritiques">
-          {{ kpi.kpiNom }} ({{ kpi.categorieLibelle }}) — {{ kpi.nombreAnalystesAvecCritique }} analysts
-        </li>
-      </ul>
+    <mat-card class="glass-card summary-card">
+      <mat-card-content>
+        <div class="card-body">
+          <div>
+            <p class="card-label">KPIs critiques</p>
+            <p class="card-value">{{ stats.totalKpisCritiques }}</p>
+          </div>
+          <div class="card-icon-wrap icon-red">
+            <mat-icon>warning_amber</mat-icon>
+          </div>
+        </div>
+      </mat-card-content>
     </mat-card>
+
+    <mat-card class="glass-card summary-card">
+      <mat-card-content>
+        <div class="card-body">
+          <div>
+            <p class="card-label">Analystes actifs</p>
+            <p class="card-value">{{ stats.nombreAnalystesActifs }}</p>
+          </div>
+          <div class="card-icon-wrap icon-green">
+            <mat-icon>group</mat-icon>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="glass-card summary-card">
+      <mat-card-content>
+        <div class="card-body">
+          <div>
+            <p class="card-label">Administrateurs</p>
+            <p class="card-value">{{ stats.nombreAdmins }}</p>
+          </div>
+          <div class="card-icon-wrap icon-orange">
+            <mat-icon>admin_panel_settings</mat-icon>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
   </div>
+
+ 
+  <mat-card class="glass-card actions-card">
+    <mat-card-header>
+      <div mat-card-avatar class="card-av-icon-wrap">
+        <mat-icon class="card-av-icon">apps</mat-icon>
+      </div>
+      <mat-card-title>Accès rapides</mat-card-title>
+      <mat-card-subtitle>Navigation vers les sections principales</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="quick-actions">
+        <button mat-stroked-button class="ia-btn" routerLink="/admin/users">
+          <mat-icon>group</mat-icon>
+          Gérer les utilisateurs
+        </button>
+        <button mat-stroked-button class="ia-btn" routerLink="/admin/kpis">
+          <mat-icon>speed</mat-icon>
+          Gérer les KPIs
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  
+  <mat-card *ngIf="repartition" class="glass-card">
+    <mat-card-header>
+      <div mat-card-avatar class="card-av-icon-wrap">
+        <mat-icon class="card-av-icon">pie_chart</mat-icon>
+      </div>
+      <mat-card-title>Répartition des catégories</mat-card-title>
+      <mat-card-subtitle>Niveaux par catégorie de KPI</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="table-container">
+        <table class="kpi-table">
+          <thead>
+            <tr>
+              <th>Catégorie</th>
+              <th class="num-cell">Faibles</th>
+              <th class="num-cell">Modérés</th>
+              <th class="num-cell">Critiques</th>
+              <th class="num-cell">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of repartition.categories" class="kpi-row">
+              <td class="kpi-name-cell">
+                <span class="cat-badge">{{ item.categorieLibelle }}</span>
+              </td>
+              <td class="num-cell">
+                <span class="niveau-chip chip-faible">{{ item.nombreFaibles }}</span>
+              </td>
+              <td class="num-cell">
+                <span class="niveau-chip chip-modere">{{ item.nombreModeres }}</span>
+              </td>
+              <td class="num-cell">
+                <span class="niveau-chip chip-critique">{{ item.nombreCritiques }}</span>
+              </td>
+              <td class="num-cell total-cell">{{ item.total }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  
+  <div class="list-grid">
+
+    <mat-card class="glass-card">
+      <mat-card-header>
+        <div mat-card-avatar class="card-av-icon-wrap">
+          <mat-icon class="card-av-icon">people</mat-icon>
+        </div>
+        <mat-card-title>Analystes</mat-card-title>
+        <mat-card-subtitle>{{ analystes.length }} compte(s) actif(s)</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div *ngIf="analystes.length === 0" class="empty-list">
+          <mat-icon>person_off</mat-icon>
+          <span>Aucun analyste disponible</span>
+        </div>
+        <ul *ngIf="analystes.length > 0" class="user-list">
+          <li *ngFor="let a of analystes" class="user-row">
+            <div class="user-avatar-sm">{{ a.prenom[0] }}{{ a.nom[0] }}</div>
+            <div class="user-details">
+              <span class="user-name">{{ a.prenom }} {{ a.nom }}</span>
+              <span class="user-email">{{ a.email }}</span>
+            </div>
+          </li>
+        </ul>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="glass-card">
+      <mat-card-header>
+        <div mat-card-avatar class="card-av-icon-wrap danger">
+          <mat-icon class="card-av-icon danger">warning_amber</mat-icon>
+        </div>
+        <mat-card-title>KPIs critiques</mat-card-title>
+        <mat-card-subtitle>{{ kpisCritiques.length }} KPI(s) en alerte</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div *ngIf="kpisCritiques.length === 0" class="empty-list">
+          <mat-icon>check_circle_outline</mat-icon>
+          <span>Aucun KPI critique</span>
+        </div>
+        <ul *ngIf="kpisCritiques.length > 0" class="kpi-list">
+          <li *ngFor="let kpi of kpisCritiques" class="kpi-row-item">
+            <div class="kpi-row-left">
+              <span class="kpi-item-name">{{ kpi.kpiNom }}</span>
+              <span class="cat-badge">{{ kpi.categorieLibelle }}</span>
+            </div>
+            <span class="niveau-chip chip-critique">{{ kpi.nombreAnalystesAvecCritique }} analystes</span>
+          </li>
+        </ul>
+      </mat-card-content>
+    </mat-card>
+
+  </div>
+
 </div>

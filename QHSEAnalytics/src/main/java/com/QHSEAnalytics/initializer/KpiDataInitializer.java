@@ -25,36 +25,52 @@ public class KpiDataInitializer implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         log.info("Initialisation des catégories KPI et des données de base");
 
-        CategorieKpi q = ensureCategory("Q", "Qualité", "Indicateurs qualité");
-        CategorieKpi h = ensureCategory("H", "Hygiène", "Indicateurs hygiène");
-        CategorieKpi s = ensureCategory("S", "Sécurité", "Indicateurs sécurité");
-        CategorieKpi e = ensureCategory("E", "Environnement", "Indicateurs environnement");
+        CategorieKpi q = ensureCategory("Q", "Qualité", "Maîtrise opérationnelle et satisfaction");
+        CategorieKpi h = ensureCategory("H", "Hygiène & Santé", "Préservation de la santé des collaborateurs");
+        CategorieKpi s = ensureCategory("S", "Sécurité", "Prévention des risques et accidents");
+        CategorieKpi e = ensureCategory("E", "Environnement", "Gestion des impacts et durabilité");
 
-        // Qualité (Q)
-        ensureKpi(q, "Taux de conformité aux procédures", "Pourcentage des processus conformes aux procédures établies", UniteKpi.POURCENTAGE, 5.0, 10.0, 20.0, 1);
-        ensureKpi(q, "Taux de défauts produits", "Pourcentage de produits non conformes", UniteKpi.POURCENTAGE, 5.0, 10.0, 20.0, 2);
-        ensureKpi(q, "Taux de réclamations clients", "Pourcentage de réclamations par rapport au total des commandes", UniteKpi.POURCENTAGE, 5.0, 10.0, 20.0, 3);
-        ensureKpi(q, "Taux de satisfaction client", "Pourcentage de clients satisfaits", UniteKpi.POURCENTAGE, 5.0, 10.0, 20.0, 4);
+        // --- QUALITÉ (Q) ---
+        ensureKpi(q, "Taux de Non-Conformité", "Ratio produits non conformes / total produit", UniteKpi.POURCENTAGE, 2.0, 5.0, 10.0, 1);
+        ensureKpi(q, "Coût de la Non-Qualité", "Coûts des rebuts et retouches en k€", UniteKpi.NOMBRE, 500.0, 2000.0, 5000.0, 2);
+        ensureKpi(q, "Taux de Satisfaction Client", "Indice de satisfaction global", UniteKpi.POURCENTAGE, 70.0, 80.0, 90.0, 3);
+        ensureKpi(q, "Délai Moyen de Livraison", "Respect des délais promis (jours)", UniteKpi.NOMBRE, 2.0, 5.0, 10.0, 4);
+        ensureKpi(q, "Taux de Rebuts", "Pourcentage de perte matière brute", UniteKpi.POURCENTAGE, 1.0, 3.0, 5.0, 5);
+        ensureKpi(q, "First Pass Yield", "Produits conformes dès le premier essai", UniteKpi.POURCENTAGE, 90.0, 95.0, 98.0, 6);
+        ensureKpi(q, "Nombre de Réclamations Clients", "Total des plaintes enregistrées", UniteKpi.NOMBRE, 2.0, 10.0, 25.0, 7);
+        ensureKpi(q, "Taux de Réussite des Audits", "Score moyen des audits qualité internes", UniteKpi.POURCENTAGE, 75.0, 85.0, 95.0, 8);
 
-        // Hygiène (H)
-        ensureKpi(h, "Taux d'absentéisme pour maladie", "Pourcentage de jours d'absence pour maladie par rapport au total des jours travaillés", UniteKpi.POURCENTAGE, 5.0, 10.0, 20.0, 1);
-        ensureKpi(h, "Nombre d'accidents bénins", "Total incidents avec arrêt < 1 jour", UniteKpi.NOMBRE, 1.0, 3.0, 5.0, 2);
-        ensureKpi(h, "Nombre d'accidents graves", "Total incidents avec arrêt > 1 jour", UniteKpi.NOMBRE, 1.0, 2.0, 3.0, 3);
-        ensureKpi(h, "Taux de visites médicales réalisées", "Pourcentage de salariés ayant passé la visite annuelle", UniteKpi.POURCENTAGE, 5.0, 10.0, 20.0, 4);
+        // --- HYGIÈNE (H) ---
+        ensureKpi(h, "Taux d'Absentéisme", "Heures d'absence / Heures théoriques", UniteKpi.POURCENTAGE, 3.0, 6.0, 10.0, 1);
+        ensureKpi(h, "Taux de Maladies Professionnelles", "Cas déclarés pour 1000 salariés", UniteKpi.NOMBRE, 0.0, 1.0, 2.0, 2);
+        ensureKpi(h, "Conformité Ergonomique", "Postes de travail adaptés aux normes", UniteKpi.POURCENTAGE, 80.0, 90.0, 100.0, 3);
+        ensureKpi(h, "Taux de Visites Médicales", "Salariés à jour de leur suivi médical", UniteKpi.POURCENTAGE, 90.0, 95.0, 100.0, 4);
+        ensureKpi(h, "Qualité de l'Air (CO2)", "Niveau moyen de CO2 en ppm", UniteKpi.NOMBRE, 600.0, 1000.0, 1500.0, 5);
+        ensureKpi(h, "Taux de Renouvellement d'Air", "Volume d'air renouvelé par heure", UniteKpi.NOMBRE, 20.0, 25.0, 30.0, 6);
+        ensureKpi(h, "Indice d'Exposition au Bruit", "Moyenne des niveaux sonores en dB(A)", UniteKpi.NOMBRE, 80.0, 85.0, 90.0, 7);
+        ensureKpi(h, "Usage des Équipements de Repos", "Fréquence d'utilisation des zones de pause", UniteKpi.POURCENTAGE, 40.0, 60.0, 80.0, 8);
 
-        // Sécurité (S)
-        ensureKpi(s, "Taux de conformité sécurité", "Pourcentage d'audits de sécurité conformes", UniteKpi.POURCENTAGE, 5.0, 10.0, 20.0, 1);
-        ensureKpi(s, "Nombre d'incidents de sécurité", "Total incidents de sécurité", UniteKpi.NOMBRE, 1.0, 3.0, 5.0, 2);
-        ensureKpi(s, "Nombre de formations sécurité réalisées", "Pourcentage de salariés formés", UniteKpi.POURCENTAGE, 5.0, 10.0, 20.0, 3);
-        ensureKpi(s, "Nombre de non-conformités critiques", "Total non-conformités de sécurité critiques", UniteKpi.NOMBRE, 1.0, 2.0, 3.0, 4);
+        // --- SÉCURITÉ (S) ---
+        ensureKpi(s, "Taux de Fréquence (TF1)", "Accidents avec arrêt / million d'heures", UniteKpi.NOMBRE, 5.0, 15.0, 30.0, 1);
+        ensureKpi(s, "Taux de Gravité (TG)", "Jours perdus / millier d'heures", UniteKpi.NOMBRE, 0.5, 1.0, 2.0, 2);
+        ensureKpi(s, "Nombre de Presque-accidents", "Near-miss signalés (vigilance)", UniteKpi.NOMBRE, 5.0, 10.0, 20.0, 3);
+        ensureKpi(s, "Heures de Formation Sécurité", "Total heures formation par employé", UniteKpi.NOMBRE, 5.0, 10.0, 20.0, 4);
+        ensureKpi(s, "Taux de Port des EPI", "Conformité observée lors des rondes", UniteKpi.POURCENTAGE, 90.0, 95.0, 100.0, 5);
+        ensureKpi(s, "Nombre de Situations Dangereuses", "Situations à risque signalées", UniteKpi.NOMBRE, 10.0, 25.0, 50.0, 6);
+        ensureKpi(s, "Délai Levée des Non-Conformités", "Temps pour corriger une faille sécurité (jours)", UniteKpi.NOMBRE, 2.0, 7.0, 15.0, 7);
+        ensureKpi(s, "Nombre de Visites Sécurité (VMS)", "Total des visites managériales terrain", UniteKpi.NOMBRE, 4.0, 8.0, 12.0, 8);
 
-        // Environnement (E)
-        ensureKpi(e, "Consommation énergétique", "kWh consommés par période", UniteKpi.KWH, 5.0, 10.0, 20.0, 1);
-        ensureKpi(e, "Taux de recyclage déchets", "Pourcentage de déchets recyclés", UniteKpi.POURCENTAGE, 5.0, 10.0, 20.0, 2);
-        ensureKpi(e, "Emissions CO2", "kg CO2 par période", UniteKpi.KG, 5.0, 10.0, 20.0, 3);
-        ensureKpi(e, "Taux de conformité réglementaire", "Pourcentage du respect des lois et normes environnementales", UniteKpi.POURCENTAGE, 5.0, 10.0, 20.0, 4);
+        // --- ENVIRONNEMENT (E) ---
+        ensureKpi(e, "Consommation Électricité", "kWh consommés par tonne produite", UniteKpi.KWH, 100.0, 200.0, 500.0, 1);
+        ensureKpi(e, "Consommation Eau", "Mètres cubes d'eau consommés", UniteKpi.NOMBRE, 50.0, 150.0, 300.0, 2);
+        ensureKpi(e, "Taux de Valorisation Déchets", "Déchets recyclés / Déchets totaux", UniteKpi.POURCENTAGE, 50.0, 70.0, 85.0, 3);
+        ensureKpi(e, "Émissions CO2 (Scope 1&2)", "Tonnes de CO2 équivalent", UniteKpi.KG, 1000.0, 5000.0, 10000.0, 4);
+        ensureKpi(e, "Volume Déchets Dangereux", "Total déchets toxiques ou polluants", UniteKpi.KG, 50.0, 200.0, 500.0, 5);
+        ensureKpi(e, "Consommation de Papier", "Nombre de rames par collaborateur", UniteKpi.NOMBRE, 1.0, 3.0, 5.0, 6);
+        ensureKpi(e, "Incidents Environnementaux", "Déversements ou fuites accidentelles", UniteKpi.NOMBRE, 0.0, 1.0, 2.0, 7);
+        ensureKpi(e, "Part Énergie Renouvelable", "Pourcentage d'énergie propre utilisée", UniteKpi.POURCENTAGE, 10.0, 30.0, 50.0, 8);
 
-        log.info("Initialisation KPI terminée");
+        log.info(" Référentiel complet initialisé.");
     }
 
     private CategorieKpi ensureCategory(String code, String libelle, String description) {

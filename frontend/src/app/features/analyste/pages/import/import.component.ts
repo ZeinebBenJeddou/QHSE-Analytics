@@ -1,50 +1,62 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Observable } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
+import { Chart, ChartConfiguration, registerables } from 'chart.js';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTableModule } from '@angular/material/table';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatSelectModule } from '@angular/material/select';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ImportService } from '../../../../core/services/import.service';
-import { AutoImportResultResponse } from '../../../../core/models/import-session.model';
+import { ImportUploadStateService } from '../../../../core/services/import-upload-state.service';
+import { ImportProcessingResponse, KpiCalculatedDTO } from '../../../../core/models/import-session.model';
+
+Chart.register(...registerables);
 
 @Component({
   selector: 'app-import',
   standalone: true,
   imports: [
-    CommonModule, FormsModule,
-    MatCardModule, MatButtonModule, MatIconModule,
-    MatFormFieldModule, MatInputModule, MatProgressBarModule,
-    MatSelectModule, MatChipsModule, MatSnackBarModule, MatTooltipModule,
+    CommonModule,
+    MatCardModule,
+    MatButtonModule,
+    MatIconModule,
+    MatSnackBarModule,
+    MatTableModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatTooltipModule,
   ],
   templateUrl: './import.component.html',
   styleUrls: ['./import.component.css'],
 })
-export class ImportComponent {
+export class ImportComponent implements OnInit, OnDestroy {
   private importService = inject(ImportService);
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
+  private uploadState = inject(ImportUploadStateService);
+
+  readonly tableColumns = ['kpi', 'categorieCode', 'valeurN1', 'valeurN', 'variationPercentage', 'classification', 'seuilFaible', 'seuilCritique'];
 
   selectedFile = signal<File | null>(null);
-  isDragOver = signal(false);
-  isUploading = signal(false);
-  progress = signal(0);
-  result = signal<AutoImportResultResponse | null>(null);
+  yearN = signal<number | null>(null);
+  yearNMinus1 = signal<number | null>(null);
+  yearError = signal('');
+  isSubmitting = signal(false);
+  result = signal<ImportProcessingResponse | null>(null);
   errorMsg = signal('');
 
-  periodeN1 = new Date().getFullYear() - 1;
-  periodeN = new Date().getFullYear();
-  mode: 'auto' | 'manuel' = 'auto';
+  @ViewChild('barCanvas', { read: ElementRef }) barCanvas?: ElementRef<HTMLCanvasElement>;
+  @ViewChild('lineCanvas', { read: ElementRef }) lineCanvas?: ElementRef<HTMLCanvasElement>;
+  @ViewChild('pieCanvas', { read: ElementRef }) pieCanvas?: ElementRef<HTMLCanvasElement>;
 
-  years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i);
+  private barChart?: Chart<'bar'>;
+  private lineChart?: Chart<'line'>;
+  private pieChart?: Chart<'pie'>;
 
   get fileName(): string {
     return this.selectedFile()?.name ?? '';
@@ -55,86 +67,266 @@ export class ImportComponent {
     return b > 0 ? (b / 1024 / 1024).toFixed(2) + ' MB' : '';
   }
 
-  onDragOver(e: DragEvent) { e.preventDefault(); this.isDragOver.set(true); }
-  onDragLeave() { this.isDragOver.set(false); }
-
-  onDrop(e: DragEvent) {
-    e.preventDefault();
-    this.isDragOver.set(false);
-    const file = e.dataTransfer?.files[0];
-    if (file) this.setFile(file);
+  get hasResult(): boolean {
+    return !!this.result();
   }
 
-  onFileSelected(e: Event) {
-    const file = (e.target as HTMLInputElement).files?.[0];
-    if (file) this.setFile(file);
+  get importSessionId(): number | null {
+    return this.result()?.importSessionId ?? null;
   }
 
-  setFile(file: File) {
-    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.csv')) {
-      this.snackBar.open('Seuls les fichiers .xlsx et .csv sont acceptés', 'OK', { duration: 4000 });
+  get isUploadDisabled(): boolean {
+    return !this.selectedFile() || this.isSubmitting() || !this.isYearValid;
+  }
+
+  private get isYearValid(): boolean {
+    return this.yearN() !== null && this.yearNMinus1() !== null && this.yearNMinus1() === this.yearN()! - 1;
+  }
+
+  get classificationSummary() {
+    const counts = { FAIBLE: 0, MODERE: 0, CRITIQUE: 0 };
+    this.result()?.calculatedData?.forEach((item) => {
+      if (item.classification in counts) {
+        counts[item.classification as keyof typeof counts]++;
+      }
+    });
+    return counts;
+  }
+
+  classificationLabel(value: KpiCalculatedDTO['classification'] | null | undefined): string {
+    switch (value) {
+      case 'FAIBLE':
+        return 'OK';
+      case 'MODERE':
+        return 'WARNING';
+      case 'CRITIQUE':
+        return 'CRITICAL';
+      default:
+        return 'UNKNOWN';
+    }
+  }
+
+  classificationClass(value: KpiCalculatedDTO['classification'] | null | undefined): string {
+    switch (value) {
+      case 'FAIBLE':
+        return 'faible';
+      case 'MODERE':
+        return 'modere';
+      case 'CRITIQUE':
+        return 'critique';
+      default:
+        return 'unknown';
+    }
+  }
+
+  categoryLabel(value: string | null | undefined): string {
+    return value?.trim() || 'UNKNOWN';
+  }
+
+  ngOnInit() {
+    const saved = this.uploadState.getResponse();
+    if (saved) {
+      this.result.set(saved);
+      this.buildCharts();
+    }
+  }
+
+  onFileSelected(event: Event) {
+    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
+    if (!file) {
+      return;
+    }
+    const fileName = file.name.toLowerCase();
+    if (!fileName.endsWith('.xlsx') && !fileName.endsWith('.xls')) {
+      this.snackBar.open('Seuls les fichiers Excel .xlsx et .xls sont acceptés.', 'OK', { duration: 4000 });
       return;
     }
     this.selectedFile.set(file);
     this.result.set(null);
     this.errorMsg.set('');
+    this.uploadState.clearUpload();
+    this.uploadState.clearResponse();
+    this.destroyCharts();
   }
 
-  upload() {
+  onYearNChange(value: string) {
+    const parsed = this.parseYear(value);
+    this.yearN.set(parsed);
+    this.updateYearError();
+  }
+
+  onYearNMinus1Change(value: string) {
+    const parsed = this.parseYear(value);
+    this.yearNMinus1.set(parsed);
+    this.updateYearError();
+  }
+
+  private parseYear(value: string): number | null {
+    const trimmed = value?.trim() ?? '';
+    if (!trimmed) {
+      return null;
+    }
+    const parsed = Number(trimmed);
+    return Number.isInteger(parsed) ? parsed : null;
+  }
+
+  private updateYearError() {
+    if (this.yearN() === null || this.yearNMinus1() === null) {
+      this.yearError.set('');
+      return;
+    }
+    const yearN = this.yearN();
+    const yearNMinus1 = this.yearNMinus1();
+    if (yearN === null || yearNMinus1 === null) {
+      this.yearError.set('');
+      return;
+    }
+    if (yearNMinus1 !== yearN - 1) {
+      this.yearError.set('L\'année N-1 doit être exactement l\'année N moins 1.');
+      return;
+    }
+    this.yearError.set('');
+  }
+
+  async continueToMapping() {
     const file = this.selectedFile();
-    if (!file || !this.periodeN1 || !this.periodeN) return;
+    if (!file) {
+      this.snackBar.open('Veuillez sélectionner un fichier Excel.', 'OK', { duration: 3000 });
+      return;
+    }
 
-    this.isUploading.set(true);
-    this.progress.set(0);
+    if (!this.isYearValid) {
+      this.snackBar.open('Veuillez saisir des années valides pour N et N-1.', 'OK', { duration: 3000 });
+      return;
+    }
+
+    this.isSubmitting.set(true);
     this.errorMsg.set('');
-    this.result.set(null);
 
-    const interval = setInterval(() => {
-      this.progress.update(p => Math.min(p + 8, 85));
-    }, 400);
+    try {
+      const response = await firstValueFrom(
+        this.importService.previewImport(file, this.yearN()!, this.yearNMinus1()!, {})
+      );
 
-    const call$: Observable<any> = this.mode === 'auto'
-      ? this.importService.uploadAuto(this.periodeN1, this.periodeN, file)
-      : this.importService.upload(this.periodeN1, this.periodeN, file);
+      const detectedHeaders = response.detectedHeaders?.length
+        ? response.detectedHeaders
+        : [];
 
-    call$.subscribe({
-      next: (res: any) => {
-        clearInterval(interval);
-        this.progress.set(100);
-        this.isUploading.set(false);
-        if (this.mode === 'auto') {
-          this.result.set(res as AutoImportResultResponse);
-        } else {
-          this.router.navigate(['/analyste/mapping'], { queryParams: { sessionId: (res as any).id } });
-        }
-      },
-      error: (err: any) => {
-        clearInterval(interval);
-        this.isUploading.set(false);
-        this.progress.set(0);
-        this.errorMsg.set(err?.error?.message ?? "Erreur lors de l'import. Vérifiez le fichier.");
-      },
-    });
+      this.uploadState.saveUpload({
+        file,
+        yearN: this.yearN()!,
+        yearNMinus1: this.yearNMinus1()!,
+        headers: detectedHeaders,
+        detectedHeaders,
+      });
+      this.router.navigate(['/analyste/import/mapping']);
+    } catch (error: any) {
+      this.errorMsg.set(error?.error?.message ?? 'Erreur lors de la détection des en-têtes.');
+      this.snackBar.open(this.errorMsg(), 'OK', { duration: 5000 });
+    } finally {
+      this.isSubmitting.set(false);
+    }
   }
 
-  goToDashboard() {
-    const res = this.result();
-    if (res) this.router.navigate(['/analyste/dashboard', res.session.id]);
-  }
-
-  downloadTemplate() {
-    this.importService.downloadTemplate().subscribe(blob => {
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = 'template_qhse_v1.xlsx'; a.click();
-      window.URL.revokeObjectURL(url);
-    });
-  }
-
-  reset() {
+  clear() {
     this.selectedFile.set(null);
     this.result.set(null);
     this.errorMsg.set('');
-    this.progress.set(0);
+    this.uploadState.clearUpload();
+    this.uploadState.clearResponse();
+    this.destroyCharts();
+  }
+
+  async goToDashboard() {
+    const id = this.importSessionId;
+    if (id) {
+      this.router.navigate(['/analyste/dashboard', id]);
+      return;
+    }
+    this.snackBar.open('Aucun import sélectionné pour le tableau de bord.', 'OK', { duration: 3000 });
+    this.router.navigate(['/analyste/dashboard']);
+  }
+
+  goToIa() {
+    const id = this.importSessionId;
+    if (!id) {
+      this.snackBar.open('Aucun import sélectionné pour l’analyse IA.', 'OK', { duration: 3000 });
+      return;
+    }
+    this.router.navigate(['/analyste/ia', id]);
+  }
+
+  private buildCharts() {
+    this.destroyCharts();
+    const response = this.result();
+    if (!response) {
+      return;
+    }
+
+    if (this.barCanvas && response.charts?.barCharts?.length) {
+      const series = response.charts.barCharts[0];
+      this.barChart = new Chart(this.barCanvas.nativeElement.getContext('2d')!, {
+        type: 'bar',
+        data: {
+          labels: series.categories,
+          datasets: [{
+            label: series.label,
+            data: series.values,
+            backgroundColor: 'rgba(37,99,235,0.7)',
+            borderColor: 'rgba(37,99,235,1)',
+            borderWidth: 1,
+          }],
+        },
+        options: { responsive: true, maintainAspectRatio: false },
+      });
+    }
+
+    if (this.lineCanvas && response.charts?.lineCharts?.length) {
+      const series = response.charts.lineCharts[0];
+      this.lineChart = new Chart(this.lineCanvas.nativeElement.getContext('2d')!, {
+        type: 'line',
+        data: {
+          labels: series.categories,
+          datasets: [{
+            label: series.label,
+            data: series.values,
+            borderColor: 'rgba(16,185,129,0.9)',
+            backgroundColor: 'rgba(16,185,129,0.2)',
+            tension: 0.4,
+            fill: true,
+          }],
+        },
+        options: { responsive: true, maintainAspectRatio: false },
+      });
+    }
+
+    if (this.pieCanvas && this.result()?.calculatedData?.length) {
+      const counts = this.classificationSummary;
+      this.pieChart = new Chart(this.pieCanvas.nativeElement.getContext('2d')!, {
+        type: 'pie',
+        data: {
+          labels: ['FAIBLE', 'MODERE', 'CRITIQUE'],
+          datasets: [{
+            data: [counts.FAIBLE, counts.MODERE, counts.CRITIQUE],
+            backgroundColor: ['#22c55e', '#f97316', '#ef4444'],
+          }],
+        },
+        options: { responsive: true, maintainAspectRatio: false },
+      });
+    }
+  }
+
+  private destroyCharts() {
+    this.barChart?.destroy();
+    this.lineChart?.destroy();
+    this.pieChart?.destroy();
+    this.barChart = undefined;
+    this.lineChart = undefined;
+    this.pieChart = undefined;
+  }
+
+  ngOnDestroy() {
+    this.destroyCharts();
   }
 }
+

@@ -1,57 +1,52 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import {
-  ImportSessionResponse,
-  AutoImportResultResponse,
-  ResultatGlobalResponse,
-  HistoriqueAnalysteResponse,
-} from '../models/import-session.model';
+import { HistoriqueAnalysteResponse, ImportProcessingResponse } from '../models/import-session.model';
 
 @Injectable({ providedIn: 'root' })
 export class ImportService {
   private http = inject(HttpClient);
-  private base = `${environment.apiUrl}/api/imports`;
+  private manualBase = `${environment.apiUrl}/api/import/manual`;
+  private importBase = `${environment.apiUrl}/api/imports`;
 
-  /** Download the XLSX template */
-  downloadTemplate(): Observable<Blob> {
-    return this.http.get(`${this.base}/template/download`, { responseType: 'blob' });
-  }
-
-  /** Manual upload – returns the created ImportSession */
-  upload(periodeN1: number, periodeN: number, file: File): Observable<ImportSessionResponse> {
+  uploadFile(file: File, yearN: number, yearNMinus1: number): Observable<ImportProcessingResponse> {
     const form = new FormData();
     form.append('file', file);
-    const params = new HttpParams().set('periodeN1', periodeN1).set('periodeN', periodeN);
-    return this.http.post<ImportSessionResponse>(`${this.base}/upload`, form, { params });
+    form.append('yearN', String(yearN));
+    form.append('yearN1', String(yearNMinus1));
+    return this.http.post<ImportProcessingResponse>(this.manualBase, form);
   }
 
-  /** Auto upload – fully automatic KPI matching */
-  uploadAuto(periodeN1: number, periodeN: number, file: File): Observable<AutoImportResultResponse> {
+  previewImport(file: File, yearN: number, yearNMinus1: number, mapping: Record<string, number> = {}): Observable<ImportProcessingResponse> {
     const form = new FormData();
     form.append('file', file);
-    const params = new HttpParams().set('periodeN1', periodeN1).set('periodeN', periodeN);
-    return this.http.post<AutoImportResultResponse>(`${this.base}/auto`, form, { params });
+    form.append('yearN', String(yearN));
+    form.append('yearN1', String(yearNMinus1));
+    form.append('mapping', JSON.stringify(mapping));
+    return this.http.post<ImportProcessingResponse>(`${this.importBase}/preview`, form);
   }
 
-  /** Get all import sessions for the current user */
-  getHistorique(): Observable<ImportSessionResponse[]> {
-    return this.http.get<ImportSessionResponse[]>(this.base);
-  }
-
-  /** Get detailed results for a specific import session */
-  getResultats(sessionId: number): Observable<ResultatGlobalResponse> {
-    return this.http.get<ResultatGlobalResponse>(`${this.base}/${sessionId}/resultats`);
+  processManualImport(file: File, yearN: number, yearNMinus1: number, mapping: Record<string, number>): Observable<ImportProcessingResponse> {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('yearN', String(yearN));
+    form.append('yearN1', String(yearNMinus1));
+    form.append('mapping', JSON.stringify(mapping));
+    return this.http.post<ImportProcessingResponse>(this.manualBase, form);
   }
 
   /** Cancel an import session */
   annuler(sessionId: number): Observable<{ message: string }> {
-    return this.http.delete<{ message: string }>(`${this.base}/${sessionId}`);
+    return this.http.delete<{ message: string }>(`${this.importBase}/${sessionId}`);
   }
 
   /** Get import history summary (analyste dashboard) */
   getHistoriqueAnalyste(): Observable<HistoriqueAnalysteResponse> {
     return this.http.get<HistoriqueAnalysteResponse>(`${environment.apiUrl}/api/dashboard/analyste/historique`);
+  }
+
+  exportAnalyste(importId: number): Observable<Blob> {
+    return this.http.get(`${environment.apiUrl}/api/export/analyste/${importId}`, { responseType: 'blob' });
   }
 }

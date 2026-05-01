@@ -9,6 +9,7 @@ import com.QHSEAnalytics.exception.FileTooLargeException;
 import com.QHSEAnalytics.exception.GroqApiException;
 import com.QHSEAnalytics.exception.ImportNotFoundException;
 import com.QHSEAnalytics.exception.ImportNotReadyException;
+import com.QHSEAnalytics.exception.ImportTransitionException;
 import com.QHSEAnalytics.exception.ImportValidationException;
 import com.QHSEAnalytics.exception.InvalidFileFormatException;
 import com.QHSEAnalytics.exception.InvalidSeuilException;
@@ -109,6 +110,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ImportNotReadyException.class)
     public ResponseEntity<?> handleImportNotReady(ImportNotReadyException ex) {
+        return buildError(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(ImportTransitionException.class)
+    public ResponseEntity<?> handleImportTransition(ImportTransitionException ex) {
         return buildError(HttpStatus.CONFLICT, ex.getMessage());
     }
 

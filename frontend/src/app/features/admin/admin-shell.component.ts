@@ -1,58 +1,71 @@
 import { Component, inject } from '@angular/core';
-import { Router, RouterModule } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatMenuModule } from '@angular/material/menu';
+import { Router, RouterModule, RouterOutlet, NavigationEnd } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatListModule } from '@angular/material/list';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { TokenService } from '../../core/services/token.service';
+import { filter } from 'rxjs/operators';
 
 @Component({
   selector: 'app-admin-shell',
   standalone: true,
-  imports: [RouterModule, MatToolbarModule, MatButtonModule, MatIconModule, MatMenuModule],
-  template: `
-    <div class="admin-shell">
-      <mat-toolbar color="primary" class="admin-toolbar">
-        <span class="brand">Admin Console</span>
-        <span class="spacer"></span>
-        <button mat-button routerLink="overview">Overview</button>
-        <button mat-button routerLink="users">Users</button>
-        <button mat-button routerLink="kpis">KPIs</button>
-
-        <button mat-icon-button [matMenuTriggerFor]="profileMenu" aria-label="Admin profile menu">
-          <mat-icon>account_circle</mat-icon>
-        </button>
-        <mat-menu #profileMenu="matMenu">
-          <button mat-menu-item routerLink="profile">
-            <mat-icon>person</mat-icon>
-            <span>Profile</span>
-          </button>
-          <button mat-menu-item (click)="logout()">
-            <mat-icon>logout</mat-icon>
-            <span>Logout</span>
-          </button>
-        </mat-menu>
-      </mat-toolbar>
-
-      <main class="admin-content">
-        <router-outlet></router-outlet>
-      </main>
-    </div>
-  `,
-  styles: [
-    '.admin-shell { display: grid; min-height: 100vh; }',
-    '.admin-toolbar { position: sticky; top: 0; z-index: 2; }',
-    '.brand { font-weight: 600; }',
-    '.spacer { flex: 1 1 auto; }',
-    '.admin-content { padding: 24px; }'
-  ]
+  imports: [
+    CommonModule,
+    RouterOutlet,
+    RouterModule,
+    MatSidenavModule,
+    MatToolbarModule,
+    MatListModule,
+    MatIconModule,
+    MatButtonModule,
+    MatTooltipModule,
+  ],
+  templateUrl: './admin-shell.component.html',
+  styleUrls: ['./admin-shell.component.css'],
 })
 export class AdminShellComponent {
-  private readonly router = inject(Router);
   private readonly tokenService = inject(TokenService);
+  private readonly router = inject(Router);
+
+  sidenavOpen = true;
+  activeLabel = 'Overview';
+
+  navItems = [
+    { label: 'Profil',        icon: 'person',           route: '/admin/profile',  badge: null },
+    { label: 'Overview',      icon: 'bar_chart',        route: '/admin/overview', badge: null },
+    { label: 'Historique',    icon: 'history',          route: '/admin/historique', badge: null },
+    { label: 'Utilisateurs',  icon: 'group',            route: '/admin/users',    badge: null },
+    { label: 'KPIs',          icon: 'speed',            route: '/admin/kpis',     badge: null },
+  ];
+
+  constructor() {
+    this.router.events
+      .pipe(filter(e => e instanceof NavigationEnd))
+      .subscribe(() => {
+        const match = this.navItems.find(i =>
+          this.router.isActive(i.route, {
+            paths: 'subset', queryParams: 'ignored',
+            fragment: 'ignored', matrixParams: 'ignored',
+          })
+        );
+        if (match) this.activeLabel = match.label;
+      });
+  }
 
   logout(): void {
     this.tokenService.removeToken();
     this.router.navigate(['/auth/login']);
+  }
+
+  toggleSidenav(): void {
+    this.sidenavOpen = !this.sidenavOpen;
+  }
+
+  trackByRoute(index: number, item: { route: string }): string {
+    return item.route;
   }
 }

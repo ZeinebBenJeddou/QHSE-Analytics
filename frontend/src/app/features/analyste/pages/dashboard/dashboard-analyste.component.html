@@ -1,19 +1,19 @@
 <div class="dashboard-page">
 
-  <!-- ── Loading ──────────────────────────────────────────── -->
+ 
   @if (loading()) {
     <div class="loader-overlay">
-      <mat-spinner diameter="60" color="accent"></mat-spinner>
-      <p>Chargement du tableau de bord...</p>
+      <mat-spinner diameter="48" color="primary"></mat-spinner>
+      <p>Chargement du tableau de bord…</p>
     </div>
   }
 
-  <!-- ── Error / Empty ────────────────────────────────────── -->
+
   @if (!loading() && error()) {
     <div class="empty-state">
       <mat-icon>inbox</mat-icon>
       <h2>{{ error() }}</h2>
-      <button mat-raised-button class="primary-btn" (click)="goToImport()">
+      <button mat-flat-button class="primary-btn" (click)="goToImport()">
         <mat-icon>upload_file</mat-icon>
         Importer des données
       </button>
@@ -21,29 +21,36 @@
   }
 
   @if (!loading() && !error()) {
-    <!-- ── Page Header ──────────────────────────────────────── -->
+
+    
     <div class="page-header">
       <div class="header-left">
-        <mat-icon class="header-icon">dashboard</mat-icon>
+        <div class="header-icon-wrap">
+          <mat-icon class="header-icon">dashboard</mat-icon>
+        </div>
         <div>
           <h1>Tableau de bord QHSE</h1>
           <p class="subtitle" *ngIf="comparatif()">
-            Analyse {{ comparatif()!.periodeN1 }} → {{ comparatif()!.periodeN }}
+            {{ comparatif()!.periodeN1 }} → {{ comparatif()!.periodeN }}
           </p>
         </div>
       </div>
       <div class="header-actions">
-        <button mat-stroked-button class="ia-btn" (click)="goToIA()">
+        <button mat-stroked-button class="ia-btn" type="button" (click)="goToIA()" [disabled]="!hasImport" matTooltip="Aucun import sélectionné" [matTooltipDisabled]="hasImport">
           <mat-icon>psychology</mat-icon>
-          Voir l'Analyse IA
+          Analyse IA
+        </button>
+        <button mat-flat-button class="export-btn" type="button" (click)="exportPdf()" [disabled]="exporting() || !hasImport" matTooltip="Aucun import sélectionné" [matTooltipDisabled]="hasImport">
+          <mat-icon>picture_as_pdf</mat-icon>
+          {{ exporting() ? 'Export…' : 'Exporter PDF' }}
         </button>
       </div>
     </div>
 
-    <!-- ── KPI Summary Cards ────────────────────────────────── -->
+    
     <div class="summary-grid">
       @for (card of summaryCards; track card.label) {
-        <mat-card class="summary-card glass-card" [ngClass]="'card-' + card.color">
+        <mat-card class="summary-card glass-card">
           <mat-card-content>
             <div class="card-body">
               <div class="card-info">
@@ -59,15 +66,17 @@
       }
     </div>
 
-    <!-- ── Charts ───────────────────────────────────────────── -->
+   
     <mat-card class="glass-card charts-card">
       <mat-card-header>
         <mat-icon mat-card-avatar class="card-av-icon">bar_chart</mat-icon>
         <mat-card-title>Visualisations</mat-card-title>
+        <mat-card-subtitle>Analyse comparative des indicateurs</mat-card-subtitle>
       </mat-card-header>
       <mat-card-content>
         <mat-tab-group class="chart-tabs" animationDuration="200ms">
-          <mat-tab label="📊 Comparaison N vs N-1">
+
+          <mat-tab label="📊 N vs N-1">
             @if (graphiques()?.barresGroupees?.length) {
               <app-bar-comparison
                 [data]="graphiques()!.barresGroupees"
@@ -79,7 +88,7 @@
             }
           </mat-tab>
 
-          <mat-tab label="🎯 Radar performance">
+          <mat-tab label="🎯 Radar">
             @if (graphiques()?.radarData?.length) {
               <app-radar-performance [data]="graphiques()!.radarData" />
             } @else {
@@ -97,29 +106,33 @@
             }
           </mat-tab>
 
-          <mat-tab label="⚠️ Top KPIs dégradés">
-            <div class="top-degraded">
-              @for (kpi of graphiques()?.topKpisDegrades ?? []; track kpi.kpiNom) {
-                <div class="degraded-row">
-                  <div class="degraded-info">
-                    <span class="degraded-name">{{ kpi.kpiNom }}</span>
-                    <span class="degraded-cat">{{ kpi.categorieCode }}</span>
-                  </div>
-                  <div class="degraded-right">
-                    <span class="variation-badge" [ngClass]="variationStyle(kpi.variationRelative)">
-                      {{ kpi.variationRelative > 0 ? '+' : '' }}{{ kpi.variationRelative | number:'1.1-1' }}%
-                    </span>
-                    <mat-icon [ngClass]="tendanceClass(kpi.tendance)">{{ tendanceIcon(kpi.tendance) }}</mat-icon>
-                  </div>
+          <mat-tab label="⚠️ KPIs dégradés">
+            <div class="top-degraded" *ngIf="graphiques()?.topKpisDegrades?.length; else noDegraded">
+              <div *ngFor="let kpi of graphiques()!.topKpisDegrades; let i = index" class="degraded-row">
+                <div class="degraded-info">
+                  <span class="degraded-name">{{ kpi.kpiNom }}</span>
+                  <span class="degraded-cat">{{ kpi.categorieCode }}</span>
                 </div>
-              }
+                <div class="degraded-right">
+                  <span class="variation-badge" [ngClass]="variationStyle(kpi.variationRelative)">
+                    {{ kpi.variationRelative > 0 ? '+' : '' }}{{ kpi.variationRelative | number:'1.1-1' }}%
+                  </span>
+                  <mat-icon [ngClass]="tendanceClass(kpi.tendance)" class="trend-icon">
+                    {{ tendanceIcon(kpi.tendance) }}
+                  </mat-icon>
+                </div>
+              </div>
             </div>
+            <ng-template #noDegraded>
+              <div class="no-data">Aucun KPI dégradé</div>
+            </ng-template>
           </mat-tab>
+
         </mat-tab-group>
       </mat-card-content>
     </mat-card>
 
-    <!-- ── KPI Comparison Table ─────────────────────────────── -->
+   
     <mat-card class="glass-card table-card">
       <mat-card-header>
         <mat-icon mat-card-avatar class="card-av-icon">table_chart</mat-icon>
@@ -127,7 +140,8 @@
         <mat-card-subtitle>{{ filteredLignes().length }} indicateurs</mat-card-subtitle>
       </mat-card-header>
       <mat-card-content>
-        <!-- Filters -->
+
+      
         <div class="filters-row">
           <mat-form-field appearance="outline" class="filter-field">
             <mat-label>Rechercher un KPI</mat-label>
@@ -221,7 +235,7 @@
                 @if (row.analyseIa) {
                   <span class="ia-note" [matTooltip]="row.analyseIa" matTooltipClass="ia-tooltip">
                     <mat-icon class="ia-icon">psychology</mat-icon>
-                    {{ row.analyseIa | slice:0:60 }}...
+                    {{ row.analyseIa | slice:0:55 }}…
                   </span>
                 }
               </td>
@@ -231,10 +245,11 @@
             <tr mat-row *matRowDef="let row; columns: tableColumns;" class="kpi-row"></tr>
           </table>
         </div>
+
       </mat-card-content>
     </mat-card>
 
-    <!-- ── AI Global Synthesis ──────────────────────────────── -->
+   
     @if (analysesIa()?.analyseGlobale) {
       <mat-card class="glass-card ia-card">
         <mat-card-header>
@@ -251,5 +266,6 @@
         </mat-card-content>
       </mat-card>
     }
+
   }
 </div>

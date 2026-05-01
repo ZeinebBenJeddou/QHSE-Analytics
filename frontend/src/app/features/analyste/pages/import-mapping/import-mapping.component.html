@@ -1,0 +1,233 @@
+<div class="import-page">
+
+  
+  <div class="stepper-card">
+    <div class="step active">
+      <div class="step-number">1</div>
+      <div>
+        <div class="step-title">Upload</div>
+        <div class="step-subtitle">Fichier sélectionné</div>
+      </div>
+    </div>
+    <div class="step active">
+      <div class="step-number">2</div>
+      <div>
+        <div class="step-title">Mapping</div>
+        <div class="step-subtitle">Associer les colonnes</div>
+      </div>
+    </div>
+    <div class="step" [class.active]="isProcessingStep || !!result()">
+      <div class="step-number">3</div>
+      <div>
+        <div class="step-title">Processing</div>
+        <div class="step-subtitle">Envoi et extraction</div>
+      </div>
+    </div>
+  </div>
+
+  
+  <mat-card class="panel">
+    <mat-card-header>
+      <mat-card-title>Mapping des colonnes</mat-card-title>
+      <mat-card-subtitle>
+        Associez chaque champ obligatoire à l'index de colonne correspondant dans votre fichier.
+      </mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+
+      
+      <div class="instructions-box">
+        <strong>Champs obligatoires</strong>
+        <ul>
+          <li>Nom du KPI</li>
+          <li>Catégorie</li>
+          <li>Unité</li>
+          <li>Valeur N</li>
+          <li>Valeur N-1</li>
+        </ul>
+      </div>
+
+    
+      <div class="summary-section" *ngIf="uploadStateData()">
+        <p>Fichier : <strong>{{ uploadStateData()?.file?.name }}</strong></p>
+        <ul>
+          <li>Année N : <strong>{{ uploadStateData()?.yearN }}</strong></li>
+          <li>Année N-1 : <strong>{{ uploadStateData()?.yearNMinus1 }}</strong></li>
+        </ul>
+      </div>
+
+    
+      <div class="preview-section" *ngIf="uploadStateData()">
+        <h3>Colonnes détectées</h3>
+        <div class="column-list">
+          <div class="column-item" *ngFor="let header of uploadStateData()?.headers; let i = index">
+            <span class="column-index">{{ i }}</span>
+            <span class="column-label">{{ header || 'Colonne ' + i }}</span>
+          </div>
+        </div>
+      </div>
+
+
+      <div class="mapping-grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Nom du KPI</mat-label>
+          <mat-select [value]="kpiColumn()" (selectionChange)="kpiColumn.set($event.value)">
+            <mat-option *ngFor="let index of indexes" [value]="index">
+              {{ index }} — {{ getHeaderLabel(index) }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Catégorie</mat-label>
+          <mat-select [value]="categoryColumn()" (selectionChange)="categoryColumn.set($event.value)">
+            <mat-option *ngFor="let index of indexes" [value]="index">
+              {{ index }} — {{ getHeaderLabel(index) }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Unité</mat-label>
+          <mat-select [value]="unitColumn()" (selectionChange)="unitColumn.set($event.value)">
+            <mat-option *ngFor="let index of indexes" [value]="index">
+              {{ index }} — {{ getHeaderLabel(index) }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Valeur N</mat-label>
+          <mat-select [value]="valueNColumn()" (selectionChange)="valueNColumn.set($event.value)">
+            <mat-option *ngFor="let index of indexes" [value]="index">
+              {{ index }} — {{ getHeaderLabel(index) }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Valeur N-1</mat-label>
+          <mat-select [value]="valueNMinus1Column()" (selectionChange)="valueNMinus1Column.set($event.value)">
+            <mat-option *ngFor="let index of indexes" [value]="index">
+              {{ index }} — {{ getHeaderLabel(index) }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+     
+      <div class="error-banner" *ngIf="errorMsg()">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ errorMsg() }}</span>
+      </div>
+
+      <div class="preview-summary" *ngIf="previewResponse()">
+        <mat-card class="preview-card">
+          <mat-card-header>
+            <mat-card-title>Prévisualisation d'extraction</mat-card-title>
+            <mat-card-subtitle>
+              Méthode : <span [ngClass]="extractMethodBadgeClass(previewResponse()?.extractionMethod)">{{ previewResponse()?.extractionMethod }}</span>
+              · Qualité : <strong>{{ qualityLabel(previewResponse()?.qualityScore) }}</strong>
+            </mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <p>{{ invalidRateLabel(previewResponse()?.rawData) }}</p>
+          </mat-card-content>
+        </mat-card>
+      </div>
+
+      <div class="actions-row">
+        <button mat-stroked-button class="back-btn" (click)="goBack()">
+          <mat-icon>arrow_back</mat-icon>
+          Retour
+        </button>
+        <button mat-flat-button class="submit-btn" (click)="submitMapping()" [disabled]="processing()">
+          <mat-spinner *ngIf="processing()" diameter="16"></mat-spinner>
+          <mat-icon *ngIf="!processing()">visibility</mat-icon>
+          {{ processing() ? 'Prévisualisation…' : 'Prévisualiser' }}
+        </button>
+        <button mat-flat-button class="confirm-btn" color="primary" (click)="confirmImport()" [disabled]="!previewResponse() || processing()">
+          <mat-icon>check_circle</mat-icon>
+          Confirmer l'import
+        </button>
+      </div>
+
+      <div class="preview-table" *ngIf="previewResponse()?.rawData?.length">
+        <h3>Prévisualisation des données brutes</h3>
+        <table mat-table [dataSource]="previewResponse()?.rawData ?? []" class="kpi-table">
+
+          <ng-container matColumnDef="kpiName">
+            <th mat-header-cell *matHeaderCellDef>KPI</th>
+            <td mat-cell *matCellDef="let row">{{ row.kpiName }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="valeurN1">
+            <th mat-header-cell *matHeaderCellDef>N-1</th>
+            <td mat-cell *matCellDef="let row">{{ row.valeurN1 ?? row.valeurN1Raw }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="valeurN">
+            <th mat-header-cell *matHeaderCellDef>N</th>
+            <td mat-cell *matCellDef="let row">{{ row.valeurN ?? row.valeurNRaw }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let row">
+              <span [class.valid]="row.valid" [class.invalid]="!row.valid">
+                {{ row.valid ? 'VALID' : 'INVALID' }}
+              </span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="confidence">
+            <th mat-header-cell *matHeaderCellDef>Confiance</th>
+            <td mat-cell *matCellDef="let row">{{ row.scoreConfiance | percent:'1.0-0' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="method">
+            <th mat-header-cell *matHeaderCellDef>Méthode</th>
+            <td mat-cell *matCellDef="let row">{{ row.methodeExtraction }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="message">
+            <th mat-header-cell *matHeaderCellDef>Commentaire</th>
+            <td mat-cell *matCellDef="let row">{{ row.validationMessage || 'OK' }}</td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="previewColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: previewColumns"></tr>
+        </table>
+      </div>
+
+    </mat-card-content>
+  </mat-card>
+
+  
+  <mat-card class="panel result-card" *ngIf="result()">
+    <mat-card-header>
+      <mat-card-title>Import terminé</mat-card-title>
+      <mat-card-subtitle>Les données ont été traitées avec succès</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="success-banner">
+        <mat-icon>check_circle</mat-icon>
+        {{ result()?.calculatedData?.length }} KPI calculés avec succès.
+      </div>
+      <p *ngIf="result()?.importSessionId">
+        <strong>Session d'import :</strong> {{ result()?.importSessionId }}
+      </p>
+    </mat-card-content>
+    <mat-card-actions>
+      <button mat-flat-button class="dashboard-btn" (click)="goToDashboard()">
+        <mat-icon>dashboard</mat-icon>
+        Aller au dashboard
+      </button>
+      <button mat-stroked-button class="new-import-btn" (click)="goBack()">
+        <mat-icon>add</mat-icon>
+        Nouvel import
+      </button>
+    </mat-card-actions>
+  </mat-card>
+
+</div>

@@ -7,30 +7,33 @@ import com.QHSEAnalytics.dto.response.AnalyseCategorieResponse;
 import com.QHSEAnalytics.dto.response.AnalyseCompleteResponse;
 import com.QHSEAnalytics.dto.response.AnalyseGlobaleResponse;
 import com.QHSEAnalytics.dto.response.ResultatKpiResponse;
+import com.QHSEAnalytics.dto.ollama.AiResponse;
 import com.QHSEAnalytics.entity.AnalyseCategorie;
 import com.QHSEAnalytics.entity.AnalyseGlobale;
 import com.QHSEAnalytics.entity.ImportSession;
 import com.QHSEAnalytics.entity.ResultatKpi;
-import com.QHSEAnalytics.enums.NiveauVariation;
-import com.QHSEAnalytics.exception.AnalyseGenerationException;
+import com.QHSEAnalytics.enums.ImportStatut;
+
 import com.QHSEAnalytics.exception.AnalyseNotFoundException;
 import com.QHSEAnalytics.exception.ImportNotFoundException;
+import com.QHSEAnalytics.exception.ImportNotReadyException;
 import com.QHSEAnalytics.repository.AnalyseCategorieRepository;
 import com.QHSEAnalytics.repository.AnalyseGlobaleRepository;
 import com.QHSEAnalytics.repository.ImportSessionRepository;
 import com.QHSEAnalytics.repository.ResultatKpiRepository;
+import com.QHSEAnalytics.service.processing.AnalysisAgent;
+import com.QHSEAnalytics.dto.response.KpiCalculatedDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,15 +44,18 @@ public class AnalyseIaService {
     private final ResultatKpiRepository resultatKpiRepository;
     private final AnalyseCategorieRepository analyseCategorieRepository;
     private final AnalyseGlobaleRepository analyseGlobaleRepository;
-    private final GroqService groqService;
-    private final GroqPromptBuilder groqPromptBuilder;
+    private final AnalysisAgent analysisAgent;
     private final ImportSessionRepository importSessionRepository;
     private final UserRepository userRepository;
 
     @Transactional
     public void genererToutesLesAnalyses(Long importSessionId, Long userId) {
+        ImportSession session = null;
+        long startAt = System.currentTimeMillis();
         try {
-            ImportSession session = loadSessionWithOwnership(importSessionId, userId, false);
+            session = loadSessionWithOwnership(importSessionId, userId, false);
+            log.info("Début de l'analyse IA pour la session {}", importSessionId);
+
             List<ResultatKpi> resultats = resultatKpiRepository.findByImportSessionIdOrderByCreatedAtDesc(importSessionId).stream()
                     .filter(resultat -> resultat.getKpi() != null && resultat.getKpi().getCategorieKpi() != null)
                     .toList();
@@ -59,105 +65,95 @@ public class AnalyseIaService {
                 return;
             }
 
-            try {
-                for (ResultatKpi resultat : resultats) {
-                    try {
-                        String prompt = groqPromptBuilder.buildKpiPrompt(
-                                resultat.getKpi().getNom(),
-                                resultat.getKpi().getDefinition(),
-                                resultat.getKpi().getUnite().name(),
-                                resultat.getKpi().getCategorieKpi().getLibelle(),
-                                resultat.getValeurN1(),
-                                resultat.getValeurN(),
-                                resultat.getVariationRelative(),
-                                resultat.getNiveauVariation(),
-                                resultat.getTendance(),
-                                resultat.getPeriodeN1(),
-                                resultat.getPeriodeN()
-                        );
-                        resultat.setAnalyseIa(groqService.analyserKpi(prompt));
-                        resultatKpiRepository.save(resultat);
-                        log.info("Analyse KPI générée : {}", resultat.getKpi().getNom());
-                    } catch (Exception ex) {
-                        log.error("Erreur génération analyse KPI {} : {}", resultat.getKpi().getNom(), ex.getMessage());
-                    }
-                }
-            } catch (Exception ex) {
-                log.error("Erreur bloc niveau KPI session {} : {}", importSessionId, ex.getMessage());
+            List<KpiCalculatedDTO> kpiData = resultats.stream().map(this::toKpiCalculatedDTO).toList();
+            List<KpiCalculatedDTO> cleanedData = cleanKpis(kpiData);
+            log.info("KPI nettoyage pour session {} : {} -> {}", importSessionId, kpiData.size(), cleanedData.size());
+
+            AiResponse response = analysisAgent.analyzeStrict(cleanedData);
+            if (response == null) {
+                response = AiResponse.builder()
+                        .overallScore(0.0)
+                        .summary("IA indisponible")
+                        .recommendations(List.of())
+                        .kpis(List.of())
+                        .build();
             }
 
-            Map<String, List<ResultatKpi>> byCategory = resultats.stream()
-                    .collect(Collectors.groupingBy(
-                            resultat -> resultat.getKpi().getCategorieKpi().getCode(),
-                            LinkedHashMap::new,
-                            Collectors.toList()
+            String globalSummary = response.getSummary();
+            if (globalSummary == null || globalSummary.isBlank()) {
+                globalSummary = "IA indisponible";
+            }
+
+            Map<String, String> insightsByKpiName = response.getKpis().stream()
+                    .filter(kpi -> kpi.getName() != null && !kpi.getName().isBlank())
+                    .collect(Collectors.toMap(
+                            kpi -> kpi.getName().trim().toLowerCase(),
+                            kpi -> kpi.getInsight() == null ? "" : kpi.getInsight().trim(),
+                            (first, second) -> first
                     ));
 
-            try {
-                for (Map.Entry<String, List<ResultatKpi>> entry : byCategory.entrySet()) {
-                    ResultatKpi first = entry.getValue().get(0);
-                    String categorieCode = entry.getKey();
-                    String categorieLibelle = first.getKpi().getCategorieKpi().getLibelle();
-                    try {
-                        String prompt = groqPromptBuilder.buildCategoriePrompt(
-                                categorieLibelle,
-                                entry.getValue(),
-                                session.getPeriodeN1(),
-                                session.getPeriodeN()
-                        );
-
-                        String contenu = groqService.analyserCategorie(prompt);
-                        AnalyseCategorie analyse = analyseCategorieRepository
-                                .findByImportSessionIdAndCategorieCode(importSessionId, categorieCode)
-                                .orElseGet(AnalyseCategorie::new);
-                        analyse.setImportSession(session);
-                        analyse.setUser(loadUser(userId));
-                        analyse.setCategorieCode(categorieCode);
-                        analyse.setCategorieLibelle(categorieLibelle);
-                        analyse.setContenu(contenu);
-                        analyseCategorieRepository.save(analyse);
-                        log.info("Analyse catégorie générée : {}", categorieCode);
-                    } catch (Exception ex) {
-                        log.error("Erreur génération analyse catégorie {} : {}", categorieCode, ex.getMessage());
-                    }
+            for (ResultatKpi resultat : resultats) {
+                String key = resultat.getKpi().getNom() == null ? null : resultat.getKpi().getNom().trim().toLowerCase();
+                String analyseIa = key == null ? null : insightsByKpiName.get(key);
+                if (analyseIa != null && !analyseIa.isBlank()) {
+                    resultat.setAnalyseIa(analyseIa);
+                    resultatKpiRepository.save(resultat);
                 }
-            } catch (Exception ex) {
-                log.error("Erreur bloc niveau catégorie session {} : {}", importSessionId, ex.getMessage());
             }
 
-            String synthese = "";
-            String planActions = "";
-            try {
-                String synthesePrompt = groqPromptBuilder.buildSynthesePrompt(resultats, session.getPeriodeN1(), session.getPeriodeN());
-                synthese = groqService.genererSynthese(synthesePrompt);
-            } catch (Exception ex) {
-                log.error("Erreur génération synthèse globale session {} : {}", importSessionId, ex.getMessage());
-                synthese = "Analyse IA temporairement indisponible.";
-            }
+            AnalyseGlobale analyseGlobale = analyseGlobaleRepository.findByImportSessionId(importSessionId)
+                    .orElseGet(AnalyseGlobale::new);
+            analyseGlobale.setImportSession(session);
+            analyseGlobale.setUser(loadUser(userId));
+            analyseGlobale.setSynthese(globalSummary);
+            analyseGlobale.setPlanActions(String.join("\n", response.getRecommendations() == null ? List.of() : response.getRecommendations()));
+            analyseGlobaleRepository.save(analyseGlobale);
 
-            try {
-                String planPrompt = groqPromptBuilder.buildPlanActionsPrompt(resultats, session.getPeriodeN1(), session.getPeriodeN());
-                planActions = groqService.genererPlanActions(planPrompt);
-            } catch (Exception ex) {
-                log.error("Erreur génération plan d'actions session {} : {}", importSessionId, ex.getMessage());
-                planActions = "Analyse IA temporairement indisponible.";
+            boolean iaUnavailable = globalSummary != null && globalSummary.trim().equalsIgnoreCase("IA indisponible");
+            if (iaUnavailable) {
+                session.setMessageErreur("Analyse IA indisponible. Veuillez réessayer ultérieurement.");
+            } else {
+                session.setStatut(ImportStatut.TRAITE);
+                session.setMessageErreur(null);
             }
-
-            try {
-                AnalyseGlobale analyseGlobale = analyseGlobaleRepository.findByImportSessionId(importSessionId)
-                        .orElseGet(AnalyseGlobale::new);
-                analyseGlobale.setImportSession(session);
-                analyseGlobale.setUser(loadUser(userId));
-                analyseGlobale.setSynthese(synthese);
-                analyseGlobale.setPlanActions(planActions);
-                analyseGlobaleRepository.save(analyseGlobale);
-                log.info("Synthèse globale et plan d'actions générés pour la session {}", importSessionId);
-            } catch (Exception ex) {
-                log.error("Erreur sauvegarde analyse globale session {} : {}", importSessionId, ex.getMessage());
-            }
+            importSessionRepository.save(session);
+            log.info("Analyse IA complète générée pour la session {} en {} ms", importSessionId, System.currentTimeMillis() - startAt);
         } catch (Exception ex) {
-            log.error("Erreur inattendue génération analyses session {} : {}", importSessionId, ex.getMessage());
+            log.error("Erreur inattendue génération analyses session {} : {}", importSessionId, ex.getMessage(), ex);
+            if (session != null) {
+                try {
+                    session.setStatut(ImportStatut.ERREUR);
+                    importSessionRepository.save(session);
+                } catch (Exception saveEx) {
+                    log.error("Impossible de mettre à jour le statut ERREUR pour la session {} : {}", importSessionId, saveEx.getMessage(), saveEx);
+                }
+            }
         }
+    }
+
+    @Async("aiAnalysisExecutor")
+    @Transactional
+    public CompletableFuture<Void> triggerAnalyseAsync(Long importSessionId, Long userId) {
+        ImportSession session = loadSessionWithOwnership(importSessionId, userId, false);
+        if (!session.getStatut().isReadyForAi()) {
+            log.warn("Import {} non prêt pour analyse IA.", importSessionId);
+            return CompletableFuture.completedFuture(null);
+        }
+
+        boolean alreadyStored = session.getStatut() == ImportStatut.TRAITE && (
+                analyseGlobaleRepository.findByImportSessionId(importSessionId).isPresent()
+                        || !analyseCategorieRepository.findByImportSessionId(importSessionId).isEmpty()
+                        || resultatKpiRepository.findByImportSessionIdOrderByCreatedAtDesc(importSessionId).stream()
+                                .anyMatch(resultat -> resultat.getAnalyseIa() != null && !resultat.getAnalyseIa().isBlank())
+        );
+
+        if (alreadyStored) {
+            log.info("Analyse IA déjà présente pour la session {}, aucune requête supplémentaire nécessaire.", importSessionId);
+            return CompletableFuture.completedFuture(null);
+        }
+
+        genererToutesLesAnalyses(importSessionId, userId);
+        return CompletableFuture.completedFuture(null);
     }
 
     @Transactional(readOnly = true)
@@ -199,7 +195,10 @@ public class AnalyseIaService {
     @Transactional
     public AnalyseCompleteResponse regenerer(Long importSessionId, Long userId) {
         log.info("Régénération analyses demandée pour session {}", importSessionId);
-        loadSessionWithOwnership(importSessionId, userId, false);
+        ImportSession session = loadSessionWithOwnership(importSessionId, userId, false);
+        if (!session.getStatut().isReadyForAi()) {
+            throw new ImportNotReadyException("Import non prêt pour analyse IA.");
+        }
 
         try {
             analyseCategorieRepository.deleteByImportSessionId(importSessionId);
@@ -252,6 +251,47 @@ public class AnalyseIaService {
                 .planActions(analyseGlobale.getPlanActions())
                 .createdAt(analyseGlobale.getCreatedAt())
                 .build();
+    }
+
+    private KpiCalculatedDTO toKpiCalculatedDTO(ResultatKpi resultat) {
+        return KpiCalculatedDTO.builder()
+                .rowIndex(0)
+                .kpiName(resultat.getKpi().getNom())
+                .categorie(resultat.getKpi().getCategorieKpi().getLibelle())
+                .categorieCode(resultat.getKpi().getCategorieKpi().getCode())
+                .unite(resultat.getKpi().getUnite() == null ? null : resultat.getKpi().getUnite().name())
+                .valeurN1(resultat.getValeurN1())
+                .valeurN(resultat.getValeurN())
+                .seuilFaible(resultat.getKpi().getSeuilFaible())
+                .seuilModere(resultat.getKpi().getSeuilModere())
+                .seuilCritique(resultat.getKpi().getSeuilCritique())
+                .definition(resultat.getKpi().getDefinition())
+                .variationAbsolute(resultat.getVariationAbsolue())
+                .variationPercentage(resultat.getVariationRelative())
+                .classification(resultat.getNiveauVariation() == null ? null : resultat.getNiveauVariation().name())
+                .tendance(resultat.getTendance() == null ? null : resultat.getTendance().name())
+                .matchedKpi(resultat.getKpi().getNom())
+                .matchedKpiId(resultat.getKpi().getId())
+                .build();
+    }
+
+    private List<KpiCalculatedDTO> cleanKpis(List<KpiCalculatedDTO> kpis) {
+        if (kpis == null || kpis.isEmpty()) {
+            return List.of();
+        }
+
+        return kpis.stream()
+                .filter(kpi -> kpi.getKpiName() != null && !kpi.getKpiName().isBlank())
+                .filter(kpi -> kpi.getVariationPercentage() != null)
+                .collect(Collectors.toMap(
+                        kpi -> kpi.getMatchedKpiId() != null ? kpi.getMatchedKpiId() : kpi.getKpiName().trim().toLowerCase(),
+                        kpi -> kpi,
+                        (first, second) -> first,
+                        LinkedHashMap::new
+                ))
+                .values()
+                .stream()
+                .toList();
     }
 
     private ImportSession loadSessionWithOwnership(Long importSessionId, Long userId, boolean isAdmin) {

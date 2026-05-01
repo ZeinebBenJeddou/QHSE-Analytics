@@ -3,46 +3,11 @@ export interface ImportSessionResponse {
   nomFichier: string;
   periodeN1: number;
   periodeN: number;
-  statut: 'EN_TRAITEMENT' | 'TRAITE' | 'ERREUR' | 'ANNULE';
+  statut: 'EN_TRAITEMENT' | 'TRAITE' | 'ERREUR' | 'ANNULE' | 'IMPORTED' | 'CALCULATED' | 'READY_FOR_AI';
   messageErreur?: string;
-  mode: 'AUTO' | 'MANUEL';
+  mode: 'AUTO' | 'MANUEL' | 'TEMPLATE' | 'FLEXIBLE';
   createdAt: string;
   updatedAt: string;
-}
-
-export interface AutoImportResultResponse {
-  session: ImportSessionResponse;
-  nombreKpisImportes: number;
-  nombreKpisRejetes: number;
-  resultats: ResultatKpiResponse[];
-}
-
-export interface ResultatKpiResponse {
-  id: number;
-  kpiId: number;
-  kpiNom: string;
-  kpiUnite: string;
-  categorieCode: string;
-  categorieLibelle: string;
-  periodeN1: number;
-  periodeN: number;
-  valeurN1: number;
-  valeurN: number;
-  variationAbsolue: number;
-  variationRelative: number;
-  niveauVariation: 'FAIBLE' | 'MODERE' | 'CRITIQUE';
-  tendance: 'HAUSSE' | 'BAISSE' | 'STABLE';
-  analyseIa?: string;
-  confidenceScore?: number;
-  qualityStatus?: string;
-  createdAt: string;
-}
-
-export interface ResultatGlobalResponse {
-  importSessionId: number;
-  periodeN1: number;
-  periodeN: number;
-  resultats: ResultatKpiResponse[];
 }
 
 export interface HistoriqueItemResponse {
@@ -51,8 +16,12 @@ export interface HistoriqueItemResponse {
   periodeN1: number;
   periodeN: number;
   statut: string;
+  messageErreur?: string;
   nombreKpisCritiques: number;
   dateImport: string;
+  utilisateurId?: number;
+  utilisateurNom?: string;
+  utilisateurEmail?: string;
 }
 
 export interface HistoriqueAnalysteResponse {
@@ -60,4 +29,68 @@ export interface HistoriqueAnalysteResponse {
   totalImports: number;
   totalTraites: number;
   totalErreurs: number;
+}
+
+export interface KpiCalculatedDTO {
+  rowIndex: number;
+  kpiName: string;
+  categorie: string;
+  categorieCode?: string;
+  unite?: string;
+  valeurN1: number;
+  valeurN: number;
+  seuilFaible?: number;
+  seuilModere?: number;
+  seuilCritique?: number;
+  definition?: string;
+  variationAbsolute?: number;
+  variationPercentage: number;
+  classification: 'FAIBLE' | 'MODERE' | 'CRITIQUE' | 'UNKNOWN';
+  tendance: 'HAUSSE' | 'BAISSE' | 'STABLE' | null;
+  matchedKpi?: string | null;
+  matchedKpiId?: number | null;
+  // Business Intelligence Enrichment Fields
+  businessClassification?: 'CRITICAL' | 'WARNING' | 'OK';
+  isAnomaly?: boolean;
+}
+
+export interface KpiRawDataDTO {
+  rowIndex: number;
+  kpiName: string;
+  categorie: string;
+  unite?: string;
+  valeurN1?: number;
+  valeurN?: number;
+  valeurN1Raw?: string;
+  valeurNRaw?: string;
+  valid: boolean;
+  validationMessage?: string;
+  methodeExtraction?: string;
+  scoreConfiance: number;
+}
+
+export interface ChartSeries {
+  label: string;
+  categories: string[];
+  values: number[];
+}
+
+export interface ChartResponseDTO {
+  barCharts: ChartSeries[];
+  lineCharts: ChartSeries[];
+  comparisonTable?: unknown[];
+}
+
+export interface ImportProcessingResponse {
+  importSessionId?: number;
+  calculatedData?: KpiCalculatedDTO[];
+  rawData?: KpiRawDataDTO[];
+  extractionMethod?: string;
+  qualityScore?: number;
+  detectedHeaders?: string[];
+  charts?: ChartResponseDTO;
+  analyseIa?: string;
+  // Risk Intelligence Fields
+  risks?: KpiCalculatedDTO[];
+  riskScore?: number;
 }

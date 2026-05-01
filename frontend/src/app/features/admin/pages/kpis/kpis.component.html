@@ -1,113 +1,202 @@
-<div class="admin-kpis-shell">
-  <div class="admin-header">
+<div class="kpis-page">
+ 
+ 
+  <div class="page-header">
+    <div class="header-left">
+      <div class="header-icon-wrap">
+        <mat-icon class="header-icon">analytics</mat-icon>
+      </div>
+      <div>
+        <h1>Gestion des KPI</h1>
+        <p class="subtitle">Créez, modifiez et gérez les indicateurs métier</p>
+      </div>
+    </div>
     <div>
-      <h1>Gestion des KPI</h1>
-      <p>Créez, modifiez, supprimez et restaurez des KPI métier.</p>
+      <button mat-stroked-button class="ia-btn" routerLink="/admin/overview">
+        <mat-icon>arrow_back</mat-icon>
+        Retour
+      </button>
     </div>
-    <div class="nav-actions">
-      <button mat-stroked-button color="primary" routerLink="/admin/overview">Retour au tableau de bord</button>
-    </div>
   </div>
-
-  <mat-card>
-    <h2>{{ editMode ? 'Modifier un KPI' : 'Ajouter un nouveau KPI' }}</h2>
-    <form [formGroup]="kpiForm" class="kpi-form" (ngSubmit)="submitKpi()">
-      <mat-form-field appearance="fill">
-        <mat-label>Nom</mat-label>
-        <input matInput formControlName="nom" />
-      </mat-form-field>
-
-      <mat-form-field appearance="fill">
-        <mat-label>Définition</mat-label>
-        <input matInput formControlName="definition" />
-      </mat-form-field>
-
-      <mat-form-field appearance="fill">
-        <mat-label>Unité</mat-label>
-        <input matInput formControlName="unite" />
-      </mat-form-field>
-
-      <mat-form-field appearance="fill">
-        <mat-label>Catégorie</mat-label>
-        <mat-select formControlName="categorieCode">
-          <mat-option *ngFor="let category of categories" [value]="category.code">
-            {{ category.libelle }}
-          </mat-option>
-        </mat-select>
-      </mat-form-field>
-
-      <div class="grid-row">
-        <mat-form-field appearance="fill">
-          <mat-label>Seuil faible</mat-label>
-          <input matInput type="number" formControlName="seuilFaible" />
-        </mat-form-field>
-
-        <mat-form-field appearance="fill">
-          <mat-label>Seuil modéré</mat-label>
-          <input matInput type="number" formControlName="seuilModere" />
-        </mat-form-field>
-      </div>
-
-      <div class="grid-row">
-        <mat-form-field appearance="fill">
-          <mat-label>Seuil critique</mat-label>
-          <input matInput type="number" formControlName="seuilCritique" />
-        </mat-form-field>
-
-        <mat-form-field appearance="fill">
-          <mat-label>Ordre</mat-label>
-          <input matInput type="number" formControlName="ordre" />
-        </mat-form-field>
-      </div>
-
-      <div class="form-actions">
-        <button mat-flat-button color="primary" type="submit" [disabled]="saving || kpiForm.invalid">
-          {{ editMode ? 'Mettre à jour' : 'Créer' }}
-        </button>
-        <button mat-stroked-button color="warn" type="button" (click)="cancelEdit()" *ngIf="editMode">
-          Annuler
-        </button>
-      </div>
-    </form>
-  </mat-card>
-
-  <div *ngIf="loading" class="loading-state">
-    <mat-progress-spinner diameter="48" mode="indeterminate"></mat-progress-spinner>
-    <span>Chargement des KPI...</span>
+ 
+  
+  <div *ngIf="errorMessage" class="error-banner">
+    <mat-icon>error_outline</mat-icon>
+    <span>{{ errorMessage }}</span>
   </div>
-
-  <div *ngIf="errorMessage && !loading" class="error-message">
-    {{ errorMessage }}
-  </div>
-
-  <div *ngIf="!loading && kpis.length" class="kpi-table-wrapper">
-    <table class="kpi-table">
-      <thead>
-        <tr>
-          <th>Nom</th>
-          <th>Catégorie</th>
-          <th>Unité</th>
-          <th>Actif</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let kpi of kpis">
-          <td>{{ kpi.nom }}</td>
-          <td>{{ kpi.categorieLibelle }}</td>
-          <td>{{ kpi.unite }}</td>
-          <td>{{ kpi.isActive ? 'Oui' : 'Non' }}</td>
-          <td class="actions-cell">
-            <button mat-stroked-button color="primary" (click)="editKpi(kpi)">Modifier</button>
-            <button mat-stroked-button color="warn" (click)="deleteKpi(kpi)" [disabled]="saving">Supprimer</button>
-            <button mat-stroked-button *ngIf="!kpi.isActive" color="accent" (click)="restoreKpi(kpi)" [disabled]="saving">Restaurer</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <div *ngIf="!loading && !kpis.length" class="empty-state">
-    Aucune KPI disponible pour le moment.
+ 
+  <div class="page-grid">
+ 
+    
+    <mat-card class="glass-card">
+      <mat-card-header>
+        <div mat-card-avatar class="card-av-icon-wrap" [class.amber]="editMode">
+          <mat-icon class="card-av-icon" [class.amber]="editMode">
+            {{ editMode ? 'edit' : 'add_circle_outline' }}
+          </mat-icon>
+        </div>
+        <mat-card-title>{{ editMode ? 'Modifier le KPI' : 'Ajouter un KPI' }}</mat-card-title>
+        <mat-card-subtitle>
+          {{ editMode ? 'Modifiez les champs puis enregistrez' : 'Remplissez les champs pour créer un nouvel indicateur' }}
+        </mat-card-subtitle>
+      </mat-card-header>
+ 
+      <mat-card-content>
+        <form [formGroup]="kpiForm" (ngSubmit)="submitKpi()" class="form-grid">
+ 
+          
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Nom</mat-label>
+              <mat-icon matPrefix class="field-icon">label_outline</mat-icon>
+              <input matInput formControlName="nom" placeholder="Ex : Taux de disponibilité" />
+            </mat-form-field>
+ 
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Unité</mat-label>
+              <mat-icon matPrefix class="field-icon">straighten</mat-icon>
+              <mat-select formControlName="unite" placeholder="Sélectionnez une unité">
+                <mat-option *ngFor="let option of unitOptions" [value]="option.value">
+                  {{ option.label }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+ 
+          
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Définition</mat-label>
+            <mat-icon matPrefix class="field-icon">description</mat-icon>
+            <input matInput formControlName="definition" placeholder="Description courte de l'indicateur" />
+          </mat-form-field>
+ 
+         
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Catégorie</mat-label>
+              <mat-icon matPrefix class="field-icon">folder_open</mat-icon>
+              <mat-select formControlName="categorieCode">
+                <mat-option *ngFor="let cat of categories" [value]="cat.code">
+                  {{ cat.libelle }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+ 
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Ordre d'affichage</mat-label>
+              <mat-icon matPrefix class="field-icon">sort</mat-icon>
+              <input matInput type="number" formControlName="ordre" placeholder="0" />
+            </mat-form-field>
+          </div>
+ 
+        
+          <div class="thresholds-label">Seuils d'alerte</div>
+          <div class="threshold-grid">
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Seuil faible</mat-label>
+              <mat-icon matPrefix class="field-icon">arrow_downward</mat-icon>
+              <input matInput type="number" formControlName="seuilFaible" />
+            </mat-form-field>
+ 
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Seuil modéré</mat-label>
+              <mat-icon matPrefix class="field-icon">remove</mat-icon>
+              <input matInput type="number" formControlName="seuilModere" />
+            </mat-form-field>
+ 
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Seuil critique</mat-label>
+              <mat-icon matPrefix class="field-icon">arrow_upward</mat-icon>
+              <input matInput type="number" formControlName="seuilCritique" />
+            </mat-form-field>
+          </div>
+ 
+          
+          <div class="form-actions">
+            <button mat-stroked-button class="cancel-btn" type="button"
+              *ngIf="editMode" (click)="cancelEdit()">
+              <mat-icon>close</mat-icon>
+              Annuler
+            </button>
+            <button mat-flat-button class="primary-btn" type="submit"
+              [disabled]="kpiForm.invalid || saving">
+              <mat-icon>{{ saving ? 'hourglass_empty' : (editMode ? 'save' : 'add') }}</mat-icon>
+              {{ saving ? 'Enregistrement…' : (editMode ? 'Enregistrer les modifications' : 'Créer le KPI') }}
+            </button>
+          </div>
+ 
+        </form>
+      </mat-card-content>
+    </mat-card>
+ 
+   
+    <mat-card class="glass-card">
+      <mat-card-header>
+        <div mat-card-avatar class="card-av-icon-wrap">
+          <mat-icon class="card-av-icon">list_alt</mat-icon>
+        </div>
+        <mat-card-title>
+          Indicateurs
+          <span class="count-badge">{{ kpis.length }}</span>
+        </mat-card-title>
+        <mat-card-subtitle>Liste de tous les KPI configurés</mat-card-subtitle>
+      </mat-card-header>
+ 
+      <mat-card-content>
+ 
+      
+        <div *ngIf="loading" class="loader-overlay">
+          <mat-progress-spinner diameter="36" mode="indeterminate"></mat-progress-spinner>
+          <span>Chargement des indicateurs…</span>
+        </div>
+ 
+       
+        <div *ngIf="!loading && !kpis.length" class="empty-state">
+          <mat-icon>inbox</mat-icon>
+          <span>Aucun KPI configuré pour le moment.</span>
+        </div>
+ 
+       
+        <div *ngIf="!loading && kpis.length" class="kpi-list">
+          <div class="kpi-row" *ngFor="let kpi of kpis">
+ 
+            <div class="kpi-row-left">
+              <span class="kpi-name">{{ kpi.nom }}</span>
+              <div class="kpi-meta">
+                <span class="kpi-badge" [class.inactive]="!kpi.isActive">
+                  {{ kpi.isActive ? 'Actif' : 'Inactif' }}
+                </span>
+                <span class="kpi-badge">{{ kpi.categorieLibelle }}</span>
+                <span class="kpi-unite">{{ kpi.unite }}</span>
+                <div class="kpi-thresholds">
+                  <span class="threshold-chip low">↓ {{ kpi.seuilFaible }}</span>
+                  <span class="threshold-chip mod">~ {{ kpi.seuilModere }}</span>
+                  <span class="threshold-chip crit">↑ {{ kpi.seuilCritique }}</span>
+                </div>
+              </div>
+            </div>
+ 
+            <div class="kpi-row-actions">
+              <button mat-icon-button class="row-icon-btn"
+                matTooltip="Modifier" (click)="editKpi(kpi)">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button class="row-icon-btn success"
+                *ngIf="!kpi.isActive"
+                matTooltip="Restaurer" (click)="restoreKpi(kpi)" [disabled]="saving">
+                <mat-icon>restore</mat-icon>
+              </button>
+              <button mat-icon-button class="row-icon-btn danger"
+                matTooltip="Supprimer" (click)="deleteKpi(kpi)" [disabled]="saving">
+                <mat-icon>delete_outline</mat-icon>
+              </button>
+            </div>
+ 
+          </div>
+        </div>
+ 
+      </mat-card-content>
+    </mat-card>
+ 
   </div>
 </div>

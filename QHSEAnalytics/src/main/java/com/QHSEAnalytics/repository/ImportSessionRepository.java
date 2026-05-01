@@ -1,6 +1,7 @@
 package com.QHSEAnalytics.repository;
 
 import com.QHSEAnalytics.entity.ImportSession;
+import com.QHSEAnalytics.enums.ImportStatut;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -17,15 +18,21 @@ public interface ImportSessionRepository extends JpaRepository<ImportSession, Lo
     @EntityGraph(attributePaths = {"user"})
     List<ImportSession> findByUserIdOrderByCreatedAtDesc(Long userId);
 
-    Optional<ImportSession> findTopByUserIdAndStatutOrderByCreatedAtDesc(Long userId, com.QHSEAnalytics.enums.ImportStatut statut);
+    Optional<ImportSession> findTopByUserIdAndStatutOrderByCreatedAtDesc(Long userId, ImportStatut statut);
 
+    Optional<ImportSession> findTopByUserIdAndStatutInOrderByCreatedAtDesc(Long userId, List<ImportStatut> statuts);
 
     @EntityGraph(attributePaths = {"user"})
-    List<ImportSession> findByStatutOrderByCreatedAtDesc(com.QHSEAnalytics.enums.ImportStatut statut);
+    List<ImportSession> findByStatutOrderByCreatedAtDesc(ImportStatut statut);
+
+    @EntityGraph(attributePaths = {"user"})
+    List<ImportSession> findByStatutInOrderByCreatedAtDesc(List<ImportStatut> statuts);
 
     List<ImportSession> findAllByOrderByCreatedAtDesc();
 
-    long countByStatut(com.QHSEAnalytics.enums.ImportStatut statut);
+    long countByStatut(ImportStatut statut);
+
+    long countByStatutIn(List<ImportStatut> statuts);
 
     Optional<ImportSession> findByIdAndUserId(Long id, Long userId);
 
