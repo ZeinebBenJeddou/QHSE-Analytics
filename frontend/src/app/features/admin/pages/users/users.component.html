@@ -105,7 +105,7 @@
  
            
             <div class="user-avatar" [class.inactive]="!user.active">
-              {{ (user.prenom?.[0] ?? '') + (user.nom?.[0] ?? '') }}
+              {{ user.prenom.charAt(0) + user.nom.charAt(0) }}
             </div>
  
             

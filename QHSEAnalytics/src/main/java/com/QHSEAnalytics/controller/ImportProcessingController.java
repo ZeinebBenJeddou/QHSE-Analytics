@@ -31,6 +31,28 @@ public class ImportProcessingController {
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
 
+    @PostMapping(value = "/preview", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ANALYSTE')")
+    public ResponseEntity<ImportProcessingResponse> previewImport(
+            @RequestPart("file") MultipartFile file,
+            @RequestPart("yearN") String yearN,
+            @RequestPart("yearN1") String yearN1,
+            @RequestPart("mapping") String mappingJson
+    ) {
+        int n = parseYear(yearN, "Année N");
+        int n1 = parseYear(yearN1, "Année N-1");
+        validateYearRange(n, n1);
+
+        Map<String, Integer> mapping = parseMapping(mappingJson);
+        ImportRequestDTO request = ImportRequestDTO.builder()
+                .file(file)
+                .yearN(n)
+                .yearN1(n1)
+                .mappingIndexes(mapping)
+                .build();
+        return ResponseEntity.ok(importProcessingService.previewImport(request));
+    }
+
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ANALYSTE')")
     public ResponseEntity<ImportProcessingResponse> processManualImport(

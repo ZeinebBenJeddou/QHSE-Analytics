@@ -24,7 +24,7 @@ export class ImportService {
     form.append('yearN', String(yearN));
     form.append('yearN1', String(yearNMinus1));
     form.append('mapping', JSON.stringify(mapping));
-    return this.http.post<ImportProcessingResponse>(`${this.importBase}/preview`, form);
+    return this.http.post<ImportProcessingResponse>(`${this.manualBase}/preview`, form);
   }
 
   processManualImport(file: File, yearN: number, yearNMinus1: number, mapping: Record<string, number>): Observable<ImportProcessingResponse> {

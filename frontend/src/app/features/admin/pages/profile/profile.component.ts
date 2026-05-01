@@ -74,7 +74,7 @@ export class AdminProfileComponent implements OnInit {
 
   get avatarInitials(): string {
     if (!this.profile) return '??';
-    return (this.profile.prenom?.[0] ?? '') + (this.profile.nom?.[0] ?? '');
+    return this.profile.prenom.charAt(0) + this.profile.nom.charAt(0);
   }
 
   saveProfile(): void {
