@@ -19,11 +19,16 @@ public class MetadataEnrichmentAgent {
     private final OllamaClientService ollamaClientService;
     private final ObjectMapper objectMapper;
 
+// java
+// File: `src/main/java/com/QHSEAnalytics/service/processing/MetadataEnrichmentAgent.java`
+
+    private static final int GEMINI_MAX_ATTEMPTS = 2;
+
     public List<KpiCalculatedDTO> enrichMetadata(List<KpiCalculatedDTO> data) {
         List<KpiCalculatedDTO> toEnrich = data.stream()
-                .filter(k -> k.getDefinition() == null || k.getDefinition().isBlank() || 
-                             k.getCategorie() == null || k.getCategorie().isBlank() || "AUTO".equals(k.getCategorieCode()) ||
-                             k.getUnite() == null || k.getUnite().isBlank())
+                .filter(k -> k.getDefinition() == null || k.getDefinition().isBlank() ||
+                        k.getCategorie() == null || k.getCategorie().isBlank() || "AUTO".equals(k.getCategorieCode()) ||
+                        k.getUnite() == null || k.getUnite().isBlank())
                 .toList();
 
         if (toEnrich.isEmpty()) {
@@ -32,13 +37,19 @@ public class MetadataEnrichmentAgent {
 
         log.info("Enriching metadata for {} KPIs using AI", toEnrich.size());
         String prompt = buildEnrichmentPrompt(toEnrich);
-        
+
         try {
             String aiResponseJson = null;
+
             if (geminiClientService.isConfigured()) {
-                aiResponseJson = callGeminiForMetadata(prompt);
+                try {
+                    aiResponseJson = callGeminiWithRetries(prompt, GEMINI_MAX_ATTEMPTS);
+                } catch (Exception e) {
+                    log.warn("Gemini failed after retries, falling back to Ollama: {}", e.getMessage());
+                    aiResponseJson = tryOllama(prompt);
+                }
             } else {
-                aiResponseJson = ollamaClientService.generateWithPrompt(prompt);
+                aiResponseJson = tryOllama(prompt);
             }
 
             if (aiResponseJson != null) {
@@ -48,8 +59,37 @@ public class MetadataEnrichmentAgent {
             log.error("Failed to enrich metadata using AI: {}", e.getMessage());
             // Fallback: keep existing or set defaults
         }
-        
+
         return data;
+    }
+
+    private String callGeminiWithRetries(String prompt, int attempts) throws Exception {
+        Exception last = null;
+        for (int i = 1; i <= attempts; i++) {
+            try {
+                return callGeminiForMetadata(prompt);
+            } catch (Exception e) {
+                last = e;
+                log.warn("Gemini attempt {}/{} failed: {}", i, attempts, e.getMessage());
+                // simple exponential backoff
+                try {
+                    Thread.sleep(250L * (long) Math.pow(2, i - 1));
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw ie;
+                }
+            }
+        }
+        throw last != null ? last : new RuntimeException("Gemini unknown failure");
+    }
+
+    private String tryOllama(String prompt) {
+        try {
+            return ollamaClientService.generateWithPrompt(prompt);
+        } catch (Exception e) {
+            log.error("Ollama fallback failed: {}", e.getMessage());
+            return null;
+        }
     }
 
     private String callGeminiForMetadata(String prompt) {

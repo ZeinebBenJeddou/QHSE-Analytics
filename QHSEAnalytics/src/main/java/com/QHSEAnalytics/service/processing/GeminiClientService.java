@@ -33,7 +33,10 @@ public class GeminiClientService {
     private String baseUrl;
 
     public GeminiClientService(ObjectMapper objectMapper) {
-        this.restTemplate = new RestTemplate();
+        // Use JdkClientHttpRequestFactory which handles modern TLS better than the default HttpURLConnection
+        org.springframework.http.client.JdkClientHttpRequestFactory requestFactory = 
+            new org.springframework.http.client.JdkClientHttpRequestFactory();
+        this.restTemplate = new RestTemplate(requestFactory);
         this.objectMapper = objectMapper;
     }
 
@@ -45,30 +48,48 @@ public class GeminiClientService {
         if (!isConfigured()) {
             return null;
         }
-        try {
-            String url = baseUrl + model + ":generateContent?key=" + apiKey;
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
+        
+        int maxRetries = 2; // Try up to 2 times
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                String url = baseUrl + model + ":generateContent?key=" + apiKey;
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                headers.set("User-Agent", "QHSEAnalytics-Backend/1.0"); // Add User-Agent
 
-            com.fasterxml.jackson.databind.node.ObjectNode payloadNode = objectMapper.createObjectNode();
-            payloadNode.set("contents", objectMapper.createArrayNode().add(
-                    objectMapper.createObjectNode()
-                            .set("parts", objectMapper.createArrayNode().add(
-                                    objectMapper.createObjectNode().put("text", prompt)))));
-            payloadNode.set("generationConfig", objectMapper.createObjectNode()
-                    .put("response_mime_type", "application/json"));
+                com.fasterxml.jackson.databind.node.ObjectNode payloadNode = objectMapper.createObjectNode();
+                payloadNode.set("contents", objectMapper.createArrayNode().add(
+                        objectMapper.createObjectNode()
+                                .set("parts", objectMapper.createArrayNode().add(
+                                        objectMapper.createObjectNode().put("text", prompt)))));
+                payloadNode.set("generationConfig", objectMapper.createObjectNode()
+                        .put("response_mime_type", "application/json"));
 
-            HttpEntity<String> entity = new HttpEntity<>(payloadNode.toString(), headers);
-            String responseBody = restTemplate.postForObject(url, entity, String.class);
+                HttpEntity<String> entity = new HttpEntity<>(payloadNode.toString(), headers);
+                String responseBody = restTemplate.postForObject(url, entity, String.class);
 
-            JsonNode root = objectMapper.readTree(responseBody);
-            return root.path("candidates").get(0)
-                    .path("content").path("parts").get(0)
-                    .path("text").asText();
-        } catch (Exception e) {
-            log.error("Error calling Gemini API (raw): {}", e.getMessage());
-            return null;
+                JsonNode root = objectMapper.readTree(responseBody);
+                return root.path("candidates").get(0)
+                        .path("content").path("parts").get(0)
+                        .path("text").asText();
+            } catch (org.springframework.web.client.HttpClientErrorException.TooManyRequests e) {
+                if (attempt == maxRetries) {
+                    log.error("Gemini API rate limit exceeded after retries.", e);
+                    return null;
+                }
+                log.warn("Gemini API rate limit hit (429). Waiting 15s before retry (Attempt {}/{})...", attempt, maxRetries);
+                try {
+                    Thread.sleep(15000); // Wait 15 seconds as suggested by API
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return null;
+                }
+            } catch (Exception e) {
+                log.error("Error calling Gemini API (raw): {}", e.getMessage(), e); // Print stack trace too
+                return null;
+            }
         }
+        return null;
     }
 
     public AiResponse generateAnalysis(String prompt) {
