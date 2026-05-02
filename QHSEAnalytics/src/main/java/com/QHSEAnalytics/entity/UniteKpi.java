@@ -4,5 +4,6 @@ public enum UniteKpi {
     POURCENTAGE,
     NOMBRE,
     KWH,
-    KG
+    KG,
+    BOOLEAN
 }

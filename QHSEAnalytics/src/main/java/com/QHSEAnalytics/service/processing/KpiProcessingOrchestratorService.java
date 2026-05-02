@@ -22,6 +22,7 @@ public class KpiProcessingOrchestratorService {
     private final RiskDetectionAgent riskDetectionAgent;
     private final VisualizationAgent visualizationAgent;
     private final AnalysisAgent analysisAgent;
+    private final MetadataEnrichmentAgent metadataEnrichmentAgent;
 
     public ImportProcessingResponse process(MultipartFile file, Map<String, Integer> mapping) {
         ExtractionAgent.ExtractionResult result = extractionAgent.extract(file, mapping);
@@ -32,6 +33,9 @@ public class KpiProcessingOrchestratorService {
         
         // STEP 2: Enrich with business classification and anomaly detection
         List<KpiCalculatedDTO> enrichedData = enrichmentAgent.enrich(calculatedData);
+        
+        // STEP 2.1: Enrich metadata (Category/Definition) via RAG or LLM
+        enrichedData = metadataEnrichmentAgent.enrichMetadata(enrichedData);
         
         // STEP 3: Detect risks and anomalies
         RiskDetectionAgent.RiskAnalysisResult riskAnalysis = riskDetectionAgent.detect(enrichedData);
@@ -69,9 +73,12 @@ public class KpiProcessingOrchestratorService {
     public ImportProcessingResponse preview(MultipartFile file, Map<String, Integer> mapping) {
         ExtractionAgent.ExtractionResult result = extractionAgent.extract(file, mapping);
         List<KpiRawDataDTO> rawData = cleaningAgent.clean(result.getRows());
+        List<KpiCalculatedDTO> calculatedData = calculationAgent.calculate(rawData);
+        calculatedData = metadataEnrichmentAgent.enrichMetadata(calculatedData);
 
         return ImportProcessingResponse.builder()
                 .rawData(rawData)
+                .calculatedData(calculatedData)
                 .extractionMethod(result.getExtractionMethod())
                 .qualityScore(calculateQualityScore(rawData))
                 .detectedHeaders(result.getDetectedHeaders())

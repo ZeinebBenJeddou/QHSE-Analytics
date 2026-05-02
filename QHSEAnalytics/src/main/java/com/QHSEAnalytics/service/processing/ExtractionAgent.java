@@ -201,51 +201,17 @@ public class ExtractionAgent {
         int categoryIndex = optionalIndex(effective, MAPPING_CATEGORY_INDEX, -1);
         int unitIndex = optionalIndex(effective, MAPPING_UNIT_INDEX, -1);
 
-        if (categoryIndex < 0 || unitIndex < 0) {
-            int[] metadata = inferCategoryAndUnitIndexes(headerRow, kpiIndex, valueNIndex, valueN1Index, categoryIndex, unitIndex);
-            categoryIndex = metadata[0];
-            unitIndex = metadata[1];
-        }
-
         effective.put(MAPPING_KPI_NAME_INDEX, kpiIndex);
         effective.put(MAPPING_VALUE_N_INDEX, valueNIndex);
         effective.put(MAPPING_VALUE_N1_INDEX, valueN1Index);
-        effective.put(MAPPING_CATEGORY_INDEX, categoryIndex >= 0 ? categoryIndex : 0);
-        effective.put(MAPPING_UNIT_INDEX, unitIndex >= 0 ? unitIndex : Math.max(1, kpiIndex + 1));
+        effective.put(MAPPING_CATEGORY_INDEX, categoryIndex);
+        effective.put(MAPPING_UNIT_INDEX, unitIndex);
 
         return effective;
     }
 
     private int optionalIndex(Map<String, Integer> mapping, String key, int fallback) {
         return mapping.getOrDefault(key, fallback) == null ? fallback : mapping.get(key);
-    }
-
-    private int[] inferCategoryAndUnitIndexes(Row headerRow, int kpiIndex, int valueNIndex, int valueN1Index, int currentCategoryIndex, int currentUnitIndex) {
-        int categoryIndex = currentCategoryIndex;
-        int unitIndex = currentUnitIndex;
-        if (headerRow != null) {
-            int maxCol = headerRow.getLastCellNum();
-            for (int columnIndex = 0; columnIndex < maxCol && (categoryIndex < 0 || unitIndex < 0); columnIndex++) {
-                if (columnIndex == kpiIndex || columnIndex == valueNIndex || columnIndex == valueN1Index) {
-                    continue;
-                }
-                if (categoryIndex < 0) {
-                    categoryIndex = columnIndex;
-                    continue;
-                }
-                if (unitIndex < 0) {
-                    unitIndex = columnIndex;
-                }
-            }
-        }
-
-        if (categoryIndex < 0) {
-            categoryIndex = kpiIndex > 0 ? 0 : 1;
-        }
-        if (unitIndex < 0) {
-            unitIndex = kpiIndex == 0 ? 1 : kpiIndex + 1;
-        }
-        return new int[]{categoryIndex, unitIndex};
     }
 
     private int findHeaderRow(Sheet sheet, Map<String, Integer> mapping, FormulaEvaluator evaluator, DataFormatter formatter) {
@@ -289,8 +255,8 @@ public class ExtractionAgent {
             }
 
             String kpiName = ExcelParserUtil.getCellValue(row.getCell(mapping.get(MAPPING_KPI_NAME_INDEX)), evaluator, formatter);
-            String categorie = ExcelParserUtil.getCellValue(row.getCell(mapping.get(MAPPING_CATEGORY_INDEX)), evaluator, formatter);
-            String unite = ExcelParserUtil.getCellValue(row.getCell(mapping.get(MAPPING_UNIT_INDEX)), evaluator, formatter);
+            String categorie = mapping.get(MAPPING_CATEGORY_INDEX) >= 0 ? ExcelParserUtil.getCellValue(row.getCell(mapping.get(MAPPING_CATEGORY_INDEX)), evaluator, formatter) : null;
+            String unite = mapping.get(MAPPING_UNIT_INDEX) >= 0 ? ExcelParserUtil.getCellValue(row.getCell(mapping.get(MAPPING_UNIT_INDEX)), evaluator, formatter) : null;
             String valeurN1Raw = ExcelParserUtil.getCellValue(row.getCell(mapping.get(MAPPING_VALUE_N1_INDEX)), evaluator, formatter);
             String valeurNRaw = ExcelParserUtil.getCellValue(row.getCell(mapping.get(MAPPING_VALUE_N_INDEX)), evaluator, formatter);
             Double valeurN1 = parseNumber(valeurN1Raw);
@@ -348,6 +314,15 @@ public class ExtractionAgent {
         if (value == null || value.isBlank()) {
             return null;
         }
+        
+        String lower = value.trim().toLowerCase(Locale.ROOT);
+        if (lower.equals("oui") || lower.equals("true") || lower.equals("vrai") || lower.equals("yes") || lower.equals("acquis")) {
+            return 1.0;
+        }
+        if (lower.equals("non") || lower.equals("false") || lower.equals("faux") || lower.equals("no") || lower.equals("perdu")) {
+            return 0.0;
+        }
+
         String cleaned = value
                 .replace("\u00A0", " ")
                 .replace(" ", "")

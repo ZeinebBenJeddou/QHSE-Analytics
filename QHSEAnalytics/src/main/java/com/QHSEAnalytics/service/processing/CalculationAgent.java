@@ -3,6 +3,7 @@ package com.QHSEAnalytics.service.processing;
 import com.QHSEAnalytics.dto.request.KpiRawDataDTO;
 import com.QHSEAnalytics.dto.response.KpiCalculatedDTO;
 import com.QHSEAnalytics.entity.Kpi;
+import com.QHSEAnalytics.entity.UniteKpi;
 import com.QHSEAnalytics.enums.Tendance;
 import com.QHSEAnalytics.repository.KpiRepository;
 import lombok.RequiredArgsConstructor;
@@ -42,47 +43,75 @@ public class CalculationAgent {
     }
 
     private KpiCalculatedDTO mapCalculatedRow(KpiRawDataDTO row, Map<String, Kpi> byName) {
-        double variationAbsolute = 0d;
-        double variationPercentage = 0d;
-        String tendance = null;
-
         Kpi matchedKpi = findMatchingKpi(row, byName);
-        double seuilFaible = 0d;
-        double seuilModere = 0d;
-        double seuilCritique = 0d;
-        String categorieCode = "UNKNOWN";
-        String definition = null;
-
-        if (matchedKpi != null) {
-            seuilFaible = Optional.ofNullable(matchedKpi.getSeuilFaible()).orElse(0d);
-            seuilModere = Optional.ofNullable(matchedKpi.getSeuilModere()).orElse(0d);
-            seuilCritique = Optional.ofNullable(matchedKpi.getSeuilCritique()).orElse(0d);
-            categorieCode = Optional.ofNullable(matchedKpi.getCategorieKpi()).map(c -> c.getCode()).orElse("UNKNOWN");
-            definition = matchedKpi.getDefinition();
-        }
-
+        boolean isBoolean = (matchedKpi != null && matchedKpi.getUnite() == UniteKpi.BOOLEAN) ||
+                            isBooleanValue(row.getValeurNRaw()) || 
+                            isBooleanValue(row.getValeurN1Raw());
+        
+        Double valN = row.getValeurN();
+        Double valN1 = row.getValeurN1();
+        
+        double absoluteGap = 0.0;
+        Double variationPercentage = 0.0;
+        String status = "Inconnu";
+        String statusColor = "gray";
+        
         if (row.isValid()) {
-            variationAbsolute = calculateAbsolute(row.getValeurN1(), row.getValeurN());
-            variationPercentage = calculatePercentage(row.getValeurN1(), row.getValeurN());
-            tendance = computeTendance(variationPercentage).name();
+            absoluteGap = valN - valN1;
+            
+            if (isBoolean) {
+                // Boolean Logic (0/1)
+                if (valN1 == 0 && valN == 1) { status = "Acquis"; statusColor = "green"; }
+                else if (valN1 == 1 && valN == 0) { status = "Perdu"; statusColor = "red"; }
+                else if (valN1 == 1 && valN == 1) { status = "Maintenu"; statusColor = "green"; }
+                else { status = "Non atteint"; statusColor = "yellow"; }
+                variationPercentage = null; // No variation for boolean
+            } else {
+                // Numeric Logic
+                if (valN1 == 0) {
+                    if (valN > 0) {
+                        status = "Nouveau";
+                        statusColor = "blue";
+                        variationPercentage = null; // "N/A" in UI
+                    } else {
+                        status = "Stable";
+                        statusColor = "yellow";
+                        variationPercentage = 0.0; // "—" in UI if both 0
+                    }
+                } else {
+                    variationPercentage = ((valN - valN1) / Math.abs(valN1)) * 100.0;
+                    if (variationPercentage > 0) { status = "Augmentation"; statusColor = "green"; }
+                    else if (variationPercentage < 0) { status = "Diminution"; statusColor = "red"; }
+                    else { status = "Stable"; statusColor = "yellow"; }
+                }
+            }
+        } else {
+            status = "Invalide";
+            statusColor = "gray";
         }
+
+        String definition = matchedKpi != null ? matchedKpi.getDefinition() : null;
+        String categorie = matchedKpi != null && matchedKpi.getCategorieKpi() != null ? matchedKpi.getCategorieKpi().getLibelle() : row.getCategorie();
+        String categorieCode = matchedKpi != null && matchedKpi.getCategorieKpi() != null ? matchedKpi.getCategorieKpi().getCode() : "AUTO";
 
         return KpiCalculatedDTO.builder()
                 .rowIndex(row.getRowIndex())
                 .kpiName(row.getKpiName())
-                .categorie(row.getCategorie())
+                .categorie(categorie)
                 .categorieCode(categorieCode)
                 .unite(row.getUnite())
-                .valeurN1(row.getValeurN1())
-                .valeurN(row.getValeurN())
-                .seuilFaible(seuilFaible)
-                .seuilModere(seuilModere)
-                .seuilCritique(seuilCritique)
+                .valeurN1(valN1)
+                .valeurN(valN)
                 .definition(definition)
-                .variationAbsolute(variationAbsolute)
+                .variationAbsolute(absoluteGap) // mapping variationAbsolute to absoluteGap for compatibility or update field
+                .absoluteGap(absoluteGap)
                 .variationPercentage(variationPercentage)
-                .classification("UNKNOWN")
-                .tendance(tendance)
+                .status(status)
+                .statusColor(statusColor)
+                .commentaire(row.getValidationMessage() != null ? row.getValidationMessage() : (row.isValid() ? "Données validées" : "Données non validées"))
+                .isBoolean(isBoolean)
+                .classification(status) // using status as classification for now
+                .tendance(isBoolean ? getBooleanTendance(valN1, valN) : (variationPercentage != null ? computeTendance(variationPercentage).name() : "STABLE"))
                 .matchedKpi(Optional.ofNullable(matchedKpi).map(Kpi::getNom).orElse(null))
                 .matchedKpiId(Optional.ofNullable(matchedKpi).map(Kpi::getId).orElse(null))
                 .build();
@@ -139,5 +168,22 @@ public class CalculationAgent {
                 .replaceAll("\\p{M}", "")
                 .replaceAll("[^a-z0-9]", "");
         return normalized;
+    }
+
+    private boolean isBooleanValue(String value) {
+        if (value == null || value.isBlank()) return false;
+        String lower = value.trim().toLowerCase(Locale.ROOT);
+        return lower.equals("oui") || lower.equals("non") || 
+               lower.equals("true") || lower.equals("false") || 
+               lower.equals("vrai") || lower.equals("faux") ||
+               lower.equals("yes") || lower.equals("no") ||
+               lower.equals("acquis") || lower.equals("perdu");
+    }
+
+    private String getBooleanTendance(Double valN1, Double valN) {
+        if (valN1 == null || valN == null) return "STABLE";
+        if (valN1 == 0 && valN == 1) return Tendance.HAUSSE.name(); // Amélioration
+        if (valN1 == 1 && valN == 0) return Tendance.BAISSE.name(); // Dégradation
+        return Tendance.STABLE.name();
     }
 }

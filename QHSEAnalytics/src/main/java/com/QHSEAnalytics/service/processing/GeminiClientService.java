@@ -41,19 +41,15 @@ public class GeminiClientService {
         return apiKey != null && !apiKey.isBlank();
     }
 
-    public AiResponse generateAnalysis(String prompt) {
+    public String generateRaw(String prompt) {
         if (!isConfigured()) {
-            log.warn("Gemini API key is not configured.");
             return null;
         }
-
         try {
             String url = baseUrl + model + ":generateContent?key=" + apiKey;
-
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
-            // Gemini Request Structure
             com.fasterxml.jackson.databind.node.ObjectNode payloadNode = objectMapper.createObjectNode();
             payloadNode.set("contents", objectMapper.createArrayNode().add(
                     objectMapper.createObjectNode()
@@ -62,21 +58,22 @@ public class GeminiClientService {
             payloadNode.set("generationConfig", objectMapper.createObjectNode()
                     .put("response_mime_type", "application/json"));
 
-            String payload = payloadNode.toString();
-
-            HttpEntity<String> entity = new HttpEntity<>(payload, headers);
+            HttpEntity<String> entity = new HttpEntity<>(payloadNode.toString(), headers);
             String responseBody = restTemplate.postForObject(url, entity, String.class);
 
             JsonNode root = objectMapper.readTree(responseBody);
-            String candidateText = root.path("candidates").get(0)
+            return root.path("candidates").get(0)
                     .path("content").path("parts").get(0)
                     .path("text").asText();
-
-            return parseGeminiResponse(candidateText);
         } catch (Exception e) {
-            log.error("Error calling Gemini API: {}", e.getMessage(), e);
+            log.error("Error calling Gemini API (raw): {}", e.getMessage());
             return null;
         }
+    }
+
+    public AiResponse generateAnalysis(String prompt) {
+        String json = generateRaw(prompt);
+        return json != null ? parseGeminiResponse(json) : null;
     }
 
     private AiResponse parseGeminiResponse(String jsonText) {

@@ -19,6 +19,11 @@ public class KpiCalculatedDTO {
     private String definition;
     private Double variationAbsolute;
     private Double variationPercentage;
+    private Double absoluteGap;
+    private String status;
+    private String statusColor;
+    private String commentaire;
+    private Boolean isBoolean;
     private String classification;
     private String tendance;
     private String matchedKpi;

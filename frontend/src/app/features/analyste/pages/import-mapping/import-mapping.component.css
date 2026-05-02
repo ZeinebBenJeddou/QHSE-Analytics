@@ -412,6 +412,50 @@
 .classif-modere { background: #FFF5F5; color: #C53030; }
 .classif-faible { background: var(--green-soft); color: var(--green); }
 
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.status-green { background: var(--green-soft); color: var(--green); }
+.status-red { background: var(--red-soft); color: var(--red); }
+.status-yellow { background: #FFF9E6; color: #D69E2E; }
+.status-blue { background: #E6F0FF; color: #3182CE; }
+.status-gray { background: #F7FAFC; color: #718096; }
+
+.definition-cell {
+  max-width: 200px;
+  font-size: 0.78rem;
+  color: var(--ink-mid);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kpi-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.kpi-table th {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.kpi-table td {
+  font-size: 0.82rem;
+  padding: 12px 8px;
+}
+
 @media (max-width: 600px) {
   .stepper-card { flex-direction: column; }
   .actions-row { flex-direction: column-reverse; }

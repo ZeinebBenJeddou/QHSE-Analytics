@@ -40,17 +40,20 @@ export class ImportMappingComponent implements OnInit {
   private snackBar = inject(MatSnackBar);
 
   uploadStateData = signal<{ file: File; yearN: number; yearNMinus1: number; headers: string[]; detectedHeaders?: string[] } | null>(null);
+  
+  // Mapping signals - Simplified to 4 fields
   kpiColumn = signal<number | null>(null);
-  categoryColumn = signal<number | null>(null);
-  unitColumn = signal<number | null>(null);
   valueNColumn = signal<number | null>(null);
   valueNMinus1Column = signal<number | null>(null);
+  
   errorMsg = signal('');
   processing = signal(false);
   previewResponse = signal<ImportProcessingResponse | null>(null);
   result = signal<ImportProcessingResponse | null>(null);
-  readonly previewColumns = ['kpiName', 'valeurN1', 'valeurN', 'status', 'confidence', 'method', 'message'];
-  readonly resultColumns = ['kpiName', 'categorie', 'valeurN1', 'valeurN', 'variation', 'classification'];
+
+  // Table Column Definitions - 'categorie' is shown but not mapped
+  readonly previewColumns = ['kpiName', 'categorie', 'unite', 'definition', 'valeurN', 'valeurN1', 'status', 'commentaire', 'variation', 'absoluteGap'];
+  readonly resultColumns = ['kpiName', 'categorie', 'unite', 'valeurN', 'valeurN1', 'variation', 'absoluteGap', 'status'];
 
   ngOnInit() {
     const state = this.uploadState.getUpload();
@@ -73,8 +76,6 @@ export class ImportMappingComponent implements OnInit {
   get selectedIndexes(): number[] {
     return [
       this.kpiColumn(),
-      this.categoryColumn(),
-      this.unitColumn(),
       this.valueNColumn(),
       this.valueNMinus1Column(),
     ].filter((value): value is number => value !== null);
@@ -83,12 +84,10 @@ export class ImportMappingComponent implements OnInit {
   validateSelections(): boolean {
     if (
       this.kpiColumn() === null ||
-      this.categoryColumn() === null ||
-      this.unitColumn() === null ||
       this.valueNColumn() === null ||
       this.valueNMinus1Column() === null
     ) {
-      this.errorMsg.set('Tous les champs obligatoires doivent être mappés.');
+      this.errorMsg.set('Tous les champs obligatoires (KPI, Valeur N, Valeur N-1) doivent être mappés.');
       return false;
     }
 
@@ -115,10 +114,10 @@ export class ImportMappingComponent implements OnInit {
 
     const mapping = {
       kpiNameIndex: this.kpiColumn()!,
-      categoryIndex: this.categoryColumn()!,
-      unitIndex: this.unitColumn()!,
+      unitIndex: -1, // Unit is not mapped, backend will use AI/RAG
       valueNIndex: this.valueNColumn()!,
       valueN1Index: this.valueNMinus1Column()!,
+      categoryIndex: -1 // Category is not mapped, backend will use AI/RAG
     };
 
     this.processing.set(true);
@@ -131,7 +130,7 @@ export class ImportMappingComponent implements OnInit {
       );
       this.previewResponse.set(response);
       this.uploadState.saveResponse(response);
-      this.snackBar.open('Prévisualisation ready. Vérifiez puis confirmez.', 'OK', { duration: 3000 });
+      this.snackBar.open('Prévisualisation prête. Vérifiez les calculs et les catégories IA.', 'OK', { duration: 3000 });
     } catch (err: any) {
       this.errorMsg.set(err?.error?.message ?? 'Erreur lors de la prévisualisation.');
       this.snackBar.open(this.errorMsg(), 'OK', { duration: 5000 });
@@ -141,6 +140,8 @@ export class ImportMappingComponent implements OnInit {
   }
 
   async confirmImport() {
+    if (!this.validateSelections()) return;
+    
     const state = this.uploadStateData();
     const preview = this.previewResponse();
     if (!state || !preview) {
@@ -150,10 +151,10 @@ export class ImportMappingComponent implements OnInit {
 
     const mapping = {
       kpiNameIndex: this.kpiColumn()!,
-      categoryIndex: this.categoryColumn()!,
-      unitIndex: this.unitColumn()!,
+      unitIndex: -1,
       valueNIndex: this.valueNColumn()!,
       valueN1Index: this.valueNMinus1Column()!,
+      categoryIndex: -1
     };
 
     this.processing.set(true);
@@ -165,7 +166,7 @@ export class ImportMappingComponent implements OnInit {
       );
       this.result.set(response);
       this.uploadState.saveResponse(response);
-      this.snackBar.open('Importation confirmée.', 'OK', { duration: 3000 });
+      this.snackBar.open('Importation confirmée avec succès.', 'OK', { duration: 3000 });
     } catch (err: any) {
       this.errorMsg.set(err?.error?.message ?? 'Erreur lors de la confirmation.');
       this.snackBar.open(this.errorMsg(), 'OK', { duration: 5000 });
@@ -184,30 +185,20 @@ export class ImportMappingComponent implements OnInit {
 
   extractMethodBadgeClass(method: string | null | undefined): string {
     const normalized = method?.trim().toUpperCase() ?? '';
-    if (normalized.includes('OCR')) {
-      return 'badge-ocr';
-    }
-    if (normalized.includes('AI')) {
-      return 'badge-ai';
-    }
-    if (normalized.includes('MANUAL')) {
-      return 'badge-manual';
-    }
+    if (normalized.includes('OCR')) return 'badge-ocr';
+    if (normalized.includes('AI')) return 'badge-ai';
+    if (normalized.includes('MANUAL')) return 'badge-manual';
     return 'badge-default';
   }
 
   qualityLabel(score: number | null | undefined): string {
-    if (score === null || score === undefined || Number.isNaN(score)) {
-      return 'N/A';
-    }
+    if (score === null || score === undefined || Number.isNaN(score)) return 'N/A';
     return `${Math.round(score)}%`;
   }
 
   invalidRateLabel(rawData: ImportProcessingResponse['rawData']): string {
     const items = rawData ?? [];
-    if (!items.length) {
-      return 'Aucune ligne détectée.';
-    }
+    if (!items.length) return 'Aucune ligne détectée.';
     const invalid = items.filter((row) => !row.valid).length;
     const rate = Math.round((invalid / items.length) * 100);
     return `${invalid} ligne(s) invalide(s) sur ${items.length} (${rate}%)`;
@@ -226,14 +217,14 @@ export class ImportMappingComponent implements OnInit {
     this.router.navigate(['/analyste/dashboard']);
   }
 
-  isOutlier(message: string | undefined): boolean {
-    return !!message && message.includes('Variation extrême');
-  }
-
   getVariationClass(variation: number | undefined): string {
     if (variation === undefined) return '';
     if (variation > 0) return 'text-up';
     if (variation < 0) return 'text-down';
     return 'text-stable';
+  }
+  
+  getStatusClass(color: string | undefined): string {
+    return `status-badge status-${color || 'gray'}`;
   }
 }
