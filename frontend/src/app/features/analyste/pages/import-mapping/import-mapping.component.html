@@ -192,7 +192,11 @@
 
           <ng-container matColumnDef="message">
             <th mat-header-cell *matHeaderCellDef>Commentaire</th>
-            <td mat-cell *matCellDef="let row">{{ row.validationMessage || 'OK' }}</td>
+            <td mat-cell *matCellDef="let row">
+              <span [class.outlier-warning]="isOutlier(row.validationMessage)">
+                {{ row.validationMessage || 'OK' }}
+              </span>
+            </td>
           </ng-container>
 
           <tr mat-header-row *matHeaderRowDef="previewColumns"></tr>
@@ -217,6 +221,52 @@
       <p *ngIf="result()?.importSessionId">
         <strong>Session d'import :</strong> {{ result()?.importSessionId }}
       </p>
+
+      <div class="results-table-container" *ngIf="result()?.calculatedData?.length">
+        <h3>Résultats de l'analyse (N vs N-1)</h3>
+        <table mat-table [dataSource]="result()?.calculatedData ?? []" class="kpi-table results-table">
+          <ng-container matColumnDef="kpiName">
+            <th mat-header-cell *matHeaderCellDef>KPI</th>
+            <td mat-cell *matCellDef="let row">{{ row.kpiName }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="categorie">
+            <th mat-header-cell *matHeaderCellDef>Catégorie</th>
+            <td mat-cell *matCellDef="let row">{{ row.categorie }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="valeurN1">
+            <th mat-header-cell *matHeaderCellDef>N-1</th>
+            <td mat-cell *matCellDef="let row">{{ row.valeurN1 | number:'1.0-2' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="valeurN">
+            <th mat-header-cell *matHeaderCellDef>N</th>
+            <td mat-cell *matCellDef="let row">{{ row.valeurN | number:'1.0-2' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="variation">
+            <th mat-header-cell *matHeaderCellDef>Variation %</th>
+            <td mat-cell *matCellDef="let row">
+              <span [ngClass]="getVariationClass(row.variationPercentage)">
+                {{ row.variationPercentage | number:'1.0-1' }}%
+              </span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="classification">
+            <th mat-header-cell *matHeaderCellDef>Classification</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="badge-classification" [ngClass]="'classif-' + row.classification?.toLowerCase()">
+                {{ row.classification }}
+              </span>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="resultColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: resultColumns"></tr>
+        </table>
+      </div>
     </mat-card-content>
     <mat-card-actions>
       <button mat-flat-button class="dashboard-btn" (click)="goToDashboard()">

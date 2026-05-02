@@ -16,6 +16,7 @@ import java.util.Map;
 public class KpiProcessingOrchestratorService {
 
     private final ExtractionAgent extractionAgent;
+    private final CleaningAgent cleaningAgent;
     private final CalculationAgent calculationAgent;
     private final EnrichmentAgent enrichmentAgent;
     private final RiskDetectionAgent riskDetectionAgent;
@@ -24,7 +25,7 @@ public class KpiProcessingOrchestratorService {
 
     public ImportProcessingResponse process(MultipartFile file, Map<String, Integer> mapping) {
         ExtractionAgent.ExtractionResult result = extractionAgent.extract(file, mapping);
-        List<KpiRawDataDTO> rawData = result.getRows();
+        List<KpiRawDataDTO> rawData = cleaningAgent.clean(result.getRows());
         
         // STEP 1: Calculate KPI metrics
         List<KpiCalculatedDTO> calculatedData = calculationAgent.calculate(rawData);
@@ -67,7 +68,7 @@ public class KpiProcessingOrchestratorService {
 
     public ImportProcessingResponse preview(MultipartFile file, Map<String, Integer> mapping) {
         ExtractionAgent.ExtractionResult result = extractionAgent.extract(file, mapping);
-        List<KpiRawDataDTO> rawData = result.getRows();
+        List<KpiRawDataDTO> rawData = cleaningAgent.clean(result.getRows());
 
         return ImportProcessingResponse.builder()
                 .rawData(rawData)

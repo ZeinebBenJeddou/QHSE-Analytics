@@ -50,6 +50,7 @@ export class ImportMappingComponent implements OnInit {
   previewResponse = signal<ImportProcessingResponse | null>(null);
   result = signal<ImportProcessingResponse | null>(null);
   readonly previewColumns = ['kpiName', 'valeurN1', 'valeurN', 'status', 'confidence', 'method', 'message'];
+  readonly resultColumns = ['kpiName', 'categorie', 'valeurN1', 'valeurN', 'variation', 'classification'];
 
   ngOnInit() {
     const state = this.uploadState.getUpload();
@@ -223,5 +224,16 @@ export class ImportMappingComponent implements OnInit {
       return;
     }
     this.router.navigate(['/analyste/dashboard']);
+  }
+
+  isOutlier(message: string | undefined): boolean {
+    return !!message && message.includes('Variation extrême');
+  }
+
+  getVariationClass(variation: number | undefined): string {
+    if (variation === undefined) return '';
+    if (variation > 0) return 'text-up';
+    if (variation < 0) return 'text-down';
+    return 'text-stable';
   }
 }

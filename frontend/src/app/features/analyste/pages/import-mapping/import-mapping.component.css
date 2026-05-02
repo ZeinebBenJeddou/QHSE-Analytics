@@ -377,6 +377,41 @@
 }
 
 
+.outlier-warning {
+  color: var(--red);
+  font-weight: 600;
+  background: var(--red-soft);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.results-table-container {
+  margin-top: 24px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.results-table {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.text-up { color: var(--red); font-weight: 600; }
+.text-down { color: var(--green); font-weight: 600; }
+.text-stable { color: var(--ink-muted); }
+
+.badge-classification {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.classif-critique { background: var(--red-soft); color: var(--red); }
+.classif-modere { background: #FFF5F5; color: #C53030; }
+.classif-faible { background: var(--green-soft); color: var(--green); }
+
 @media (max-width: 600px) {
   .stepper-card { flex-direction: column; }
   .actions-row { flex-direction: column-reverse; }

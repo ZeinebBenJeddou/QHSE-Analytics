@@ -44,30 +44,29 @@ public class OllamaClientService {
     private static final String UNAVAILABLE_SUMMARY = "IA indisponible";
     private static final String UNAVAILABLE_RECOMMENDATION = "Analyse IA indisponible. Veuillez réessayer ultérieurement.";
     private static final String OLLAMA_SYSTEM_PROMPT = """
-You are a QHSE data analyst AI.
+You are a senior QHSE data analyst AI expert in ISO 9001, ISO 14001, and ISO 45001.
 
 Analyze the provided KPI data and return ONLY a valid JSON.
+Your analysis must consider the business definitions and categories provided for each KPI.
 
 STRICT RULES:
 * Return ONLY JSON
-* No explanation
-* No markdown
-* No extra keys
-* No comments
-* No text before or after JSON
+* No explanation, no markdown, no comments
+* Overall score is from 0 to 100
 
 EXPECTED FORMAT:
-
 {
   "overallScore": number,
-  "summary": string,
-  "recommendation": string
+  "summary": "Professional summary of performance and ISO compliance",
+  "kpis": [
+    {
+      "name": "KPI name",
+      "score": number,
+      "insight": "Business analysis based on variation and definition"
+    }
+  ],
+  "recommendations": ["Actionable advice 1", "Actionable advice 2"]
 }
-
-TASK:
-* Calculate a global performance score (overallScore)
-* Write a short summary (summary)
-* Provide one main recommendation (recommendation)
 
 DATA:
 {KPI_DATA}
@@ -552,15 +551,18 @@ DATA:
      */
     private String buildPromptKpiAnalysis(List<KpiCalculatedDTO> kpiData) {
         try {
-            String kpiDataJson = objectMapper.writeValueAsString(
-                    kpiData.stream()
-                            .map(kpi -> Map.of(
-                                    "n", safe(kpi.getKpiName()),
-                                    "v", kpi.getVariationPercentage()
-                            ))
-                            .toList()
-            );
-            return OLLAMA_SYSTEM_PROMPT.replace("{KPI_DATA}", kpiDataJson);
+            StringBuilder prompt = new StringBuilder();
+            kpiData.forEach(kpi -> prompt.append(String.format(
+                "KPI: %s | Categorie: %s | Definition: %s | N-1=%s | N=%s | Δ=%s%% | Classification=%s\n",
+                safe(kpi.getKpiName()),
+                safe(kpi.getCategorie()),
+                safe(kpi.getDefinition()),
+                safeNumber(kpi.getValeurN1()),
+                safeNumber(kpi.getValeurN()),
+                safeNumber(kpi.getVariationPercentage()),
+                safe(kpi.getClassification())
+            )));
+            return OLLAMA_SYSTEM_PROMPT.replace("{KPI_DATA}", prompt.toString());
         } catch (Exception ex) {
             log.warn("Impossible de sérialiser les KPI pour le prompt Ollama.", ex);
             return OLLAMA_SYSTEM_PROMPT.replace("{KPI_DATA}", "[]");
@@ -629,6 +631,16 @@ DATA:
      */
     private String safe(String value) {
         return value == null || value.isBlank() ? "-" : value;
+    }
+
+    private String safeNumber(Number value) {
+        if (value == null) {
+            return "0";
+        }
+        double d = value.doubleValue();
+        return d == Math.floor(d) && !Double.isInfinite(d)
+                ? String.valueOf((long) d)
+                : String.format("%.2f", d);
     }
 
     /**
