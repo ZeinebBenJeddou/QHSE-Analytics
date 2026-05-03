@@ -1,37 +1,35 @@
-
-
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
 
 :host {
-  --blue:         #1E6FD9;
-  --blue-deep:    #1254A8;
-  --blue-soft:    #EEF4FD;
-  --blue-ring:    rgba(30,111,217,0.15);
-  --ink:          #0D1B3E;
-  --ink-mid:      #4A5568;
-  --ink-soft:     #718096;
-  --ink-muted:    #A0AEC0;
-  --border:       #E2EAF6;
-  --surface:      #F8FAFF;
-  --white:        #ffffff;
-  --red:          #E53E3E;
-  --red-soft:     rgba(229,62,62,0.10);
-  --orange:       #DD6B20;
-  --orange-soft:  rgba(221,107,32,0.10);
-  --green:        #38A169;
-  --green-soft:   rgba(56,161,105,0.10);
-  --teal:         #0D9488;
-  --teal-soft:    rgba(13,148,136,0.10);
-  --purple:       #6B46C1;
-  --purple-soft:  rgba(107,70,193,0.10);
+  --blue: #1E6FD9;
+  --blue-deep: #1254A8;
+  --blue-soft: #EEF4FD;
+  --blue-ring: rgba(30, 111, 217, 0.15);
+  --ink: #0D1B3E;
+  --ink-mid: #4A5568;
+  --ink-soft: #718096;
+  --ink-muted: #A0AEC0;
+  --border: #E2EAF6;
+  --surface: #F8FAFF;
+  --white: #ffffff;
+  --red: #E53E3E;
+  --red-soft: rgba(229, 62, 62, 0.10);
+  --orange: #DD6B20;
+  --orange-soft: rgba(221, 107, 32, 0.10);
+  --green: #38A169;
+  --green-soft: rgba(56, 161, 105, 0.10);
+  --teal: #0D9488;
+  --teal-soft: rgba(13, 148, 136, 0.10);
+  --purple: #6B46C1;
+  --purple-soft: rgba(107, 70, 193, 0.10);
 
-  --radius-card:  14px;
-  --radius-item:  10px;
-  --radius-sm:    8px;
-  --shadow-card:  0 0 0 1px rgba(30,111,217,0.06), 0 4px 20px rgba(30,111,217,0.06);
+  --radius-card: 14px;
+  --radius-item: 10px;
+  --radius-sm: 8px;
+  --shadow-card: 0 0 0 1px rgba(30, 111, 217, 0.06), 0 4px 20px rgba(30, 111, 217, 0.06);
 
-  --font:         'DM Sans', system-ui, sans-serif;
-  --font-mono:    'DM Mono', monospace;
+  --font: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'DM Mono', monospace;
   font-family: var(--font);
   color: var(--ink);
 }
@@ -58,6 +56,7 @@
   transition: color 0.14s, background 0.14s !important;
   flex-shrink: 0;
 }
+
 .back-btn:hover {
   color: var(--blue) !important;
   background: var(--blue-soft) !important;
@@ -79,8 +78,9 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(107,70,193,0.15);
+  box-shadow: 0 2px 8px rgba(107, 70, 193, 0.15);
 }
+
 .header-icon-wrap mat-icon,
 .header-icon {
   font-size: 22px;
@@ -122,11 +122,15 @@ h1 {
   box-shadow: 0 3px 10px var(--blue-ring) !important;
   transition: background 0.16s, box-shadow 0.16s !important;
 }
+
 .regen-btn:hover:not([disabled]) {
   background: var(--blue-deep) !important;
-  box-shadow: 0 4px 16px rgba(30,111,217,0.28) !important;
+  box-shadow: 0 4px 16px rgba(30, 111, 217, 0.28) !important;
 }
-.regen-btn[disabled] { opacity: 0.55 !important; }
+
+.regen-btn[disabled] {
+  opacity: 0.55 !important;
+}
 
 
 .loader-wrap {
@@ -146,7 +150,7 @@ h1 {
   align-items: center;
   gap: 12px;
   background: var(--red-soft);
-  border: 1.5px solid rgba(229,62,62,0.2);
+  border: 1.5px solid rgba(229, 62, 62, 0.2);
   border-radius: var(--radius-item);
   padding: 14px 18px;
   color: var(--red);
@@ -169,12 +173,14 @@ h1 {
   font-family: var(--font);
   margin-bottom: 20px;
 }
+
 .period-banner mat-icon {
   color: var(--blue);
   font-size: 20px;
   width: 20px;
   height: 20px;
 }
+
 .period-banner strong {
   color: var(--ink);
   font-size: 0.9rem;
@@ -200,17 +206,32 @@ h1 {
   font-weight: 700 !important;
   color: var(--ink) !important;
 }
+
 .glass-card ::ng-deep .mat-mdc-card-subtitle {
   font-family: var(--font) !important;
   font-size: 0.78rem !important;
   color: var(--ink-muted) !important;
 }
 
-.summary-icon  { color: var(--blue) !important; }
-.synthese-icon { color: var(--purple) !important; }
-.plan-icon     { color: var(--green) !important; }
-.cat-icon      { color: var(--orange) !important; }
-.kpi-ia-icon   { color: var(--teal) !important; }
+.summary-icon {
+  color: var(--blue) !important;
+}
+
+.synthese-icon {
+  color: var(--purple) !important;
+}
+
+.plan-icon {
+  color: var(--green) !important;
+}
+
+.cat-icon {
+  color: var(--orange) !important;
+}
+
+.kpi-ia-icon {
+  color: var(--teal) !important;
+}
 
 
 .summary-card mat-card-content p {
@@ -219,6 +240,7 @@ h1 {
   color: var(--ink-mid);
   font-family: var(--font);
 }
+
 .summary-card mat-card-content strong {
   color: var(--ink);
   font-weight: 700;
@@ -236,19 +258,22 @@ h1 {
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   font-family: var(--font);
 }
+
 .plan-text {
   border-left-color: var(--green);
-  background: rgba(56,161,105,0.04);
+  background: rgba(56, 161, 105, 0.04);
 }
+
 .cat-content {
   border-left-color: var(--orange);
-  background: rgba(221,107,32,0.04);
+  background: rgba(221, 107, 32, 0.04);
   margin-top: 12px;
 }
+
 .kpi-ia-text {
   border-left-color: var(--teal);
   background: var(--teal-soft);
-  background: rgba(13,148,136,0.04);
+  background: rgba(13, 148, 136, 0.04);
   margin-top: 12px;
 }
 
@@ -260,10 +285,12 @@ h1 {
   margin-bottom: 8px !important;
   box-shadow: none !important;
 }
+
 .cat-accordion .cat-panel ::ng-deep .mat-expansion-panel-header {
   border-radius: var(--radius-item) !important;
   font-family: var(--font) !important;
 }
+
 .cat-accordion .cat-panel ::ng-deep .mat-expansion-panel-header:hover {
   background: var(--blue-soft) !important;
 }
@@ -277,6 +304,7 @@ h1 {
   font-size: 0.88rem;
   font-family: var(--font);
 }
+
 .cat-bullet {
   color: var(--orange);
   font-size: 18px;
@@ -284,6 +312,7 @@ h1 {
   height: 18px;
   flex-shrink: 0;
 }
+
 .cat-code {
   background: var(--orange-soft);
   color: var(--orange);
@@ -293,7 +322,7 @@ h1 {
   font-weight: 700;
   font-family: var(--font-mono);
   letter-spacing: 0.04em;
-  border: 1px solid rgba(221,107,32,0.2);
+  border: 1px solid rgba(221, 107, 32, 0.2);
 }
 
 
@@ -304,10 +333,12 @@ h1 {
   margin-bottom: 8px !important;
   box-shadow: none !important;
 }
+
 .kpi-panel ::ng-deep .mat-expansion-panel-header {
   border-radius: var(--radius-item) !important;
   font-family: var(--font) !important;
 }
+
 .kpi-panel ::ng-deep .mat-expansion-panel-header:hover {
   background: var(--blue-soft) !important;
 }
@@ -318,12 +349,14 @@ h1 {
   gap: 10px;
   flex-wrap: wrap;
 }
+
 .kpi-ia-name {
   font-weight: 600;
   color: var(--ink);
   font-size: 0.88rem;
   font-family: var(--font);
 }
+
 .kpi-cat-badge {
   background: var(--blue-soft);
   color: var(--blue);
@@ -344,9 +377,21 @@ h1 {
   font-family: var(--font-mono);
   letter-spacing: 0.02em;
 }
-.chip-critique { background: var(--red-soft);    color: var(--red); }
-.chip-modere   { background: var(--orange-soft);  color: var(--orange); }
-.chip-faible   { background: var(--green-soft);   color: var(--green); }
+
+.chip-critique {
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.chip-modere {
+  background: var(--orange-soft);
+  color: var(--orange);
+}
+
+.chip-faible {
+  background: var(--green-soft);
+  color: var(--green);
+}
 
 
 .variation-val {
@@ -357,9 +402,20 @@ h1 {
   font-weight: 700;
   font-family: var(--font-mono);
 }
-.var-up   { color: var(--red); }
-.var-down { color: var(--green); }
-.trend-sm { font-size: 16px; width: 16px; height: 16px; }
+
+.var-up {
+  color: var(--red);
+}
+
+.var-down {
+  color: var(--green);
+}
+
+.trend-sm {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
 
 
 .kpi-values-row {
@@ -370,11 +426,13 @@ h1 {
   border-bottom: 1.5px solid var(--border);
   margin-bottom: 12px;
 }
+
 .kv-item {
   display: flex;
   flex-direction: column;
   gap: 3px;
 }
+
 .kv-label {
   font-size: 0.68rem;
   color: var(--ink-muted);
@@ -383,23 +441,27 @@ h1 {
   font-family: var(--font-mono);
   letter-spacing: 0.08em;
 }
+
 .kv-val {
   font-size: 1.2rem;
   font-weight: 700;
   color: var(--ink);
   font-family: var(--font-mono);
 }
+
 .kv-val small {
   font-size: 0.75rem;
   color: var(--ink-muted);
   font-weight: 400;
 }
+
 .arrow-icon {
   color: var(--blue);
   font-size: 20px;
   width: 20px;
   height: 20px;
 }
+
 .kpi-divider {
   border-color: var(--border) !important;
   margin: 12px 0 !important;
@@ -407,6 +469,12 @@ h1 {
 
 
 @media (max-width: 600px) {
-  .page-header { flex-wrap: wrap; }
-  .regen-btn { width: 100%; justify-content: center; }
+  .page-header {
+    flex-wrap: wrap;
+  }
+
+  .regen-btn {
+    width: 100%;
+    justify-content: center;
+  }
 }

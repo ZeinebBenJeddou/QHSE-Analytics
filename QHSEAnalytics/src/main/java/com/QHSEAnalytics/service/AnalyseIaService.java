@@ -56,7 +56,8 @@ public class AnalyseIaService {
             session = loadSessionWithOwnership(importSessionId, userId, false);
             log.info("Début de l'analyse IA pour la session {}", importSessionId);
 
-            List<ResultatKpi> resultats = resultatKpiRepository.findByImportSessionIdOrderByCreatedAtDesc(importSessionId).stream()
+            List<ResultatKpi> resultats = resultatKpiRepository
+                    .findByImportSessionIdOrderByCreatedAtDesc(importSessionId).stream()
                     .filter(resultat -> resultat.getKpi() != null && resultat.getKpi().getCategorieKpi() != null)
                     .toList();
 
@@ -89,11 +90,11 @@ public class AnalyseIaService {
                     .collect(Collectors.toMap(
                             kpi -> kpi.getName().trim().toLowerCase(),
                             kpi -> kpi.getInsight() == null ? "" : kpi.getInsight().trim(),
-                            (first, second) -> first
-                    ));
+                            (first, second) -> first));
 
             for (ResultatKpi resultat : resultats) {
-                String key = resultat.getKpi().getNom() == null ? null : resultat.getKpi().getNom().trim().toLowerCase();
+                String key = resultat.getKpi().getNom() == null ? null
+                        : resultat.getKpi().getNom().trim().toLowerCase();
                 String analyseIa = key == null ? null : insightsByKpiName.get(key);
                 if (analyseIa != null && !analyseIa.isBlank()) {
                     resultat.setAnalyseIa(analyseIa);
@@ -106,7 +107,8 @@ public class AnalyseIaService {
             analyseGlobale.setImportSession(session);
             analyseGlobale.setUser(loadUser(userId));
             analyseGlobale.setSynthese(globalSummary);
-            analyseGlobale.setPlanActions(String.join("\n", response.getRecommendations() == null ? List.of() : response.getRecommendations()));
+            analyseGlobale.setPlanActions(String.join("\n",
+                    response.getRecommendations() == null ? List.of() : response.getRecommendations()));
             analyseGlobaleRepository.save(analyseGlobale);
 
             boolean iaUnavailable = globalSummary != null && globalSummary.trim().equalsIgnoreCase("IA indisponible");
@@ -117,7 +119,8 @@ public class AnalyseIaService {
                 session.setMessageErreur(null);
             }
             importSessionRepository.save(session);
-            log.info("Analyse IA complète générée pour la session {} en {} ms", importSessionId, System.currentTimeMillis() - startAt);
+            log.info("Analyse IA complète générée pour la session {} en {} ms", importSessionId,
+                    System.currentTimeMillis() - startAt);
         } catch (Exception ex) {
             log.error("Erreur inattendue génération analyses session {} : {}", importSessionId, ex.getMessage(), ex);
             if (session != null) {
@@ -125,7 +128,8 @@ public class AnalyseIaService {
                     session.setStatut(ImportStatut.ERREUR);
                     importSessionRepository.save(session);
                 } catch (Exception saveEx) {
-                    log.error("Impossible de mettre à jour le statut ERREUR pour la session {} : {}", importSessionId, saveEx.getMessage(), saveEx);
+                    log.error("Impossible de mettre à jour le statut ERREUR pour la session {} : {}", importSessionId,
+                            saveEx.getMessage(), saveEx);
                 }
             }
         }
@@ -140,15 +144,15 @@ public class AnalyseIaService {
             return CompletableFuture.completedFuture(null);
         }
 
-        boolean alreadyStored = session.getStatut() == ImportStatut.TRAITE && (
-                analyseGlobaleRepository.findByImportSessionId(importSessionId).isPresent()
-                        || !analyseCategorieRepository.findByImportSessionId(importSessionId).isEmpty()
-                        || resultatKpiRepository.findByImportSessionIdOrderByCreatedAtDesc(importSessionId).stream()
-                                .anyMatch(resultat -> resultat.getAnalyseIa() != null && !resultat.getAnalyseIa().isBlank())
-        );
+        boolean alreadyStored = session.getStatut() == ImportStatut.TRAITE && (analyseGlobaleRepository
+                .findByImportSessionId(importSessionId).isPresent()
+                || !analyseCategorieRepository.findByImportSessionId(importSessionId).isEmpty()
+                || resultatKpiRepository.findByImportSessionIdOrderByCreatedAtDesc(importSessionId).stream()
+                        .anyMatch(resultat -> resultat.getAnalyseIa() != null && !resultat.getAnalyseIa().isBlank()));
 
         if (alreadyStored) {
-            log.info("Analyse IA déjà présente pour la session {}, aucune requête supplémentaire nécessaire.", importSessionId);
+            log.info("Analyse IA déjà présente pour la session {}, aucune requête supplémentaire nécessaire.",
+                    importSessionId);
             return CompletableFuture.completedFuture(null);
         }
 
@@ -160,7 +164,8 @@ public class AnalyseIaService {
     public List<AnalyseCategorieResponse> getAnalysesCategories(Long importSessionId, Long userId, boolean isAdmin) {
         loadSessionWithOwnership(importSessionId, userId, isAdmin);
         return analyseCategorieRepository.findByImportSessionId(importSessionId).stream()
-                .sorted(Comparator.comparing(AnalyseCategorie::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder())))
+                .sorted(Comparator.comparing(AnalyseCategorie::getCreatedAt,
+                        Comparator.nullsLast(Comparator.naturalOrder())))
                 .map(this::toAnalyseCategorieResponse)
                 .toList();
     }
@@ -284,11 +289,11 @@ public class AnalyseIaService {
                 .filter(kpi -> kpi.getKpiName() != null && !kpi.getKpiName().isBlank())
                 .filter(kpi -> kpi.getVariationPercentage() != null)
                 .collect(Collectors.toMap(
-                        kpi -> kpi.getMatchedKpiId() != null ? kpi.getMatchedKpiId() : kpi.getKpiName().trim().toLowerCase(),
+                        kpi -> kpi.getMatchedKpiId() != null ? kpi.getMatchedKpiId()
+                                : kpi.getKpiName().trim().toLowerCase(),
                         kpi -> kpi,
                         (first, second) -> first,
-                        LinkedHashMap::new
-                ))
+                        LinkedHashMap::new))
                 .values()
                 .stream()
                 .toList();
@@ -297,9 +302,9 @@ public class AnalyseIaService {
     private ImportSession loadSessionWithOwnership(Long importSessionId, Long userId, boolean isAdmin) {
         ImportSession session = isAdmin
                 ? importSessionRepository.findById(importSessionId)
-                .orElseThrow(() -> new ImportNotFoundException("Import introuvable"))
+                        .orElseThrow(() -> new ImportNotFoundException("Import introuvable"))
                 : importSessionRepository.findByIdAndUserId(importSessionId, userId)
-                .orElseThrow(() -> new ImportNotFoundException("Import introuvable"));
+                        .orElseThrow(() -> new ImportNotFoundException("Import introuvable"));
         return session;
     }
 

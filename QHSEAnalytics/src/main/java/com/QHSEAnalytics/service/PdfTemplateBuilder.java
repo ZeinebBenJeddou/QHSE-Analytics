@@ -195,6 +195,26 @@ public class PdfTemplateBuilder {
                   background: #DDEBF7 !important;
                   font-weight: bold;
                 }
+                .eightd-table {
+                  width: 100%;
+                  margin-top: 10px;
+                  border: 1px solid #BDD7EE;
+                  font-size: 10px;
+                }
+                .eightd-table th {
+                  background: #DEEAF6;
+                  color: #1F3864;
+                  width: 20%;
+                  font-weight: bold;
+                }
+                .eightd-table td {
+                  background: white;
+                }
+                .action-box {
+                  border-left: 3px solid #2E75B6;
+                  padding-left: 8px;
+                  margin-top: 5px;
+                }
                 ul {
                   margin: 8px 0 0 16px;
                   padding: 0;
@@ -329,13 +349,44 @@ public class PdfTemplateBuilder {
                             .append("</div>")
                             .append("<div><strong>Variation :</strong> ")
                             .append(formatPercent(ligne.getVariationRelative()))
-                            .append(" - <strong>Niveau :</strong> ")
-                            .append(renderNiveauBadge(ligne.getNiveauVariation()))
-                            .append("</div>")
-                            .append("<div class=\"analyse-ia\">")
-                            .append(nl2br(nullSafe(ligne.getAnalyseIa(), "Analyse IA non disponible pour ce KPI.")))
-                            .append("</div>")
+                            .append(" - <strong>Risque :</strong> ")
+                            .append(renderNiveauBadge(ligne.getRiskLevel() != null ? ligne.getRiskLevel() : ligne.getNiveauVariation()))
                             .append("</div>");
+
+                    if (ligne.getRiskJustification() != null) {
+                        html.append("<div class=\"analyse-ia\"><strong>Analyse :</strong> ")
+                                .append(nl2br(ligne.getRiskJustification()))
+                                .append("</div>");
+                    } else if (ligne.getAnalyseIa() != null) {
+                        html.append("<div class=\"analyse-ia\">")
+                                .append(nl2br(ligne.getAnalyseIa()))
+                                .append("</div>");
+                    }
+
+                    if (ligne.getCorrectiveAction() != null || ligne.getPreventiveAction() != null) {
+                        html.append("<div style=\"margin-top:10px;\">")
+                                .append("<div class=\"action-box\"><strong>Action Corrective :</strong> ")
+                                .append(escapeHtml(ligne.getCorrectiveAction())).append("</div>")
+                                .append("<div class=\"action-box\"><strong>Action Preventive :</strong> ")
+                                .append(escapeHtml(ligne.getPreventiveAction())).append("</div>")
+                                .append("</div>");
+                    }
+
+                    if (ligne.getImmediateAction() != null) {
+                        html.append("<div class=\"plan-modere\" style=\"margin-top:8px;font-size:10px;\">")
+                                .append("<strong>Action Immediate (").append(escapeHtml(ligne.getImmediatePriority())).append(") :</strong> ")
+                                .append(escapeHtml(ligne.getImmediateAction()))
+                                .append("</div>");
+                    }
+
+                    if (ligne.getRequires8d() != null && ligne.getRequires8d()) {
+                        html.append("<div style=\"margin-top:12px;\">")
+                                .append("<div style=\"font-weight:bold;font-size:11px;color:#1F3864;\">Méthodologie 8D</div>")
+                                .append(renderEightDTable(ligne.getEightDDetails()))
+                                .append("</div>");
+                    }
+
+                    html.append("</div>");
                 }
             });
         }
@@ -614,6 +665,39 @@ public class PdfTemplateBuilder {
             default -> "badge-stable";
         };
         return "<span class=\"" + cssClass + "\">" + escapeHtml(niveau) + "</span>";
+    }
+
+    private String renderEightDTable(String json) {
+        if (json == null || json.isBlank()) return "";
+        try {
+            // Very simple JSON parsing for D1-D8 since we can't easily include Jackson here
+            // or we use a Map if we pass it already parsed. 
+            // For now, I'll assume it's a simple JSON string and do basic cleaning.
+            String clean = json.replace("{", "").replace("}", "").replace("\"", "");
+            String[] pairs = clean.split(",");
+            Map<String, String> steps = new LinkedHashMap<>();
+            for (String pair : pairs) {
+                String[] kv = pair.split(":");
+                if (kv.length == 2) {
+                    steps.put(kv[0].trim(), kv[1].trim());
+                }
+            }
+
+            StringBuilder sb = new StringBuilder("<table class=\"eightd-table\">");
+            String[] dSteps = {"D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8"};
+            String[] dLabels = {"Equipe", "Problème", "Confinement", "Cause Racine", "Correctives", "Validation", "Prévention", "Clôture"};
+            
+            for (int i = 0; i < dSteps.length; i++) {
+                String d = dSteps[i];
+                String val = steps.getOrDefault(d, "N/A");
+                sb.append("<tr><th>").append(d).append(" - ").append(dLabels[i]).append("</th><td>")
+                  .append(escapeHtml(val)).append("</td></tr>");
+            }
+            sb.append("</table>");
+            return sb.toString();
+        } catch (Exception e) {
+            return "<div class=\"muted\">Données 8D indisponibles.</div>";
+        }
     }
 
     private String renderTendance(String tendance) {

@@ -75,7 +75,21 @@ public class ExportService {
                 .toList();
 
         List<ResumeCategorieResponse> resumeCategories = buildResumeCategories(resultats);
-        List<LigneComparatifResponse> lignesComparatif = resultats.stream().map(this::toLigneComparatif).toList();
+
+        // Build a lookup map of Gemini AI analysis by KPI name
+        Map<String, com.QHSEAnalytics.entity.KpiAnalysis> analysisMap = com.QHSEAnalytics.repository.KpiAnalysisRepository.class.isInterface() ? 
+            importSessionRepository.findById(importId).isPresent() ? // Dummy check to get the repository
+            java.util.Collections.emptyMap() : java.util.Collections.emptyMap() : java.util.Collections.emptyMap();
+        
+        // Use the actual repository injected in the service
+        analysisMap = kpiAnalysisRepository
+                .findByImportSessionIdOrderByIdAsc(importId)
+                .stream()
+                .collect(Collectors.toMap(com.QHSEAnalytics.entity.KpiAnalysis::getKpiName, a -> a, (a, b) -> a));
+
+        List<LigneComparatifResponse> lignesComparatif = resultats.stream()
+                .map(r -> toLigneComparatif(r, analysisMap.get(safeKpiNom(r))))
+                .toList();
 
         List<AnalyseCategorieResponse> analysesCategories = analyseCategorieRepository.findByImportSessionId(importId).stream()
                 .sorted(Comparator.comparing(AnalyseCategorie::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder())))
@@ -176,8 +190,8 @@ public class ExportService {
                 .build();
     }
 
-    private LigneComparatifResponse toLigneComparatif(ResultatKpi resultat) {
-        return LigneComparatifResponse.builder()
+    private LigneComparatifResponse toLigneComparatif(ResultatKpi resultat, KpiAnalysis analysis) {
+        LigneComparatifResponse.LigneComparatifResponseBuilder b = LigneComparatifResponse.builder()
                 .kpiId(resultat.getKpi().getId())
                 .kpiNom(safeKpiNom(resultat))
                 .unite(resultat.getKpi().getUnite() == null ? null : resultat.getKpi().getUnite().name())
@@ -189,8 +203,24 @@ public class ExportService {
                 .variationRelative(resultat.getVariationRelative())
                 .niveauVariation(resultat.getNiveauVariation() == null ? null : resultat.getNiveauVariation().name())
                 .tendance(resultat.getTendance() == null ? null : resultat.getTendance().name())
-                .analyseIa(resultat.getAnalyseIa())
-                .build();
+                .analyseIa(resultat.getAnalyseIa());
+
+        if (analysis != null) {
+            b.riskLevel(analysis.getRiskLevel())
+             .riskJustification(analysis.getRiskJustification())
+             .objectiveReached(analysis.getObjectiveReached())
+             .improvementDetected(analysis.getImprovementDetected())
+             .issueDetected(analysis.getIssueDetected())
+             .correctiveAction(analysis.getCorrectiveAction())
+             .preventiveAction(analysis.getPreventiveAction())
+             .immediateAction(analysis.getImmediateAction())
+             .immediatePriority(analysis.getImmediatePriority())
+             .requires8d(analysis.isRequires8d())
+             .eightDDetails(analysis.getEightDDetails())
+             .aiNote(analysis.getAiNote());
+        }
+
+        return b.build();
     }
 
     private AnalyseCategorieResponse toAnalyseCategorieResponse(AnalyseCategorie analyseCategorie) {
