@@ -18,9 +18,13 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatBadgeModule } from '@angular/material/badge';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 import { DashboardService } from '../../../../core/services/dashboard.service';
 import { ImportService } from '../../../../core/services/import.service';
+import { KpiEnrichmentService } from '../../../../core/services/kpi-enrichment.service';
 import {
   ResumeAnalysteResponse,
   ComparatifTableauResponse,
@@ -43,6 +47,7 @@ import { PieDistributionComponent } from '../../../../shared/components/charts/p
     MatProgressSpinnerModule, MatTabsModule,
     MatInputModule, MatFormFieldModule, MatSelectModule,
     MatExpansionModule, MatSnackBarModule,
+    MatBadgeModule, MatDividerModule, MatProgressBarModule,
     BarComparisonComponent, RadarPerformanceComponent, PieDistributionComponent,
   ],
   templateUrl: './dashboard-analyste.component.html',
@@ -53,10 +58,12 @@ export class DashboardAnalysteComponent implements OnInit {
   private router = inject(Router);
   private dashboardService = inject(DashboardService);
   private importService = inject(ImportService);
+  private enrichmentService = inject(KpiEnrichmentService);
   private snackBar = inject(MatSnackBar);
 
   importId = signal<number | null>(null);
   exporting = signal(false);
+  isAnalysing = signal(false);
   loading = signal(true);
   error = signal('');
 
@@ -72,18 +79,24 @@ export class DashboardAnalysteComponent implements OnInit {
   searchFilter = signal('');
   categorieFilter = signal('');
   niveauFilter = signal('');
+  riskFilter = signal('');
 
-  tableColumns = ['kpiNom', 'categorieLibelle', 'valeurN1', 'valeurN', 'variationAbsolue', 'variationRelative', 'niveauVariation', 'tendance', 'analyseIa'];
+  /** Track which KPI rows are expanded to show full AI analysis */
+  expandedRows = signal<Set<number>>(new Set());
+
+  tableColumns = ['expand', 'kpiNom', 'categorieLibelle', 'valeurN1', 'valeurN', 'variationRelative', 'status', 'niveauVariation', 'riskBadge', 'tendance', 'aiNote'];
 
   filteredLignes = computed(() => {
     const lignes = this.comparatif()?.lignes ?? [];
     const search = this.searchFilter().toLowerCase();
     const cat = this.categorieFilter();
     const niveau = this.niveauFilter();
+    const risk = this.riskFilter();
     return lignes.filter(l =>
       (!search || l.kpiNom.toLowerCase().includes(search)) &&
       (!cat || l.categorieCode === cat) &&
-      (!niveau || l.niveauVariation === niveau)
+      (!niveau || l.niveauVariation === niveau) &&
+      (!risk || l.riskLevel === risk)
     );
   });
 
@@ -99,7 +112,6 @@ export class DashboardAnalysteComponent implements OnInit {
         this.importId.set(+id);
         this.loadSelectedImport(+id);
       } else {
-        
         this.loadResume();
       }
     });
@@ -125,6 +137,7 @@ export class DashboardAnalysteComponent implements OnInit {
     this.comparatif.set(null);
     this.graphiques.set(null);
     this.analysesIa.set(null);
+    this.expandedRows.set(new Set());
 
     this.dashboardService.getComparatif(importId).subscribe({
       next: res => {
@@ -132,7 +145,7 @@ export class DashboardAnalysteComponent implements OnInit {
         this.loadDashboardData(importId, { includeComparatif: false });
       },
       error: err => {
-        this.error.set(this.extractErrorMessage(err, 'Import non disponible. Sélectionnez un import traité depuis l’historique.'));
+        this.error.set(this.extractErrorMessage(err, 'Import non disponible. Sélectionnez un import traité depuis l\'historique.'));
         this.loading.set(false);
       }
     });
@@ -142,7 +155,7 @@ export class DashboardAnalysteComponent implements OnInit {
     const { includeComparatif = false } = options;
     this.loading.set(true);
     this.error.set('');
-    
+
     const endpoints = includeComparatif ? 3 : 2;
     let done = 0;
     const check = () => { if (++done === endpoints) this.loading.set(false); };
@@ -181,19 +194,60 @@ export class DashboardAnalysteComponent implements OnInit {
       .subscribe({ next: r => { if (r) this.analysesIa.set(r); } });
   }
 
+  // ─────────────────── Row expand / collapse ────────────────────────────
+
+  toggleRow(kpiId: number): void {
+    const current = new Set(this.expandedRows());
+    if (current.has(kpiId)) {
+      current.delete(kpiId);
+    } else {
+      current.add(kpiId);
+    }
+    this.expandedRows.set(current);
+  }
+
+  isExpanded(kpiId: number): boolean {
+    return this.expandedRows().has(kpiId);
+  }
+
+  // ─────────────────── 8D parsing ───────────────────────────────────────
+
+  parse8D(json: string | undefined): Record<string, string> | null {
+    if (!json) return null;
+    try {
+      return JSON.parse(json);
+    } catch {
+      return null;
+    }
+  }
+
+  eightDSteps(json: string | undefined): { key: string; label: string; value: string }[] {
+    const data = this.parse8D(json);
+    if (!data) return [];
+    const labels: Record<string, string> = {
+      D1: 'Équipe',
+      D2: 'Description du problème',
+      D3: 'Actions de confinement',
+      D4: 'Cause racine',
+      D5: 'Actions correctives',
+      D6: 'Validation',
+      D7: 'Prévention',
+      D8: 'Clôture',
+    };
+    return Object.entries(data).map(([key, value]) => ({
+      key,
+      label: labels[key] ?? key,
+      value,
+    }));
+  }
+
+  // ─────────────────── Helpers ──────────────────────────────────────────
+
   private extractErrorMessage(err: any, fallback: string): string {
-    if (!err) {
-      return fallback;
-    }
-    if (err.error && typeof err.error === 'object' && err.error.message) {
-      return err.error.message;
-    }
-    if (typeof err.error === 'string') {
-      return err.error;
-    }
-    if (err.message) {
-      return err.message;
-    }
+    if (!err) return fallback;
+    if (err.error && typeof err.error === 'object' && err.error.message) return err.error.message;
+    if (typeof err.error === 'string') return err.error;
+    if (err.message) return err.message;
     return fallback;
   }
 
@@ -218,6 +272,20 @@ export class DashboardAnalysteComponent implements OnInit {
     return { CRITIQUE: 'chip-critique', MODERE: 'chip-modere', FAIBLE: 'chip-faible' }[n] ?? '';
   }
 
+  riskClass(r: string | undefined): string {
+    if (!r) return 'risk-unknown';
+    return { 'Élevé': 'risk-high', 'Modéré': 'risk-medium', 'Faible': 'risk-low' }[r] ?? 'risk-unknown';
+  }
+
+  riskIcon(r: string | undefined): string {
+    return { 'Élevé': '🔴', 'Modéré': '🟠', 'Faible': '🟢' }[r ?? ''] ?? '⚪';
+  }
+
+  priorityClass(p: string | undefined): string {
+    if (!p) return '';
+    return { 'Haute': 'priority-high', 'Moyenne': 'priority-medium', 'Basse': 'priority-low' }[p] ?? '';
+  }
+
   tendanceIcon(t: string): string {
     return { HAUSSE: 'trending_up', BAISSE: 'trending_down', STABLE: 'trending_flat' }[t] ?? 'remove';
   }
@@ -226,16 +294,20 @@ export class DashboardAnalysteComponent implements OnInit {
     return { HAUSSE: 'trend-up', BAISSE: 'trend-down', STABLE: 'trend-stable' }[t] ?? '';
   }
 
+  hasDeepAnalysis(row: LigneComparatifResponse): boolean {
+    return !!(row.riskLevel || row.aiNote || row.correctiveAction);
+  }
+
   exportPdf() {
     const id = this.importId();
     if (!id) {
-      this.snackBar.open('Aucun import sélectionné pour l’export.', 'OK', { duration: 3000 });
+      this.snackBar.open('Aucun import sélectionné pour l\'export.', 'OK', { duration: 3000 });
       return;
     }
     this.exporting.set(true);
     this.importService.exportAnalyste(id).subscribe({
       next: (blob) => this.downloadFile(blob, `rapport-import-${id}.pdf`),
-      error: () => this.snackBar.open('Erreur lors de l’export PDF.', 'OK', { duration: 4000 }),
+      error: () => this.snackBar.open('Erreur lors de l\'export PDF.', 'OK', { duration: 4000 }),
       complete: () => this.exporting.set(false),
     });
   }
@@ -243,10 +315,37 @@ export class DashboardAnalysteComponent implements OnInit {
   goToIA() {
     const id = this.importId();
     if (!id) {
-      this.snackBar.open('Aucun import sélectionné pour l’analyse IA.', 'OK', { duration: 3000 });
+      this.snackBar.open('Aucun import sélectionné pour l\'analyse IA.', 'OK', { duration: 3000 });
       return;
     }
     this.router.navigate(['/analyste/ia', id]);
+  }
+
+  /**
+   * Triggers the line-by-line Gemini analysis for all KPIs in the current session.
+   * This generates risk levels, corrective actions, and 8D plans.
+   */
+  runFullAnalysis() {
+    const id = this.importId();
+    if (!id) return;
+
+    this.isAnalysing.set(true);
+    this.snackBar.open('Analyse IA approfondie en cours (ligne par ligne)...', 'Fermer', { duration: 5000 });
+
+    this.enrichmentService.analyseAll(id, true).subscribe({
+      next: (results) => {
+        this.snackBar.open(`${results.length} indicateurs analysés avec succès.`, 'OK', { duration: 4000 });
+        // Refresh the comparison data to show the new analysis fields
+        this.loadSelectedImport(id);
+      },
+      error: (err) => {
+        const msg = this.extractErrorMessage(err, 'Erreur lors de l\'analyse approfondie.');
+        this.snackBar.open(msg, 'OK', { duration: 5000 });
+      },
+      complete: () => {
+        this.isAnalysing.set(false);
+      }
+    });
   }
 
   private downloadFile(blob: Blob, filename: string): void {

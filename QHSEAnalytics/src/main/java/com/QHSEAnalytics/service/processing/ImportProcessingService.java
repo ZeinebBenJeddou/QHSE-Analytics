@@ -17,6 +17,7 @@ import com.QHSEAnalytics.enums.Tendance;
 import com.QHSEAnalytics.exception.ImportTransitionException;
 import com.QHSEAnalytics.exception.ImportValidationException;
 import com.QHSEAnalytics.repository.ImportSessionRepository;
+import com.QHSEAnalytics.repository.KpiImportPreviewRepository;
 import com.QHSEAnalytics.repository.KpiRawDataRepository;
 import com.QHSEAnalytics.repository.KpiRepository;
 import com.QHSEAnalytics.repository.ResultatKpiRepository;
@@ -39,6 +40,7 @@ public class ImportProcessingService {
     private final KpiProcessingOrchestratorService orchestrator;
     private final ImportSessionRepository importSessionRepository;
     private final ResultatKpiRepository resultatKpiRepository;
+    private final KpiImportPreviewRepository kpiImportPreviewRepository;
     private final KpiRawDataRepository kpiRawDataRepository;
     private final KpiRepository kpiRepository;
 
@@ -52,8 +54,10 @@ public class ImportProcessingService {
         ImportProcessingResponse processingResponse = orchestrator.process(request.getFile(), request.getMappingIndexes());
         String analyseIaGlobale = processingResponse.getAnalyseIa();
         persistRawRows(processingSession, processingResponse.getRawData());
+        persistPreviewRows(processingSession, processingResponse.getCalculatedData());
+
         List<ResultatKpi> results = processingResponse.getCalculatedData().stream()
-                .map(dto -> mapToResultatKpi(dto, processingSession, user, analyseIaGlobale))
+                .map(dto -> mapToResultatKpi(dto, processingSession, user))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
@@ -125,6 +129,28 @@ public class ImportProcessingService {
         return savedSession;
     }
 
+    private void persistPreviewRows(ImportSession session, List<KpiCalculatedDTO> data) {
+        if (data == null || data.isEmpty()) return;
+
+        List<com.QHSEAnalytics.entity.KpiImportPreview> previews = data.stream()
+                .map(dto -> com.QHSEAnalytics.entity.KpiImportPreview.builder()
+                        .importSession(session)
+                        .kpiName(dto.getKpiName())
+                        .category(dto.getCategorie())
+                        .unit(dto.getUnite())
+                        .definition(dto.getDefinition())
+                        .valueN(dto.getValeurN())
+                        .valueN1(dto.getValeurN1())
+                        .status(dto.getStatus())
+                        .commentaire(dto.getCommentaire())
+                        .variationPercent(dto.getVariationPercentage())
+                        .ecart(dto.getVariationAbsolute())
+                        .build())
+                .collect(Collectors.toList());
+        kpiImportPreviewRepository.saveAll(previews);
+        log.info("Enregistré {} lignes de prévisualisation pour l'import {}", previews.size(), session.getId());
+    }
+
     private void persistRawRows(ImportSession session, List<KpiRawDataDTO> rawData) {
         if (rawData == null || rawData.isEmpty()) {
             return;
@@ -144,7 +170,7 @@ public class ImportProcessingService {
         kpiRawDataRepository.saveAll(entities);
     }
 
-    private ResultatKpi mapToResultatKpi(KpiCalculatedDTO dto, ImportSession session, User user, String analyseIa) {
+    private ResultatKpi mapToResultatKpi(KpiCalculatedDTO dto, ImportSession session, User user) {
         if (dto.getMatchedKpiId() == null) {
             return null;
         }
@@ -168,7 +194,9 @@ public class ImportProcessingService {
                 .tendance(parseTendance(dto.getTendance()))
                 .confidenceScore(1.0d)
                 .qualityStatus(QualityStatus.OK)
-                .analyseIa(analyseIa)
+                .status(dto.getStatus())
+                .commentaire(dto.getCommentaire())
+                .analyseIa(null)
                 .build();
     }
 

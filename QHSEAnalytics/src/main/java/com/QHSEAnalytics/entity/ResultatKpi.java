@@ -70,6 +70,12 @@ public class ResultatKpi {
     @Column(columnDefinition = "TEXT")
     private String analyseIa;
 
+    @Column(length = 50)
+    private String status;
+
+    @Column(columnDefinition = "TEXT")
+    private String commentaire;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

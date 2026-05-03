@@ -32,7 +32,25 @@ export interface LigneComparatifResponse {
   variationRelative: number;
   niveauVariation: 'FAIBLE' | 'MODERE' | 'CRITIQUE';
   tendance: 'HAUSSE' | 'BAISSE' | 'STABLE';
+  status?: string;
+  commentaire?: string;
+
+  // Legacy AI note (from AnalysisAgent/Groq)
   analyseIa?: string;
+
+  // ── Gemini Deep Analysis ──────────────────────────────────────────────
+  riskLevel?: 'Faible' | 'Modéré' | 'Élevé';
+  riskJustification?: string;
+  objectiveReached?: boolean;
+  improvementDetected?: boolean;
+  issueDetected?: string;
+  correctiveAction?: string;
+  preventiveAction?: string;
+  immediateAction?: string;
+  immediatePriority?: 'Haute' | 'Moyenne' | 'Basse';
+  requires8d?: boolean;
+  eightDDetails?: string;   // JSON string with D1–D8
+  aiNote?: string;          // Final business note in French
 }
 
 export interface ComparatifTableauResponse {

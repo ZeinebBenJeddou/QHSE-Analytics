@@ -12,12 +12,14 @@ import com.QHSEAnalytics.dto.response.RadarPoint;
 import com.QHSEAnalytics.dto.response.ResumeAnalysteResponse;
 import com.QHSEAnalytics.dto.response.ResumeCategorieResponse;
 import com.QHSEAnalytics.entity.ImportSession;
+import com.QHSEAnalytics.entity.KpiAnalysis;
 import com.QHSEAnalytics.entity.ResultatKpi;
 import com.QHSEAnalytics.enums.ImportStatut;
 import com.QHSEAnalytics.enums.NiveauVariation;
 import com.QHSEAnalytics.exception.ImportNotFoundException;
 import com.QHSEAnalytics.exception.ImportNotReadyException;
 import com.QHSEAnalytics.repository.ImportSessionRepository;
+import com.QHSEAnalytics.repository.KpiAnalysisRepository;
 import com.QHSEAnalytics.repository.ResultatKpiRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +41,7 @@ public class DashboardAnalysteService {
 
     private final ImportSessionRepository importSessionRepository;
     private final ResultatKpiRepository resultatKpiRepository;
+    private final KpiAnalysisRepository kpiAnalysisRepository;
 
     private final AnalyseIaService analyseIaService;
 
@@ -76,13 +79,21 @@ public class DashboardAnalysteService {
         ImportSession session = loadOwnedCompletedSession(userId, importId);
         List<ResultatKpi> resultats = resultatKpiRepository.findByImportSessionIdWithKpi(importId);
 
+        // Build a lookup map of Gemini AI analysis by KPI name
+        Map<String, KpiAnalysis> analysisMap = kpiAnalysisRepository
+                .findByImportSessionIdOrderByIdAsc(importId)
+                .stream()
+                .collect(Collectors.toMap(KpiAnalysis::getKpiName, a -> a, (a, b) -> a));
+
         List<ResultatKpi> sorted = resultats.stream()
                 .sorted(Comparator
                         .comparing((ResultatKpi r) -> safeCategorieCode(r), Comparator.nullsLast(String::compareTo))
                         .thenComparing(r -> safeKpiOrdre(r), Comparator.nullsLast(Integer::compareTo)))
                 .toList();
 
-        List<LigneComparatifResponse> lignes = sorted.stream().map(this::toLigneComparatif).toList();
+        List<LigneComparatifResponse> lignes = sorted.stream()
+                .map(r -> toLigneComparatif(r, analysisMap.get(safeKpiNom(r))))
+                .toList();
         int critiques = (int) sorted.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.CRITIQUE).count();
         int moderes = (int) sorted.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.MODERE).count();
         int faibles = (int) sorted.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.FAIBLE).count();
@@ -242,8 +253,8 @@ public class DashboardAnalysteService {
                 .build();
     }
 
-    private LigneComparatifResponse toLigneComparatif(ResultatKpi resultat) {
-        return LigneComparatifResponse.builder()
+    private LigneComparatifResponse toLigneComparatif(ResultatKpi resultat, KpiAnalysis analysis) {
+        LigneComparatifResponse.LigneComparatifResponseBuilder b = LigneComparatifResponse.builder()
                 .kpiId(resultat.getKpi().getId())
                 .kpiNom(safeKpiNom(resultat))
                 .unite(resultat.getKpi().getUnite() == null ? null : resultat.getKpi().getUnite().name())
@@ -255,8 +266,26 @@ public class DashboardAnalysteService {
                 .variationRelative(resultat.getVariationRelative())
                 .niveauVariation(resultat.getNiveauVariation() == null ? null : resultat.getNiveauVariation().name())
                 .tendance(resultat.getTendance() == null ? null : resultat.getTendance().name())
-                .analyseIa(resultat.getAnalyseIa())
-                .build();
+                .status(resultat.getStatus())
+                .commentaire(resultat.getCommentaire())
+                .analyseIa(resultat.getAnalyseIa());
+
+        if (analysis != null) {
+            b.riskLevel(analysis.getRiskLevel())
+             .riskJustification(analysis.getRiskJustification())
+             .objectiveReached(analysis.getObjectiveReached())
+             .improvementDetected(analysis.getImprovementDetected())
+             .issueDetected(analysis.getIssueDetected())
+             .correctiveAction(analysis.getCorrectiveAction())
+             .preventiveAction(analysis.getPreventiveAction())
+             .immediateAction(analysis.getImmediateAction())
+             .immediatePriority(analysis.getImmediatePriority())
+             .requires8d(analysis.isRequires8d())
+             .eightDDetails(analysis.getEightDDetails())
+             .aiNote(analysis.getAiNote());
+        }
+
+        return b.build();
     }
 
     private Map<String, List<ResultatKpi>> groupByCategorie(List<ResultatKpi> resultats) {

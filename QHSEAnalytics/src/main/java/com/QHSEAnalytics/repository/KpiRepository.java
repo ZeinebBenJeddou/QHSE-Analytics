@@ -15,6 +15,7 @@ public interface KpiRepository extends JpaRepository<Kpi, Long> {
     List<Kpi> findByCategorieKpiCodeAndIsActiveTrueOrderByOrdreAsc(String code);
 
     Optional<Kpi> findByNomIgnoreCase(String nom);
+    Optional<Kpi> findByNom(String nom);
 
     List<Kpi> findAllByOrderByOrdreAsc();
 

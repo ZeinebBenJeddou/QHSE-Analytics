@@ -1,3 +1,4 @@
+// java
 package com.QHSEAnalytics.service.processing;
 
 import com.QHSEAnalytics.dto.ollama.AiResponse;
@@ -9,11 +10,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -32,10 +35,15 @@ public class GeminiClientService {
     @Value("${app.gemini.url:https://generativelanguage.googleapis.com/v1beta/models/}")
     private String baseUrl;
 
+    @Value("${app.gemini.max-retries:5}")
+    private int maxRetries;
+
+    @Value("${app.gemini.initial-backoff-ms:1000}")
+    private long initialBackoffMs;
+
     public GeminiClientService(ObjectMapper objectMapper) {
-        // Use JdkClientHttpRequestFactory which handles modern TLS better than the default HttpURLConnection
-        org.springframework.http.client.JdkClientHttpRequestFactory requestFactory = 
-            new org.springframework.http.client.JdkClientHttpRequestFactory();
+        org.springframework.http.client.JdkClientHttpRequestFactory requestFactory =
+                new org.springframework.http.client.JdkClientHttpRequestFactory();
         this.restTemplate = new RestTemplate(requestFactory);
         this.objectMapper = objectMapper;
     }
@@ -48,14 +56,15 @@ public class GeminiClientService {
         if (!isConfigured()) {
             return null;
         }
-        
-        int maxRetries = 2; // Try up to 2 times
+
+        long backoff = initialBackoffMs;
+
         for (int attempt = 1; attempt <= maxRetries; attempt++) {
             try {
                 String url = baseUrl + model + ":generateContent?key=" + apiKey;
                 HttpHeaders headers = new HttpHeaders();
                 headers.setContentType(MediaType.APPLICATION_JSON);
-                headers.set("User-Agent", "QHSEAnalytics-Backend/1.0"); // Add User-Agent
+                headers.set("User-Agent", "QHSEAnalytics-Backend/1.0");
 
                 com.fasterxml.jackson.databind.node.ObjectNode payloadNode = objectMapper.createObjectNode();
                 payloadNode.set("contents", objectMapper.createArrayNode().add(
@@ -72,21 +81,30 @@ public class GeminiClientService {
                 return root.path("candidates").get(0)
                         .path("content").path("parts").get(0)
                         .path("text").asText();
-            } catch (org.springframework.web.client.HttpClientErrorException.TooManyRequests e) {
-                if (attempt == maxRetries) {
-                    log.error("Gemini API rate limit exceeded after retries.", e);
-                    return null;
+            } catch (HttpClientErrorException e) {
+                if (e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
+                    long waitMillis = extractRetryDelayMillis(e);
+                    if (waitMillis <= 0) {
+                        waitMillis = backoff;
+                        backoff = Math.min(backoff * 2, 60_000L);
+                    }
+                    log.warn("Gemini API 429 (attempt {}/{}). Waiting {} ms before retry.", attempt, maxRetries, waitMillis);
+                    if (attempt == maxRetries) {
+                        log.error("Gemini API rate limit exceeded after {} attempts.", maxRetries, e);
+                        return null;
+                    }
+                    sleep(waitMillis);
+                    continue;
                 }
-                log.warn("Gemini API rate limit hit (429). Waiting 15s before retry (Attempt {}/{})...", attempt, maxRetries);
-                try {
-                    Thread.sleep(15000); // Wait 15 seconds as suggested by API
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    return null;
-                }
-            } catch (Exception e) {
-                log.error("Error calling Gemini API (raw): {}", e.getMessage(), e); // Print stack trace too
+                // non-429 client error -> log and abort
+                log.error("Gemini API client error: {} - {}", e.getStatusCode(), e.getStatusText());
                 return null;
+            } catch (Exception e) {
+                log.error("Error calling Gemini API (raw): {}", e.getMessage());
+                if (attempt == maxRetries) return null;
+                log.warn("Transient error, backing off {} ms (attempt {}/{})", backoff, attempt, maxRetries);
+                sleep(backoff);
+                backoff = Math.min(backoff * 2, 60_000L);
             }
         }
         return null;
@@ -123,6 +141,68 @@ public class GeminiClientService {
         } catch (Exception e) {
             log.error("Error parsing Gemini JSON response: {}", e.getMessage());
             return null;
+        }
+    }
+
+    private long extractRetryDelayMillis(HttpClientErrorException e) {
+        // 1) Retry-After header (seconds)
+        if (e.getResponseHeaders() != null) {
+            String ra = e.getResponseHeaders().getFirst("Retry-After");
+            if (StringUtils.hasText(ra)) {
+                try {
+                    return Long.parseLong(ra.trim()) * 1000L;
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        }
+
+        // 2) Parse JSON body for error.details[*].retryDelay or error.retryDelay
+        String body = e.getResponseBodyAsString();
+        if (StringUtils.hasText(body)) {
+            try {
+                JsonNode root = objectMapper.readTree(body);
+                JsonNode details = root.path("error").path("details");
+                if (details.isArray()) {
+                    for (JsonNode d : details) {
+                        if (d.has("retryDelay")) {
+                            long ms = parseDurationToMillis(d.path("retryDelay").asText());
+                            if (ms > 0) return ms;
+                        }
+                    }
+                }
+                if (root.path("error").has("retryDelay")) {
+                    long ms = parseDurationToMillis(root.path("error").path("retryDelay").asText());
+                    if (ms > 0) return ms;
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        return -1;
+    }
+
+    private long parseDurationToMillis(String s) {
+        if (!StringUtils.hasText(s)) return -1;
+        String v = s.trim().toLowerCase();
+        try {
+            if (v.endsWith("ms")) {
+                return Long.parseLong(v.substring(0, v.length() - 2));
+            } else if (v.endsWith("s")) {
+                return Long.parseLong(v.substring(0, v.length() - 1)) * 1000L;
+            } else if (v.endsWith("m")) {
+                return Long.parseLong(v.substring(0, v.length() - 1)) * 60_000L;
+            } else {
+                return Long.parseLong(v) * 1000L;
+            }
+        } catch (NumberFormatException ex) {
+            return -1;
+        }
+    }
+
+    private void sleep(long millis) {
+        try {
+            Thread.sleep(Math.max(0, millis));
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
         }
     }
 }

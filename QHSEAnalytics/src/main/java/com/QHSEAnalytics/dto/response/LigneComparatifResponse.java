@@ -23,5 +23,24 @@ public class LigneComparatifResponse {
     private Double variationRelative;
     private String niveauVariation;
     private String tendance;
+
+    private String status;
+    private String commentaire;
+
+    // Legacy per-KPI AI note (from AnalysisAgent)
     private String analyseIa;
+
+    // ── Gemini deep analysis fields ──────────────────────────────────────
+    private String riskLevel;          // Faible | Modéré | Élevé
+    private String riskJustification;
+    private Boolean objectiveReached;
+    private Boolean improvementDetected;
+    private String issueDetected;
+    private String correctiveAction;
+    private String preventiveAction;
+    private String immediateAction;
+    private String immediatePriority;
+    private Boolean requires8d;
+    private String eightDDetails;      // JSON string with D1–D8
+    private String aiNote;             // Final business note in French
 }
