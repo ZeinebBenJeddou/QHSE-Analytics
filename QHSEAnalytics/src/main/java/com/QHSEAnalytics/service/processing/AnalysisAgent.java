@@ -1,11 +1,15 @@
 package com.QHSEAnalytics.service.processing;
 
-import com.QHSEAnalytics.dto.ollama.AiResponse;
+import com.QHSEAnalytics.dto.llm.AiResponse;
+import com.QHSEAnalytics.dto.llm.KpiInsight;
 import com.QHSEAnalytics.dto.response.KpiCalculatedDTO;
 import com.QHSEAnalytics.entity.AnalyseGlobale;
 import com.QHSEAnalytics.entity.Kpi;
 import com.QHSEAnalytics.repository.AnalyseGlobaleRepository;
 import com.QHSEAnalytics.repository.KpiRepository;
+import com.QHSEAnalytics.service.LlmProviderChain;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,10 +23,10 @@ import java.util.stream.Collectors;
 @Slf4j
 public class AnalysisAgent {
 
-    private final OllamaClientService ollamaClientService;
-    private final GeminiClientService geminiClientService;
+    private final LlmProviderChain llmProviderChain;
     private final KpiRepository kpiRepository;
     private final AnalyseGlobaleRepository analyseGlobaleRepository;
+    private final ObjectMapper objectMapper;
 
     public String analyze(List<KpiCalculatedDTO> calculatedData) {
         if (calculatedData == null || calculatedData.isEmpty()) {
@@ -51,17 +55,131 @@ public class AnalysisAgent {
                 .limit(20)
                 .collect(Collectors.toList());
         String prompt = buildPrompt(topKpis);
-        log.info("Lancement analyse IA (Gemini ou Ollama) sur {} KPIs", topKpis.size());
-        
-        if (geminiClientService.isConfigured()) {
-            AiResponse geminiResponse = geminiClientService.generateAnalysis(prompt);
-            if (geminiResponse != null) {
-                return geminiResponse;
+        log.info("Lancement analyse IA (Groq puis Gemini) sur {} KPIs", topKpis.size());
+
+        String responseJson = llmProviderChain.generate(prompt);
+        if (responseJson != null && !responseJson.isBlank()) {
+            AiResponse parsedResponse = parseAiResponse(responseJson);
+            if (parsedResponse != null) {
+                return parsedResponse;
             }
-            log.warn("Gemini a échoué, repli vers Ollama...");
+            log.warn("Le JSON du provider LLM était invalide, retour de secours...");
         }
-        
-        return ollamaClientService.generateStrictAiResponseObject(prompt);
+
+        return AiResponse.builder()
+                .overallScore(0.0)
+                .summary("IA indisponible")
+                .kpis(List.of())
+                .recommendations(List.of())
+                .build();
+    }
+
+    private AiResponse parseAiResponse(String jsonText) {
+        try {
+            String cleaned = jsonText == null ? null : jsonText.trim();
+            if (cleaned != null && cleaned.startsWith("```")) {
+                cleaned = cleaned.replaceAll("```[a-zA-Z]*\\n?", "").replaceAll("```", "").trim();
+            }
+            if (cleaned != null) {
+                int start = cleaned.indexOf('{');
+                int end = cleaned.lastIndexOf('}');
+                if (start >= 0 && end >= start) {
+                    cleaned = cleaned.substring(start, end + 1);
+                }
+            }
+
+            JsonNode root = objectMapper.readTree(cleaned);
+
+            AiResponse response = new AiResponse();
+            response.setOverallScore(root.path("overallScore").asDouble(0.0));
+            response.setSummary(root.path("summary").asText("Analyse indisponible"));
+
+            List<String> recs = new java.util.ArrayList<>();
+            root.path("recommendations").forEach(n -> recs.add(n.asText()));
+            response.setRecommendations(recs);
+
+            List<KpiInsight> kpis = new java.util.ArrayList<>();
+            root.path("kpis").forEach(n -> {
+                KpiInsight insight = new KpiInsight();
+                String name = n.path("name").asText();
+                if (name.isBlank()) {
+                    name = n.path("kpiName").asText();
+                }
+                if (name.isBlank()) {
+                    name = n.path("kpi").asText();
+                }
+                insight.setName(name);
+
+                double score = n.path("score").isNumber() ? n.path("score").asDouble() : n.path("rating").asDouble(0.0);
+                insight.setScore(score);
+
+                String rawInsight = n.path("insight").asText();
+                if (rawInsight.isBlank()) {
+                    rawInsight = n.path("analysis").asText();
+                }
+                if (rawInsight.isBlank()) {
+                    rawInsight = n.path("note").asText();
+                }
+                insight.setInsight(rawInsight.isBlank() ? null : rawInsight);
+
+                String aiNote = n.path("aiNote").asText();
+                if (aiNote.isBlank()) {
+                    aiNote = n.path("noteFinale").asText();
+                }
+                if (aiNote.isBlank()) {
+                    aiNote = n.path("note").asText();
+                }
+                if (aiNote.isBlank()) {
+                    aiNote = n.path("analysis").asText();
+                }
+                if (aiNote.isBlank()) {
+                    aiNote = rawInsight;
+                }
+                insight.setAiNote(aiNote.isBlank() ? null : aiNote);
+
+                // Extract enrichment fields with fallback to English names
+                String identificationRisque = n.path("identificationRisque").asText();
+                if (identificationRisque.isBlank()) {
+                    identificationRisque = n.path("riskJustification").asText();
+                }
+                insight.setIdentificationRisque(identificationRisque.isBlank() ? null : identificationRisque);
+                insight.setRiskJustification(n.path("riskJustification").asText());
+                
+                String problemeDetecte = n.path("problemeDetecte").asText();
+                if (problemeDetecte.isBlank()) {
+                    problemeDetecte = n.path("issueDetected").asText();
+                }
+                insight.setProblemeDetecte(problemeDetecte.isBlank() ? null : problemeDetecte);
+                insight.setIssueDetected(n.path("issueDetected").asText());
+                
+                String actionsPreventives = n.path("actionsPreventives").asText();
+                if (actionsPreventives.isBlank()) {
+                    actionsPreventives = n.path("preventiveAction").asText();
+                }
+                insight.setActionsPreventives(actionsPreventives.isBlank() ? null : actionsPreventives);
+                insight.setPreventiveAction(n.path("preventiveAction").asText());
+                
+                insight.setActionImmediate(n.path("actionImmediate").asText());
+                insight.setPrioriteAction(n.path("prioriteAction").asText());
+                
+                String methode8D = n.path("methode8D").asText();
+                insight.setMethode8D(methode8D.isBlank() ? null : methode8D);
+                
+                String noteFinale = n.path("noteFinale").asText();
+                if (noteFinale.isBlank()) {
+                    noteFinale = n.path("insight").asText();
+                }
+                insight.setNoteFinale(noteFinale.isBlank() ? null : noteFinale);
+                
+                kpis.add(insight);
+            });
+            response.setKpis(kpis);
+
+            return response;
+        } catch (Exception e) {
+            log.error("Erreur de parsing de la réponse Groq: {}", e.getMessage());
+            return null;
+        }
     }
 
     private String buildPrompt(List<KpiCalculatedDTO> data) {
@@ -113,7 +231,14 @@ public class AnalysisAgent {
         prompt.append("    {\n");
         prompt.append("      \"name\": string,\n");
         prompt.append("      \"score\": number,\n");
-        prompt.append("      \"insight\": \"Analyse détaillée + Plan d'action immédiat spécifique\"\n");
+        prompt.append("      \"insight\": \"Analyse détaillée + Plan d'action immédiat spécifique\",\n");
+        prompt.append("      \"identificationRisque\": \"Identification précise du risque détecté\",\n");
+        prompt.append("      \"problemeDetecte\": \"Description du problème ou déviation observée\",\n");
+        prompt.append("      \"actionsPreventives\": \"Actions préventives ou correctives recommandées\",\n");
+        prompt.append("      \"actionImmediate\": \"Action immédiate prioritaire\",\n");
+        prompt.append("      \"prioriteAction\": \"CRITIQUE|HAUTE|MOYENNE|BASSE\",\n");
+        prompt.append("      \"methode8D\": \"Résumé de la méthode 8D si applicable\",\n");
+        prompt.append("      \"noteFinale\": \"Synthèse finale complète de l'analyse pour ce KPI\"\n");
         prompt.append("    }\n");
         prompt.append("  ],\n");
         prompt.append("  \"recommendations\": [\"Action immédiate 1\", \"Action corrective 2\"]\n");

@@ -5,6 +5,7 @@ import com.QHSEAnalytics.dto.response.ImportProcessingResponse;
 import com.QHSEAnalytics.dto.response.KpiCalculatedDTO;
 import com.QHSEAnalytics.dto.request.KpiRawDataDTO;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -13,6 +14,7 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class KpiProcessingOrchestratorService {
 
     private final ExtractionAgent extractionAgent;
@@ -46,15 +48,27 @@ public class KpiProcessingOrchestratorService {
         ChartResponseDTO charts = visualizationAgent.build(enrichedData);
 
         String analyseIa = null;
+        com.QHSEAnalytics.dto.llm.AiResponse aiResponse = null;
         try {
             List<KpiCalculatedDTO> validKpis = enrichedData.stream()
                     .filter(k -> !"UNKNOWN".equals(k.getClassification()))
                     .toList();
             if (!validKpis.isEmpty()) {
-                analyseIa = analysisAgent.analyze(validKpis);
+                aiResponse = analysisAgent.analyzeStrict(validKpis);
+                if (aiResponse != null) {
+                    analyseIa = aiResponse.getSummary();
+                    log.info("[Orchestrator] AnalysisAgent returned AiResponse with {} KPIs and summary length {}", 
+                        aiResponse.getKpis() != null ? aiResponse.getKpis().size() : 0,
+                        analyseIa != null ? analyseIa.length() : 0);
+                } else {
+                    log.warn("[Orchestrator] AnalysisAgent returned null aiResponse");
+                }
+            } else {
+                log.info("[Orchestrator] No valid KPIs for analysis");
             }
         } catch (Exception ex) {
             analyseIa = "Analyse IA temporairement indisponible.";
+            log.error("[Orchestrator] Exception during AnalysisAgent.analyzeStrict: {}", ex.getMessage(), ex);
         }
 
         return ImportProcessingResponse.builder()
@@ -65,6 +79,7 @@ public class KpiProcessingOrchestratorService {
                 .detectedHeaders(result.getDetectedHeaders())
                 .charts(charts)
                 .analyseIa(analyseIa)
+                .aiResponse(aiResponse)
                 .risks(criticalRisks)
                 .riskScore(riskScore)
                 .build();

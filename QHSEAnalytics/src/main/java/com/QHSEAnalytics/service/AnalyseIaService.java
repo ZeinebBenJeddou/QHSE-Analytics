@@ -7,7 +7,7 @@ import com.QHSEAnalytics.dto.response.AnalyseCategorieResponse;
 import com.QHSEAnalytics.dto.response.AnalyseCompleteResponse;
 import com.QHSEAnalytics.dto.response.AnalyseGlobaleResponse;
 import com.QHSEAnalytics.dto.response.ResultatKpiResponse;
-import com.QHSEAnalytics.dto.ollama.AiResponse;
+import com.QHSEAnalytics.dto.llm.AiResponse;
 import com.QHSEAnalytics.entity.AnalyseCategorie;
 import com.QHSEAnalytics.entity.AnalyseGlobale;
 import com.QHSEAnalytics.entity.ImportSession;

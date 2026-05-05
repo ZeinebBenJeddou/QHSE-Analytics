@@ -17,6 +17,7 @@ import com.QHSEAnalytics.enums.Tendance;
 import com.QHSEAnalytics.exception.ImportTransitionException;
 import com.QHSEAnalytics.exception.ImportValidationException;
 import com.QHSEAnalytics.repository.ImportSessionRepository;
+import com.QHSEAnalytics.repository.KpiAnalysisRepository;
 import com.QHSEAnalytics.repository.KpiImportPreviewRepository;
 import com.QHSEAnalytics.repository.KpiRawDataRepository;
 import com.QHSEAnalytics.repository.KpiRepository;
@@ -43,6 +44,7 @@ public class ImportProcessingService {
     private final KpiImportPreviewRepository kpiImportPreviewRepository;
     private final KpiRawDataRepository kpiRawDataRepository;
     private final KpiRepository kpiRepository;
+    private final KpiAnalysisRepository kpiAnalysisRepository;
 
     @Transactional
     public ImportProcessingResponse processManualImport(ImportRequestDTO request, User user) {
@@ -69,6 +71,12 @@ public class ImportProcessingService {
         } else {
             ImportSession calculatedSession = advanceStatus(processingSession, ImportStatut.CALCULATED);
             resultatKpiRepository.saveAll(results);
+            
+            // Store per-KPI AI analysis if available
+            if (processingResponse.getAiResponse() != null && processingResponse.getAiResponse().getKpis() != null) {
+                persistKpiAnalysis(processingSession, processingResponse.getAiResponse());
+            }
+            
             finalSession = advanceStatus(calculatedSession, ImportStatut.READY_FOR_AI);
         }
 
@@ -127,6 +135,46 @@ public class ImportProcessingService {
         ImportSession savedSession = importSessionRepository.save(session);
         log.info("ImportSession {} statut mis à jour : {} -> {}", savedSession.getId(), currentStatut, nextStatut);
         return savedSession;
+    }
+
+    private void persistKpiAnalysis(ImportSession session, com.QHSEAnalytics.dto.llm.AiResponse aiResponse) {
+        if (aiResponse == null || aiResponse.getKpis() == null || aiResponse.getKpis().isEmpty()) {
+            log.warn("[ImportProcessing] persistKpiAnalysis called with null/empty aiResponse for import {}", session.getId());
+            return;
+        }
+        
+        List<com.QHSEAnalytics.entity.KpiAnalysis> analyses = aiResponse.getKpis().stream()
+                .map(insight -> {
+                    String aiNote = firstNonBlank(firstNonBlank(insight.getNoteFinale(), insight.getAiNote()), insight.getInsight());
+                    log.debug("[ImportProcessing] Creating KpiAnalysis: name='{}', aiNote='{}', identificationRisque='{}'", 
+                        insight.getName(), 
+                        aiNote != null ? aiNote.substring(0, Math.min(40, aiNote.length())) : "null",
+                        insight.getIdentificationRisque());
+                    
+                    return com.QHSEAnalytics.entity.KpiAnalysis.builder()
+                        .importSession(session)
+                        .kpiName(insight.getName())
+                        .riskLevel("Modéré")
+                        .riskJustification(firstNonBlank(insight.getIdentificationRisque(), insight.getRiskJustification()))
+                        .identificationRisque(insight.getIdentificationRisque())
+                        .problemeDetecte(firstNonBlank(insight.getProblemeDetecte(), insight.getIssueDetected()))
+                        .actionsPreventives(firstNonBlank(insight.getActionsPreventives(), insight.getPreventiveAction()))
+                        .actionImmediate(insight.getActionImmediate())
+                        .prioriteAction(insight.getPrioriteAction())
+                        .methode8D(insight.getMethode8D())
+                        .aiNote(aiNote)
+                        .noteFinale(firstNonBlank(insight.getNoteFinale(), aiNote))
+                        .requires8d(false)
+                        .build();
+                })
+                .collect(Collectors.toList());
+        
+        kpiAnalysisRepository.saveAll(analyses);
+        log.info("[ImportProcessing] Persisted {} KpiAnalysis records for import {}", analyses.size(), session.getId());
+    }
+
+    private String firstNonBlank(String candidate, String fallback) {
+        return candidate == null || candidate.isBlank() ? fallback : candidate;
     }
 
     private void persistPreviewRows(ImportSession session, List<KpiCalculatedDTO> data) {

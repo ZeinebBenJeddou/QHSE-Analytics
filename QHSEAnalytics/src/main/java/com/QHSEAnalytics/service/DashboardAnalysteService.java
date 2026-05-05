@@ -26,11 +26,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.text.Normalizer;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -80,10 +83,19 @@ public class DashboardAnalysteService {
         List<ResultatKpi> resultats = resultatKpiRepository.findByImportSessionIdWithKpi(importId);
 
         // Build a lookup map of Gemini AI analysis by KPI name
-        Map<String, KpiAnalysis> analysisMap = kpiAnalysisRepository
-                .findByImportSessionIdOrderByIdAsc(importId)
+        List<KpiAnalysis> analyses = kpiAnalysisRepository
+                .findByImportSessionIdOrderByIdAsc(importId);
+        log.info("[Dashboard] Found {} KpiAnalysis records for import {}", analyses.size(), importId);
+        for (KpiAnalysis a : analyses) {
+            log.debug("[Dashboard] KpiAnalysis: kpiName='{}', aiNote='{}', noteFinale='{}'", 
+                a.getKpiName(), a.getAiNote(), a.getNoteFinale());
+        }
+        
+        Map<String, KpiAnalysis> analysisMap = analyses
                 .stream()
-                .collect(Collectors.toMap(KpiAnalysis::getKpiName, a -> a, (a, b) -> a));
+                .filter(a -> normalizeKey(a.getKpiName()) != null)
+                .collect(Collectors.toMap(a -> normalizeKey(a.getKpiName()), a -> a, (a, b) -> a, LinkedHashMap::new));
+        log.info("[Dashboard] Built analysis map with {} normalized keys", analysisMap.size());
 
         List<ResultatKpi> sorted = resultats.stream()
                 .sorted(Comparator
@@ -92,7 +104,13 @@ public class DashboardAnalysteService {
                 .toList();
 
         List<LigneComparatifResponse> lignes = sorted.stream()
-                .map(r -> toLigneComparatif(r, analysisMap.get(safeKpiNom(r))))
+            .map(r -> {
+                String normalizedKpiName = normalizeKey(safeKpiNom(r));
+                KpiAnalysis analysis = findAnalysisForKpi(normalizedKpiName, analysisMap);
+                log.debug("[Dashboard] KPI '{}' (normalized='{}') -> analysis found: {}", 
+                    safeKpiNom(r), normalizedKpiName, analysis != null);
+                return toLigneComparatif(r, analysis);
+            })
                 .toList();
         int critiques = (int) sorted.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.CRITIQUE).count();
         int moderes = (int) sorted.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.MODERE).count();
@@ -254,9 +272,13 @@ public class DashboardAnalysteService {
     }
 
     private LigneComparatifResponse toLigneComparatif(ResultatKpi resultat, KpiAnalysis analysis) {
+        String kpiNom = safeKpiNom(resultat);
+        String aiNote = analysis == null ? null : firstNonBlank(analysis.getNoteFinale(), analysis.getAiNote());
+        log.debug("[Dashboard] KPI '{}' aiNote='{}'", kpiNom, aiNote);
+
         LigneComparatifResponse.LigneComparatifResponseBuilder b = LigneComparatifResponse.builder()
                 .kpiId(resultat.getKpi().getId())
-                .kpiNom(safeKpiNom(resultat))
+            .kpiNom(kpiNom)
                 .unite(resultat.getKpi().getUnite() == null ? null : resultat.getKpi().getUnite().name())
                 .categorieCode(safeCategorieCode(resultat))
                 .categorieLibelle(safeCategorieLibelle(resultat))
@@ -273,19 +295,84 @@ public class DashboardAnalysteService {
         if (analysis != null) {
             b.riskLevel(analysis.getRiskLevel())
              .riskJustification(analysis.getRiskJustification())
+             .identificationRisque(analysis.getIdentificationRisque())
              .objectiveReached(analysis.getObjectiveReached())
              .improvementDetected(analysis.getImprovementDetected())
              .issueDetected(analysis.getIssueDetected())
+             .problemeDetecte(analysis.getProblemeDetecte())
              .correctiveAction(analysis.getCorrectiveAction())
              .preventiveAction(analysis.getPreventiveAction())
+             .actionsPreventives(analysis.getActionsPreventives())
              .immediateAction(analysis.getImmediateAction())
+             .actionImmediate(analysis.getActionImmediate())
              .immediatePriority(analysis.getImmediatePriority())
+             .prioriteAction(analysis.getPrioriteAction())
              .requires8d(analysis.isRequires8d())
              .eightDDetails(analysis.getEightDDetails())
-             .aiNote(analysis.getAiNote());
+             .methode8D(analysis.getMethode8D())
+             .aiNote(aiNote)
+             .noteFinale(analysis.getNoteFinale());
         }
 
         return b.build();
+    }
+
+    private String normalizeKey(String value) {
+        if (value == null) {
+            return null;
+        }
+        String normalized = Normalizer.normalize(value, Normalizer.Form.NFKD)
+                .replaceAll("\\p{M}", "")
+                .replace("’", "'")
+                .replace("‘", "'")
+                .replace("`", "'")
+                .replace("“", "\"")
+                .replace("”", "\"")
+                .replaceAll("[^\\p{Alnum}'\"]+", " ")
+                .trim()
+                .toLowerCase(Locale.ROOT);
+        return normalized.isBlank() ? null : normalized;
+    }
+
+    private KpiAnalysis findAnalysisForKpi(String normalizedKpiName, Map<String, KpiAnalysis> analysisMap) {
+        if (normalizedKpiName == null || analysisMap == null || analysisMap.isEmpty()) {
+            return null;
+        }
+
+        KpiAnalysis directMatch = analysisMap.get(normalizedKpiName);
+        if (directMatch != null) {
+            return directMatch;
+        }
+
+        for (Map.Entry<String, KpiAnalysis> entry : analysisMap.entrySet()) {
+            String key = entry.getKey();
+            if (key == null) {
+                continue;
+            }
+            if (key.contains(normalizedKpiName) || normalizedKpiName.contains(key)) {
+                log.debug("[Dashboard] Fallback match for '{}' -> '{}'", normalizedKpiName, key);
+                return entry.getValue();
+            }
+        }
+
+        Set<String> targetWords = new HashSet<>(List.of(normalizedKpiName.split("\\s+")));
+        for (Map.Entry<String, KpiAnalysis> entry : analysisMap.entrySet()) {
+            String key = entry.getKey();
+            if (key == null) {
+                continue;
+            }
+            Set<String> candidateWords = new HashSet<>(List.of(key.split("\\s+")));
+            if (candidateWords.containsAll(targetWords) || targetWords.containsAll(candidateWords)) {
+                log.debug("[Dashboard] Token match for '{}' -> '{}'", normalizedKpiName, key);
+                return entry.getValue();
+            }
+        }
+
+        return null;
+    }
+
+    private String firstNonBlank(String candidate, String fallback) {
+        return candidate == null || candidate.isBlank() ? fallback : candidate;
     }
 
     private Map<String, List<ResultatKpi>> groupByCategorie(List<ResultatKpi> resultats) {

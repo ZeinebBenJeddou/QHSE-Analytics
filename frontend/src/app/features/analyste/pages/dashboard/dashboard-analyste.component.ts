@@ -322,7 +322,8 @@ export class DashboardAnalysteComponent implements OnInit {
   }
 
   /**
-   * Triggers the line-by-line Gemini analysis for all KPIs in the current session.
+    * Triggers the line-by-line Groq analysis for all KPIs in the current session,
+    * with Gemini used as fallback.
    * This generates risk levels, corrective actions, and 8D plans.
    */
   runFullAnalysis() {

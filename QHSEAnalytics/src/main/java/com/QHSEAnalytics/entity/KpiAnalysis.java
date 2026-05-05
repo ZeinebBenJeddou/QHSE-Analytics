@@ -37,6 +37,9 @@ public class KpiAnalysis {
     @Column(name = "risk_justification", columnDefinition = "TEXT")
     private String riskJustification;
 
+    @Column(name = "identification_risque", columnDefinition = "TEXT")
+    private String identificationRisque;
+
     @Column(name = "objective_reached")
     private Boolean objectiveReached;
 
@@ -47,17 +50,29 @@ public class KpiAnalysis {
     @Column(name = "issue_detected", columnDefinition = "TEXT")
     private String issueDetected;
 
+    @Column(name = "probleme_detecte", columnDefinition = "TEXT")
+    private String problemeDetecte;
+
     @Column(name = "corrective_action", columnDefinition = "TEXT")
     private String correctiveAction;
 
     @Column(name = "preventive_action", columnDefinition = "TEXT")
     private String preventiveAction;
 
+    @Column(name = "actions_preventives", columnDefinition = "TEXT")
+    private String actionsPreventives;
+
     @Column(name = "immediate_action", columnDefinition = "TEXT")
     private String immediateAction;
 
+    @Column(name = "action_immediate", columnDefinition = "TEXT")
+    private String actionImmediate;
+
     @Column(name = "immediate_priority", length = 20)
     private String immediatePriority;
+
+    @Column(name = "priorite_action", length = 20)
+    private String prioriteAction;
 
     @Column(name = "requires_8d", nullable = false)
     @Builder.Default
@@ -67,9 +82,15 @@ public class KpiAnalysis {
     @Column(name = "eight_d_details", columnDefinition = "TEXT")
     private String eightDDetails;
 
+    @Column(name = "methode_8d", columnDefinition = "TEXT")
+    private String methode8D;
+
     /** Clear business explanation – "Final Note IA" */
     @Column(name = "ai_note", columnDefinition = "TEXT")
     private String aiNote;
+
+    @Column(name = "note_finale", columnDefinition = "TEXT")
+    private String noteFinale;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

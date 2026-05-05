@@ -33,14 +33,21 @@ public class LigneComparatifResponse {
     // ── Gemini deep analysis fields ──────────────────────────────────────
     private String riskLevel;          // Faible | Modéré | Élevé
     private String riskJustification;
+    private String identificationRisque;
     private Boolean objectiveReached;
     private Boolean improvementDetected;
     private String issueDetected;
+    private String problemeDetecte;
     private String correctiveAction;
     private String preventiveAction;
+    private String actionsPreventives;
     private String immediateAction;
+    private String actionImmediate;
     private String immediatePriority;
+    private String prioriteAction;
     private Boolean requires8d;
     private String eightDDetails;      // JSON string with D1–D8
+    private String methode8D;
     private String aiNote;             // Final business note in French
+    private String noteFinale;
 }

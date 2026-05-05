@@ -1,13 +1,13 @@
 package com.QHSEAnalytics.service.processing;
 
 import com.QHSEAnalytics.dto.response.KpiCalculatedDTO;
+import com.QHSEAnalytics.service.LlmProviderChain;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -15,14 +15,8 @@ import java.util.List;
 @Slf4j
 public class MetadataEnrichmentAgent {
 
-    private final GeminiClientService geminiClientService;
-    private final OllamaClientService ollamaClientService;
+    private final LlmProviderChain llmProviderChain;
     private final ObjectMapper objectMapper;
-
-// java
-// File: `src/main/java/com/QHSEAnalytics/service/processing/MetadataEnrichmentAgent.java`
-
-    private static final int GEMINI_MAX_ATTEMPTS = 2;
 
     public List<KpiCalculatedDTO> enrichMetadata(List<KpiCalculatedDTO> data) {
         List<KpiCalculatedDTO> toEnrich = data.stream()
@@ -39,18 +33,7 @@ public class MetadataEnrichmentAgent {
         String prompt = buildEnrichmentPrompt(toEnrich);
 
         try {
-            String aiResponseJson = null;
-
-            if (geminiClientService.isConfigured()) {
-                try {
-                    aiResponseJson = callGeminiWithRetries(prompt, GEMINI_MAX_ATTEMPTS);
-                } catch (Exception e) {
-                    log.warn("Gemini failed after retries, falling back to Ollama: {}", e.getMessage());
-                    aiResponseJson = tryOllama(prompt);
-                }
-            } else {
-                aiResponseJson = tryOllama(prompt);
-            }
+            String aiResponseJson = llmProviderChain.generate(prompt);
 
             if (aiResponseJson != null) {
                 parseAndApplyMetadata(aiResponseJson, data);
@@ -63,51 +46,20 @@ public class MetadataEnrichmentAgent {
         return data;
     }
 
-    private String callGeminiWithRetries(String prompt, int attempts) throws Exception {
-        Exception last = null;
-        for (int i = 1; i <= attempts; i++) {
-            try {
-                return callGeminiForMetadata(prompt);
-            } catch (Exception e) {
-                last = e;
-                log.warn("Gemini attempt {}/{} failed: {}", i, attempts, e.getMessage());
-                // simple exponential backoff
-                try {
-                    Thread.sleep(250L * (long) Math.pow(2, i - 1));
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    throw ie;
-                }
-            }
-        }
-        throw last != null ? last : new RuntimeException("Gemini unknown failure");
-    }
-
-    private String tryOllama(String prompt) {
-        try {
-            return ollamaClientService.generateWithPrompt(prompt);
-        } catch (Exception e) {
-            log.error("Ollama fallback failed: {}", e.getMessage());
-            return null;
-        }
-    }
-
-    private String callGeminiForMetadata(String prompt) {
-        return geminiClientService.generateRaw(prompt);
+    private String cleanGroqResponse(String rawResponse) {
+        return rawResponse
+                .replaceAll("(?s)```json\\s*", "")
+                .replaceAll("(?s)```\\s*", "")
+                .trim();
     }
 
     private void parseAndApplyMetadata(String json, List<KpiCalculatedDTO> data) {
         try {
-            if (json != null) {
-                int start = json.indexOf('[');
-                int end = json.lastIndexOf(']');
-                if (start >= 0 && end >= start) {
-                    json = json.substring(start, end + 1);
-                }
-            }
-            JsonNode root = objectMapper.readTree(json);
-            if (root.isArray()) {
-                for (JsonNode node : root) {
+            String cleaned = cleanGroqResponse(json);
+            JsonNode root = objectMapper.readTree(cleaned);
+            JsonNode items = root.isArray() ? root : root.path("items");
+            if (items.isArray()) {
+                for (JsonNode node : items) {
                     String name = node.path("name").asText();
                     String category = node.path("category").asText();
                     String definition = node.path("definition").asText();
@@ -136,7 +88,7 @@ public class MetadataEnrichmentAgent {
         sb.append("- For BOOLEAN KPIs (Yes/No, True/False): —\n");
         sb.append("KPIs: ");
         data.forEach(k -> sb.append(k.getKpiName()).append(", "));
-        sb.append("\nReturn ONLY a valid JSON array of objects with keys: \"name\", \"category\", \"definition\", \"unite\". No other text.");
+        sb.append("\nReturn ONLY a valid JSON object with exactly this structure: {\"items\":[{\"name\":string,\"category\":string,\"definition\":string,\"unite\":string}]}. No other text.");
         return sb.toString();
     }
 }

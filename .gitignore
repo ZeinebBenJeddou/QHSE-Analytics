@@ -2,6 +2,7 @@
 .env
 *.env
 !.env.example
+application-local.properties
 
 # Docker
 docker-compose.override.yml

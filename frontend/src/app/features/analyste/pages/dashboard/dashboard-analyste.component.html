@@ -35,7 +35,7 @@
       </div>
       <div class="header-actions">
         <button mat-flat-button class="enrich-btn" type="button" (click)="runFullAnalysis()"
-          [disabled]="isAnalysing() || !hasImport" matTooltip="Lancer l'analyse Gemini (ligne par ligne)">
+          [disabled]="isAnalysing() || !hasImport" matTooltip="Lancer l'analyse Groq (fallback Gemini)">
           <mat-icon>{{ isAnalysing() ? 'sync' : 'auto_awesome' }}</mat-icon>
           {{ isAnalysing() ? 'Analyse en cours…' : 'Générer Analyses IA' }}
         </button>
@@ -55,7 +55,7 @@
     @if (isAnalysing()) {
       <div class="enrichment-progress">
         <mat-progress-bar mode="indeterminate" color="accent"></mat-progress-bar>
-        <p>Gemini analyse chaque indicateur pour détecter les risques et générer des plans d'actions (8D)...</p>
+        <p>Groq analyse chaque indicateur, avec Gemini en fallback, pour détecter les risques et générer des plans d'actions (8D)...</p>
       </div>
     }
 
@@ -266,7 +266,7 @@
               </td>
             </ng-container>
 
-            <!-- Risk Badge (Gemini) -->
+            <!-- Risk Badge (Groq primary, Gemini fallback) -->
             <ng-container matColumnDef="riskBadge">
               <th mat-header-cell *matHeaderCellDef>Risque IA</th>
               <td mat-cell *matCellDef="let row">
@@ -455,7 +455,7 @@
         <mat-card-header>
           <mat-icon mat-card-avatar class="ia-av-icon">auto_awesome</mat-icon>
           <mat-card-title>Synthèse IA Globale</mat-card-title>
-          <mat-card-subtitle>Analyse générée via Gemini</mat-card-subtitle>
+          <mat-card-subtitle>Analyse générée via Groq, avec Gemini en fallback</mat-card-subtitle>
         </mat-card-header>
         <mat-card-content>
           <div class="ia-text">{{ analysesIa()!.analyseGlobale!.synthese }}</div>

@@ -72,4 +72,16 @@ public class KpiEnrichmentController {
                 .orElseThrow(() -> new UserNotFoundException("Utilisateur introuvable."))
                 .getId();
     }
+
+    /**
+     * Development-only endpoint to debug AI responses for a single preview row.
+     * Remove or protect before production use.
+     */
+    @GetMapping("/test/{previewId}")
+    @PreAuthorize("hasRole('ANALYSTE')")
+    public ResponseEntity<Map<String, Object>> debugAnalyseOne(@PathVariable Long previewId,
+                                                                @RequestParam(defaultValue = "false") boolean force) {
+        Map<String, Object> result = kpiEnrichmentService.debugAnalyseOne(previewId, force);
+        return ResponseEntity.ok(result);
+    }
 }

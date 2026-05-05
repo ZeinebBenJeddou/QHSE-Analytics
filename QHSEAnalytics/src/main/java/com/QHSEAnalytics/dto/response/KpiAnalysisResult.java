@@ -20,24 +20,31 @@ public class KpiAnalysisResult {
     // ── Risk ──────────────────────────────────────────────────────────────
     private String riskLevel;          // Faible | Modéré | Élevé
     private String riskJustification;
+    private String identificationRisque;
     private Boolean objectiveReached;
     private Boolean improvementDetected;
 
     // ── Issue detection ───────────────────────────────────────────────────
     private String issueDetected;      // e.g. "Anomalie: chute de 22%"
+    private String problemeDetecte;
 
     // ── Action plans ──────────────────────────────────────────────────────
     private String correctiveAction;
     private String preventiveAction;
+    private String actionsPreventives;
 
     // ── Immediate actions ─────────────────────────────────────────────────
     private String immediateAction;
     private String immediatePriority;  // Haute | Moyenne | Basse
+    private String actionImmediate;
+    private String prioriteAction;
 
     // ── 8D ────────────────────────────────────────────────────────────────
     private boolean requires8d;
     private String eightDDetails;      // JSON string with D1-D8 steps
+    private String methode8D;
 
     // ── Final note ────────────────────────────────────────────────────────
     private String aiNote;
+    private String noteFinale;
 }

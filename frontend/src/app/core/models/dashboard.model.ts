@@ -35,22 +35,29 @@ export interface LigneComparatifResponse {
   status?: string;
   commentaire?: string;
 
-  // Legacy AI note (from AnalysisAgent/Groq)
+  // Legacy AI note (Groq primary, Gemini fallback in the backend)
   analyseIa?: string;
 
-  // ── Gemini Deep Analysis ──────────────────────────────────────────────
+  // ── Deep AI Analysis ─────────────────────────────────────────────────
   riskLevel?: 'Faible' | 'Modéré' | 'Élevé';
   riskJustification?: string;
+  identificationRisque?: string;
   objectiveReached?: boolean;
   improvementDetected?: boolean;
   issueDetected?: string;
+  problemeDetecte?: string;
   correctiveAction?: string;
   preventiveAction?: string;
+  actionsPreventives?: string;
   immediateAction?: string;
+  actionImmediate?: string;
   immediatePriority?: 'Haute' | 'Moyenne' | 'Basse';
+  prioriteAction?: 'Haute' | 'Moyenne' | 'Basse';
   requires8d?: boolean;
   eightDDetails?: string;   // JSON string with D1–D8
+  methode8D?: string;       // JSON string with D1–D8
   aiNote?: string;          // Final business note in French
+  noteFinale?: string;
 }
 
 export interface ComparatifTableauResponse {

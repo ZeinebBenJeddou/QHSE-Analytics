@@ -55,7 +55,8 @@ export class KpiEnrichmentService {
   }
 
   /**
-   * Trigger line-by-line Gemini AI analysis for all preview rows.
+   * Trigger line-by-line Groq AI analysis for all preview rows,
+   * with Gemini used as fallback in the backend.
    * @param force – if true, re-analyses already-analysed KPIs
    */
   analyseAll(importSessionId: number, force = false): Observable<KpiEnrichedResponse[]> {

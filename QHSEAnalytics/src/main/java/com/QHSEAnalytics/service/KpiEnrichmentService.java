@@ -5,15 +5,16 @@ import com.QHSEAnalytics.dto.response.KpiEnrichedResponse;
 import com.QHSEAnalytics.entity.*;
 import com.QHSEAnalytics.exception.ImportNotFoundException;
 import com.QHSEAnalytics.repository.*;
-import com.QHSEAnalytics.service.processing.GeminiClientService;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.ObjectProvider;
 
+import java.text.Normalizer;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -38,7 +39,9 @@ public class KpiEnrichmentService {
     private final KpiAnalysisRepository analysisRepository;
     private final RagKnowledgeRepository ragKnowledgeRepository;
     private final KpiRepository kpiRepository;
-    private final GeminiClientService geminiClientService;
+    private final LlmProviderChain llmProviderChain;
+    private final GroqPromptBuilder groqPromptBuilder;
+    private final ObjectProvider<KpiEnrichmentService> selfProvider;
     private final ObjectMapper objectMapper;
 
     // ───────────────────────────── Public API ──────────────────────────────
@@ -88,7 +91,7 @@ public class KpiEnrichmentService {
 
         for (KpiImportPreview preview : previews) {
             try {
-                results.add(analyseOne(preview, importSessionId, force));
+                results.add(selfProvider.getObject().analyseOne(preview, importSessionId, force));
             } catch (Exception ex) {
                 log.error("[KpiEnrichment] Error analysing KPI '{}': {}", preview.getKpiName(), ex.getMessage(), ex);
                 // continue to next KPI – do not stop the whole batch
@@ -109,16 +112,23 @@ public class KpiEnrichmentService {
         Map<String, KpiAnalysis> analysisByName = analysisRepository
                 .findByImportSessionIdOrderByIdAsc(importSessionId)
                 .stream()
-                .collect(Collectors.toMap(KpiAnalysis::getKpiName, a -> a, (a, b) -> a));
+            .filter(a -> normalizeKey(a.getKpiName()) != null)
+            .collect(Collectors.toMap(a -> normalizeKey(a.getKpiName()), a -> a, (a, b) -> a, LinkedHashMap::new));
 
         return previews.stream()
-                .map(p -> toEnrichedResponse(p, analysisByName.get(p.getKpiName())))
+            .map(p -> toEnrichedResponse(p, analysisByName.get(normalizeKey(p.getKpiName()))))
                 .collect(Collectors.toList());
     }
 
     // ────────────────────────────── Private ────────────────────────────────
 
-    private KpiEnrichedResponse analyseOne(KpiImportPreview preview, Long importSessionId, boolean force) {
+        @Cacheable(
+            value = "kpiAnalysis",
+            key = "#preview.getKpiName().toLowerCase().trim() + '_' + T(java.util.Objects).hashCode(#preview.getValueN()) + '_' + T(java.util.Objects).hashCode(#preview.getValueN1())",
+            unless = "#result == null",
+            condition = "!#force"
+        )
+        public KpiEnrichedResponse analyseOne(KpiImportPreview preview, Long importSessionId, boolean force) {
         // Skip if already analysed
         if (!force) {
             Optional<KpiAnalysis> existing = analysisRepository
@@ -132,11 +142,11 @@ public class KpiEnrichmentService {
         // 1. RAG lookup
         String ragContext = buildRagContext(preview);
 
-        // 2. Build prompt
+        // 2. Build prompt via centralized prompt builder (token safe)
         String prompt = buildGeminiPrompt(preview, ragContext);
 
-        // 3. Call Gemini
-        String rawJson = geminiClientService.generateRaw(prompt);
+        // 3. Call the LLM provider chain
+        String rawJson = llmProviderChain.generate(prompt);
 
         // 4. Parse response
         KpiAnalysisResult result = parseAnalysisResult(rawJson, preview.getKpiName());
@@ -150,10 +160,14 @@ public class KpiEnrichmentService {
         return toEnrichedResponse(preview, analysis);
     }
 
+    @Cacheable(value = "ragKnowledge", key = "#kpiName.toLowerCase().trim()", unless = "#result == null")
+    public RagKnowledge findRagKnowledge(String kpiName) {
+        return ragKnowledgeRepository.findByKpiName(kpiName).orElse(null);
+    }
+
     private String buildRagContext(KpiImportPreview preview) {
-        Optional<RagKnowledge> rag = ragKnowledgeRepository.findByKpiName(preview.getKpiName());
-        if (rag.isPresent()) {
-            RagKnowledge knowledge = rag.get();
+        RagKnowledge knowledge = findRagKnowledge(preview.getKpiName());
+        if (knowledge != null) {
             StringBuilder sb = new StringBuilder();
             if (knowledge.getDefinition() != null) {
                 sb.append("Définition: ").append(knowledge.getDefinition()).append("\n");
@@ -167,126 +181,137 @@ public class KpiEnrichmentService {
     }
 
     private String buildGeminiPrompt(KpiImportPreview preview, String ragContext) {
-        Double varPct = preview.getVariationPercent();
-        Double ecart  = preview.getEcart();
+        double valeurN = preview.getValueN() == null ? 0d : preview.getValueN();
+        double valeurN1 = preview.getValueN1() == null ? 0d : preview.getValueN1();
+        double variation = preview.getVariationPercent() == null ? 0d : preview.getVariationPercent();
 
-        // Fetch official thresholds from KPI table if available
-        String officialThresholds = "";
-        Optional<Kpi> kpiOpt = kpiRepository.findByNom(preview.getKpiName());
-        if (kpiOpt.isPresent()) {
-            Kpi k = kpiOpt.get();
-            officialThresholds = String.format(
-                "SEUILS OFFICIELS (Table KPI):\n- Faible: < %.2f\n- Modéré: %.2f - %.2f\n- Critique: > %.2f\n",
-                k.getSeuilFaible(), k.getSeuilFaible(), k.getSeuilModere(), k.getSeuilCritique()
-            );
-        }
+        int currentYear = LocalDateTime.now().getYear();
+        int periodeN = currentYear;
+        int periodeN1 = currentYear - 1;
 
-        StringBuilder sb = new StringBuilder();
-        sb.append("You are an expert QHSE (Quality, Health, Safety, Environment) analyst.\n");
-        sb.append("Analyze the following KPI and return a valid JSON object ONLY (no markdown, no explanation).\n\n");
-        sb.append("KPI DATA:\n");
-        sb.append("- Name: ").append(preview.getKpiName()).append("\n");
-        sb.append("- Category: ").append(nullSafe(preview.getCategory())).append("\n");
-        sb.append("- Unit: ").append(nullSafe(preview.getUnit())).append("\n");
-        sb.append("- Value N (2026): ").append(nullSafe(preview.getValueN())).append("\n");
-        sb.append("- Value N-1 (2025): ").append(nullSafe(preview.getValueN1())).append("\n");
-        sb.append("- Variation %: ").append(varPct != null ? String.format("%.2f%%", varPct) : "N/A").append("\n");
-        sb.append("- Écart (absolute): ").append(ecart != null ? String.format("%.2f", ecart) : "N/A").append("\n");
-        if (preview.getDefinition() != null && !preview.getDefinition().isBlank()) {
-            sb.append("- Definition: ").append(preview.getDefinition()).append("\n");
-        }
-        if (!officialThresholds.isEmpty()) {
-            sb.append("\n").append(officialThresholds).append("\n");
-        }
-        if (ragContext != null && !ragContext.isBlank()) {
-            sb.append("\nKNOWLEDGE BASE CONTEXT (RAG):\n").append(ragContext).append("\n");
-        }
-        sb.append("\nReturn ONLY this exact JSON structure (all fields required):\n");
-        sb.append("{\n");
-        sb.append("  \"riskLevel\": \"Faible|Modéré|Élevé\",\n");
-        sb.append("  \"riskJustification\": \"string\",\n");
-        sb.append("  \"objectiveReached\": true|false,\n");
-        sb.append("  \"improvementDetected\": true|false,\n");
-        sb.append("  \"issueDetected\": \"string or null\",\n");
-        sb.append("  \"correctiveAction\": \"string or null\",\n");
-        sb.append("  \"preventiveAction\": \"string\",\n");
-        sb.append("  \"immediateAction\": \"string\",\n");
-        sb.append("  \"immediatePriority\": \"Haute|Moyenne|Basse\",\n");
-        sb.append("  \"requires8d\": true|false,\n");
-        sb.append("  \"eightDDetails\": {\n");
-        sb.append("    \"D1\": \"Equipe\",\n");
-        sb.append("    \"D2\": \"Problème\",\n");
-        sb.append("    \"D3\": \"Confinement\",\n");
-        sb.append("    \"D4\": \"Cause Racine\",\n");
-        sb.append("    \"D5\": \"Actions Correctives\",\n");
-        sb.append("    \"D6\": \"Validation\",\n");
-        sb.append("    \"D7\": \"Prévention\",\n");
-        sb.append("    \"D8\": \"Clôture\"\n");
-        sb.append("  },\n");
-        sb.append("  \"aiNote\": \"Analyse business en français: indiquez si l'objectif est atteint et si la tendance s'améliore.\"\n");
-        sb.append("}\n");
-        sb.append("\nRules:\n");
-        sb.append("- objectiveReached is true if Value N meets the thresholds (usually < Faible or within target).\n");
-        sb.append("- improvementDetected is true if the variation shows a positive trend compared to N-1.\n");
-        sb.append("- If requires8d is false, set eightDDetails to null.\n");
-        sb.append("- Write everything in French, maximum 3 sentences for aiNote.\n");
-
-        return sb.toString();
+        // Delegate to the centralized prompt builder which enforces token-safety and strict JSON
+        return groqPromptBuilder.buildKpiPrompt(
+                preview.getKpiName(),
+                preview.getDefinition(),
+                preview.getUnit(),
+                preview.getCategory(),
+                valeurN1,
+                valeurN,
+                variation,
+                null,
+                null,
+                periodeN1,
+                periodeN
+        );
     }
 
     private KpiAnalysisResult parseAnalysisResult(String rawJson, String kpiName) {
         if (rawJson == null || rawJson.isBlank()) {
-            log.warn("[KpiEnrichment] Gemini returned empty response for KPI '{}'", kpiName);
+            log.warn("[KpiEnrichment] AI returned empty response for KPI '{}'", kpiName);
             return buildFallbackResult(kpiName);
         }
 
+        String cleaned = cleanAiResponse(rawJson);
         try {
-            // Strip markdown code blocks if present
-            String cleaned = rawJson.trim();
-            if (cleaned.startsWith("```")) {
-                cleaned = cleaned.replaceAll("```[a-z]*\\n?", "").replaceAll("```", "").trim();
-            }
+            log.debug("[KpiEnrichment] Cleaned KPI analysis response preview: {}",
+                    cleaned.length() > 300 ? cleaned.substring(0, 300) : cleaned);
 
             JsonNode root = objectMapper.readTree(cleaned);
 
             KpiAnalysisResult result = new KpiAnalysisResult();
             result.setKpiName(kpiName);
-            result.setRiskLevel(textOrNull(root, "riskLevel"));
-            result.setRiskJustification(textOrNull(root, "riskJustification"));
-            result.setObjectiveReached(root.path("objectiveReached").asBoolean(false));
-            result.setImprovementDetected(root.path("improvementDetected").asBoolean(false));
-            result.setIssueDetected(textOrNull(root, "issueDetected"));
-            result.setCorrectiveAction(textOrNull(root, "correctiveAction"));
-            result.setPreventiveAction(textOrNull(root, "preventiveAction"));
-            result.setImmediateAction(textOrNull(root, "immediateAction"));
-            result.setImmediatePriority(textOrNull(root, "immediatePriority"));
-            result.setRequires8d(root.path("requires8d").asBoolean(false));
-            result.setAiNote(textOrNull(root, "aiNote"));
 
-            // Serialize eightDDetails as compact JSON string
-            JsonNode eightD = root.path("eightDDetails");
-            if (!eightD.isMissingNode() && !eightD.isNull()) {
-                result.setEightDDetails(objectMapper.writeValueAsString(eightD));
+            // Prefer French field names, fall back to legacy English ones
+            result.setRiskLevel(textOrNull(root, "risqueIa") != null ? textOrNull(root, "risqueIa") : textOrNull(root, "riskLevel"));
+            // risk justification: identificationRisque or short note
+            String identification = textOrNull(root, "identificationRisque");
+            String noteIa = textOrNull(root, "noteIa");
+            result.setRiskJustification(identification != null ? identification : (noteIa != null ? noteIa : textOrNull(root, "riskJustification")));
+            result.setIdentificationRisque(identification);
+
+            result.setObjectiveReached(root.path("objectiveAtteint").asBoolean(root.path("objectiveReached").asBoolean(false)));
+            result.setImprovementDetected(root.path("ameliorationDetectee").asBoolean(root.path("improvementDetected").asBoolean(false)));
+
+            String problemeDetecte = textOrNull(root, "problemeDetecte");
+            result.setIssueDetected(problemeDetecte != null ? problemeDetecte : textOrNull(root, "issueDetected"));
+            result.setProblemeDetecte(problemeDetecte);
+
+            result.setCorrectiveAction(textOrNull(root, "actionsCorrectives") != null ? textOrNull(root, "actionsCorrectives") : textOrNull(root, "correctiveAction"));
+            String actionsPreventives = textOrNull(root, "actionsPreventives");
+            result.setPreventiveAction(actionsPreventives != null ? actionsPreventives : textOrNull(root, "preventiveAction"));
+            result.setActionsPreventives(actionsPreventives);
+
+            String actionImmediate = textOrNull(root, "actionImmediate");
+            result.setImmediateAction(actionImmediate != null ? actionImmediate : textOrNull(root, "immediateAction"));
+            result.setActionImmediate(actionImmediate);
+            String prioriteAction = textOrNull(root, "prioriteAction");
+            result.setImmediatePriority(prioriteAction != null ? prioriteAction : textOrNull(root, "immediatePriority"));
+            result.setPrioriteAction(prioriteAction);
+
+            result.setRequires8d(root.path("methode8D").isObject() || root.path("requires8d").asBoolean(false));
+
+            // methode8D may be an object with D1..D8
+            JsonNode methode8D = root.path("methode8D");
+            if (methode8D.isMissingNode() || methode8D.isNull()) {
+                methode8D = root.path("eightDDetails");
+            }
+            if (!methode8D.isMissingNode() && !methode8D.isNull() && methode8D.isObject()) {
+                String methode8DJson = objectMapper.writeValueAsString(methode8D);
+                result.setEightDDetails(methode8DJson);
+                result.setMethode8D(methode8DJson);
             }
 
-            // Carry through suggested values for RAG update
-            JsonNode suggestedDef = root.path("suggestedDefinition");
-            if (!suggestedDef.isMissingNode() && !suggestedDef.isNull()) {
-                result.setAiNote(result.getAiNote()); // already set
-                // Store suggested definition temporarily in riskJustification field is NOT what we want.
-                // We will handle it in updateRagIfNeeded via direct node parsing.
-            }
-
-            // Attach the raw root node for RAG update (piggyback via a transient field is not ideal;
-            // instead we re-parse in updateRagIfNeeded using the raw json)
-            result.setEightDDetails(result.isRequires8d() ? result.getEightDDetails() : null);
+            // noteFinale preferred for final note, fallback to aiNote
+            String noteFinale = textOrNull(root, "noteFinale");
+            result.setAiNote(noteFinale != null ? noteFinale : textOrNull(root, "aiNote"));
+            result.setNoteFinale(noteFinale);
 
             return result;
 
         } catch (Exception ex) {
-            log.error("[KpiEnrichment] Failed to parse Gemini response for '{}': {}", kpiName, ex.getMessage());
+            String preview = cleaned.length() > 500 ? cleaned.substring(0, 500) : cleaned;
+            log.warn("[KpiEnrichment] JSON parse failed for '{}': {} | Raw preview: {}", kpiName, ex.getMessage(), preview);
             return buildFallbackResult(kpiName);
         }
+    }
+
+    private String cleanAiResponse(String rawResponse) {
+        if (rawResponse == null) return null;
+        String cleaned = rawResponse
+                .replaceAll("(?s)```json\\s*", "")
+                .replaceAll("(?s)```\\s*", "")
+                .trim();
+
+        int start = cleaned.indexOf('{');
+        int end = cleaned.lastIndexOf('}');
+        if (start >= 0 && end >= start) {
+            return cleaned.substring(start, end + 1).trim();
+        }
+
+        return cleaned;
+    }
+
+    /**
+     * Development helper: analyse a single preview by id and return raw AI response + parsed result.
+     * NOTE: For debugging only; annotate or restrict access in production as needed.
+     */
+    public Map<String, Object> debugAnalyseOne(Long previewId, boolean force) {
+        KpiImportPreview preview = previewRepository.findById(previewId).orElse(null);
+        if (preview == null) {
+            return Map.of("error", "preview not found");
+        }
+
+        String ragContext = buildRagContext(preview);
+        String prompt = buildGeminiPrompt(preview, ragContext);
+        String rawJson = llmProviderChain.generate(prompt);
+        KpiAnalysisResult parsed = parseAnalysisResult(rawJson, preview.getKpiName());
+
+        return Map.of(
+                "previewId", previewId,
+                "kpiName", preview.getKpiName(),
+                "rawResponse", rawJson,
+                "parsed", parsed
+        );
     }
 
     private KpiAnalysisResult buildFallbackResult(String kpiName) {
@@ -294,38 +319,90 @@ public class KpiEnrichmentService {
                 .kpiName(kpiName)
                 .riskLevel("Modéré")
                 .riskJustification("Analyse IA indisponible.")
+            .identificationRisque("Analyse IA indisponible.")
                 .issueDetected(null)
+            .problemeDetecte(null)
                 .correctiveAction("Vérification manuelle recommandée.")
                 .preventiveAction("Maintenir la surveillance régulière.")
+            .actionsPreventives("Maintenir la surveillance régulière.")
                 .immediateAction("Revoir les données manuellement.")
+            .actionImmediate("Revoir les données manuellement.")
                 .immediatePriority("Moyenne")
+            .prioriteAction("Moyenne")
                 .requires8d(false)
                 .eightDDetails(null)
+            .methode8D(null)
                 .aiNote("L'analyse automatique n'a pas pu être générée. Une revue manuelle de ce KPI est recommandée.")
+            .noteFinale("L'analyse automatique n'a pas pu être générée. Une revue manuelle de ce KPI est recommandée.")
                 .build();
     }
 
     @Transactional
     protected KpiAnalysis saveAnalysis(ImportSession session, String kpiName, KpiAnalysisResult result) {
-        // Upsert
-        KpiAnalysis analysis = analysisRepository
+        KpiAnalysis existing = analysisRepository
                 .findByImportSessionIdAndKpiName(session.getId(), kpiName)
-                .orElse(KpiAnalysis.builder().importSession(session).kpiName(kpiName).build());
+                .orElse(null);
 
-        analysis.setRiskLevel(result.getRiskLevel());
-        analysis.setRiskJustification(result.getRiskJustification());
-        analysis.setObjectiveReached(result.getObjectiveReached());
-        analysis.setImprovementDetected(result.getImprovementDetected());
-        analysis.setIssueDetected(result.getIssueDetected());
-        analysis.setCorrectiveAction(result.getCorrectiveAction());
-        analysis.setPreventiveAction(result.getPreventiveAction());
-        analysis.setImmediateAction(result.getImmediateAction());
-        analysis.setImmediatePriority(result.getImmediatePriority());
-        analysis.setRequires8d(result.isRequires8d());
-        analysis.setEightDDetails(result.getEightDDetails());
-        analysis.setAiNote(result.getAiNote());
+        if (existing != null && isFallbackResult(result)) {
+            log.info("[KpiEnrichment] Keeping existing analysis for KPI '{}' because AI returned fallback content", kpiName);
+            return existing;
+        }
+
+        // Upsert while preserving previously enriched fields when the new AI response is partial.
+        KpiAnalysis analysis = existing != null
+                ? existing
+                : KpiAnalysis.builder().importSession(session).kpiName(kpiName).build();
+
+        analysis.setRiskLevel(firstNonBlank(result.getRiskLevel(), analysis.getRiskLevel()));
+        analysis.setRiskJustification(firstNonBlank(result.getRiskJustification(), analysis.getRiskJustification()));
+        analysis.setIdentificationRisque(firstNonBlank(result.getIdentificationRisque(), analysis.getIdentificationRisque()));
+        analysis.setObjectiveReached(result.getObjectiveReached() != null ? result.getObjectiveReached() : analysis.getObjectiveReached());
+        analysis.setImprovementDetected(result.getImprovementDetected() != null ? result.getImprovementDetected() : analysis.getImprovementDetected());
+        analysis.setIssueDetected(firstNonBlank(result.getIssueDetected(), analysis.getIssueDetected()));
+        analysis.setProblemeDetecte(firstNonBlank(result.getProblemeDetecte(), analysis.getProblemeDetecte()));
+        analysis.setCorrectiveAction(firstNonBlank(result.getCorrectiveAction(), analysis.getCorrectiveAction()));
+        analysis.setPreventiveAction(firstNonBlank(result.getPreventiveAction(), analysis.getPreventiveAction()));
+        analysis.setActionsPreventives(firstNonBlank(result.getActionsPreventives(), analysis.getActionsPreventives()));
+        analysis.setImmediateAction(firstNonBlank(result.getImmediateAction(), analysis.getImmediateAction()));
+        analysis.setActionImmediate(firstNonBlank(result.getActionImmediate(), analysis.getActionImmediate()));
+        analysis.setImmediatePriority(firstNonBlank(result.getImmediatePriority(), analysis.getImmediatePriority()));
+        analysis.setPrioriteAction(firstNonBlank(result.getPrioriteAction(), analysis.getPrioriteAction()));
+        analysis.setRequires8d(result.isRequires8d() || analysis.isRequires8d());
+        analysis.setEightDDetails(firstNonBlank(result.getEightDDetails(), analysis.getEightDDetails()));
+        analysis.setMethode8D(firstNonBlank(result.getMethode8D(), analysis.getMethode8D()));
+        analysis.setAiNote(firstNonBlank(result.getAiNote(), analysis.getAiNote()));
+        analysis.setNoteFinale(firstNonBlank(result.getNoteFinale(), analysis.getNoteFinale()));
 
         return analysisRepository.save(analysis);
+    }
+
+    private boolean isFallbackResult(KpiAnalysisResult result) {
+        if (result == null) {
+            return true;
+        }
+        return "Analyse IA indisponible.".equals(result.getRiskJustification())
+                || (result.getAiNote() != null && result.getAiNote().contains("n'a pas pu être générée"));
+    }
+
+    private String firstNonBlank(String candidate, String fallback) {
+        return candidate == null || candidate.isBlank() ? fallback : candidate;
+    }
+
+    private String normalizeKey(String value) {
+        if (value == null) {
+            return null;
+        }
+        String normalized = Normalizer.normalize(value, Normalizer.Form.NFKD)
+                .replaceAll("\\p{M}", "")
+                .replace("’", "'")
+                .replace("‘", "'")
+                .replace("`", "'")
+                .replace("“", "\"")
+                .replace("”", "\"")
+                .replaceAll("[^\\p{Alnum}'\"]+", " ")
+                .trim()
+                .toLowerCase(Locale.ROOT);
+        return normalized.isBlank() ? null : normalized;
     }
 
     /**

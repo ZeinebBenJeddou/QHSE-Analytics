@@ -31,22 +31,43 @@ public class GroqPromptBuilder {
             int periodeN1,
             int periodeN
     ) {
-        return "Tu es un expert QHSE certifié ISO 9001/14001/45001.\n\n"
-                + "KPI : " + safe(kpiNom) + " — " + safe(definition) + "\n"
-                + "Catégorie : " + safe(categorieLibelle) + " | Unité : " + safe(unite) + "\n"
+                // Ensure KPI name is short to avoid token bloat
+                String safeName = safe(kpiNom);
+                if (safeName.length() > 100) {
+                        safeName = safeName.substring(0, 100);
+                }
 
-                                + "Valeur " + periodeN1 + " : " + formatValue(valeurN1) + " " + safe(unite) + "\n"
-                                + "Valeur " + periodeN + " : " + formatValue(valeurN) + " " + safe(unite) + "\n"
-                                + "Variation : " + format(variationRelative) + "% → niveau " + safeEnum(niveau) + "\n"
-                                + "Tendance : " + safeEnum(tendance) + "\n\n"
-                + "Génère une analyse structurée en 3 points :\n"
-                + "1. CONSTAT : décris objectivement cette évolution en 1-2 phrases.\n"
-                + "2. CAUSES PROBABLES : identifie les 2-3 causes les plus vraisemblables\n"
-                + "   de cette variation dans un contexte QHSE professionnel.\n"
-                + "3. RECOMMANDATION : propose une action concrète et mesurable\n"
-                + "   avec un délai réaliste.\n\n"
-                + "Réponds en français, de façon professionnelle et concise,\n"
-                + "directement utilisable par un responsable QHSE.";
+                StringBuilder sb = new StringBuilder();
+                sb.append("Tu es un expert QHSE. Réponds UNIQUEMENT avec un objet JSON valide. ");
+                sb.append("Aucune explication, aucun markdown, aucun bloc de code. Commence ta réponse par { et termine par }.");
+                sb.append("\n\nFournis exactement la structure JSON suivante (tous les champs doivent être présents):\n");
+                sb.append("{\n");
+                sb.append("  \"risqueIa\": \"Élevé|Modéré|Faible\",\n");
+                sb.append("  \"noteIa\": \"short summary text\",\n");
+                sb.append("  \"identificationRisque\": \"text\",\n");
+                sb.append("  \"problemeDetecte\": \"text\",\n");
+                sb.append("  \"actionsCorrectives\": \"text\",\n");
+                sb.append("  \"actionsPreventives\": \"text\",\n");
+                sb.append("  \"actionImmediate\": \"text\",\n");
+                sb.append("  \"prioriteAction\": \"HAUTE|MOYENNE|FAIBLE\",\n");
+                sb.append("  \"methode8D\": {\n");
+                sb.append("    \"D1\": \"text\", \"D2\": \"text\", \"D3\": \"text\", \"D4\": \"text\",\n");
+                sb.append("    \"D5\": \"text\", \"D6\": \"text\", \"D7\": \"text\", \"D8\": \"text\"\n");
+                sb.append("  },\n");
+                sb.append("  \"noteFinale\": \"text\"\n");
+                sb.append("}\n\n");
+
+                sb.append("Contexte KPI (seulement les champs suivants) :\n");
+                sb.append("- nom: ").append(safeName).append("\n");
+                sb.append("- valeur_n: ").append(formatValue(valeurN)).append("\n");
+                sb.append("- valeur_n_1: ").append(formatValue(valeurN1)).append("\n");
+                sb.append("- variation_percent: ").append(format(variationRelative)).append("\n");
+                sb.append("- unite: ").append(safe(unite)).append("\n");
+                sb.append("- categorie: ").append(safe(categorieLibelle)).append("\n\n");
+
+                sb.append("Réponds en français. Les champs texte doivent être brefs et factuels.\n");
+
+                return sb.toString();
     }
 
     public String buildCategoriePrompt(

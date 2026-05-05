@@ -12,31 +12,29 @@ import com.QHSEAnalytics.dto.response.AnalyseGlobaleResponse;
 import com.QHSEAnalytics.dto.response.ExportResponse;
 import com.QHSEAnalytics.dto.response.LigneComparatifResponse;
 import com.QHSEAnalytics.dto.response.ResumeCategorieResponse;
-import com.QHSEAnalytics.entity.AnalyseCategorie;
-import com.QHSEAnalytics.entity.AnalyseGlobale;
-import com.QHSEAnalytics.entity.ImportSession;
-import com.QHSEAnalytics.entity.ResultatKpi;
+import com.QHSEAnalytics.entity.*;
+import com.QHSEAnalytics.entity.KpiAnalysis;
 import com.QHSEAnalytics.enums.NiveauVariation;
 import com.QHSEAnalytics.exception.AnalyseNotFoundException;
 import com.QHSEAnalytics.exception.ImportNotFoundException;
 import com.QHSEAnalytics.exception.ImportNotReadyException;
-import com.QHSEAnalytics.repository.AnalyseCategorieRepository;
-import com.QHSEAnalytics.repository.AnalyseGlobaleRepository;
-import com.QHSEAnalytics.repository.ImportSessionRepository;
-import com.QHSEAnalytics.repository.ResultatKpiRepository;
+import com.QHSEAnalytics.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -55,6 +53,7 @@ public class ExportService {
     private final DashboardAdminService dashboardAdminService;
     private final PdfTemplateBuilder pdfTemplateBuilder;
     private final PdfGeneratorService pdfGeneratorService;
+    private final KpiAnalysisRepository kpiAnalysisRepository;
 
     @Transactional(readOnly = true)
     public ExportResponse exportAnalyste(Long userId, Long importId) {
@@ -70,25 +69,26 @@ public class ExportService {
 
         List<ResultatKpi> resultats = resultatKpiRepository.findByImportSessionIdWithKpi(importId).stream()
                 .sorted(Comparator
-                        .comparing((ResultatKpi r) -> safeCategorieCode(r), Comparator.nullsLast(String::compareTo))
-                        .thenComparing(r -> safeKpiOrdre(r), Comparator.nullsLast(Integer::compareTo)))
+                .comparing(this::safeCategorieCode, Comparator.nullsLast(String::compareTo))
+                .thenComparing(this::safeKpiOrdre, Comparator.nullsLast(Integer::compareTo)))
                 .toList();
 
         List<ResumeCategorieResponse> resumeCategories = buildResumeCategories(resultats);
 
-        // Build a lookup map of Gemini AI analysis by KPI name
-        Map<String, com.QHSEAnalytics.entity.KpiAnalysis> analysisMap = com.QHSEAnalytics.repository.KpiAnalysisRepository.class.isInterface() ? 
-            importSessionRepository.findById(importId).isPresent() ? // Dummy check to get the repository
-            java.util.Collections.emptyMap() : java.util.Collections.emptyMap() : java.util.Collections.emptyMap();
-        
-        // Use the actual repository injected in the service
-        analysisMap = kpiAnalysisRepository
+        Map<String, KpiAnalysis> analysisMap = kpiAnalysisRepository
                 .findByImportSessionIdOrderByIdAsc(importId)
                 .stream()
-                .collect(Collectors.toMap(com.QHSEAnalytics.entity.KpiAnalysis::getKpiName, a -> a, (a, b) -> a));
+            .filter(a -> normalizeKey(a.getKpiName()) != null)
+            .collect(Collectors.toMap(a -> normalizeKey(a.getKpiName()), java.util.function.Function.identity(), (a, b) -> a, LinkedHashMap::new));
 
         List<LigneComparatifResponse> lignesComparatif = resultats.stream()
-                .map(r -> toLigneComparatif(r, analysisMap.get(safeKpiNom(r))))
+            .map(r -> {
+                String normalizedKpiName = normalizeKey(safeKpiNom(r));
+                KpiAnalysis analysis = findAnalysisForKpi(normalizedKpiName, analysisMap);
+                log.debug("[Export] KPI '{}' (normalized='{}') -> analysis found: {}",
+                    safeKpiNom(r), normalizedKpiName, analysis != null);
+                return toLigneComparatif(r, analysis);
+            })
                 .toList();
 
         List<AnalyseCategorieResponse> analysesCategories = analyseCategorieRepository.findByImportSessionId(importId).stream()
@@ -115,7 +115,7 @@ public class ExportService {
 
         byte[] content = pdfGeneratorService.generatePdf(html);
 
-        log.info("Rapport analyste genere pour import {}", importId);
+        log.info("Rapport analyste exporte pour import {}", importId);
 
         return ExportResponse.builder()
                 .content(content)
@@ -144,7 +144,7 @@ public class ExportService {
         byte[] content = pdfGeneratorService.generatePdf(html);
 
         String fileName = "rapport_qhse_admin_global_" + LocalDate.now().format(FILE_DATE_FORMAT) + ".pdf";
-        log.info("Rapport global admin genere");
+        log.info("Rapport global admin exporte");
 
         return ExportResponse.builder()
                 .content(content)
@@ -191,6 +191,7 @@ public class ExportService {
     }
 
     private LigneComparatifResponse toLigneComparatif(ResultatKpi resultat, KpiAnalysis analysis) {
+        String aiNote = analysis == null ? null : firstNonBlank(analysis.getNoteFinale(), analysis.getAiNote());
         LigneComparatifResponse.LigneComparatifResponseBuilder b = LigneComparatifResponse.builder()
                 .kpiId(resultat.getKpi().getId())
                 .kpiNom(safeKpiNom(resultat))
@@ -208,19 +209,84 @@ public class ExportService {
         if (analysis != null) {
             b.riskLevel(analysis.getRiskLevel())
              .riskJustification(analysis.getRiskJustification())
+             .identificationRisque(analysis.getIdentificationRisque())
              .objectiveReached(analysis.getObjectiveReached())
              .improvementDetected(analysis.getImprovementDetected())
              .issueDetected(analysis.getIssueDetected())
+             .problemeDetecte(analysis.getProblemeDetecte())
              .correctiveAction(analysis.getCorrectiveAction())
              .preventiveAction(analysis.getPreventiveAction())
+             .actionsPreventives(analysis.getActionsPreventives())
              .immediateAction(analysis.getImmediateAction())
+             .actionImmediate(analysis.getActionImmediate())
              .immediatePriority(analysis.getImmediatePriority())
+             .prioriteAction(analysis.getPrioriteAction())
              .requires8d(analysis.isRequires8d())
              .eightDDetails(analysis.getEightDDetails())
-             .aiNote(analysis.getAiNote());
+             .methode8D(analysis.getMethode8D())
+             .aiNote(aiNote)
+             .noteFinale(analysis.getNoteFinale());
         }
 
         return b.build();
+    }
+
+    private String firstNonBlank(String candidate, String fallback) {
+        return candidate == null || candidate.isBlank() ? fallback : candidate;
+    }
+
+    private String normalizeKey(String value) {
+        if (value == null) {
+            return null;
+        }
+        String normalized = Normalizer.normalize(value, Normalizer.Form.NFKD)
+                .replaceAll("\\p{M}", "")
+                .replace("’", "'")
+                .replace("‘", "'")
+                .replace("`", "'")
+                .replace("“", "\"")
+                .replace("”", "\"")
+                .replaceAll("[^\\p{Alnum}'\"]+", " ")
+                .trim()
+                .toLowerCase(Locale.ROOT);
+        return normalized.isBlank() ? null : normalized;
+    }
+
+    private KpiAnalysis findAnalysisForKpi(String normalizedKpiName, Map<String, KpiAnalysis> analysisMap) {
+        if (normalizedKpiName == null || analysisMap == null || analysisMap.isEmpty()) {
+            return null;
+        }
+
+        KpiAnalysis directMatch = analysisMap.get(normalizedKpiName);
+        if (directMatch != null) {
+            return directMatch;
+        }
+
+        for (Map.Entry<String, KpiAnalysis> entry : analysisMap.entrySet()) {
+            String key = entry.getKey();
+            if (key == null) {
+                continue;
+            }
+            if (key.contains(normalizedKpiName) || normalizedKpiName.contains(key)) {
+                log.debug("[Export] Fallback match for '{}' -> '{}'", normalizedKpiName, key);
+                return entry.getValue();
+            }
+        }
+
+        Set<String> targetWords = new HashSet<>(List.of(normalizedKpiName.split("\\s+")));
+        for (Map.Entry<String, KpiAnalysis> entry : analysisMap.entrySet()) {
+            String key = entry.getKey();
+            if (key == null) {
+                continue;
+            }
+            Set<String> candidateWords = new HashSet<>(List.of(key.split("\\s+")));
+            if (candidateWords.containsAll(targetWords) || targetWords.containsAll(candidateWords)) {
+                log.debug("[Export] Token match for '{}' -> '{}'", normalizedKpiName, key);
+                return entry.getValue();
+            }
+        }
+
+        return null;
     }
 
     private AnalyseCategorieResponse toAnalyseCategorieResponse(AnalyseCategorie analyseCategorie) {

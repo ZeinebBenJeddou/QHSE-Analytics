@@ -1,8 +1,9 @@
 // java
 package com.QHSEAnalytics.service.processing;
 
-import com.QHSEAnalytics.dto.ollama.AiResponse;
-import com.QHSEAnalytics.dto.ollama.KpiInsight;
+import com.QHSEAnalytics.dto.llm.AiResponse;
+import com.QHSEAnalytics.dto.llm.KpiInsight;
+import com.QHSEAnalytics.service.ProviderCooldownManager;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +26,7 @@ public class GeminiClientService {
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final ProviderCooldownManager cooldownManager;
 
     @Value("${app.gemini.api-key:}")
     private String apiKey;
@@ -41,11 +43,12 @@ public class GeminiClientService {
     @Value("${app.gemini.initial-backoff-ms:1000}")
     private long initialBackoffMs;
 
-    public GeminiClientService(ObjectMapper objectMapper) {
+    public GeminiClientService(ObjectMapper objectMapper, ProviderCooldownManager cooldownManager) {
         org.springframework.http.client.JdkClientHttpRequestFactory requestFactory =
                 new org.springframework.http.client.JdkClientHttpRequestFactory();
         this.restTemplate = new RestTemplate(requestFactory);
         this.objectMapper = objectMapper;
+        this.cooldownManager = cooldownManager;
     }
 
     public boolean isConfigured() {
@@ -54,6 +57,10 @@ public class GeminiClientService {
 
     public String generateRaw(String prompt) {
         if (!isConfigured()) {
+            return null;
+        }
+
+        if (!cooldownManager.isAvailable("gemini")) {
             return null;
         }
 
@@ -83,18 +90,13 @@ public class GeminiClientService {
                         .path("text").asText();
             } catch (HttpClientErrorException e) {
                 if (e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
-                    long waitMillis = extractRetryDelayMillis(e);
-                    if (waitMillis <= 0) {
-                        waitMillis = backoff;
-                        backoff = Math.min(backoff * 2, 60_000L);
+                    long waitSeconds = extractRetryDelaySeconds(e);
+                    if (waitSeconds <= 0) {
+                        waitSeconds = 60L;
                     }
-                    log.warn("Gemini API 429 (attempt {}/{}). Waiting {} ms before retry.", attempt, maxRetries, waitMillis);
-                    if (attempt == maxRetries) {
-                        log.error("Gemini API rate limit exceeded after {} attempts.", maxRetries, e);
-                        return null;
-                    }
-                    sleep(waitMillis);
-                    continue;
+                    cooldownManager.setCooldown("gemini", waitSeconds);
+                    log.warn("Gemini API 429 (attempt {}/{}). Cooling down for {}s.", attempt, maxRetries, waitSeconds);
+                    return null;
                 }
                 // non-429 client error -> log and abort
                 log.error("Gemini API client error: {} - {}", e.getStatusCode(), e.getStatusText());
@@ -144,13 +146,13 @@ public class GeminiClientService {
         }
     }
 
-    private long extractRetryDelayMillis(HttpClientErrorException e) {
+    private long extractRetryDelaySeconds(HttpClientErrorException e) {
         // 1) Retry-After header (seconds)
         if (e.getResponseHeaders() != null) {
             String ra = e.getResponseHeaders().getFirst("Retry-After");
             if (StringUtils.hasText(ra)) {
                 try {
-                    return Long.parseLong(ra.trim()) * 1000L;
+                    return Long.parseLong(ra.trim());
                 } catch (NumberFormatException ignored) {
                 }
             }
@@ -165,14 +167,14 @@ public class GeminiClientService {
                 if (details.isArray()) {
                     for (JsonNode d : details) {
                         if (d.has("retryDelay")) {
-                            long ms = parseDurationToMillis(d.path("retryDelay").asText());
-                            if (ms > 0) return ms;
+                            long seconds = parseDurationToSeconds(d.path("retryDelay").asText());
+                            if (seconds > 0) return seconds;
                         }
                     }
                 }
                 if (root.path("error").has("retryDelay")) {
-                    long ms = parseDurationToMillis(root.path("error").path("retryDelay").asText());
-                    if (ms > 0) return ms;
+                    long seconds = parseDurationToSeconds(root.path("error").path("retryDelay").asText());
+                    if (seconds > 0) return seconds;
                 }
             } catch (Exception ignored) {
             }
@@ -180,18 +182,18 @@ public class GeminiClientService {
         return -1;
     }
 
-    private long parseDurationToMillis(String s) {
+    private long parseDurationToSeconds(String s) {
         if (!StringUtils.hasText(s)) return -1;
         String v = s.trim().toLowerCase();
         try {
             if (v.endsWith("ms")) {
-                return Long.parseLong(v.substring(0, v.length() - 2));
+                return Math.max(1L, Long.parseLong(v.substring(0, v.length() - 2)) / 1000L);
             } else if (v.endsWith("s")) {
-                return Long.parseLong(v.substring(0, v.length() - 1)) * 1000L;
+                return Long.parseLong(v.substring(0, v.length() - 1));
             } else if (v.endsWith("m")) {
-                return Long.parseLong(v.substring(0, v.length() - 1)) * 60_000L;
+                return Long.parseLong(v.substring(0, v.length() - 1)) * 60L;
             } else {
-                return Long.parseLong(v) * 1000L;
+                return Long.parseLong(v);
             }
         } catch (NumberFormatException ex) {
             return -1;

@@ -1,5 +1,6 @@
 package com.QHSEAnalytics.dto.response;
 
+import com.QHSEAnalytics.dto.llm.AiResponse;
 import com.QHSEAnalytics.dto.request.KpiRawDataDTO;
 import lombok.Builder;
 import lombok.Data;
@@ -17,6 +18,7 @@ public class ImportProcessingResponse {
     private List<String> detectedHeaders;
     private ChartResponseDTO charts;
     private String analyseIa;
+    private AiResponse aiResponse;  // Full LLM response with per-KPI insights
     
     // Risk Intelligence Fields
     private List<KpiCalculatedDTO> risks;  // Critical/anomalous KPIs
