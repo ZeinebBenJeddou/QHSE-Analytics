@@ -5,7 +5,7 @@ export interface ImportSessionResponse {
   periodeN: number;
   statut: 'EN_TRAITEMENT' | 'TRAITE' | 'ERREUR' | 'ANNULE' | 'IMPORTED' | 'CALCULATED' | 'READY_FOR_AI';
   messageErreur?: string;
-  mode: 'AUTO' | 'MANUEL' | 'TEMPLATE' | 'FLEXIBLE';
+  mode: 'MANUAL';
   createdAt: string;
   updatedAt: string;
 }

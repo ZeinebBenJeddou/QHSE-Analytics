@@ -33,7 +33,14 @@ public class ImportSessionModeConstraintUpdater {
                     "WHERE conrelid = 'import_sessions'::regclass AND contype = 'c'"
             );
 
-            // Always replace any existing check constraint on `mode` with the comprehensive set
+            // Normalize legacy rows before tightening constraint to MANUAL-only.
+            jdbcTemplate.execute(
+                    "UPDATE import_sessions " +
+                    "SET mode = 'MANUAL' " +
+                    "WHERE mode IS NULL OR mode <> 'MANUAL'"
+            );
+
+            // Always replace any existing check constraint on `mode` with the current allowed set.
 
             for (Map<String, Object> constraint : constraints) {
                 String definition = (String) constraint.get("definition");
@@ -45,8 +52,8 @@ public class ImportSessionModeConstraintUpdater {
             }
 
                 jdbcTemplate.execute("ALTER TABLE import_sessions ADD CONSTRAINT import_sessions_mode_check " +
-                    "CHECK (mode IN ('MANUAL', 'TEMPLATE', 'FLEXIBLE', 'TEMPLATE_OFFICIEL', 'FICHIER_LIBRE', 'AUTO'))");
-                log.info("import_sessions.mode constraint updated for current import modes.");
+                    "CHECK (mode IN ('MANUAL'))");
+                log.info("import_sessions.mode constraint updated to MANUAL-only mode.");
         } catch (Exception ex) {
             log.warn("Unable to update import_sessions.mode constraint automatically: {}", ex.getMessage());
             log.debug("Constraint update failure details", ex);

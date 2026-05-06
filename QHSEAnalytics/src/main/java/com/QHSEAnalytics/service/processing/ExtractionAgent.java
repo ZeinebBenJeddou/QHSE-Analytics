@@ -22,8 +22,6 @@ public class ExtractionAgent {
 
     // ── Constantes méthodes ──────────────────────────────────────────────────
     public static final String EXTRACTION_METHOD_CUSTOM   = "CUSTOM";
-    public static final String EXTRACTION_METHOD_TEMPLATE = "TEMPLATE";
-    public static final String EXTRACTION_METHOD_AUTO     = "AUTO";
 
     // ── Constantes mapping ───────────────────────────────────────────────────
     public static final String MAPPING_KPI_NAME        = "kpiName";
@@ -77,8 +75,7 @@ public class ExtractionAgent {
             Sheet sheet = selectDataSheet(workbook, formatter, evaluator)
                     .orElseThrow(() -> new ImportValidationException("Aucune feuille exploitable trouvée."));
 
-            boolean isTemplate = HeaderDetectionUtil.hasTemplateMarker(workbook, formatter, evaluator);
-            ExtractionMethod method = determineExtractionMethod(mapping, isTemplate);
+            ExtractionMethod method = determineExtractionMethod();
             Map<String, Integer> normalizedMapping = normalizeMapping(mapping);
             int headerRowIndex = determineHeaderRow(sheet, normalizedMapping, evaluator, formatter, method);
             MappingResult mappingResult = buildEffectiveMapping(
@@ -130,10 +127,8 @@ public class ExtractionAgent {
     }
 
     // ── Méthode d'extraction ─────────────────────────────────────────────────
-    private ExtractionMethod determineExtractionMethod(Map<String, Integer> mapping, boolean isTemplate) {
-        Map<String, Integer> normalized = normalizeMapping(mapping);
-        if (hasRequiredIndexes(normalized)) return ExtractionMethod.CUSTOM;
-        return isTemplate ? ExtractionMethod.TEMPLATE : ExtractionMethod.AUTO;
+    private ExtractionMethod determineExtractionMethod() {
+        return ExtractionMethod.CUSTOM;
     }
 
     private boolean hasRequiredIndexes(Map<String, Integer> mapping) {
@@ -632,5 +627,5 @@ public class ExtractionAgent {
         public List<ImportIssue> getExtractionIssues()   { return extractionIssues; }
     }
 
-    private enum ExtractionMethod { CUSTOM, TEMPLATE, AUTO }
+    private enum ExtractionMethod { CUSTOM }
 }
