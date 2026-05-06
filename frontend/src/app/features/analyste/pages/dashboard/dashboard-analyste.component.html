@@ -1,471 +1,365 @@
 <div class="dashboard-page">
-
   @if (loading()) {
     <div class="loader-overlay">
-      <mat-spinner diameter="48" color="primary"></mat-spinner>
-      <p>Chargement du tableau de bord…</p>
+      <div class="spinner-wrap">
+        <mat-spinner diameter="48" color="primary"></mat-spinner>
+        <p>Chargement du tableau de bord…</p>
+      </div>
     </div>
   }
 
   @if (!loading() && error()) {
     <div class="empty-state">
-      <mat-icon>inbox</mat-icon>
+      <div class="empty-icon">📂</div>
       <h2>{{ error() }}</h2>
-      <button mat-flat-button class="primary-btn" (click)="goToImport()">
-        <mat-icon>upload_file</mat-icon>
+      <p>Aucune donnée disponible. Importez vos données pour commencer.</p>
+      <button class="btn-primary" (click)="goToImport()">
+        <mat-icon>cloud_upload</mat-icon>
         Importer des données
       </button>
     </div>
   }
 
   @if (!loading() && !error()) {
-
-    <!-- ══ Page header ══════════════════════════════════════════════════════ -->
-    <div class="page-header">
-      <div class="header-left">
-        <div class="header-icon-wrap">
-          <mat-icon class="header-icon">dashboard</mat-icon>
-        </div>
-        <div>
-          <h1>Tableau de bord QHSE</h1>
-          <p class="subtitle" *ngIf="comparatif()">
-            {{ comparatif()!.periodeN1 }} → {{ comparatif()!.periodeN }}
-          </p>
-        </div>
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="topbar-left">
+        <mat-icon class="menu-icon">menu</mat-icon>
+        <h1 class="page-title">Tableau de bord Analyste</h1>
       </div>
-      <div class="header-actions">
-        <button mat-flat-button class="enrich-btn" type="button" (click)="runFullAnalysis()"
-          [disabled]="isAnalysing() || !hasImport" matTooltip="Lancer l'analyse Groq (fallback Gemini)">
-          <mat-icon>{{ isAnalysing() ? 'sync' : 'auto_awesome' }}</mat-icon>
-          {{ isAnalysing() ? 'Analyse en cours…' : 'Générer Analyses IA' }}
+      <div class="topbar-right">
+        <div class="period-selectors">
+          <div class="period-selector">
+            <label>Année N</label>
+            <select class="period-select" (change)="onPeriodChangeN($any($event.target).value)">
+              <option [value]="dataYearN">{{ dataYearN ?? '2024' }}</option>
+            </select>
+          </div>
+          <div class="period-separator">Comparer avec</div>
+          <div class="period-selector">
+            <label>Année N-1</label>
+            <select class="period-select" (change)="onPeriodChangeN1($any($event.target).value)">
+              <option [value]="dataYearN1">Année N-1 ({{ dataYearN1 ?? '2023' }})</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn-primary import-btn" (click)="goToImport()">
+          <mat-icon>file_download</mat-icon>
+          Importer des données
         </button>
-        <button mat-stroked-button class="ia-btn" type="button" (click)="goToIA()"
-          [disabled]="!hasImport" matTooltip="Synthèse globale et plan d'actions">
-          <mat-icon>psychology</mat-icon>
-          Synthèse IA
-        </button>
-        <button mat-flat-button class="export-btn" type="button" (click)="exportPdf()"
-          [disabled]="exporting() || !hasImport" matTooltip="Exporter le rapport complet">
-          <mat-icon>picture_as_pdf</mat-icon>
-          {{ exporting() ? 'Export…' : 'Exporter PDF' }}
-        </button>
+        <div style="margin-left:12px; display:flex; align-items:center; gap:8px;">
+          <input class="search-input" placeholder="Rechercher un KPI..." (input)="onSearchChange($event.target.value)" [value]="searchFilter()" />
+        </div>
+        <div class="notif-icon">
+          <mat-icon aria-hidden="false" [matBadge]="(comparatif()?.nombreCritiques ?? 0) > 0 ? (comparatif()?.nombreCritiques ?? 0) : null" matBadgeColor="warn">notifications</mat-icon>
+        </div>
+        <div class="user-avatar">
+          <mat-icon>account_circle</mat-icon>
+          <div class="user-info">
+            <span class="user-name">Analyste QHSE</span>
+            <span class="user-role">Analyste</span>
+          </div>
+        </div>
       </div>
     </div>
 
+    <!-- PROGRESS BAR ANALYSE -->
     @if (isAnalysing()) {
-      <div class="enrichment-progress">
+      <div class="enrichment-bar">
         <mat-progress-bar mode="indeterminate" color="accent"></mat-progress-bar>
-        <p>Groq analyse chaque indicateur, avec Gemini en fallback, pour détecter les risques et générer des plans d'actions (8D)...</p>
+        <p>Groq analyse chaque indicateur, avec Gemini en fallback, pour détecter les risques…</p>
       </div>
     }
 
-    <!-- ══ Summary cards ════════════════════════════════════════════════════ -->
-    <div class="summary-grid">
+    <!-- KPI SUMMARY CARDS -->
+    <div class="kpi-cards-row">
       @for (card of summaryCards; track card.label) {
-        <mat-card class="summary-card glass-card">
-          <mat-card-content>
-            <div class="card-body">
-              <div class="card-info">
-                <p class="card-label">{{ card.label }}</p>
-                <p class="card-value">{{ card.value }}</p>
-              </div>
-              <div class="card-icon-wrap" [ngClass]="'icon-' + card.color">
-                <mat-icon>{{ card.icon }}</mat-icon>
-              </div>
+        <div class="kpi-card kpi-card-{{ card.color }}">
+          <div class="kpi-card-top">
+            <div>
+              <div class="kpi-card-label">{{ card.label }}</div>
+              <div class="kpi-card-value">{{ card.value }}</div>
+              <div class="kpi-card-note">{{ card.note }}</div>
             </div>
-          </mat-card-content>
-        </mat-card>
+            <div class="kpi-card-icon kpi-icon-{{ card.color }}">
+              <mat-icon>{{ card.icon }}</mat-icon>
+            </div>
+          </div>
+        </div>
       }
     </div>
 
-    <!-- ══ Charts ═══════════════════════════════════════════════════════════ -->
-    <mat-card class="glass-card charts-card">
-      <mat-card-header>
-        <mat-icon mat-card-avatar class="card-av-icon">bar_chart</mat-icon>
-        <mat-card-title>Visualisations</mat-card-title>
-        <mat-card-subtitle>Analyse comparative des indicateurs</mat-card-subtitle>
-      </mat-card-header>
-      <mat-card-content>
-        <mat-tab-group class="chart-tabs" animationDuration="200ms">
+    <!-- MAIN CONTENT GRID -->
+    <div class="main-grid">
 
-          <mat-tab label="📊 N vs N-1">
-            @if (graphiques()?.barresGroupees?.length) {
-              <app-bar-comparison
-                [data]="graphiques()!.barresGroupees"
-                [labelN1]="comparatif()?.periodeN1?.toString() ?? 'N-1'"
-                [labelN]="comparatif()?.periodeN?.toString() ?? 'N'"
-              />
-            } @else {
-              <div class="no-data">Aucune donnée disponible</div>
-            }
-          </mat-tab>
-
-          <mat-tab label="🎯 Radar">
-            @if (graphiques()?.radarData?.length) {
-              <app-radar-performance [data]="graphiques()!.radarData" />
-            } @else {
-              <div class="no-data">Aucune donnée disponible</div>
-            }
-          </mat-tab>
-
-          <mat-tab label="🍩 Distribution">
-            @if (comparatif()) {
-              <app-pie-distribution
-                [critiques]="comparatif()!.nombreCritiques"
-                [moderes]="comparatif()!.nombreModeres"
-                [faibles]="comparatif()!.nombreFaibles"
-              />
-            }
-          </mat-tab>
-
-          <mat-tab label="⚠️ KPIs dégradés">
-            <div class="top-degraded" *ngIf="graphiques()?.topKpisDegrades?.length; else noDegraded">
-              <div *ngFor="let kpi of graphiques()!.topKpisDegrades; let i = index" class="degraded-row">
-                <div class="degraded-info">
-                  <span class="degraded-name">{{ kpi.kpiNom }}</span>
-                  <span class="degraded-cat">{{ kpi.categorieCode }}</span>
-                </div>
-                <div class="degraded-right">
-                  <span class="variation-badge" [ngClass]="variationStyle(kpi.variationRelative)">
-                    {{ kpi.variationRelative > 0 ? '+' : '' }}{{ kpi.variationRelative | number:'1.1-1' }}%
-                  </span>
-                  <mat-icon [ngClass]="tendanceClass(kpi.tendance)" class="trend-icon">
-                    {{ tendanceIcon(kpi.tendance) }}
-                  </mat-icon>
-                </div>
-              </div>
-            </div>
-            <ng-template #noDegraded>
-              <div class="no-data">Aucun KPI dégradé</div>
-            </ng-template>
-          </mat-tab>
-
-        </mat-tab-group>
-      </mat-card-content>
-    </mat-card>
-
-    <!-- ══ KPI Table with AI Analysis ═══════════════════════════════════════ -->
-    <mat-card class="glass-card table-card">
-      <mat-card-header>
-        <mat-icon mat-card-avatar class="card-av-icon">table_chart</mat-icon>
-        <mat-card-title>Aperçu des données &amp; enrichissement IA</mat-card-title>
-        <mat-card-subtitle>{{ filteredLignes().length }} indicateurs · Cliquez sur une ligne pour voir l'analyse complète</mat-card-subtitle>
-      </mat-card-header>
-      <mat-card-content>
-
-        <!-- Filters -->
-        <div class="filters-row">
-          <mat-form-field appearance="outline" class="filter-field">
-            <mat-label>Rechercher un KPI</mat-label>
-            <input matInput [ngModel]="searchFilter()" (ngModelChange)="searchFilter.set($event)" />
-            <mat-icon matSuffix>search</mat-icon>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="filter-field-sm">
-            <mat-label>Catégorie</mat-label>
-            <mat-select [ngModel]="categorieFilter()" (ngModelChange)="categorieFilter.set($event)">
-              <mat-option value="">Toutes</mat-option>
+      <!-- LEFT: Comparatif Table -->
+      <div class="panel comparatif-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">COMPARATIF DES INDICATEURS QHSE</div>
+          </div>
+          <div class="panel-header-actions">
+            <select class="filter-mini-select" (change)="onCategoryChange($any($event.target).value)">
+              <option value="">Tous les indicateurs</option>
               @for (cat of categories(); track cat) {
-                <mat-option [value]="cat">{{ cat }}</mat-option>
+                <option [value]="cat">{{ cat }}</option>
               }
-            </mat-select>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="filter-field-sm">
-            <mat-label>Niveau</mat-label>
-            <mat-select [ngModel]="niveauFilter()" (ngModelChange)="niveauFilter.set($event)">
-              <mat-option value="">Tous</mat-option>
-              <mat-option value="CRITIQUE">🔴 Critique</mat-option>
-              <mat-option value="MODERE">🟡 Modéré</mat-option>
-              <mat-option value="FAIBLE">🟢 Faible</mat-option>
-            </mat-select>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="filter-field-sm">
-            <mat-label>Risque IA</mat-label>
-            <mat-select [ngModel]="riskFilter()" (ngModelChange)="riskFilter.set($event)">
-              <mat-option value="">Tous</mat-option>
-              <mat-option value="Élevé">🔴 Élevé</mat-option>
-              <mat-option value="Modéré">🟠 Modéré</mat-option>
-              <mat-option value="Faible">🟢 Faible</mat-option>
-            </mat-select>
-          </mat-form-field>
+            </select>
+            <button class="btn-outline-sm" (click)="exportPdf()" [disabled]="exporting() || !hasImport">
+              <mat-icon>picture_as_pdf</mat-icon> Export PDF
+            </button>
+            <button class="btn-outline-sm" (click)="exportExcel()" [disabled]="!comparatif() || comparatif()?.lignes?.length === 0">
+              <mat-icon>grid_on</mat-icon> Export XLSX
+            </button>
+          </div>
         </div>
 
-        <!-- Table -->
-        <div class="table-container">
-          <table mat-table [dataSource]="filteredLignes()" class="kpi-table">
+        <div class="table-scroll">
+          <table class="kpi-table">
+            <thead>
+              <tr>
+                <th>Indicateur</th>
+                <th>Année N-1 ({{ dataYearN1 ?? 'N-1' }})</th>
+                <th>Année N ({{ dataYearN ?? 'N' }})</th>
+                <th>Variation Absolue</th>
+                <th>Variation Relative</th>
+                <th>Niveau</th>
+                <th>Tendance</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of filteredLignes(); track row.kpiId) {
+                <tr class="kpi-row" [class.row-critique]="row.niveauVariation === 'CRITIQUE'" (click)="hasDeepAnalysis(row) && toggleRow(row.kpiId)">
+                  <td class="kpi-name">
+                    <span class="cat-code-badge" [ngClass]="catClass(row.categorieCode)">{{ row.categorieCode }}</span>
+                    {{ row.kpiNom }}
+                  </td>
+                  <td class="num-cell">{{ row.valeurN1 | number:'1.0-2' }}</td>
+                  <td class="num-cell">{{ row.valeurN | number:'1.0-2' }}</td>
+                  <td class="num-cell">{{ row.variationAbsolue | number:'1.0-2' }}</td>
+                  <td>
+                    <span class="var-chip" [ngClass]="variationStyle(row.variationRelative)">
+                      {{ row.variationRelative > 0 ? '+' : '' }}{{ row.variationRelative | number:'1.1-1' }}%
+                    </span>
+                  </td>
+                  <td>
+                    <span class="niveau-chip" [ngClass]="niveauClass(row.niveauVariation)">{{ row.niveauVariation }}</span>
+                  </td>
+                  <td>
+                    <mat-icon class="trend-icon" [ngClass]="tendanceClass(row.tendance)">{{ tendanceIcon(row.tendance) }}</mat-icon>
+                  </td>
+                </tr>
 
-            <!-- Expand toggle -->
-            <ng-container matColumnDef="expand">
-              <th mat-header-cell *matHeaderCellDef class="expand-col"></th>
-              <td mat-cell *matCellDef="let row" class="expand-col">
-                @if (hasDeepAnalysis(row)) {
-                  <button mat-icon-button class="expand-btn"
-                    (click)="toggleRow(row.kpiId); $event.stopPropagation()"
-                    [matTooltip]="isExpanded(row.kpiId) ? 'Réduire' : 'Voir analyse complète'">
-                    <mat-icon class="expand-icon" [class.rotated]="isExpanded(row.kpiId)">
-                      expand_more
-                    </mat-icon>
-                  </button>
+                @if (isExpanded(row.kpiId) && hasDeepAnalysis(row)) {
+                  <tr class="expanded-row">
+                    <td colspan="7">
+                      <div class="analysis-expand-panel">
+                        @if (row.riskJustification) {
+                          <div class="analysis-section">
+                            <div class="section-title"><mat-icon>gpp_maybe</mat-icon> Identification du risque</div>
+                            <p>{{ row.riskJustification }}</p>
+                          </div>
+                        }
+                        @if (row.issueDetected) {
+                          <div class="analysis-section">
+                            <div class="section-title"><mat-icon>warning_amber</mat-icon> Problème détecté</div>
+                            <p>{{ row.issueDetected }}</p>
+                          </div>
+                        }
+                        @if (row.correctiveAction) {
+                          <div class="analysis-section">
+                            <div class="section-title"><mat-icon>build</mat-icon> Actions correctives</div>
+                            <p>{{ row.correctiveAction }}</p>
+                          </div>
+                        }
+                        @if (row.immediateAction) {
+                          <div class="analysis-section">
+                            <div class="section-title">
+                              <mat-icon>bolt</mat-icon> Action immédiate
+                              @if (row.immediatePriority) {
+                                <span class="priority-tag" [ngClass]="priorityClass(row.immediatePriority)">{{ row.immediatePriority }}</span>
+                              }
+                            </div>
+                            <p>{{ row.immediateAction }}</p>
+                          </div>
+                        }
+                        @if (row.aiNote) {
+                          <div class="analysis-section ai-note">
+                            <div class="section-title"><mat-icon>auto_awesome</mat-icon> Note IA</div>
+                            <p>{{ row.aiNote }}</p>
+                          </div>
+                        }
+                      </div>
+                    </td>
+                  </tr>
                 }
-              </td>
-            </ng-container>
-
-            <!-- KPI Name -->
-            <ng-container matColumnDef="kpiNom">
-              <th mat-header-cell *matHeaderCellDef>Indicateur</th>
-              <td mat-cell *matCellDef="let row" class="kpi-name-cell">{{ row.kpiNom }}</td>
-            </ng-container>
-
-            <!-- Category -->
-            <ng-container matColumnDef="categorieLibelle">
-              <th mat-header-cell *matHeaderCellDef>Catégorie</th>
-              <td mat-cell *matCellDef="let row">
-                <span class="cat-badge">{{ row.categorieCode }}</span>
-              </td>
-            </ng-container>
-
-            <!-- Value N-1 -->
-            <ng-container matColumnDef="valeurN1">
-              <th mat-header-cell *matHeaderCellDef>N-1</th>
-              <td mat-cell *matCellDef="let row" class="num-cell">{{ row.valeurN1 | number:'1.0-2' }}</td>
-            </ng-container>
-
-            <!-- Value N -->
-            <ng-container matColumnDef="valeurN">
-              <th mat-header-cell *matHeaderCellDef>N</th>
-              <td mat-cell *matCellDef="let row" class="num-cell">{{ row.valeurN | number:'1.0-2' }}</td>
-            </ng-container>
-
-            <!-- Variation % -->
-            <ng-container matColumnDef="variationRelative">
-              <th mat-header-cell *matHeaderCellDef>Δ %</th>
-              <td mat-cell *matCellDef="let row">
-                <span class="var-badge" [ngClass]="variationStyle(row.variationRelative)">
-                  {{ row.variationRelative > 0 ? '+' : '' }}{{ row.variationRelative | number:'1.1-1' }}%
-                </span>
-              </td>
-            </ng-container>
-
-            <!-- Status -->
-            <ng-container matColumnDef="status">
-              <th mat-header-cell *matHeaderCellDef>Status</th>
-              <td mat-cell *matCellDef="let row">
-                <span class="status-badge">{{ row.status ?? '—' }}</span>
-              </td>
-            </ng-container>
-
-            <!-- Niveau -->
-            <ng-container matColumnDef="niveauVariation">
-              <th mat-header-cell *matHeaderCellDef>Niveau</th>
-              <td mat-cell *matCellDef="let row">
-                <span class="niveau-chip" [ngClass]="niveauClass(row.niveauVariation)">
-                  {{ row.niveauVariation }}
-                </span>
-              </td>
-            </ng-container>
-
-            <!-- Risk Badge (Groq primary, Gemini fallback) -->
-            <ng-container matColumnDef="riskBadge">
-              <th mat-header-cell *matHeaderCellDef>Risque IA</th>
-              <td mat-cell *matCellDef="let row">
-                @if (row.riskLevel) {
-                  <span class="risk-badge" [ngClass]="riskClass(row.riskLevel)">
-                    {{ riskIcon(row.riskLevel) }} {{ row.riskLevel }}
-                  </span>
-                } @else {
-                  <span class="risk-badge risk-unknown">⚪ —</span>
-                }
-              </td>
-            </ng-container>
-
-            <!-- Tendance -->
-            <ng-container matColumnDef="tendance">
-              <th mat-header-cell *matHeaderCellDef>Tendance</th>
-              <td mat-cell *matCellDef="let row">
-                <mat-icon [ngClass]="tendanceClass(row.tendance)" class="trend-icon">
-                  {{ tendanceIcon(row.tendance) }}
-                </mat-icon>
-              </td>
-            </ng-container>
-
-            <!-- AI Note (brief) -->
-            <ng-container matColumnDef="aiNote">
-              <th mat-header-cell *matHeaderCellDef>Note IA</th>
-              <td mat-cell *matCellDef="let row" class="ia-cell">
-                @if (row.aiNote) {
-                  <span class="ia-note" [matTooltip]="row.aiNote" matTooltipClass="ia-tooltip">
-                    <mat-icon class="ia-icon">psychology</mat-icon>
-                    {{ row.aiNote | slice:0:55 }}{{ row.aiNote.length > 55 ? '…' : '' }}
-                  </span>
-                } @else {
-                  <span class="ia-pending">
-                    <mat-icon>auto_awesome</mat-icon>
-                    Analyse en attente
-                  </span>
-                }
-              </td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="tableColumns; sticky: true"></tr>
-            <tr mat-row *matRowDef="let row; columns: tableColumns;"
-              class="kpi-row"
-              [class.row-expanded]="isExpanded(row.kpiId)"
-              (click)="hasDeepAnalysis(row) && toggleRow(row.kpiId)">
-            </tr>
-
+              }
+            </tbody>
           </table>
         </div>
+      </div>
 
-        <!-- ── Expandable AI Analysis Panels ────────────────────────────── -->
-        @for (row of filteredLignes(); track row.kpiId) {
-          @if (isExpanded(row.kpiId) && hasDeepAnalysis(row)) {
-            <div class="analysis-panel" [@slideDown]>
-              <div class="panel-header">
-                <div class="panel-kpi-name">
-                  <mat-icon class="panel-icon">psychology</mat-icon>
-                  <span>{{ row.kpiNom }}</span>
-                </div>
-                <div class="panel-header-badges">
-                  @if (row.objectiveReached !== undefined) {
-                    <span class="status-chip" [class.status-success]="row.objectiveReached" [class.status-error]="!row.objectiveReached">
-                      <mat-icon>{{ row.objectiveReached ? 'check_circle' : 'cancel' }}</mat-icon>
-                      Objectif {{ row.objectiveReached ? 'Atteint' : 'Non Atteint' }}
-                    </span>
-                  }
-                  @if (row.improvementDetected !== undefined) {
-                    <span class="status-chip" [class.status-success]="row.improvementDetected" [class.status-warning]="!row.improvementDetected">
-                      <mat-icon>{{ row.improvementDetected ? 'trending_up' : 'trending_down' }}</mat-icon>
-                      {{ row.improvementDetected ? 'Amélioration' : 'Dégradation' }}
-                    </span>
-                  }
-                  <span class="risk-badge panel-risk" [ngClass]="riskClass(row.riskLevel)">
-                    {{ riskIcon(row.riskLevel) }} Risque {{ row.riskLevel ?? '—' }}
-                  </span>
-                </div>
+      <!-- RIGHT: Line Chart -->
+      <div class="panel chart-line-panel">
+        <div class="panel-header">
+          <div class="panel-title">ÉVOLUTION DES INDICATEURS CLÉS</div>
+        </div>
+        <div class="chart-legend">
+          <span class="legend-item legend-n1">— Année N-1 ({{ dataYearN1 ?? 'N-1' }})</span>
+          <span class="legend-item legend-n">— Année N ({{ dataYearN ?? 'N' }})</span>
+        </div>
+        @if (graphiques()?.barresGroupees?.length) {
+          <app-bar-comparison
+            [data]="graphiques()!.barresGroupees"
+            [labelN1]="comparatif()?.periodeN1?.toString() ?? 'N-1'"
+            [labelN]="comparatif()?.periodeN?.toString() ?? 'N'"
+          />
+        } @else {
+          <div class="no-data">Aucune donnée graphique disponible</div>
+        }
+      </div>
+    </div>
+
+    <!-- SECOND ROW -->
+    <div class="second-grid">
+
+      <!-- Répartition Donut -->
+      <div class="panel donut-panel">
+        <div class="panel-header">
+          <div class="panel-title">RÉPARTITION DES VARIATIONS</div>
+          <span class="panel-subtitle">Période d'analyse : 12 derniers mois</span>
+        </div>
+        <div class="donut-wrap">
+          <app-pie-distribution
+            [enHausseCritique]="donutChartData.enHausseCritique"
+            [enHausseModeree]="donutChartData.enHausseModeree"
+            [enBaisseModeree]="donutChartData.enBaisseModeree"
+            [enBaisseFaible]="donutChartData.enBaisseFaible"
+          />
+          <div class="donut-center-label">
+            <div class="donut-total">{{ comparatif()?.lignes?.length ?? 0 }}</div>
+            <div class="donut-total-label">indicateurs</div>
+          </div>
+        </div>
+        <div class="donut-legend">
+          <div class="donut-legend-item"><span class="dot dot-red"></span> En hausse critique ({{ donutChartData.enHausseCritique }})</div>
+          <div class="donut-legend-item"><span class="dot dot-yellow"></span> En hausse modérée ({{ donutChartData.enHausseModeree }})</div>
+          <div class="donut-legend-item"><span class="dot dot-green"></span> En baisse modérée ({{ donutChartData.enBaisseModeree }})</div>
+          <div class="donut-legend-item"><span class="dot dot-blue"></span> En baisse faible ({{ donutChartData.enBaisseFaible }})</div>
+        </div>
+      </div>
+
+      <!-- Tendances IA -->
+      <div class="panel tendances-panel">
+        <div class="panel-header">
+          <div class="panel-title">TENDANCES DÉTECTÉES PAR IA</div>
+          <span class="panel-subtitle">Tendance 2 modèles</span>
+        </div>
+        <div class="tendances-list">
+          @for (insight of insightCards; track insight.title) {
+            <div class="tendance-item" [ngClass]="'tendance-' + insight.tone">
+              <div class="tendance-icon"><mat-icon>{{ insight.icon }}</mat-icon></div>
+              <div class="tendance-content">
+                <div class="tendance-title">{{ insight.title }}</div>
+                <div class="tendance-desc">{{ insight.description }}</div>
               </div>
-
-              <div class="panel-grid">
-
-                <!-- 1. Risk Identification -->
-                @if (row.riskJustification) {
-                  <div class="panel-section">
-                    <div class="section-title">
-                      <mat-icon class="section-icon risk-icon-color">gpp_maybe</mat-icon>
-                      Identification du risque
-                    </div>
-                    <p class="section-text">{{ row.riskJustification }}</p>
-                  </div>
-                }
-
-                <!-- 2. Issue detected -->
-                @if (row.issueDetected) {
-                  <div class="panel-section issue-section">
-                    <div class="section-title">
-                      <mat-icon class="section-icon">warning_amber</mat-icon>
-                      Problème détecté
-                    </div>
-                    <p class="section-text">{{ row.issueDetected }}</p>
-                  </div>
-                }
-
-                <!-- 3. Corrective actions -->
-                @if (row.correctiveAction) {
-                  <div class="panel-section">
-                    <div class="section-title">
-                      <mat-icon class="section-icon action-icon-color">build</mat-icon>
-                      Actions correctives
-                    </div>
-                    <p class="section-text">{{ row.correctiveAction }}</p>
-                  </div>
-                }
-
-                <!-- 4. Preventive actions -->
-                @if (row.preventiveAction) {
-                  <div class="panel-section">
-                    <div class="section-title">
-                      <mat-icon class="section-icon">shield</mat-icon>
-                      Actions préventives
-                    </div>
-                    <p class="section-text">{{ row.preventiveAction }}</p>
-                  </div>
-                }
-
-                <!-- 5. Immediate action -->
-                @if (row.immediateAction) {
-                  <div class="panel-section immediate-section">
-                    <div class="section-title">
-                      <mat-icon class="section-icon">bolt</mat-icon>
-                      Action immédiate
-                      @if (row.immediatePriority) {
-                        <span class="priority-tag" [ngClass]="priorityClass(row.immediatePriority)">
-                          Priorité {{ row.immediatePriority }}
-                        </span>
-                      }
-                    </div>
-                    <p class="section-text">{{ row.immediateAction }}</p>
-                  </div>
-                }
-
-                <!-- 6. 8D Method -->
-                @if (row.requires8d && row.eightDDetails) {
-                  <div class="panel-section eight-d-section full-width">
-                    <div class="section-title">
-                      <mat-icon class="section-icon eightd-icon-color">layers</mat-icon>
-                      Méthode 8D — Résolution structurée
-                      <span class="eight-d-badge">8D REQUIS</span>
-                    </div>
-                    <div class="eight-d-grid">
-                      @for (step of eightDSteps(row.eightDDetails); track step.key) {
-                        <div class="eight-d-step">
-                          <div class="step-key">{{ step.key }}</div>
-                          <div class="step-content">
-                            <div class="step-label">{{ step.label }}</div>
-                            <div class="step-value">{{ step.value }}</div>
-                          </div>
-                        </div>
-                      }
-                    </div>
-                  </div>
-                }
-
-                <!-- 7. AI Note (Final) -->
-                @if (row.aiNote) {
-                  <div class="panel-section ai-note-section full-width">
-                    <div class="section-title">
-                      <mat-icon class="section-icon">auto_awesome</mat-icon>
-                      Note finale IA
-                    </div>
-                    <p class="ai-note-text">{{ row.aiNote }}</p>
-                  </div>
-                }
-
-              </div>
+              <span class="tendance-badge tendance-badge-{{ insight.tone }}">
+                {{ insight.tone === 'danger' ? 'Hausse' : insight.tone === 'success' ? 'Baisse' : 'Stable' }}
+              </span>
             </div>
           }
+        </div>
+      </div>
+
+      <!-- Alertes Actives -->
+      <div class="panel alertes-panel">
+        <div class="panel-header">
+          <div class="panel-title">ALERTES ACTIVES</div>
+          <span class="panel-subtitle">Tendance 2 modèles</span>
+        </div>
+        <div class="alertes-list">
+          @for (row of filteredLignes(); track row.kpiId) {
+            @if (row.niveauVariation === 'CRITIQUE') {
+              <div class="alerte-item alerte-critique">
+                <div class="alerte-icon"><mat-icon>warning</mat-icon></div>
+                <div class="alerte-content">
+                  <div class="alerte-title">{{ row.kpiNom }}</div>
+                  <div class="alerte-desc">{{ row.variationRelative > 0 ? '+' : '' }}{{ row.variationRelative | number:'1.1-1' }}% vs N-1</div>
+                </div>
+                <span class="alerte-chip alerte-critique-chip">Critique</span>
+              </div>
+            }
+            @if (row.niveauVariation === 'MODERE') {
+              <div class="alerte-item alerte-modere">
+                <div class="alerte-icon"><mat-icon>info</mat-icon></div>
+                <div class="alerte-content">
+                  <div class="alerte-title">{{ row.kpiNom }}</div>
+                  <div class="alerte-desc">{{ row.variationRelative > 0 ? '+' : '' }}{{ row.variationRelative | number:'1.1-1' }}% vs N-1</div>
+                </div>
+                <span class="alerte-chip alerte-modere-chip">Modéré</span>
+              </div>
+            }
+          }
+          @if ((comparatif()?.nombreCritiques ?? 0) === 0 && (comparatif()?.nombreModeres ?? 0) === 0) {
+            <div class="no-alertes">✅ Aucune alerte active</div>
+          }
+        </div>
+        <button class="link-btn" (click)="goToIA()">Voir toutes les alertes →</button>
+      </div>
+
+      <!-- Synthèse IA -->
+      <div class="panel synthese-ia-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <mat-icon class="ai-star">auto_awesome</mat-icon> SYNTHÈSE IA
+          </div>
+          <span class="ai-badge">Généré par IA ✦</span>
+        </div>
+
+        @if (analysesIa()?.analyseGlobale?.synthese) {
+          <div class="ia-synthese-text">{{ analysesIa()!.analyseGlobale!.synthese }}</div>
+        } @else {
+          <div class="ia-synthese-text no-data">L'analyse IA sera disponible après le traitement de l'import.</div>
         }
 
-      </mat-card-content>
-    </mat-card>
+        <button class="btn-outline-ia" (click)="goToIA()">
+          Voir l'analyse détaillée →
+        </button>
 
-    <!-- ══ Global AI Synthesis ════════════════════════════════════════════ -->
-    @if (analysesIa()?.analyseGlobale) {
-      <mat-card class="glass-card ia-card">
-        <mat-card-header>
-          <mat-icon mat-card-avatar class="ia-av-icon">auto_awesome</mat-icon>
-          <mat-card-title>Synthèse IA Globale</mat-card-title>
-          <mat-card-subtitle>Analyse générée via Groq, avec Gemini en fallback</mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content>
-          <div class="ia-text">{{ analysesIa()!.analyseGlobale!.synthese }}</div>
-          <button mat-stroked-button class="more-ia-btn" (click)="goToIA()">
-            <mat-icon>open_in_new</mat-icon>
-            Voir l'analyse complète + Plan d'actions
-          </button>
-        </mat-card-content>
-      </mat-card>
-    }
+        <!-- Causes probables IA -->
+        <div class="ia-sub-section">
+          <div class="ia-sub-title">CAUSES PROBABLES (IA)</div>
+          <div class="ia-sub-subtitle">Top 3 détectées</div>
+          <ol class="ia-causes-list">
+            @for (kpi of (analysesIa()?.analysesKpis ?? []); track kpi.kpiId; let i = $index) {
+              @if (i < 3 && kpi.issueDetected) {
+                <li>{{ kpi.issueDetected }}</li>
+              }
+            }
+            @if (!(analysesIa()?.analysesKpis?.length)) {
+              <li class="no-data">Aucune cause détectée pour le moment.</li>
+            }
+          </ol>
+        </div>
 
+        <!-- Actions suggérées IA -->
+        <div class="ia-sub-section">
+          <div class="ia-sub-title">ACTIONS SUGGÉRÉES PAR IA</div>
+          <div class="ia-sub-subtitle">Top 3 priorités</div>
+          <div class="ia-actions-list">
+            @for (rec of recommendationCards; track rec.title) {
+              <div class="ia-action-item">
+                <span class="ia-action-title">{{ rec.title }}</span>
+                <span class="ia-priority-badge" [ngClass]="'tone-' + rec.tone">
+                  {{ rec.tone === 'danger' ? 'Haute' : rec.tone === 'warning' ? 'Moyenne' : 'Basse' }}
+                </span>
+              </div>
+            }
+          </div>
+          <button class="link-btn" (click)="goToIA()">Voir toutes les actions →</button>
+        </div>
+      </div>
+
+    </div>
   }
 </div>

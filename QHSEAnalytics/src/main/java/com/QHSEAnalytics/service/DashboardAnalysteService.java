@@ -120,6 +120,7 @@ public class DashboardAnalysteService {
                 .importId(session.getId())
                 .periodeN1(session.getPeriodeN1())
                 .periodeN(session.getPeriodeN())
+                .dateAnalyse(session.getUpdatedAt())
                 .lignes(lignes)
                 .nombreCritiques(critiques)
                 .nombreModeres(moderes)

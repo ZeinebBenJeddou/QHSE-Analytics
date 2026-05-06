@@ -85,21 +85,45 @@ public class AnalyseIaService {
                 globalSummary = "IA indisponible";
             }
 
+            // Build a map: normalized KPI name -> best available text (insight || noteFinale || aiNote)
             Map<String, String> insightsByKpiName = response.getKpis().stream()
                     .filter(kpi -> kpi.getName() != null && !kpi.getName().isBlank())
                     .collect(Collectors.toMap(
                             kpi -> kpi.getName().trim().toLowerCase(),
-                            kpi -> kpi.getInsight() == null ? "" : kpi.getInsight().trim(),
+                            kpi -> firstNonBlankText(
+                                    kpi.getInsight(),
+                                    kpi.getNoteFinale(),
+                                    kpi.getAiNote()),
                             (first, second) -> first));
 
             for (ResultatKpi resultat : resultats) {
                 String key = resultat.getKpi().getNom() == null ? null
                         : resultat.getKpi().getNom().trim().toLowerCase();
                 String analyseIa = key == null ? null : insightsByKpiName.get(key);
-                if (analyseIa != null && !analyseIa.isBlank()) {
-                    resultat.setAnalyseIa(analyseIa);
-                    resultatKpiRepository.save(resultat);
+
+                // Fallback: fuzzy match if exact match not found
+                if ((analyseIa == null || analyseIa.isBlank()) && key != null) {
+                    for (Map.Entry<String, String> entry : insightsByKpiName.entrySet()) {
+                        String mapKey = entry.getKey();
+                        if (mapKey != null && (mapKey.contains(key) || key.contains(mapKey))) {
+                            analyseIa = entry.getValue();
+                            break;
+                        }
+                    }
                 }
+
+                // Fallback: generate minimal text so the KPI is never left empty
+                if (analyseIa == null || analyseIa.isBlank()) {
+                    double variation = resultat.getVariationRelative() == null ? 0.0 : resultat.getVariationRelative();
+                    String niveau = resultat.getNiveauVariation() == null ? "FAIBLE" : resultat.getNiveauVariation().name();
+                    analyseIa = String.format(
+                            "Indicateur %s : variation de %.1f%%. Niveau : %s. Aucune anomalie critique détectée automatiquement — un examen manuel est recommandé.",
+                            resultat.getKpi().getNom(), variation, niveau);
+                    log.debug("[AnalyseIa] Fallback text generated for KPI '{}'", resultat.getKpi().getNom());
+                }
+
+                resultat.setAnalyseIa(analyseIa);
+                resultatKpiRepository.save(resultat);
             }
 
             AnalyseGlobale analyseGlobale = analyseGlobaleRepository.findByImportSessionId(importSessionId)
@@ -110,6 +134,60 @@ public class AnalyseIaService {
             analyseGlobale.setPlanActions(String.join("\n",
                     response.getRecommendations() == null ? List.of() : response.getRecommendations()));
             analyseGlobaleRepository.save(analyseGlobale);
+
+            // ── Generate per-category analysis from the KPI insights ──────────────────
+            User user = loadUser(userId);
+            Map<String, List<ResultatKpi>> byCategorie = resultats.stream()
+                    .filter(r -> r.getKpi().getCategorieKpi() != null)
+                    .collect(Collectors.groupingBy(
+                            r -> r.getKpi().getCategorieKpi().getCode(),
+                            LinkedHashMap::new,
+                            Collectors.toList()));
+
+            for (Map.Entry<String, List<ResultatKpi>> entry : byCategorie.entrySet()) {
+                String catCode    = entry.getKey();
+                List<ResultatKpi> catKpis = entry.getValue();
+                if (catKpis.isEmpty()) continue;
+
+                String catLibelle = catKpis.get(0).getKpi().getCategorieKpi().getLibelle();
+                long critiques = catKpis.stream().filter(r -> r.getNiveauVariation() != null
+                        && "CRITIQUE".equals(r.getNiveauVariation().name())).count();
+                long moderes   = catKpis.stream().filter(r -> r.getNiveauVariation() != null
+                        && "MODERE".equals(r.getNiveauVariation().name())).count();
+
+                StringBuilder catContenu = new StringBuilder();
+                catContenu.append(String.format(
+                        "Catégorie %s — %d indicateur(s) analysé(s). %d critique(s), %d modéré(s).\n\n",
+                        catLibelle, catKpis.size(), critiques, moderes));
+
+                for (ResultatKpi r : catKpis) {
+                    String kpiNom    = r.getKpi().getNom();
+                    String kpiInsight = r.getAnalyseIa();
+                    String niveau    = r.getNiveauVariation() == null ? "N/A" : r.getNiveauVariation().name();
+                    double variation = r.getVariationRelative() == null ? 0.0 : r.getVariationRelative();
+                    catContenu.append(String.format("• %s [%s, %+.1f%%] : %s\n",
+                            kpiNom, niveau, variation,
+                            kpiInsight != null ? kpiInsight : "—"));
+                }
+
+                // Append global recommendations relevant to this category
+                if (response.getRecommendations() != null && !response.getRecommendations().isEmpty()) {
+                    catContenu.append("\nRecommandations globales :\n");
+                    response.getRecommendations().forEach(rec -> catContenu.append("  → ").append(rec).append("\n"));
+                }
+
+                AnalyseCategorie ac = analyseCategorieRepository
+                        .findByImportSessionIdAndCategorieCode(importSessionId, catCode)
+                        .orElseGet(AnalyseCategorie::new);
+                ac.setImportSession(session);
+                ac.setUser(user);
+                ac.setCategorieCode(catCode);
+                ac.setCategorieLibelle(catLibelle);
+                ac.setContenu(catContenu.toString().trim());
+                analyseCategorieRepository.save(ac);
+                log.debug("[AnalyseIa] AnalyseCategorie saved for category '{}' (session {})", catCode, importSessionId);
+            }
+            log.info("[AnalyseIa] {} AnalyseCategorie records saved for session {}", byCategorie.size(), importSessionId);
 
             boolean iaUnavailable = globalSummary != null && globalSummary.trim().equalsIgnoreCase("IA indisponible");
             if (iaUnavailable) {
@@ -206,8 +284,17 @@ public class AnalyseIaService {
         }
 
         try {
+            // Clear all previous AI analysis data so we start from a clean slate
             analyseCategorieRepository.deleteByImportSessionId(importSessionId);
             analyseGlobaleRepository.deleteByImportSessionId(importSessionId);
+
+            // Clear analyseIa text on all KPI results so no stale partial data persists
+            List<ResultatKpi> resultats = resultatKpiRepository.findByImportSessionIdOrderByCreatedAtDesc(importSessionId);
+            for (ResultatKpi r : resultats) {
+                r.setAnalyseIa(null);
+            }
+            resultatKpiRepository.saveAll(resultats);
+            log.info("[Regenerer] Cleared analyseIa for {} ResultatKpi records of session {}", resultats.size(), importSessionId);
         } catch (Exception ex) {
             log.error("Erreur suppression anciennes analyses session {} : {}", importSessionId, ex.getMessage());
         }
@@ -278,6 +365,14 @@ public class AnalyseIaService {
                 .matchedKpi(resultat.getKpi().getNom())
                 .matchedKpiId(resultat.getKpi().getId())
                 .build();
+    }
+
+    /** Returns the first non-blank string among the candidates, or "" if all are blank/null. */
+    private String firstNonBlankText(String... candidates) {
+        for (String c : candidates) {
+            if (c != null && !c.isBlank()) return c.trim();
+        }
+        return "";
     }
 
     private List<KpiCalculatedDTO> cleanKpis(List<KpiCalculatedDTO> kpis) {

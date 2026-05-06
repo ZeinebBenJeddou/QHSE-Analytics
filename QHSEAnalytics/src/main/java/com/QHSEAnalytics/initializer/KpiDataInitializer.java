@@ -2,9 +2,11 @@ package com.QHSEAnalytics.initializer;
 
 import com.QHSEAnalytics.entity.CategorieKpi;
 import com.QHSEAnalytics.entity.Kpi;
+import com.QHSEAnalytics.entity.RagKnowledge;
 import com.QHSEAnalytics.entity.UniteKpi;
 import com.QHSEAnalytics.repository.CategorieKpiRepository;
 import com.QHSEAnalytics.repository.KpiRepository;
+import com.QHSEAnalytics.repository.RagKnowledgeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
@@ -19,6 +21,7 @@ public class KpiDataInitializer implements ApplicationRunner {
 
     private final CategorieKpiRepository categorieKpiRepository;
     private final KpiRepository kpiRepository;
+    private final RagKnowledgeRepository ragKnowledgeRepository;
 
     @Override
     @Transactional
@@ -114,10 +117,34 @@ public class KpiDataInitializer implements ApplicationRunner {
                     .isActive(true)
                     .build();
 
-            kpiRepository.save(kpi);
+            Kpi savedKpi = kpiRepository.save(kpi);
             log.info("KPI seed créé catégorie={} nom={}", categorie.getCode(), nom);
+            
+            // Enrich RAG knowledge base
+            createRagKnowledgeForKpi(savedKpi, categorie);
         } catch (Exception ex) {
             log.error("Échec création KPI seed catégorie={} nom={} cause={}", categorie.getCode(), nom, ex.getMessage());
+        }
+    }
+
+    private void createRagKnowledgeForKpi(Kpi kpi, CategorieKpi categorie) {
+        try {
+            if (ragKnowledgeRepository.findByKpiName(kpi.getNom()).isPresent()) {
+                return;
+            }
+
+            RagKnowledge ragKnowledge = RagKnowledge.builder()
+                    .kpiName(kpi.getNom())
+                    .definition(kpi.getDefinition())
+                    .category(categorie.getCode())
+                    .thresholds(String.format(java.util.Locale.US, "{\"faible\":%f, \"modere\":%f, \"critique\":%f}",
+                            kpi.getSeuilFaible(), kpi.getSeuilModere(), kpi.getSeuilCritique()))
+                    .build();
+
+            ragKnowledgeRepository.save(ragKnowledge);
+            log.info("RAG knowledge seed créé pour KPI: {}", kpi.getNom());
+        } catch (Exception ex) {
+            log.error("Échec création RAG knowledge seed KPI {} cause={}", kpi.getNom(), ex.getMessage());
         }
     }
 }

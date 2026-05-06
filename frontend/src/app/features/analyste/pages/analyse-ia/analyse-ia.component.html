@@ -1,0 +1,424 @@
+<!-- ══════════════════════════════════════════════════════════════════
+     Page : Analyses IA — QHSE Analytics
+     Affiche : synthèse globale · analyses par catégorie · KPIs détaillés
+               (analyseIa, risque, problème, actions préventives, méthode 8D,
+                plan d'actions global, recommandations)
+══════════════════════════════════════════════════════════════════ -->
+
+<div class="ia-page">
+
+  <!-- ── LOADER ──────────────────────────────────────────────────── -->
+  <div *ngIf="loading()" class="loader-overlay">
+    <mat-spinner [diameter]="48" color="primary"></mat-spinner>
+    <p class="loader-text">Chargement des analyses IA…</p>
+  </div>
+
+  <!-- ── ERROR / EMPTY ────────────────────────────────────────────── -->
+  <div *ngIf="!loading() && error()" class="empty-state">
+    <mat-icon class="empty-icon">smart_toy</mat-icon>
+    <h2>Aucune analyse IA disponible</h2>
+    <p>{{ error() }}</p>
+    <button class="btn-regen" (click)="regenerer()" [disabled]="regenerating()">
+      <mat-icon>play_circle</mat-icon>
+      Lancer l'analyse IA
+    </button>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       CONTENU PRINCIPAL
+  ══════════════════════════════════════════════════════════════════ -->
+  <ng-container *ngIf="!loading() && !error() && analyse()">
+
+    <!-- ── PAGE HEADER ─────────────────────────────────────────── -->
+    <header class="page-header">
+      <div class="page-header-top">
+        <div>
+          <div class="breadcrumb">
+            <span>Dashboard</span>
+            <mat-icon class="bc-sep">chevron_right</mat-icon>
+            <span class="bc-active">Analyses IA</span>
+          </div>
+          <h1 class="page-title">
+            <mat-icon class="title-icon">smart_toy</mat-icon>
+            Analyses Intelligence Artificielle
+            <span class="period-badge">{{ periode }}</span>
+          </h1>
+          <p class="page-subtitle" *ngIf="createdAt">
+            Dernière analyse générée le {{ createdAt }}
+          </p>
+        </div>
+
+        <div class="header-actions">
+          <button class="btn-regen"
+                  (click)="regenerer()"
+                  [disabled]="regenerating()"
+                  matTooltip="Régénérer toutes les analyses IA">
+            <mat-spinner *ngIf="regenerating()" [diameter]="16"></mat-spinner>
+            <mat-icon *ngIf="!regenerating()">refresh</mat-icon>
+            {{ regenerating() ? 'Analyse en cours…' : 'Régénérer' }}
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 1 — SYNTHÈSE GLOBALE
+    ══════════════════════════════════════════════════════════════ -->
+    <section class="section" *ngIf="analyse()?.analyseGlobale">
+      <div class="section-header">
+        <h2 class="section-title">
+          <mat-icon class="s-icon">analytics</mat-icon>
+          Synthèse Globale
+        </h2>
+      </div>
+
+      <div class="synthese-card">
+
+        <!-- Score ring -->
+        <div class="score-ring-wrap">
+          <svg class="score-ring" viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="54" fill="none" stroke="var(--border)" stroke-width="10"/>
+            <circle cx="60" cy="60" r="54" fill="none"
+                    [attr.stroke]="scoreColor()"
+                    stroke-width="10"
+                    stroke-linecap="round"
+                    stroke-dasharray="339 339"
+                    [style.stroke-dasharray]="scoreRingDash()"
+                    transform="rotate(-90 60 60)"
+                    class="ring-progress"/>
+          </svg>
+          <div class="score-center">
+            <span class="score-value" [style.color]="scoreColor()">{{ globalScore() }}</span>
+            <span class="score-unit">/100</span>
+            <span class="score-label" [style.color]="scoreColor()">{{ scoreLabel() }}</span>
+          </div>
+        </div>
+
+        <!-- Texte synthèse -->
+        <div class="synthese-body">
+          <div class="synthese-meta">
+            <span class="meta-pill">
+              <mat-icon>calendar_today</mat-icon>
+              {{ periode }}
+            </span>
+            <span class="meta-pill meta-pill--count">
+              <mat-icon>bar_chart</mat-icon>
+              {{ (analyse()?.analysesKpis ?? []).length }} indicateurs analysés
+            </span>
+            <span class="meta-pill meta-pill--critique" *ngIf="kpisCritiques().length">
+              <mat-icon>warning</mat-icon>
+              {{ kpisCritiques().length }} KPI(s) critiques
+            </span>
+          </div>
+
+          <p class="synthese-text">{{ analyse()?.analyseGlobale?.synthese }}</p>
+
+          <!-- Cat chips -->
+          <div class="cat-chips">
+            <div *ngFor="let stat of catStats()" class="cat-chip"
+                 [style.background]="stat.bgLight"
+                 [style.border-color]="stat.color">
+              <mat-icon [style.color]="stat.color">{{ stat.icon }}</mat-icon>
+              <span class="cat-chip-label" [style.color]="stat.color">{{ stat.libelle }}</span>
+              <span class="cat-chip-score" [style.color]="stat.color">{{ miniScore(stat) }}/100</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 2 — ANALYSE PAR CATÉGORIE + KPIs DÉTAILLÉS
+    ══════════════════════════════════════════════════════════════ -->
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">
+          <mat-icon class="s-icon">category</mat-icon>
+          Analyse par Catégorie
+        </h2>
+      </div>
+
+      <!-- Onglets catégories -->
+      <div class="cat-tabs">
+        <button *ngFor="let cat of CATEGORIES"
+                class="cat-tab"
+                [class.active]="activeCatCode() === cat.code"
+                [style.--cat-color]="cat.color"
+                [style.--cat-bg]="cat.bgLight"
+                (click)="setActiveCat(cat.code)">
+          <mat-icon>{{ cat.icon }}</mat-icon>
+          <span>{{ cat.libelle }}</span>
+          <span class="tab-count" [class.tab-critique]="(catStats()[CATEGORIES.indexOf(cat)]?.critique ?? 0) > 0">
+            {{ catStats()[CATEGORIES.indexOf(cat)]?.total ?? 0 }}
+          </span>
+        </button>
+      </div>
+
+      <!-- Panel catégorie active -->
+      <div class="cat-panel" *ngIf="getCatInfo(activeCatCode()) as catInfo">
+
+        <!-- Analyse IA catégorie -->
+        <div class="cat-analyse-card" *ngIf="activeCatAnalyse() as catAnalyse">
+          <div class="cat-analyse-header">
+            <div class="cat-analyse-icon" [style.background]="catInfo.bgLight">
+              <mat-icon [style.color]="catInfo.color">{{ catInfo.icon }}</mat-icon>
+            </div>
+            <div>
+              <h3 class="cat-analyse-title" [style.color]="catInfo.color">
+                Analyse IA — {{ catAnalyse.categorieLibelle }}
+              </h3>
+              <p class="cat-analyse-date" *ngIf="catAnalyse.createdAt">
+                Générée le {{ catAnalyse.createdAt | date:'dd/MM/yyyy HH:mm' }}
+              </p>
+            </div>
+          </div>
+          <div class="cat-analyse-text">{{ catAnalyse.contenu }}</div>
+        </div>
+
+        <!-- Message si pas d'analyse catégorie -->
+        <div class="no-cat-analyse" *ngIf="!activeCatAnalyse()">
+          <mat-icon>info_outline</mat-icon>
+          <span>Analyse IA par catégorie non disponible — consultez la synthèse globale.</span>
+        </div>
+
+        <!-- ── KPIs de la catégorie ─────────────────────────────── -->
+        <div class="kpis-section">
+          <div class="kpis-section-header">
+            <h3 class="kpis-section-title">Indicateurs {{ catInfo.libelle }}</h3>
+            <span class="table-count">{{ activeKpis().length }} indicateurs</span>
+          </div>
+
+          <div class="kpi-empty" *ngIf="!activeKpis().length">
+            <mat-icon>inbox</mat-icon>
+            Aucun KPI pour cette catégorie
+          </div>
+
+          <div class="kpi-list">
+            <div *ngFor="let kpi of activeKpis()"
+                 class="kpi-item"
+                 [class.kpi-expanded]="isExpanded(kpi.id)"
+                 [class.kpi-critique]="kpi.niveauVariation === 'CRITIQUE'"
+                 [class.kpi-modere]="kpi.niveauVariation === 'MODERE'">
+
+              <!-- KPI header (toujours visible) -->
+              <div class="kpi-header" (click)="toggleKpi(kpi.id)">
+
+                <div class="kpi-header-left">
+                  <span class="kpi-niveau" [class]="getNiveauClass(kpi.niveauVariation)">
+                    {{ kpi.niveauVariation ?? 'N/A' }}
+                  </span>
+                  <div class="kpi-info">
+                    <span class="kpi-nom">{{ kpi.kpiNom }}</span>
+                    <span class="kpi-unite">{{ kpi.kpiUnite }}</span>
+                  </div>
+                </div>
+
+                <div class="kpi-header-right">
+                  <!-- Valeurs N-1 → N -->
+                  <div class="kpi-values">
+                    <span class="kpi-val">
+                      <span class="val-label">N-1</span>
+                      <span class="val-number">{{ kpi.valeurN1 | number:'1.0-2' }}</span>
+                    </span>
+                    <mat-icon class="val-arrow">arrow_forward</mat-icon>
+                    <span class="kpi-val">
+                      <span class="val-label">N</span>
+                      <span class="val-number">{{ kpi.valeurN | number:'1.0-2' }}</span>
+                    </span>
+                  </div>
+
+                  <!-- Variation -->
+                  <span class="kpi-variation" [class]="getVariationClass(kpi.variationRelative)">
+                    <mat-icon class="trend-icon" [class]="getTendanceClass(kpi.tendance)">
+                      {{ getTendanceIcon(kpi.tendance) }}
+                    </mat-icon>
+                    {{ formatVariation(kpi.variationRelative) }}
+                  </span>
+
+                  <!-- Indicateur analyse IA disponible -->
+                  <span class="ia-dot" [class.ia-dot--on]="kpi.analyseIa"
+                        [matTooltip]="kpi.analyseIa ? 'Analyse IA disponible' : 'Analyse IA indisponible'">
+                    <mat-icon>smart_toy</mat-icon>
+                  </span>
+
+                  <mat-icon class="expand-icon">
+                    {{ isExpanded(kpi.id) ? 'expand_less' : 'expand_more' }}
+                  </mat-icon>
+                </div>
+              </div>
+
+              <!-- KPI détail (expand) -->
+              <div class="kpi-detail" *ngIf="isExpanded(kpi.id)">
+
+                <!-- Analyse IA principale -->
+                <div class="detail-block detail-block--ia" *ngIf="kpi.analyseIa">
+                  <div class="detail-block-header">
+                    <mat-icon class="db-icon db-icon--ia">smart_toy</mat-icon>
+                    <h4>Analyse IA</h4>
+                  </div>
+                  <p class="detail-text">{{ kpi.analyseIa }}</p>
+                </div>
+
+                <!-- Grille des blocs IA enrichis -->
+                <div class="detail-grid">
+
+                  <!-- Identification du risque -->
+                  <div class="detail-block detail-block--risk">
+                    <div class="detail-block-header">
+                      <mat-icon class="db-icon db-icon--risk">report_problem</mat-icon>
+                      <h4>Identification du Risque</h4>
+                    </div>
+                    <p class="detail-text" *ngIf="kpi.analyseIa; else noData">
+                      {{ kpi.analyseIa | slice:0:300 }}{{ (kpi.analyseIa.length) > 300 ? '…' : '' }}
+                    </p>
+                    <ng-template #noData>
+                      <p class="detail-text detail-text--muted">Non disponible pour cet indicateur.</p>
+                    </ng-template>
+                  </div>
+
+                  <!-- Problème détecté -->
+                  <div class="detail-block detail-block--prob">
+                    <div class="detail-block-header">
+                      <mat-icon class="db-icon db-icon--prob">bug_report</mat-icon>
+                      <h4>Problème Détecté</h4>
+                    </div>
+                    <div class="detail-text" *ngIf="kpi.niveauVariation === 'CRITIQUE' || kpi.niveauVariation === 'MODERE'; else noProb">
+                      <span class="prob-niveau" [class]="getNiveauClass(kpi.niveauVariation)">
+                        {{ kpi.niveauVariation }}
+                      </span>
+                      Variation de {{ formatVariation(kpi.variationRelative) }}
+                      ({{ kpi.valeurN1 | number:'1.0-2' }} → {{ kpi.valeurN | number:'1.0-2' }} {{ kpi.kpiUnite }})
+                    </div>
+                    <ng-template #noProb>
+                      <p class="detail-text detail-text--ok">
+                        <mat-icon>check_circle</mat-icon>
+                        Indicateur dans les normes — variation faible ou stable.
+                      </p>
+                    </ng-template>
+                  </div>
+
+                  <!-- Actions préventives -->
+                  <div class="detail-block detail-block--action">
+                    <div class="detail-block-header">
+                      <mat-icon class="db-icon db-icon--action">shield</mat-icon>
+                      <h4>Actions Préventives</h4>
+                    </div>
+                    <ul class="detail-list" *ngIf="extractRecos(kpi.analyseIa).length; else noAction">
+                      <li *ngFor="let r of extractRecos(kpi.analyseIa)">{{ r }}</li>
+                    </ul>
+                    <ng-template #noAction>
+                      <p class="detail-text detail-text--muted">Consultez la synthèse globale pour les actions préventives.</p>
+                    </ng-template>
+                  </div>
+
+                  <!-- Action immédiate -->
+                  <div class="detail-block detail-block--urgent"
+                       *ngIf="kpi.niveauVariation === 'CRITIQUE'">
+                    <div class="detail-block-header">
+                      <mat-icon class="db-icon db-icon--urgent">bolt</mat-icon>
+                      <h4>Action Immédiate — CRITIQUE</h4>
+                    </div>
+                    <div class="urgent-badge">
+                      <mat-icon>priority_high</mat-icon>
+                      Intervention requise immédiatement sur {{ kpi.kpiNom }}
+                    </div>
+                    <p class="detail-text" *ngIf="kpi.analyseIa">
+                      {{ kpi.analyseIa | slice:0:200 }}{{ (kpi.analyseIa.length) > 200 ? '…' : '' }}
+                    </p>
+                  </div>
+
+                  <!-- Méthode 8D -->
+                  <div class="detail-block detail-block--8d"
+                       *ngIf="parse8D(kpi.analyseIa).length > 0">
+                    <div class="detail-block-header">
+                      <mat-icon class="db-icon db-icon--8d">format_list_numbered</mat-icon>
+                      <h4>Méthode 8D</h4>
+                    </div>
+                    <ol class="methode-8d-list">
+                      <li *ngFor="let step of parse8D(kpi.analyseIa); let i = index">
+                        <span class="d-badge">D{{ i + 1 }}</span>
+                        {{ step }}
+                      </li>
+                    </ol>
+                  </div>
+
+                </div><!-- /detail-grid -->
+              </div><!-- /kpi-detail -->
+            </div><!-- /kpi-item -->
+          </div><!-- /kpi-list -->
+        </div><!-- /kpis-section -->
+      </div><!-- /cat-panel -->
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 3 — RECOMMANDATIONS & PLAN D'ACTIONS GLOBAL
+    ══════════════════════════════════════════════════════════════ -->
+    <section class="section" *ngIf="planActionsList().length">
+      <div class="section-header">
+        <h2 class="section-title">
+          <mat-icon class="s-icon">task_alt</mat-icon>
+          Plan d'Actions Global &amp; Recommandations
+        </h2>
+        <span class="table-count">{{ planActionsList().length }} action(s)</span>
+      </div>
+
+      <div class="plan-grid">
+        <div class="plan-card" *ngFor="let action of planActionsList(); let i = index">
+          <div class="plan-number">{{ i + 1 }}</div>
+          <div class="plan-content">
+            <p>{{ action }}</p>
+          </div>
+          <mat-icon class="plan-arrow">arrow_forward_ios</mat-icon>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 4 — KPIs CRITIQUES (vue transversale)
+    ══════════════════════════════════════════════════════════════ -->
+    <section class="section" *ngIf="kpisCritiques().length">
+      <div class="section-header">
+        <h2 class="section-title">
+          <mat-icon class="s-icon s-icon--alert">warning</mat-icon>
+          Indicateurs Critiques — Vue Transversale
+        </h2>
+        <span class="table-count niveau-critique">{{ kpisCritiques().length }} critique(s)</span>
+      </div>
+
+      <div class="critique-table">
+        <div class="ct-head">
+          <span>Indicateur</span>
+          <span>Catégorie</span>
+          <span>N-1</span>
+          <span>N</span>
+          <span>Variation</span>
+          <span>Analyse IA</span>
+        </div>
+        <div class="ct-row" *ngFor="let kpi of kpisCritiques()">
+          <span class="ct-nom">
+            <mat-icon class="ct-alert">warning</mat-icon>
+            {{ kpi.kpiNom }}
+          </span>
+          <span>
+            <span class="cat-badge" [style.color]="getCatInfo(kpi.categorieCode).color"
+                  [style.background]="getCatInfo(kpi.categorieCode).bgLight">
+              {{ kpi.categorieLibelle }}
+            </span>
+          </span>
+          <span class="ct-val">{{ kpi.valeurN1 | number:'1.0-2' }}</span>
+          <span class="ct-val">{{ kpi.valeurN | number:'1.0-2' }}</span>
+          <span class="kpi-variation var-neg">
+            {{ formatVariation(kpi.variationRelative) }}
+          </span>
+          <span class="ct-ia">
+            <span *ngIf="kpi.analyseIa" class="ia-snippet" [matTooltip]="kpi.analyseIa">
+              {{ kpi.analyseIa | slice:0:80 }}{{ (kpi.analyseIa.length) > 80 ? '…' : '' }}
+            </span>
+            <span *ngIf="!kpi.analyseIa" class="detail-text--muted">—</span>
+          </span>
+        </div>
+      </div>
+    </section>
+
+  </ng-container>
+</div>

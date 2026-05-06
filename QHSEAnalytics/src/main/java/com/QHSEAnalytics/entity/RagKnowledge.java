@@ -2,6 +2,8 @@ package com.QHSEAnalytics.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.LocalDateTime;
 
 @Entity
@@ -23,7 +25,8 @@ public class RagKnowledge {
     @Column(name = "definition", columnDefinition = "TEXT")
     private String definition;
 
-    @Column(name = "thresholds", columnDefinition = "JSON")
+    @Column(name = "thresholds", columnDefinition = "json")
+    @JdbcTypeCode(SqlTypes.JSON)
     private String thresholds;
 
     @Column(name = "category")

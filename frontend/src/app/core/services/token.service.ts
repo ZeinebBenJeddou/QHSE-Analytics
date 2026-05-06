@@ -52,4 +52,6 @@ export class TokenService {
   clearPendingEmail(): void {
     localStorage.removeItem(this.pendingEmailKey);
   }
+
+  
 }

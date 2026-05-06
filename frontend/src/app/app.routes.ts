@@ -22,10 +22,11 @@ import { ImportComponent } from './features/analyste/pages/import/import.compone
 import { ImportMappingComponent } from './features/analyste/pages/import-mapping/import-mapping.component';
 import { HistoriqueComponent } from './features/analyste/pages/historique/historique.component';
 import { DashboardAnalysteComponent } from './features/analyste/pages/dashboard/dashboard-analyste.component';
-import { IaInsightsComponent } from './features/analyste/pages/ia-insights/ia-insights.component';
+import { AnalyseIAComponent } from './features/analyste/pages/analyse-ia/analyse-ia.component';
 import { authGuard } from './core/guards/auth.guard';
 import { adminGuard } from './core/guards/admin.guard';
 import { analysteGuard } from './core/guards/analyste.guard';
+import { ComparatifComponent } from './features/analyste/pages/comparatif/comparatif.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'auth', pathMatch: 'full' },
@@ -66,8 +67,11 @@ export const routes: Routes = [
       { path: 'import/mapping', component: ImportMappingComponent },
       { path: 'historique', component: HistoriqueComponent },
       { path: 'profile', component: AdminProfileComponent, resolve: { profile: adminProfileResolver } },
-      { path: 'ia', component: IaInsightsComponent },
-      { path: 'ia/:id', component: IaInsightsComponent },
+      { path: 'ia', component: AnalyseIAComponent },
+      { path: 'ia/:id', component: AnalyseIAComponent },
+      { path: 'comparatif', component: ComparatifComponent },
+      { path: 'tendances', component: DashboardAnalysteComponent },
+      { path: 'categories', component: DashboardAnalysteComponent },
     ],
   },
 

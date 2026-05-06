@@ -64,6 +64,7 @@ export interface ComparatifTableauResponse {
   importId: number;
   periodeN1: number;
   periodeN: number;
+  dateAnalyse?: string;
   lignes: LigneComparatifResponse[];
   nombreCritiques: number;
   nombreModeres: number;

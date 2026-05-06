@@ -35,14 +35,33 @@ export class AnalysteShellComponent {
 
   sidenavOpen = true;
   activeLabel = 'Tableau de bord';
+  notificationCount = 3;
+  profileName = 'Analyste QHSE';
+  profileRole = 'Analyste';
+
+  dashItems = [
+    { label: 'Tableau de bord', icon: 'dashboard', route: '/analyste/dashboard', badge: null },
+    { label: 'Profil', icon: 'person', route: '/analyste/profile', badge: null },
+  ];
+
+
+  dataItems = [
+    { label: 'Importer données', icon: 'upload_file', route: '/analyste/import', badge: null },
+    { label: 'Historique imports', icon: 'history', route: '/analyste/historique', badge: null },
+  ];
 
   navItems = [
-    { label: 'Profil',            icon: 'person',       route: '/analyste/profile',    badge: null },
-    { label: 'Tableau de bord',   icon: 'dashboard',    route: '/analyste/dashboard',  badge: null },
-    { label: 'Importer des données', icon: 'upload_file', route: '/analyste/import',   badge: null },
-    { label: 'Historique',        icon: 'history',      route: '/analyste/historique', badge: null },
-    { label: 'Analyse IA',        icon: 'psychology',   route: '/analyste/ia',         badge: 'IA' },
+    {label:'Comparatif N vs N-1', icon:'compare_arrows', route:'/analyste/comparatif', badge:null},
+    {label:'Analyse IA', icon:'analytics', route:'/analyste/ia', badge:null},
+  
   ];
+
+   rapportItems = [
+      
+      { label: 'Export PDF', icon: 'picture_as_pdf', route: '/analyste/historique', badge: null },
+  ];
+
+  
 
   constructor() {
     this.router.events

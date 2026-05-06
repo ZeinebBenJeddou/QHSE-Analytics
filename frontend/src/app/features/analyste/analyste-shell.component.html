@@ -1,25 +1,66 @@
 <mat-sidenav-container class="shell-container">
-
-  
   <mat-sidenav
     #sidenav
     [opened]="sidenavOpen"
     mode="side"
     class="sidenav"
   >
-
     
+
     <div class="brand">
-      
       <div class="brand-info">
-        <span class="brand-name">QHSE <strong>Analytics</strong></span>
-        <span class="brand-role">Espace Analyste</span>
+        <div class="brand-name">QHSE <strong>Analytics</strong></div>
+        <div class="brand-role">Espace Analyste</div>
       </div>
     </div>
 
-    
     <nav class="nav-section">
-      <p class="nav-label">Navigation</p>
+      <mat-nav-list class="nav-list">
+        @for (item of dashItems; track item.route) {
+          <a
+            mat-list-item
+            [routerLink]="item.route"
+            routerLinkActive="active-link"
+            class="nav-item"
+            [matTooltip]="item.label"
+            matTooltipPosition="right"
+            [matTooltipDisabled]="sidenavOpen"
+          >
+            <mat-icon matListItemIcon class="nav-icon">{{ item.icon }}</mat-icon>
+            <span matListItemTitle class="nav-item-title">{{ item.label }}</span>
+            @if (item.badge) {
+              <span class="nav-badge">{{ item.badge }}</span>
+            }
+          </a>
+        }
+      </mat-nav-list>
+    </nav>
+
+    <nav class="nav-section">
+      <p class="nav-label">Données</p>
+      <mat-nav-list class="nav-list">
+        @for (item of dataItems; track item.route) {
+          <a
+            mat-list-item
+            [routerLink]="item.route"
+            routerLinkActive="active-link"
+            class="nav-item"
+            [matTooltip]="item.label"
+            matTooltipPosition="right"
+            [matTooltipDisabled]="sidenavOpen"
+          >
+            <mat-icon matListItemIcon class="nav-icon">{{ item.icon }}</mat-icon>
+            <span matListItemTitle class="nav-item-title">{{ item.label }}</span>
+            @if (item.badge) {
+              <span class="nav-badge">{{ item.badge }}</span>
+            }
+          </a>
+        }
+      </mat-nav-list>
+    </nav>
+
+    <nav class="nav-section">
+      <p class="nav-label">Analyse</p>
       <mat-nav-list class="nav-list">
         @for (item of navItems; track item.route) {
           <a
@@ -41,21 +82,41 @@
       </mat-nav-list>
     </nav>
 
+    <nav class="nav-section">
+      <p class="nav-label">Rapports</p>
+      <mat-nav-list class="nav-list">
+        @for (item of rapportItems; track item.route) {
+          <a
+            mat-list-item
+            [routerLink]="item.route"
+            routerLinkActive="active-link"
+            class="nav-item"
+            [matTooltip]="item.label"
+            matTooltipPosition="right"
+            [matTooltipDisabled]="sidenavOpen"
+          >
+            <mat-icon matListItemIcon class="nav-icon">{{ item.icon }}</mat-icon>
+            <span matListItemTitle class="nav-item-title">{{ item.label }}</span>
+            @if (item.badge) {
+              <span class="nav-badge">{{ item.badge }}</span>
+            }
+          </a>
+        }
+      </mat-nav-list>
+    </nav>
+
    
+    
+
     <div class="sidenav-footer">
-      
       <a mat-list-item class="nav-item logout-btn" (click)="logout()">
         <mat-icon matListItemIcon>logout</mat-icon>
         <span matListItemTitle>Déconnexion</span>
       </a>
     </div>
-
   </mat-sidenav>
 
-  
   <mat-sidenav-content class="main-content">
-
-  
     <mat-toolbar class="toolbar">
       <button mat-icon-button class="menu-btn" (click)="toggleSidenav()" matTooltip="Menu">
         <mat-icon>{{ sidenavOpen ? 'menu_open' : 'menu' }}</mat-icon>
@@ -72,10 +133,8 @@
       
     </mat-toolbar>
 
-    
     <div class="content-area">
       <router-outlet />
     </div>
-
   </mat-sidenav-content>
 </mat-sidenav-container>

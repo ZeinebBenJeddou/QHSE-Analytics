@@ -6,15 +6,18 @@ export const analysteGuard: CanActivateFn = (): boolean => {
   const tokenService = inject(TokenService);
   const router = inject(Router);
 
-  if (tokenService.hasToken() && (tokenService.isAnalyste() || tokenService.isAdmin())) {
-    return true;
+  if (tokenService.hasToken()) {
+    if (tokenService.isAnalyste()) {
+      return true;
+    }
+    // If user is admin, redirect to admin area
+    if (tokenService.isAdmin()) {
+      router.navigate(['/admin']);
+      return false;
+    }
   }
 
-  if (tokenService.hasToken() && tokenService.isAdmin()) {
-     router.navigate(['/admin']);
-     return false;
-  }
-
+  // Not authenticated as analyst → go to login
   router.navigate(['/auth/login']);
   return false;
 };

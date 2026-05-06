@@ -4,4 +4,5 @@ import com.QHSEAnalytics.entity.KpiRawData;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface KpiRawDataRepository extends JpaRepository<KpiRawData, Long> {
+    void deleteByImportSessionId(Long importSessionId);
 }

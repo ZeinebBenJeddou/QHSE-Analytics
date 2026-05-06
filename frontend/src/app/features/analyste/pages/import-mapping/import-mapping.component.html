@@ -1,22 +1,40 @@
 <div class="import-page">
 
+  <!-- HEADER -->
+  <div class="header-row">
+    <div class="header-left">
+      <div class="header-icon-wrap">
+        <mat-icon>account_tree</mat-icon>
+      </div>
+      <div>
+        <h1>Mapping des colonnes</h1>
+        <p class="subtitle">Associez les colonnes de votre fichier aux champs obligatoires</p>
+      </div>
+    </div>
+    <button mat-stroked-button class="back-header-btn" (click)="goBack()">
+      <mat-icon>arrow_back</mat-icon>
+      Retour à l'import
+    </button>
+  </div>
+
+  <!-- STEPPER -->
   <div class="stepper-card">
     <div class="step active">
-      <div class="step-number">1</div>
+      <span class="step-number">1</span>
       <div>
         <div class="step-title">Upload</div>
         <div class="step-subtitle">Fichier sélectionné</div>
       </div>
     </div>
     <div class="step active">
-      <div class="step-number">2</div>
+      <span class="step-number">2</span>
       <div>
         <div class="step-title">Mapping</div>
         <div class="step-subtitle">Associer les colonnes</div>
       </div>
     </div>
     <div class="step" [class.active]="isProcessingStep || !!result()">
-      <div class="step-number">3</div>
+      <span class="step-number">3</span>
       <div>
         <div class="step-title">Processing</div>
         <div class="step-subtitle">Calculs & IA</div>
@@ -24,217 +42,242 @@
     </div>
   </div>
 
-  <mat-card class="panel">
-    <mat-card-header>
-      <mat-card-title>Configuration du Mapping</mat-card-title>
-      <mat-card-subtitle>
-        Associez les colonnes de votre fichier aux indicateurs QHSE. La catégorie et la définition seront enrichies par l'IA.
-      </mat-card-subtitle>
-    </mat-card-header>
-    <mat-card-content>
+  <!-- MAIN PANEL -->
+  <div class="panel">
 
-      <div class="instructions-box">
+    <div class="panel-inline-header">
+      <div class="panel-icon-wrap">
+        <mat-icon>tune</mat-icon>
+      </div>
+      <div>
+        <div class="panel-title-text">Configuration du Mapping</div>
+        <div class="panel-subtitle-text">Sélectionnez quelle colonne correspond à chaque champ</div>
+      </div>
+    </div>
+    <div class="panel-divider"></div>
+
+    <!-- File summary -->
+    <div class="summary-strip" *ngIf="uploadStateData()">
+      <div class="summary-chip">
+        <mat-icon>insert_drive_file</mat-icon>
+        <span>Fichier :</span>
+        <strong>{{ uploadStateData()?.file?.name }}</strong>
+      </div>
+      <span class="summary-sep">|</span>
+      <div class="summary-chip">
+        <mat-icon>calendar_today</mat-icon>
+        <span>Période N :</span>
+        <strong>{{ uploadStateData()?.yearN }}</strong>
+      </div>
+      <span class="summary-sep">|</span>
+      <div class="summary-chip">
+        <mat-icon>history</mat-icon>
+        <span>Période N-1 :</span>
+        <strong>{{ uploadStateData()?.yearNMinus1 }}</strong>
+      </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="instructions-box" style="margin-top: 16px;">
+      <mat-icon>info_outline</mat-icon>
+      <div class="instructions-content">
         <strong>Champs obligatoires à mapper</strong>
-        <ul>
-          <li>Nom du KPI</li>
-          <li>Valeur N (Année en cours)</li>
-          <li>Valeur N-1 (Année précédente)</li>
-        </ul>
-      </div>
-
-      <div class="summary-section" *ngIf="uploadStateData()">
-        <p>Fichier : <strong>{{ uploadStateData()?.file?.name }}</strong></p>
-        <ul>
-          <li>Période N : <strong>{{ uploadStateData()?.yearN }}</strong></li>
-          <li>Période N-1 : <strong>{{ uploadStateData()?.yearNMinus1 }}</strong></li>
-        </ul>
-      </div>
-
-      <div class="preview-section" *ngIf="uploadStateData()">
-        <h3>Structure du fichier détectée</h3>
-        <div class="column-list">
-          <div class="column-item" *ngFor="let header of uploadStateData()?.headers; let i = index">
-            <span class="column-index">{{ i }}</span>
-            <span class="column-label">{{ header || 'Colonne ' + i }}</span>
-          </div>
+        <div class="field-chips">
+          <span class="field-chip"><mat-icon>label</mat-icon>Nom du KPI</span>
+          <span class="field-chip"><mat-icon>trending_up</mat-icon>Valeur N</span>
+          <span class="field-chip"><mat-icon>history</mat-icon>Valeur N-1</span>
         </div>
       </div>
+    </div>
 
-      <div class="mapping-grid">
-        <mat-form-field appearance="outline">
-          <mat-label>Nom du KPI</mat-label>
-          <mat-select [value]="kpiColumn()" (selectionChange)="kpiColumn.set($event.value)">
-            <mat-option *ngFor="let index of indexes" [value]="index">
-              {{ index }} — {{ getHeaderLabel(index) }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-
-
-        <mat-form-field appearance="outline">
-          <mat-label>Valeur N</mat-label>
-          <mat-select [value]="valueNColumn()" (selectionChange)="valueNColumn.set($event.value)">
-            <mat-option *ngFor="let index of indexes" [value]="index">
-              {{ index }} — {{ getHeaderLabel(index) }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Valeur N-1</mat-label>
-          <mat-select [value]="valueNMinus1Column()" (selectionChange)="valueNMinus1Column.set($event.value)">
-            <mat-option *ngFor="let index of indexes" [value]="index">
-              {{ index }} — {{ getHeaderLabel(index) }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
+    <!-- Detected columns -->
+    <div *ngIf="uploadStateData()" style="margin-top: 20px;">
+      <p class="section-label">Structure du fichier détectée</p>
+      <div class="column-list">
+        <div class="column-item" *ngFor="let header of uploadStateData()?.headers; let i = index">
+          <span class="column-index">{{ i }}</span>
+          <span class="column-label">{{ header || 'Colonne ' + i }}</span>
+        </div>
       </div>
+    </div>
 
-      <div class="error-banner" *ngIf="errorMsg()">
-        <mat-icon>error_outline</mat-icon>
-        <span>{{ errorMsg() }}</span>
-      </div>
+    <!-- Mapping selects -->
+    <div class="mapping-grid" style="margin-top: 20px;">
+      <mat-form-field appearance="outline">
+        <mat-label>Nom du KPI</mat-label>
+        <mat-select [value]="kpiColumn()" (selectionChange)="kpiColumn.set($event.value)">
+          <mat-option *ngFor="let index of indexes" [value]="index">
+            {{ index }} — {{ getHeaderLabel(index) }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
 
-      <div class="preview-summary" *ngIf="previewResponse()">
-        <mat-card class="preview-card">
-          <mat-card-header>
-            <mat-card-title>Prévisualisation d'extraction</mat-card-title>
-            <mat-card-subtitle>
-              Méthode : <span [ngClass]="extractMethodBadgeClass(previewResponse()?.extractionMethod)">{{ previewResponse()?.extractionMethod }}</span>
-              · Qualité : <strong>{{ qualityLabel(previewResponse()?.qualityScore) }}</strong>
-            </mat-card-subtitle>
-          </mat-card-header>
-          <mat-card-content>
-            <p>{{ invalidRateLabel(previewResponse()?.rawData) }}</p>
-          </mat-card-content>
-        </mat-card>
-      </div>
+      <mat-form-field appearance="outline">
+        <mat-label>Valeur N</mat-label>
+        <mat-select [value]="valueNColumn()" (selectionChange)="valueNColumn.set($event.value)">
+          <mat-option *ngFor="let index of indexes" [value]="index">
+            {{ index }} — {{ getHeaderLabel(index) }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
 
-      <div class="actions-row">
-        <button mat-stroked-button class="back-btn" (click)="goBack()">
-          <mat-icon>arrow_back</mat-icon>
-          Retour
-        </button>
+      <mat-form-field appearance="outline">
+        <mat-label>Valeur N-1</mat-label>
+        <mat-select [value]="valueNMinus1Column()" (selectionChange)="valueNMinus1Column.set($event.value)">
+          <mat-option *ngFor="let index of indexes" [value]="index">
+            {{ index }} — {{ getHeaderLabel(index) }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <!-- Error -->
+    <div class="error-banner" *ngIf="errorMsg()" style="margin-top: 16px;">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ errorMsg() }}</span>
+    </div>
+
+    <!-- Preview response -->
+    <div class="preview-summary" *ngIf="previewResponse()">
+      <mat-card class="preview-card">
+        <mat-card-header>
+          <mat-card-title>Prévisualisation d'extraction</mat-card-title>
+          <mat-card-subtitle>
+            Méthode : <span [ngClass]="extractMethodBadgeClass(previewResponse()?.extractionMethod)">{{ previewResponse()?.extractionMethod }}</span>
+            · Qualité : <strong>{{ qualityLabel(previewResponse()?.qualityScore) }}</strong>
+          </mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <p>{{ invalidRateLabel(previewResponse()?.rawData) }}</p>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Actions -->
+    <div class="actions-row" style="margin-top: 20px;">
+      <button mat-stroked-button class="back-btn" (click)="goBack()">
+        <mat-icon>arrow_back</mat-icon>
+        Retour
+      </button>
+      <div class="actions-right">
         <button mat-flat-button class="submit-btn" (click)="submitMapping()" [disabled]="processing()">
           <mat-spinner *ngIf="processing()" diameter="16"></mat-spinner>
           <mat-icon *ngIf="!processing()">visibility</mat-icon>
           {{ processing() ? 'Analyse...' : 'Générer Prévisualisation' }}
         </button>
-        <button mat-flat-button class="confirm-btn" color="primary" (click)="confirmImport()" [disabled]="!previewResponse() || processing()">
+        <button mat-flat-button class="confirm-btn" (click)="confirmImport()" [disabled]="!previewResponse() || processing()">
           <mat-icon>check_circle</mat-icon>
           Confirmer l'import
         </button>
       </div>
+    </div>
 
-      <div class="preview-table" *ngIf="previewResponse()?.calculatedData?.length">
-        <h3>Aperçu des données et enrichissement IA</h3>
-        <div class="table-scroll">
-          <table mat-table [dataSource]="previewResponse()?.calculatedData ?? []" class="kpi-table">
+    <!-- Preview table — full bleed -->
+    <div class="preview-table" *ngIf="previewResponse()?.calculatedData?.length">
+      <h3>Aperçu des données et enrichissement IA</h3>
+      <div class="table-scroll">
+        <table mat-table [dataSource]="previewResponse()?.calculatedData ?? []" class="kpi-table">
 
-            <ng-container matColumnDef="kpiName">
-              <th mat-header-cell *matHeaderCellDef>KPI</th>
-              <td mat-cell *matCellDef="let row">
-                <div class="kpi-name-cell">
-                  <strong>{{ row.kpiName }}</strong>
-                </div>
-              </td>
-            </ng-container>
+          <ng-container matColumnDef="kpiName">
+            <th mat-header-cell *matHeaderCellDef>KPI</th>
+            <td mat-cell *matCellDef="let row">
+              <div class="kpi-name-cell"><strong>{{ row.kpiName }}</strong></div>
+            </td>
+          </ng-container>
 
-            <ng-container matColumnDef="categorie">
-              <th mat-header-cell *matHeaderCellDef>Catégorie (IA)</th>
-              <td mat-cell *matCellDef="let row">
-                <span class="cat-badge">{{ row.categorie || 'En recherche...' }}</span>
-              </td>
-            </ng-container>
+          <ng-container matColumnDef="categorie">
+            <th mat-header-cell *matHeaderCellDef>Catégorie (IA)</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="cat-badge">{{ row.categorie || 'En recherche...' }}</span>
+            </td>
+          </ng-container>
 
-            <ng-container matColumnDef="unite">
-              <th mat-header-cell *matHeaderCellDef>Unité (IA)</th>
-              <td mat-cell *matCellDef="let row">
-                <span class="unit-badge">{{ row.unite || '...' }}</span>
-              </td>
-            </ng-container>
+          <ng-container matColumnDef="unite">
+            <th mat-header-cell *matHeaderCellDef>Unité (IA)</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="unit-badge">{{ row.unite || '...' }}</span>
+            </td>
+          </ng-container>
 
-            <ng-container matColumnDef="definition">
-              <th mat-header-cell *matHeaderCellDef>Définition</th>
-              <td mat-cell *matCellDef="let row">
-                <div class="definition-cell" [title]="row.definition">
-                  {{ row.definition || 'Génération IA en cours...' }}
-                </div>
-              </td>
-            </ng-container>
+          <ng-container matColumnDef="definition">
+            <th mat-header-cell *matHeaderCellDef>Définition</th>
+            <td mat-cell *matCellDef="let row">
+              <div class="definition-cell" [title]="row.definition">
+                {{ row.definition || 'Génération IA en cours...' }}
+              </div>
+            </td>
+          </ng-container>
 
-            <ng-container matColumnDef="valeurN">
-              <th mat-header-cell *matHeaderCellDef>Valeur ({{ uploadStateData()?.yearN }})</th>
-              <td mat-cell *matCellDef="let row">
-                <ng-container *ngIf="row.valeurN !== null; else noValueN">
-                  {{ row.isBoolean ? (row.valeurN === 1 ? 'Oui' : 'Non') : row.valeurN }}
-                </ng-container>
-                <ng-template #noValueN>—</ng-template>
-              </td>
-            </ng-container>
+          <ng-container matColumnDef="valeurN">
+            <th mat-header-cell *matHeaderCellDef>Valeur ({{ uploadStateData()?.yearN }})</th>
+            <td mat-cell *matCellDef="let row">
+              <ng-container *ngIf="row.valeurN !== null; else noValueN">
+                {{ row.isBoolean ? (row.valeurN === 1 ? 'Oui' : 'Non') : row.valeurN }}
+              </ng-container>
+              <ng-template #noValueN>—</ng-template>
+            </td>
+          </ng-container>
 
-            <ng-container matColumnDef="valeurN1">
-              <th mat-header-cell *matHeaderCellDef>Valeur ({{ uploadStateData()?.yearNMinus1 }})</th>
-              <td mat-cell *matCellDef="let row">
-                <ng-container *ngIf="row.valeurN1 !== null; else noValueN1">
-                  {{ row.isBoolean ? (row.valeurN1 === 1 ? 'Oui' : 'Non') : row.valeurN1 }}
-                </ng-container>
-                <ng-template #noValueN1>—</ng-template>
-              </td>
-            </ng-container>
+          <ng-container matColumnDef="valeurN1">
+            <th mat-header-cell *matHeaderCellDef>Valeur ({{ uploadStateData()?.yearNMinus1 }})</th>
+            <td mat-cell *matCellDef="let row">
+              <ng-container *ngIf="row.valeurN1 !== null; else noValueN1">
+                {{ row.isBoolean ? (row.valeurN1 === 1 ? 'Oui' : 'Non') : row.valeurN1 }}
+              </ng-container>
+              <ng-template #noValueN1>—</ng-template>
+            </td>
+          </ng-container>
 
-            <ng-container matColumnDef="status">
-              <th mat-header-cell *matHeaderCellDef>Status</th>
-              <td mat-cell *matCellDef="let row">
-                <span [ngClass]="getStatusClass(row.statusColor)">
-                  <mat-icon *ngIf="row.statusColor === 'green'">check_circle</mat-icon>
-                  <mat-icon *ngIf="row.statusColor === 'red'">error</mat-icon>
-                  <mat-icon *ngIf="row.statusColor === 'yellow'">remove_circle</mat-icon>
-                  <mat-icon *ngIf="row.statusColor === 'blue'">new_releases</mat-icon>
-                  {{ row.status }}
-                </span>
-              </td>
-            </ng-container>
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let row">
+              <span [ngClass]="getStatusClass(row.statusColor)">
+                <mat-icon *ngIf="row.statusColor === 'green'">check_circle</mat-icon>
+                <mat-icon *ngIf="row.statusColor === 'red'">error</mat-icon>
+                <mat-icon *ngIf="row.statusColor === 'yellow'">remove_circle</mat-icon>
+                <mat-icon *ngIf="row.statusColor === 'blue'">new_releases</mat-icon>
+                {{ row.status }}
+              </span>
+            </td>
+          </ng-container>
 
-            <ng-container matColumnDef="commentaire">
-              <th mat-header-cell *matHeaderCellDef>Commentaire</th>
-              <td mat-cell *matCellDef="let row">
-                <span class="comment-text">
-                  {{ row.commentaire }}
-                </span>
-              </td>
-            </ng-container>
+          <ng-container matColumnDef="commentaire">
+            <th mat-header-cell *matHeaderCellDef>Commentaire</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="comment-text">{{ row.commentaire }}</span>
+            </td>
+          </ng-container>
 
-            <ng-container matColumnDef="variation">
-              <th mat-header-cell *matHeaderCellDef>Variation %</th>
-              <td mat-cell *matCellDef="let row">
-                <span *ngIf="row.variationPercentage !== null" [ngClass]="getVariationClass(row.variationPercentage)">
-                  {{ row.variationPercentage | number:'1.1-1' }}%
-                </span>
-                <span *ngIf="row.variationPercentage === null" class="text-stable">
-                  {{ row.status === 'Nouveau' ? 'N/A' : '—' }}
-                </span>
-              </td>
-            </ng-container>
+          <ng-container matColumnDef="variation">
+            <th mat-header-cell *matHeaderCellDef>Variation %</th>
+            <td mat-cell *matCellDef="let row">
+              <span *ngIf="row.variationPercentage !== null" [ngClass]="getVariationClass(row.variationPercentage)">
+                {{ row.variationPercentage | number:'1.1-1' }}%
+              </span>
+              <span *ngIf="row.variationPercentage === null" class="text-stable">
+                {{ row.status === 'Nouveau' ? 'N/A' : '—' }}
+              </span>
+            </td>
+          </ng-container>
 
-            <ng-container matColumnDef="absoluteGap">
-              <th mat-header-cell *matHeaderCellDef>Écart</th>
-              <td mat-cell *matCellDef="let row">
-                <span [ngClass]="getVariationClass(row.absoluteGap)">
-                  {{ row.absoluteGap > 0 ? '+' : '' }}{{ row.absoluteGap | number:'1.0-2' }}
-                </span>
-              </td>
-            </ng-container>
+          <ng-container matColumnDef="absoluteGap">
+            <th mat-header-cell *matHeaderCellDef>Écart</th>
+            <td mat-cell *matCellDef="let row">
+              <span [ngClass]="getVariationClass(row.absoluteGap)">
+                {{ row.absoluteGap > 0 ? '+' : '' }}{{ row.absoluteGap | number:'1.0-2' }}
+              </span>
+            </td>
+          </ng-container>
 
-            <tr mat-header-row *matHeaderRowDef="previewColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: previewColumns"></tr>
-          </table>
-        </div>
+          <tr mat-header-row *matHeaderRowDef="previewColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: previewColumns"></tr>
+        </table>
       </div>
+    </div>
 
-    </mat-card-content>
-  </mat-card>
+  </div>
 
+  <!-- RESULT CARD -->
   <mat-card class="panel result-card" *ngIf="result()">
     <mat-card-header>
       <mat-card-title>Importation Finalisée</mat-card-title>
@@ -245,38 +288,33 @@
         <mat-icon>check_circle</mat-icon>
         {{ result()?.calculatedData?.length }} indicateurs traités avec succès.
       </div>
-      
       <div class="results-table-container">
         <table mat-table [dataSource]="result()?.calculatedData ?? []" class="kpi-table results-table">
+
           <ng-container matColumnDef="kpiName">
             <th mat-header-cell *matHeaderCellDef>KPI</th>
             <td mat-cell *matCellDef="let row"><strong>{{ row.kpiName }}</strong></td>
           </ng-container>
-
           <ng-container matColumnDef="categorie">
             <th mat-header-cell *matHeaderCellDef>Catégorie</th>
             <td mat-cell *matCellDef="let row"><span class="cat-badge">{{ row.categorie }}</span></td>
           </ng-container>
-
           <ng-container matColumnDef="unite">
             <th mat-header-cell *matHeaderCellDef>Unité</th>
             <td mat-cell *matCellDef="let row"><span class="unit-badge">{{ row.unite }}</span></td>
           </ng-container>
-
           <ng-container matColumnDef="valeurN">
             <th mat-header-cell *matHeaderCellDef>{{ uploadStateData()?.yearN }} (N)</th>
             <td mat-cell *matCellDef="let row">
               {{ row.isBoolean ? (row.valeurN === 1 ? 'Oui' : 'Non') : (row.valeurN | number:'1.0-2') }}
             </td>
           </ng-container>
-
           <ng-container matColumnDef="valeurN1">
             <th mat-header-cell *matHeaderCellDef>{{ uploadStateData()?.yearNMinus1 }} (N-1)</th>
             <td mat-cell *matCellDef="let row">
               {{ row.isBoolean ? (row.valeurN1 === 1 ? 'Oui' : 'Non') : (row.valeurN1 | number:'1.0-2') }}
             </td>
           </ng-container>
-
           <ng-container matColumnDef="variation">
             <th mat-header-cell *matHeaderCellDef>Var %</th>
             <td mat-cell *matCellDef="let row">
@@ -285,14 +323,12 @@
               </span>
             </td>
           </ng-container>
-
           <ng-container matColumnDef="absoluteGap">
             <th mat-header-cell *matHeaderCellDef>Écart</th>
             <td mat-cell *matCellDef="let row">
               <span [ngClass]="getVariationClass(row.absoluteGap)">{{ row.absoluteGap | number:'1.0-2' }}</span>
             </td>
           </ng-container>
-
           <ng-container matColumnDef="status">
             <th mat-header-cell *matHeaderCellDef>Status</th>
             <td mat-cell *matCellDef="let row">

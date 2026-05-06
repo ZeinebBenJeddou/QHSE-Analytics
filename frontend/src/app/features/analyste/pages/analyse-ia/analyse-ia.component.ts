@@ -1,0 +1,360 @@
+import {
+  Component, inject, OnInit, signal, computed
+} from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
+import { catchError, finalize, of } from 'rxjs';
+
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatButtonModule } from '@angular/material/button';
+
+import { DashboardService } from '../../../../core/services/dashboard.service';
+import { ResumeAnalysteResponse } from '../../../../core/models/dashboard.model';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../../../environments/environment';
+
+/* ══════════════════════════════════════════════════════════════════════
+   DTOs — miroir exact du backend
+══════════════════════════════════════════════════════════════════════ */
+
+export interface AnalyseGlobaleResponse {
+  id: number;
+  importSessionId: number;
+  synthese: string;
+  planActions: string;       // newline-separated recommendations
+  createdAt: string;
+}
+
+export interface AnalyseCategorieResponse {
+  id: number;
+  importSessionId: number;
+  categorieCode: string;     // Q | H | S | E
+  categorieLibelle: string;
+  contenu: string;           // full IA text for this category
+  createdAt: string;
+}
+
+export interface ResultatKpiResponse {
+  id: number;
+  kpiId: number;
+  kpiNom: string;
+  kpiUnite: string;
+  categorieCode: string;
+  categorieLibelle: string;
+  periodeN1: number;
+  periodeN: number;
+  valeurN1: number;
+  valeurN: number;
+  variationAbsolue: number;
+  variationRelative: number;  // %
+  niveauVariation: 'FAIBLE' | 'MODERE' | 'CRITIQUE' | null;
+  tendance: 'HAUSSE' | 'BAISSE' | 'STABLE' | null;
+  analyseIa: string | null;   // insight texte par KPI
+  createdAt: string;
+}
+
+export interface AnalyseCompleteResponse {
+  importSessionId: number;
+  periodeN1: number;
+  periodeN: number;
+  analyseGlobale: AnalyseGlobaleResponse | null;
+  analysesCategories: AnalyseCategorieResponse[];
+  analysesKpis: ResultatKpiResponse[];
+}
+
+/* ── Category metadata ─────────────────────────────────────────────── */
+interface CategorieInfo {
+  code: string;
+  libelle: string;
+  icon: string;
+  color: string;
+  bgLight: string;
+}
+
+const CATEGORIES: CategorieInfo[] = [
+  { code: 'Q', libelle: 'Qualité',       icon: 'verified',        color: '#4318FF', bgLight: '#f0edff' },
+  { code: 'H', libelle: 'Hygiène',       icon: 'sanitizer',       color: '#05cd99', bgLight: '#e8f8f0' },
+  { code: 'S', libelle: 'Sécurité',      icon: 'security',        color: '#ee5d50', bgLight: '#ffebee' },
+  { code: 'E', libelle: 'Environnement', icon: 'eco',             color: '#ff9800', bgLight: '#fff3e0' },
+];
+
+@Component({
+  selector: 'app-analyse-ia',
+  standalone: true,
+  imports: [
+    CommonModule, RouterModule,
+    MatIconModule, MatProgressSpinnerModule, MatSnackBarModule,
+    MatTooltipModule, MatButtonModule,
+  ],
+  templateUrl: './analyse-ia.component.html',
+  styleUrls: ['./analyse-ia.component.css'],
+})
+export class AnalyseIAComponent implements OnInit {
+
+  private dashboardService = inject(DashboardService);
+  private snackBar         = inject(MatSnackBar);
+  private route            = inject(ActivatedRoute);
+  private http             = inject(HttpClient);
+  private readonly dashboardAnalysteBase = `${environment.apiUrl}/api/dashboard/analyste`;
+  private readonly iaBase = `${environment.apiUrl}/api/ia`;
+
+  // ── State ────────────────────────────────────────────────────────────
+  importId        = signal<number | null>(null);
+  loading         = signal(true);
+  regenerating    = signal(false);
+  error           = signal('');
+  resume          = signal<ResumeAnalysteResponse | null>(null);
+  analyse         = signal<AnalyseCompleteResponse | null>(null);
+
+  // ── UI state ─────────────────────────────────────────────────────────
+  activeCatCode   = signal('Q');
+  expandedKpiId   = signal<number | null>(null);
+
+  // ── Constants ─────────────────────────────────────────────────────────
+  readonly CATEGORIES = CATEGORIES;
+
+  // ── Computed : résumé plan actions (split par \n) ────────────────────
+  planActionsList = computed(() => {
+    const pa = this.analyse()?.analyseGlobale?.planActions ?? '';
+    return pa.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+  });
+
+  // ── Computed : catégorie active ──────────────────────────────────────
+  activeCatAnalyse = computed(() => {
+    const code = this.activeCatCode();
+    return this.analyse()?.analysesCategories.find(c => c.categorieCode === code) ?? null;
+  });
+
+  // ── Computed : KPIs de la catégorie active ───────────────────────────
+  activeKpis = computed(() => {
+    const code = this.activeCatCode();
+    return (this.analyse()?.analysesKpis ?? []).filter(k => k.categorieCode === code);
+  });
+
+  // ── Computed : score global simulé à partir des niveaux ──────────────
+  globalScore = computed(() => {
+    const kpis = this.analyse()?.analysesKpis ?? [];
+    if (!kpis.length) return 0;
+    const pts = kpis.reduce((acc, k) => {
+      if (k.niveauVariation === 'FAIBLE')   return acc + 100;
+      if (k.niveauVariation === 'MODERE')   return acc + 60;
+      if (k.niveauVariation === 'CRITIQUE') return acc + 20;
+      return acc + 70;
+    }, 0);
+    return Math.round(pts / kpis.length);
+  });
+
+  // ── Computed : stats par catégorie ───────────────────────────────────
+  catStats = computed(() => {
+    const kpis = this.analyse()?.analysesKpis ?? [];
+    return CATEGORIES.map(cat => {
+      const items     = kpis.filter(k => k.categorieCode === cat.code);
+      const critique  = items.filter(k => k.niveauVariation === 'CRITIQUE').length;
+      const modere    = items.filter(k => k.niveauVariation === 'MODERE').length;
+      const faible    = items.filter(k => k.niveauVariation === 'FAIBLE').length;
+      const withIa    = items.filter(k => k.analyseIa).length;
+      const hasContenu = !!(this.analyse()?.analysesCategories ?? []).find(c => c.categorieCode === cat.code)?.contenu;
+      return { ...cat, total: items.length, critique, modere, faible, withIa, hasContenu };
+    });
+  });
+
+  // ── Computed : KPIs critiques (tous) ─────────────────────────────────
+  kpisCritiques = computed(() =>
+    (this.analyse()?.analysesKpis ?? []).filter(k => k.niveauVariation === 'CRITIQUE')
+  );
+
+  // ── Computed : score label ────────────────────────────────────────────
+  scoreLabel = computed(() => {
+    const s = this.globalScore();
+    if (s >= 80) return 'Excellent';
+    if (s >= 60) return 'Satisfaisant';
+    if (s >= 40) return 'À surveiller';
+    return 'Critique';
+  });
+
+  scoreColor = computed(() => {
+    const s = this.globalScore();
+    if (s >= 80) return '#05cd99';
+    if (s >= 60) return '#4318FF';
+    if (s >= 40) return '#ff9800';
+    return '#ee5d50';
+  });
+
+  // dash-array for SVG ring (circumference ≈ 339)
+  scoreRingDash = computed(() => {
+    const pct = this.globalScore() / 100;
+    return `${Math.round(pct * 339)} 339`;
+  });
+
+  // ── Lifecycle ─────────────────────────────────────────────────────────
+  ngOnInit() {
+    // importId peut venir de la route (:id) ou être déduit via /resume
+    const routeId = this.route.snapshot.paramMap.get('id');
+    if (routeId) {
+      this.importId.set(+routeId);
+      this.loadAnalyse(+routeId);
+    } else {
+      this.loadResume();
+    }
+  }
+
+  loadResume() {
+    this.dashboardService.getResume().subscribe({
+      next: res => {
+        this.resume.set(res);
+        if (res.dernierImportId) {
+          this.importId.set(res.dernierImportId);
+          this.loadAnalyse(res.dernierImportId);
+        } else {
+          this.loading.set(false);
+          this.error.set('Aucun import disponible. Veuillez importer des données.');
+        }
+      },
+      error: () => {
+        this.loading.set(false);
+        this.error.set('Impossible de charger les données.');
+      }
+    });
+  }
+
+  loadAnalyse(importId: number) {
+    this.loading.set(true);
+    this.error.set('');
+
+    // Endpoint principal : GET /api/dashboard/analyste/analyses/{importId}
+    this.http.get<AnalyseCompleteResponse>(`${this.dashboardAnalysteBase}/analyses/${importId}`)
+      .pipe(
+        catchError(() =>
+          // Fallback : GET /api/ia/{importId}
+          this.http.get<AnalyseCompleteResponse>(`${this.iaBase}/${importId}`).pipe(
+            catchError(() => of(null))
+          )
+        ),
+        finalize(() => this.loading.set(false))
+      )
+      .subscribe(data => {
+        if (data) {
+          this.analyse.set(data);
+          // Sélectionner la première catégorie qui a des KPIs
+          const firstCat = CATEGORIES.find(c =>
+            data.analysesKpis.some(k => k.categorieCode === c.code)
+          );
+          if (firstCat) this.activeCatCode.set(firstCat.code);
+        } else {
+          this.error.set('Aucune analyse IA disponible pour cet import. Lancez une analyse.');
+        }
+      });
+  }
+
+  regenerer() {
+    const id = this.importId();
+    if (!id || this.regenerating()) return;
+
+    this.regenerating.set(true);
+    this.http.post<AnalyseCompleteResponse>(`${this.iaBase}/${id}/regenerer`, {})
+      .pipe(finalize(() => this.regenerating.set(false)))
+      .subscribe({
+        next: data => {
+          this.analyse.set(data);
+          this.snackBar.open('Analyse IA régénérée avec succès', 'Fermer', { duration: 4000 });
+        },
+        error: () => this.snackBar.open('Erreur lors de la régénération', 'Fermer', { duration: 4000 })
+      });
+  }
+
+  // ── UI helpers ────────────────────────────────────────────────────────
+  setActiveCat(code: string) { this.activeCatCode.set(code); }
+
+  toggleKpi(id: number) {
+    this.expandedKpiId.set(this.expandedKpiId() === id ? null : id);
+  }
+
+  isExpanded(id: number): boolean { return this.expandedKpiId() === id; }
+
+  getCatInfo(code: string): CategorieInfo {
+    return CATEGORIES.find(c => c.code === code)
+      ?? { code, libelle: code, icon: 'label', color: '#a3aed1', bgLight: '#f4f7fe' };
+  }
+
+  getNiveauClass(niveau: string | null): string {
+    if (niveau === 'CRITIQUE') return 'niveau-critique';
+    if (niveau === 'MODERE')   return 'niveau-modere';
+    if (niveau === 'FAIBLE')   return 'niveau-faible';
+    return 'niveau-default';
+  }
+
+  getTendanceIcon(tendance: string | null): string {
+    if (tendance === 'HAUSSE') return 'trending_up';
+    if (tendance === 'BAISSE') return 'trending_down';
+    return 'trending_flat';
+  }
+
+  getTendanceClass(tendance: string | null): string {
+    if (tendance === 'HAUSSE') return 'icon-red';
+    if (tendance === 'BAISSE') return 'icon-green';
+    return 'icon-blue';
+  }
+
+  formatVariation(v: number): string {
+    const sign = v > 0 ? '+' : '';
+    return `${sign}${v.toFixed(1)}%`;
+  }
+
+  getVariationClass(v: number): string {
+    if (v > 10)  return 'var-neg';
+    if (v < -10) return 'var-pos';
+    return 'var-neutral';
+  }
+
+  // Extrait les lignes de méthode 8D depuis analyseIa
+  parse8D(analyseIa: string | null): string[] {
+    if (!analyseIa) return [];
+    const idx = analyseIa.toLowerCase().indexOf('8d');
+    if (idx < 0) return [];
+    return analyseIa.substring(idx).split(/\n|\./).map(s => s.trim()).filter(s => s.length > 4).slice(0, 8);
+  }
+
+  // Extrait les recommandations inline du texte analyseIa
+  extractRecos(analyseIa: string | null): string[] {
+    if (!analyseIa) return [];
+    const lines = analyseIa.split(/\n/).map(s => s.trim()).filter(s => s.length > 10);
+    // Lignes qui ressemblent à des actions (commencent par verbe ou tiret)
+    return lines.filter(l => /^[-•–*]|^[A-ZÉÈÀÂ]/.test(l)).slice(0, 5);
+  }
+
+  // Score ring pour mini rings catégories
+  miniRingDash(cat: { critique: number; modere: number; faible: number; total: number }): string {
+    if (!cat.total) return '0 339';
+    const score = Math.round(
+      ((cat.faible * 100 + cat.modere * 60 + (cat.total - cat.faible - cat.modere - cat.critique) * 70 + cat.critique * 20) / cat.total)
+    );
+    const pct = score / 100;
+    return `${Math.round(pct * 220)} 220`;
+  }
+
+  miniScore(cat: { critique: number; modere: number; faible: number; total: number }): number {
+    if (!cat.total) return 0;
+    return Math.round(
+      (cat.faible * 100 + cat.modere * 60 + cat.critique * 20 +
+       (cat.total - cat.faible - cat.modere - cat.critique) * 70) / cat.total
+    );
+  }
+
+  get periode(): string {
+    const a = this.analyse();
+    if (!a) return '';
+    return `${a.periodeN1} → ${a.periodeN}`;
+  }
+
+  get createdAt(): string {
+    const ag = this.analyse()?.analyseGlobale;
+    if (!ag?.createdAt) return '';
+    return new Date(ag.createdAt).toLocaleDateString('fr-FR', {
+      day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+  }
+}

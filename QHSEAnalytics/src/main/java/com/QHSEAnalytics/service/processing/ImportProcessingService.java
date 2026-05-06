@@ -5,22 +5,27 @@ import com.QHSEAnalytics.dto.request.ImportRequestDTO;
 import com.QHSEAnalytics.dto.request.KpiRawDataDTO;
 import com.QHSEAnalytics.dto.response.ImportProcessingResponse;
 import com.QHSEAnalytics.dto.response.KpiCalculatedDTO;
+import com.QHSEAnalytics.entity.CategorieKpi;
 import com.QHSEAnalytics.entity.ImportSession;
 import com.QHSEAnalytics.entity.Kpi;
 import com.QHSEAnalytics.entity.KpiRawData;
+import com.QHSEAnalytics.entity.RagKnowledge;
 import com.QHSEAnalytics.entity.ResultatKpi;
 import com.QHSEAnalytics.enums.ImportMode;
 import com.QHSEAnalytics.enums.ImportStatut;
 import com.QHSEAnalytics.enums.NiveauVariation;
 import com.QHSEAnalytics.enums.QualityStatus;
 import com.QHSEAnalytics.enums.Tendance;
+import com.QHSEAnalytics.entity.UniteKpi;
 import com.QHSEAnalytics.exception.ImportTransitionException;
 import com.QHSEAnalytics.exception.ImportValidationException;
+import com.QHSEAnalytics.repository.CategorieKpiRepository;
 import com.QHSEAnalytics.repository.ImportSessionRepository;
 import com.QHSEAnalytics.repository.KpiAnalysisRepository;
 import com.QHSEAnalytics.repository.KpiImportPreviewRepository;
 import com.QHSEAnalytics.repository.KpiRawDataRepository;
 import com.QHSEAnalytics.repository.KpiRepository;
+import com.QHSEAnalytics.repository.RagKnowledgeRepository;
 import com.QHSEAnalytics.repository.ResultatKpiRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,8 +34,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-
+import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -45,6 +51,8 @@ public class ImportProcessingService {
     private final KpiRawDataRepository kpiRawDataRepository;
     private final KpiRepository kpiRepository;
     private final KpiAnalysisRepository kpiAnalysisRepository;
+    private final CategorieKpiRepository categorieKpiRepository;
+    private final RagKnowledgeRepository ragKnowledgeRepository;
 
     @Transactional
     public ImportProcessingResponse processManualImport(ImportRequestDTO request, User user) {
@@ -219,12 +227,17 @@ public class ImportProcessingService {
     }
 
     private ResultatKpi mapToResultatKpi(KpiCalculatedDTO dto, ImportSession session, User user) {
-        if (dto.getMatchedKpiId() == null) {
-            return null;
+        // Try to get matched KPI, or auto-create if not found
+        Kpi kpi;
+        if (dto.getMatchedKpiId() != null) {
+            kpi = kpiRepository.findById(dto.getMatchedKpiId()).orElse(null);
+        } else {
+            // Auto-create KPI if not matched
+            kpi = createOrGetKpi(dto);
         }
 
-        Kpi kpi = kpiRepository.findById(dto.getMatchedKpiId()).orElse(null);
         if (kpi == null) {
+            log.warn("[ImportProcessing] Could not create KPI for '{}' in category '{}'", dto.getKpiName(), dto.getCategorieCode());
             return null;
         }
 
@@ -267,6 +280,119 @@ public class ImportProcessingService {
             return Tendance.valueOf(tendance);
         } catch (IllegalArgumentException ex) {
             return Tendance.STABLE;
+        }
+    }
+
+    /**
+     * Auto-create a KPI if it doesn't exist in the database.
+     * Also creates corresponding RagKnowledge entry for RAG system enrichment.
+     */
+    private Kpi createOrGetKpi(KpiCalculatedDTO dto) {
+        String kpiName = dto.getKpiName();
+        if (kpiName == null || kpiName.isBlank()) {
+            return null;
+        }
+
+        // Check if KPI already exists by name
+        Optional<Kpi> existing = kpiRepository.findByNom(kpiName);
+        if (existing.isPresent()) {
+            return existing.get();
+        }
+
+        try {
+            // Determine category - use categorieCode if available, otherwise default to "AUTO" category
+            CategorieKpi categorie = null;
+            String categorieCode = dto.getCategorieCode();
+            
+            if (categorieCode != null && !categorieCode.equals("AUTO")) {
+                categorie = categorieKpiRepository.findByCode(categorieCode).orElse(null);
+            }
+            
+            // Fallback to a default category if not found
+            if (categorie == null) {
+                categorie = categorieKpiRepository.findByCode("Q").orElse(null);
+            }
+
+            if (categorie == null) {
+                log.warn("[KPI Creation] No category found for KPI '{}', skipping creation", kpiName);
+                return null;
+            }
+
+            // Create new Kpi
+            Kpi newKpi = Kpi.builder()
+                    .nom(kpiName)
+                    .definition("KPI auto-créé à partir d'un import. Catégorie détectée: " + dto.getCategorie())
+                    .unite(parseUnite(dto.getUnite()))
+                    .categorieKpi(categorie)
+                    .seuilFaible(10.0)
+                    .seuilModere(25.0)
+                    .seuilCritique(50.0)
+                    .ordre(999) // Auto-created KPIs get high order number
+                    .isActive(true)
+                    .build();
+
+            Kpi savedKpi = kpiRepository.save(newKpi);
+            log.info("[KPI Creation] Auto-created KPI: name='{}', category='{}', id={}", 
+                kpiName, categorie.getCode(), savedKpi.getId());
+
+            // Create corresponding RagKnowledge entry for RAG system
+            createRagKnowledgeForKpi(savedKpi, categorie);
+
+            return savedKpi;
+        } catch (Exception ex) {
+            log.error("[KPI Creation] Error auto-creating KPI '{}': {}", kpiName, ex.getMessage(), ex);
+            return null;
+        }
+    }
+
+    /**
+     * Create or update RagKnowledge entry for a newly created KPI.
+     */
+    private void createRagKnowledgeForKpi(Kpi kpi, CategorieKpi categorie) {
+        try {
+            // Check if RagKnowledge already exists
+            if (ragKnowledgeRepository.findByKpiName(kpi.getNom()).isPresent()) {
+                return;
+            }
+
+            RagKnowledge ragKnowledge = RagKnowledge.builder()
+                    .kpiName(kpi.getNom())
+                    .definition(kpi.getDefinition())
+                    .category(categorie.getCode())
+                    .thresholds(buildThresholdJson(kpi))
+                    .build();
+
+            ragKnowledgeRepository.save(ragKnowledge);
+            log.info("[RAG Knowledge] Created RAG knowledge for KPI: {}", kpi.getNom());
+        } catch (Exception ex) {
+            log.error("[RAG Knowledge] Error creating RAG knowledge for KPI '{}': {}", kpi.getNom(), ex.getMessage());
+            // Don't fail the import if RAG creation fails
+        }
+    }
+
+    /**
+     * Build a JSON string representing KPI thresholds.
+     */
+    private String buildThresholdJson(Kpi kpi) {
+        return String.format(Locale.US,
+            "{\"faible\":%f, \"modere\":%f, \"critique\":%f}",
+            kpi.getSeuilFaible(),
+            kpi.getSeuilModere(),
+            kpi.getSeuilCritique()
+        );
+    }
+
+    /**
+     * Parse UniteKpi from string representation.
+     */
+    private UniteKpi parseUnite(String unite) {
+        if (unite == null || unite.isBlank()) {
+            return UniteKpi.NOMBRE;
+        }
+        try {
+            return UniteKpi.valueOf(unite);
+        } catch (IllegalArgumentException ex) {
+            return UniteKpi.NOMBRE;
         }
     }
 }

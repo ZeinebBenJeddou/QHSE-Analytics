@@ -222,6 +222,8 @@ public class AnalysisAgent {
         prompt.append("1. NIVEAU D'ANALYSE : Ton analyse doit être extrêmement détaillée (ISO compliance).\n");
         prompt.append("2. PLANS D'ACTIONS IMMÉDIATS : Fournis des actions correctives concrètes pour chaque risque détecté.\n");
         prompt.append("3. RAG : Utilise les seuils et l'historique fournis pour contextualiser chaque variation.\n");
+        prompt.append("4. IMPORTANT : Tu dois OBLIGATOIREMENT renvoyer un objet d'analyse dans le tableau 'kpis' pour CHAQUE KPI listé dans les données actuelles. Aucun KPI ne doit être ignoré.\n");
+        prompt.append("5. TOUS LES CHAMPS OBLIGATOIRES : Chaque objet KPI doit contenir tous les champs demandés (identificationRisque, actionImmediate, etc.). Ne laisse aucun champ vide.\n");
         prompt.append("Réponds uniquement avec du JSON valide.\n");
         prompt.append("Format attendu :\n");
         prompt.append("{\n");

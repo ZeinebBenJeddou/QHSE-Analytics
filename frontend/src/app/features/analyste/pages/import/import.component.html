@@ -37,7 +37,7 @@
       <span class="step-number">3</span>
       <div>
         <div class="step-title">Processing</div>
-        <div class="step-subtitle">Envoi au backend</div>
+        
       </div>
     </div>
   </div>
@@ -69,8 +69,8 @@
         </div>
 
         <div class="required-columns">
-          <p>Champs obligatoires : Nom du KPI, Catégorie, Unité, Valeur N, Valeur N-1.</p>
-          <p>Les colonnes supplémentaires seront ignorées ou mappées à l'étape suivante.</p>
+          <p>Champs obligatoires : Nom du KPI, Valeur N, Valeur N-1.</p>
+          <p>Les colonnes supplémentaires seront ignorées .</p>
         </div>
 
         <div class="year-error" *ngIf="yearError()">
@@ -99,118 +99,12 @@
   </div>
 
   
-  <ng-container *ngIf="hasResult">
+  
 
     
-    <div class="result-grid">
-      <mat-card class="panel chart-card">
-        <mat-card-header>
-          <mat-card-title>Comparaison N / N-1</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <div class="chart-wrap"><canvas #barCanvas></canvas></div>
-        </mat-card-content>
-      </mat-card>
+  
 
-      <mat-card class="panel chart-card">
-        <mat-card-header>
-          <mat-card-title>Tendance</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <div class="chart-wrap"><canvas #lineCanvas></canvas></div>
-        </mat-card-content>
-      </mat-card>
+   
 
-      <mat-card class="panel chart-card">
-        <mat-card-header>
-          <mat-card-title>Distribution par classification</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <div class="chart-wrap"><canvas #pieCanvas></canvas></div>
-        </mat-card-content>
-      </mat-card>
-    </div>
-
-    
-    <mat-card class="panel">
-      <mat-card-header>
-        <mat-card-title>KPI calculés</mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <div class="table-wrap">
-          <table mat-table [dataSource]="result()!.calculatedData ?? []" class="kpi-table">
-
-            <ng-container matColumnDef="kpi">
-              <th mat-header-cell *matHeaderCellDef>KPI</th>
-              <td mat-cell *matCellDef="let element">
-                <span matTooltip="{{ element.definition }}" matTooltipPosition="above">
-                  {{ element.kpiName }}
-                </span>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="categorieCode">
-              <th mat-header-cell *matHeaderCellDef>Catégorie</th>
-              <td mat-cell *matCellDef="let element">{{ categoryLabel(element.categorieCode || element.categorie) }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="valeurN1">
-              <th mat-header-cell *matHeaderCellDef>Valeur N-1</th>
-              <td mat-cell *matCellDef="let element">{{ element.valeurN1 | number:'1.2-2' }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="valeurN">
-              <th mat-header-cell *matHeaderCellDef>Valeur N</th>
-              <td mat-cell *matCellDef="let element">{{ element.valeurN | number:'1.2-2' }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="variationPercentage">
-              <th mat-header-cell *matHeaderCellDef>Variation %</th>
-              <td mat-cell *matCellDef="let element">{{ element.variationPercentage | number:'1.2-2' }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="classification">
-              <th mat-header-cell *matHeaderCellDef>Classification</th>
-              <td mat-cell *matCellDef="let element" [ngClass]="classificationClass(element.classification)">
-                {{ classificationLabel(element.classification) }}
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="seuilFaible">
-              <th mat-header-cell *matHeaderCellDef>Seuil faible</th>
-              <td mat-cell *matCellDef="let element">{{ element.seuilFaible | number:'1.0-2' }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="seuilCritique">
-              <th mat-header-cell *matHeaderCellDef>Seuil critique</th>
-              <td mat-cell *matCellDef="let element">{{ element.seuilCritique | number:'1.0-2' }}</td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="tableColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: tableColumns"></tr>
-          </table>
-        </div>
-      </mat-card-content>
-    </mat-card>
-
-    <mat-card class="panel">
-      <mat-card-header>
-        <mat-card-title>Analyse IA</mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <p class="analysis-text">Le fichier a été importé et les KPI ont été calculés. Lancez l'analyse IA manuellement à partir de la page d'IA.</p>
-      </mat-card-content>
-      <mat-card-actions>
-        <button mat-flat-button class="ia-action-btn" type="button" [disabled]="!importSessionId" (click)="goToIa()" matTooltip="Aucun import sélectionné" [matTooltipDisabled]="!!importSessionId">
-          <mat-icon>rocket_launch</mat-icon>
-          Lancer l'analyse IA
-        </button>
-        <button mat-flat-button class="dashboard-btn" type="button" (click)="goToDashboard()">
-          <mat-icon>dashboard</mat-icon>
-          Aller au dashboard
-        </button>
-      </mat-card-actions>
-    </mat-card>
-
-  </ng-container>
+ 
 </div>

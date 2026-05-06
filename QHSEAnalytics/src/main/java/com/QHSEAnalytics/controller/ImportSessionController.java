@@ -8,12 +8,16 @@ import com.QHSEAnalytics.exception.ImportNotFoundException;
 import com.QHSEAnalytics.repository.AnalyseCategorieRepository;
 import com.QHSEAnalytics.repository.AnalyseGlobaleRepository;
 import com.QHSEAnalytics.repository.ImportSessionRepository;
+import com.QHSEAnalytics.repository.KpiAnalysisRepository;
+import com.QHSEAnalytics.repository.KpiImportPreviewRepository;
+import com.QHSEAnalytics.repository.KpiRawDataRepository;
 import com.QHSEAnalytics.repository.ResultatKpiRepository;
 import com.QHSEAnalytics.repository.StagingDonneeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,10 +35,14 @@ public class ImportSessionController {
     private final AnalyseCategorieRepository analyseCategorieRepository;
     private final AnalyseGlobaleRepository analyseGlobaleRepository;
     private final StagingDonneeRepository stagingDonneeRepository;
+    private final KpiAnalysisRepository kpiAnalysisRepository;
+    private final KpiImportPreviewRepository kpiImportPreviewRepository;
+    private final KpiRawDataRepository kpiRawDataRepository;
     private final UserRepository userRepository;
 
     @DeleteMapping("/{importId}")
     @PreAuthorize("hasRole('ANALYSTE')")
+    @Transactional
     public ResponseEntity<Map<String, String>> deleteImport(@PathVariable Long importId) {
         User user = getCurrentUser();
         ImportSession session = importSessionRepository.findByIdAndUserId(importId, user.getId())
@@ -43,7 +51,10 @@ public class ImportSessionController {
         analyseCategorieRepository.deleteByImportSessionId(importId);
         analyseGlobaleRepository.deleteByImportSessionId(importId);
         resultatKpiRepository.deleteByImportSessionId(importId);
+        kpiAnalysisRepository.deleteByImportSessionId(importId);
         stagingDonneeRepository.deleteByImportSessionId(importId);
+        kpiImportPreviewRepository.deleteByImportSessionId(importId);
+        kpiRawDataRepository.deleteByImportSessionId(importId);
         importSessionRepository.delete(session);
 
         return ResponseEntity.ok(Map.of("message", "Import supprimé avec succès."));

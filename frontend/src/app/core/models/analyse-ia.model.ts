@@ -14,6 +14,16 @@ export interface ResultatKpiIaResponse {
   niveauVariation: 'FAIBLE' | 'MODERE' | 'CRITIQUE';
   tendance: 'HAUSSE' | 'BAISSE' | 'STABLE';
   analyseIa?: string;
+  riskLevel?: 'Faible' | 'Modéré' | 'Élevé';
+  riskJustification?: string;
+  issueDetected?: string;
+  correctiveAction?: string;
+  preventiveAction?: string;
+  immediateAction?: string;
+  immediatePriority?: 'Haute' | 'Moyenne' | 'Basse';
+  requires8d?: boolean;
+  eightDDetails?: string;
+  aiNote?: string;
   createdAt: string;
 }
 

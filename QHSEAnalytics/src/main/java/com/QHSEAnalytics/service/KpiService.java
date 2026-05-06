@@ -7,12 +7,14 @@ import com.QHSEAnalytics.dto.response.KpiDeleteResponse;
 import com.QHSEAnalytics.dto.response.KpiResponse;
 import com.QHSEAnalytics.entity.CategorieKpi;
 import com.QHSEAnalytics.entity.Kpi;
+import com.QHSEAnalytics.entity.RagKnowledge;
 import com.QHSEAnalytics.exception.CategorieNotFoundException;
 import com.QHSEAnalytics.exception.InvalidSeuilException;
 import com.QHSEAnalytics.exception.KpiAlreadyExistsException;
 import com.QHSEAnalytics.exception.KpiNotFoundException;
 import com.QHSEAnalytics.repository.CategorieKpiRepository;
 import com.QHSEAnalytics.repository.KpiRepository;
+import com.QHSEAnalytics.repository.RagKnowledgeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,8 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 
 import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +34,7 @@ public class KpiService {
 
     private final KpiRepository kpiRepository;
     private final CategorieKpiRepository categorieKpiRepository;
+    private final RagKnowledgeRepository ragKnowledgeRepository;
 
     public List<KpiResponse> getKpis(String categorie) {
 
@@ -105,6 +110,9 @@ public class KpiService {
 
         Kpi saved = kpiRepository.save(kpi);
         log.info("KPI créé id={} catégorie={} nom={}", saved.getId(), normalizedCode, saved.getNom());
+        
+        syncRagKnowledge(saved);
+        
         return toKpiResponse(saved);
     }
 
@@ -112,6 +120,8 @@ public class KpiService {
     public KpiResponse updateKpi(Long id, UpdateKpiRequest request) {
         Kpi kpi = kpiRepository.findById(id)
                 .orElseThrow(() -> new KpiNotFoundException("KPI introuvable avec id=" + id));
+
+        String oldName = kpi.getNom();
 
         CategorieKpi targetCategorie = kpi.getCategorieKpi();
         if (request.getCategorieCode() != null && !request.getCategorieCode().isBlank()) {
@@ -159,6 +169,9 @@ public class KpiService {
 
         Kpi saved = kpiRepository.save(kpi);
         log.info("KPI mis à jour id={}", saved.getId());
+        
+        updateRagKnowledge(oldName, saved);
+        
         return toKpiResponse(saved);
     }
 
@@ -171,6 +184,7 @@ public class KpiService {
         if (!hasLinkedData) {
             kpiRepository.deleteById(id);
             log.info("KPI supprimé définitivement id={}", id);
+            deleteRagKnowledge(kpi.getNom());
             return KpiDeleteResponse.builder()
                     .message("KPI supprimé définitivement")
                     .deleted(true)
@@ -180,6 +194,7 @@ public class KpiService {
         kpi.setActive(false);
         kpiRepository.save(kpi);
         log.warn("KPI désactivé (données historiques) id={}", id);
+        deleteRagKnowledge(kpi.getNom());
         return KpiDeleteResponse.builder()
                 .message("KPI désactivé car il possède des données historiques")
                 .deleted(false)
@@ -198,6 +213,7 @@ public class KpiService {
         kpi.setActive(true);
         Kpi saved = kpiRepository.save(kpi);
         log.info("KPI restauré id={}", id);
+        syncRagKnowledge(saved);
         return toKpiResponse(saved);
     }
 
@@ -241,5 +257,58 @@ public class KpiService {
                 .description(categorie.getDescription())
                 .nombreKpisActifs(count)
                 .build();
+    }
+
+    private void syncRagKnowledge(Kpi kpi) {
+        try {
+            if (ragKnowledgeRepository.findByKpiName(kpi.getNom()).isPresent()) {
+                return; // Already exists
+            }
+            RagKnowledge rag = RagKnowledge.builder()
+                    .kpiName(kpi.getNom())
+                    .definition(kpi.getDefinition())
+                    .category(kpi.getCategorieKpi().getCode())
+                    .thresholds(buildThresholdJson(kpi))
+                    .build();
+            ragKnowledgeRepository.save(rag);
+            log.info("RAG knowledge synchronisé (créé) pour KPI: {}", kpi.getNom());
+        } catch (Exception ex) {
+            log.error("Erreur lors de la synchronisation RAG pour KPI {}", kpi.getNom(), ex);
+        }
+    }
+
+    private void updateRagKnowledge(String oldName, Kpi kpi) {
+        try {
+            Optional<RagKnowledge> existingOpt = ragKnowledgeRepository.findByKpiName(oldName);
+            if (existingOpt.isPresent()) {
+                RagKnowledge existing = existingOpt.get();
+                existing.setKpiName(kpi.getNom());
+                existing.setDefinition(kpi.getDefinition());
+                existing.setCategory(kpi.getCategorieKpi().getCode());
+                existing.setThresholds(buildThresholdJson(kpi));
+                ragKnowledgeRepository.save(existing);
+                log.info("RAG knowledge synchronisé (mis à jour) pour KPI: {} (ancien nom: {})", kpi.getNom(), oldName);
+            } else {
+                syncRagKnowledge(kpi); // Create if it doesn't exist
+            }
+        } catch (Exception ex) {
+            log.error("Erreur lors de la mise à jour RAG pour KPI {}", kpi.getNom(), ex);
+        }
+    }
+
+    private void deleteRagKnowledge(String kpiName) {
+        try {
+            ragKnowledgeRepository.findByKpiName(kpiName).ifPresent(rag -> {
+                ragKnowledgeRepository.delete(rag);
+                log.info("RAG knowledge supprimé pour KPI: {}", kpiName);
+            });
+        } catch (Exception ex) {
+            log.error("Erreur lors de la suppression RAG pour KPI {}", kpiName, ex);
+        }
+    }
+
+    private String buildThresholdJson(Kpi kpi) {
+        return String.format(Locale.US, "{\"faible\":%f, \"modere\":%f, \"critique\":%f}",
+                kpi.getSeuilFaible(), kpi.getSeuilModere(), kpi.getSeuilCritique());
     }
 }
