@@ -27,13 +27,26 @@ export class ImportService {
     return this.http.post<ImportProcessingResponse>(`${this.manualBase}/preview`, form);
   }
 
-  processManualImport(file: File, yearN: number, yearNMinus1: number, mapping: Record<string, number>): Observable<ImportProcessingResponse> {
+  processManualImport(file: File, yearN: number, yearNMinus1: number, mapping: Record<string, number>, allowPartialImport = false): Observable<ImportProcessingResponse> {
     const form = new FormData();
     form.append('file', file);
     form.append('yearN', String(yearN));
     form.append('yearN1', String(yearNMinus1));
     form.append('mapping', JSON.stringify(mapping));
+    if (allowPartialImport) {
+      form.append('allowPartialImport', 'true');
+    }
     return this.http.post<ImportProcessingResponse>(this.manualBase, form);
+  }
+
+  /** Confirm strict (default) — no partial import */
+  confirmStrict(file: File, yearN: number, yearNMinus1: number, mapping: Record<string, number>): Observable<ImportProcessingResponse> {
+    return this.processManualImport(file, yearN, yearNMinus1, mapping, false);
+  }
+
+  /** Confirm partial — import only valid rows */
+  confirmPartial(file: File, yearN: number, yearNMinus1: number, mapping: Record<string, number>): Observable<ImportProcessingResponse> {
+    return this.processManualImport(file, yearN, yearNMinus1, mapping, true);
   }
 
   /** Cancel an import session */

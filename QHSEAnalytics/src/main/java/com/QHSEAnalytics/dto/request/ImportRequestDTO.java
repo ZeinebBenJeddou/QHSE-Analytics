@@ -17,4 +17,5 @@ public class ImportRequestDTO {
     private Integer yearN;
     private Integer yearN1;
     private Map<String, Integer> mappingIndexes;
+    private Boolean allowPartialImport;
 }

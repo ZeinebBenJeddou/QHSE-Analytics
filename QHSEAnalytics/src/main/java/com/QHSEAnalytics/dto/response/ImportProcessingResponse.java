@@ -19,8 +19,11 @@ public class ImportProcessingResponse {
     private ChartResponseDTO charts;
     private String analyseIa;
     private AiResponse aiResponse;  // Full LLM response with per-KPI insights
-    
+
     // Risk Intelligence Fields
     private List<KpiCalculatedDTO> risks;  // Critical/anomalous KPIs
     private Integer riskScore;  // Count of CRITICAL KPIs
+
+    // Quality Report — rapport détaillé d'import (preview + import confirmé)
+    private ImportQualityReport qualityReport;
 }

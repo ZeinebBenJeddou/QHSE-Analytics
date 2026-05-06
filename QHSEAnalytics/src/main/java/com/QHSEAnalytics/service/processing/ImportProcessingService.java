@@ -4,6 +4,7 @@ import com.QHSEAnalytics.auth.entity.User;
 import com.QHSEAnalytics.dto.request.ImportRequestDTO;
 import com.QHSEAnalytics.dto.request.KpiRawDataDTO;
 import com.QHSEAnalytics.dto.response.ImportProcessingResponse;
+import com.QHSEAnalytics.dto.response.ImportQualityReport;
 import com.QHSEAnalytics.dto.response.KpiCalculatedDTO;
 import com.QHSEAnalytics.entity.CategorieKpi;
 import com.QHSEAnalytics.entity.ImportSession;
@@ -61,42 +62,114 @@ public class ImportProcessingService {
         ImportSession initialSession = importSessionRepository.save(session);
         ImportSession processingSession = advanceStatus(initialSession, ImportStatut.processing());
 
-        ImportProcessingResponse processingResponse = orchestrator.process(request.getFile(), request.getMappingIndexes());
-        String analyseIaGlobale = processingResponse.getAnalyseIa();
-        persistRawRows(processingSession, processingResponse.getRawData());
-        persistPreviewRows(processingSession, processingResponse.getCalculatedData());
+        ImportProcessingResponse processingResponse = orchestrator.process(
+                request.getFile(), request.getMappingIndexes(),
+                Boolean.TRUE.equals(request.getAllowPartialImport()));
+        ImportQualityReport qualityReport = processingResponse.getQualityReport();
+        boolean allowPartial = Boolean.TRUE.equals(request.getAllowPartialImport());
 
-        List<ResultatKpi> results = processingResponse.getCalculatedData().stream()
+        // Si le rapport qualité est bloquant, ne pas persister et retourner une erreur métier claire
+        if (qualityReport != null && qualityReport.isBlocking()) {
+            log.warn("[ImportProcessing] Import bloqué ({}) pour session {}, {} erreur(s)",
+                    allowPartial ? "hardBlocking" : "blocking",
+                    processingSession.getId(),
+                    qualityReport.getErrors().size());
+            ImportSession erreurSession = advanceStatus(processingSession, ImportStatut.ERREUR);
+            String reason = qualityReport.getBlockingReason() != null
+                    ? qualityReport.getBlockingReason()
+                    : "Import refusé : des erreurs bloquantes ont été détectées. Consultez le rapport qualité.";
+            erreurSession.setMessageErreur(reason);
+            importSessionRepository.save(erreurSession);
+
+            return ImportProcessingResponse.builder()
+                    .importSessionId(erreurSession.getId())
+                    .rawData(processingResponse.getRawData())
+                    .calculatedData(processingResponse.getCalculatedData())
+                    .extractionMethod(processingResponse.getExtractionMethod())
+                    .qualityScore(qualityReport.getQualityScore())
+                    .detectedHeaders(processingResponse.getDetectedHeaders())
+                    .qualityReport(qualityReport)
+                    .build();
+        }
+
+        // --- Filtrage en mode PARTIAL ---
+        List<com.QHSEAnalytics.dto.request.KpiRawDataDTO> rawToProcess = processingResponse.getRawData();
+        List<com.QHSEAnalytics.dto.response.KpiCalculatedDTO> calcToProcess = processingResponse.getCalculatedData();
+
+        if (allowPartial && qualityReport != null && qualityReport.isSoftBlocking()) {
+            java.util.Set<Integer> rejectedIndexes = qualityReport.getRejectedRowIndexes() == null
+                    ? java.util.Collections.emptySet()
+                    : new java.util.HashSet<>(qualityReport.getRejectedRowIndexes());
+
+            rawToProcess = processingResponse.getRawData() == null ? List.of() :
+                    processingResponse.getRawData().stream()
+                            .filter(r -> r.isValid() && !rejectedIndexes.contains(r.getRowIndex()))
+                            .collect(Collectors.toList());
+
+            if (calcToProcess != null && !calcToProcess.isEmpty()) {
+                java.util.Set<String> validKpiNames = rawToProcess.stream()
+                        .map(com.QHSEAnalytics.dto.request.KpiRawDataDTO::getKpiName)
+                        .filter(Objects::nonNull).collect(java.util.stream.Collectors.toSet());
+                calcToProcess = calcToProcess.stream()
+                        .filter(k -> validKpiNames.contains(k.getKpiName()))
+                        .collect(Collectors.toList());
+            }
+            log.info("[ImportProcessing] Mode PARTIAL: {} valides, {} rejetées pour session {}",
+                    rawToProcess.size(), rejectedIndexes.size(), processingSession.getId());
+        }
+
+        String analyseIaGlobale = processingResponse.getAnalyseIa();
+        persistRawRows(processingSession, rawToProcess);
+        persistPreviewRows(processingSession, calcToProcess);
+
+        List<ResultatKpi> results = calcToProcess.stream()
                 .map(dto -> mapToResultatKpi(dto, processingSession, user))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
         ImportSession finalSession;
         if (results.isEmpty()) {
-            finalSession = advanceStatus(processingSession, ImportStatut.ERREUR);
-            finalSession.setMessageErreur("Aucun KPI valide n'a pu être traité.");
-            importSessionRepository.save(finalSession);
+            if (allowPartial && qualityReport != null && qualityReport.isSoftBlocking()) {
+                // Partial import with all rows rejected
+                ImportSession erreurSession = advanceStatus(processingSession, ImportStatut.ERREUR);
+                erreurSession.setMessageErreur("Import partiel : aucune ligne valide n'a pu être importée.");
+                importSessionRepository.save(erreurSession);
+                finalSession = erreurSession;
+            } else {
+                finalSession = advanceStatus(processingSession, ImportStatut.ERREUR);
+                finalSession.setMessageErreur("Aucun KPI valide n'a pu être traité.");
+                importSessionRepository.save(finalSession);
+            }
         } else {
             ImportSession calculatedSession = advanceStatus(processingSession, ImportStatut.CALCULATED);
             resultatKpiRepository.saveAll(results);
-            
-            // Store per-KPI AI analysis if available
+
             if (processingResponse.getAiResponse() != null && processingResponse.getAiResponse().getKpis() != null) {
                 persistKpiAnalysis(processingSession, processingResponse.getAiResponse());
             }
-            
+
             finalSession = advanceStatus(calculatedSession, ImportStatut.READY_FOR_AI);
+            // Renseigner le message de session si import partiel
+            if (allowPartial && qualityReport != null && qualityReport.isSoftBlocking()) {
+                int imported = rawToProcess.size();
+                int rejected = qualityReport.getRejectedRowsCount();
+                finalSession.setMessageErreur(String.format("Import partiel: %d importées, %d rejetées.", imported, rejected));
+                importSessionRepository.save(finalSession);
+                log.info("[ImportProcessing] Import partiel terminé: {} importées, {} rejetées, session {}",
+                        imported, rejected, finalSession.getId());
+            }
         }
 
         return ImportProcessingResponse.builder()
                 .importSessionId(finalSession.getId())
-                .calculatedData(processingResponse.getCalculatedData())
-                .rawData(processingResponse.getRawData())
+                .calculatedData(calcToProcess)
+                .rawData(rawToProcess)
                 .extractionMethod(processingResponse.getExtractionMethod())
                 .qualityScore(processingResponse.getQualityScore())
                 .detectedHeaders(processingResponse.getDetectedHeaders())
                 .charts(processingResponse.getCharts())
                 .analyseIa(analyseIaGlobale)
+                .qualityReport(qualityReport)
                 .build();
     }
 

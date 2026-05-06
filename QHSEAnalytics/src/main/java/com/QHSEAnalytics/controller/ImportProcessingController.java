@@ -59,12 +59,14 @@ public class ImportProcessingController {
             @RequestPart("file") MultipartFile file,
             @RequestPart("yearN") String yearN,
             @RequestPart("yearN1") String yearN1,
-            @RequestPart("mapping") String mappingJson
+            @RequestPart("mapping") String mappingJson,
+            @RequestPart(value = "allowPartialImport", required = false) String allowPartialStr
     ) {
         int n = parseYear(yearN, "Année N");
         int n1 = parseYear(yearN1, "Année N-1");
         validateYearRange(n, n1);
 
+        boolean allowPartial = Boolean.parseBoolean(allowPartialStr);
         Map<String, Integer> mapping = parseMapping(mappingJson);
         User user = getCurrentUser();
         ImportRequestDTO request = ImportRequestDTO.builder()
@@ -72,6 +74,7 @@ public class ImportProcessingController {
                 .yearN(n)
                 .yearN1(n1)
                 .mappingIndexes(mapping)
+                .allowPartialImport(allowPartial)
                 .build();
         return ResponseEntity.ok(importProcessingService.processManualImport(request, user));
     }

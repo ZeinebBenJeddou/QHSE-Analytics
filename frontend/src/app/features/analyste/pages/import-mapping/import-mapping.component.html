@@ -131,26 +131,19 @@
       </mat-form-field>
     </div>
 
+    <!-- Mapping Confidence Warning -->
+    <div class="warning-banner" *ngIf="hasLowConfidenceMapping" style="margin-top: 16px; margin-bottom: 0;">
+      <mat-icon>warning</mat-icon>
+      <div>
+        <strong>Mapping incertain</strong>
+        <p>Le système a détecté un mapping avec une faible confiance pour certaines colonnes. Veuillez vérifier vos sélections ci-dessus.</p>
+      </div>
+    </div>
+
     <!-- Error -->
     <div class="error-banner" *ngIf="errorMsg()" style="margin-top: 16px;">
       <mat-icon>error_outline</mat-icon>
       <span>{{ errorMsg() }}</span>
-    </div>
-
-    <!-- Preview response -->
-    <div class="preview-summary" *ngIf="previewResponse()">
-      <mat-card class="preview-card">
-        <mat-card-header>
-          <mat-card-title>Prévisualisation d'extraction</mat-card-title>
-          <mat-card-subtitle>
-            Méthode : <span [ngClass]="extractMethodBadgeClass(previewResponse()?.extractionMethod)">{{ previewResponse()?.extractionMethod }}</span>
-            · Qualité : <strong>{{ qualityLabel(previewResponse()?.qualityScore) }}</strong>
-          </mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content>
-          <p>{{ invalidRateLabel(previewResponse()?.rawData) }}</p>
-        </mat-card-content>
-      </mat-card>
     </div>
 
     <!-- Actions -->
@@ -165,18 +158,224 @@
           <mat-icon *ngIf="!processing()">visibility</mat-icon>
           {{ processing() ? 'Analyse...' : 'Générer Prévisualisation' }}
         </button>
-        <button mat-flat-button class="confirm-btn" (click)="confirmImport()" [disabled]="!previewResponse() || processing()">
+        <button
+          *ngIf="isHardBlocking()"
+          mat-flat-button
+          class="confirm-btn confirm-btn-blocked"
+          disabled>
+          <mat-icon>block</mat-icon>
+          Import bloqué
+        </button>
+        <button
+          *ngIf="canConfirmStrict()"
+          mat-flat-button
+          class="confirm-btn"
+          (click)="confirmImport()"
+          [disabled]="!previewResponse() || processing()">
           <mat-icon>check_circle</mat-icon>
-          Confirmer l'import
+          Confirmer import
+        </button>
+        <button
+          *ngIf="canConfirmPartial()"
+          mat-flat-button
+          class="confirm-partial-btn"
+          (click)="confirmPartialImport()"
+          [disabled]="!previewResponse() || processing()">
+          <mat-icon>partial_tick</mat-icon>
+          Continuer avec lignes valides
         </button>
       </div>
     </div>
 
-    <!-- Preview table — full bleed -->
+    <!-- ── QUALITY REPORT ───────────────────────────────────────────────── -->
+    <div class="quality-report-section" *ngIf="qualityReport">
+
+      <!-- Blocking banner -->
+      <div class="blocking-banner" *ngIf="qualityReport.blocking">
+        <mat-icon>block</mat-icon>
+        <div>
+          <strong *ngIf="qualityReport.hardBlocking">Erreur structurelle bloquante</strong>
+          <strong *ngIf="!qualityReport.hardBlocking">Import bloqué en mode strict</strong>
+          <p>{{ qualityReport.blockingReason || 'Corrigez les erreurs bloquantes avant de confirmer l\'import.' }}</p>
+        </div>
+      </div>
+
+      <div class="partial-banner" *ngIf="!qualityReport.blocking && qualityReport.softBlocking">
+        <mat-icon>fact_check</mat-icon>
+        <div>
+          <strong>Import partiel disponible</strong>
+          <p>{{ qualityReport.blockingReason || 'Les lignes valides peuvent être importées.' }}</p>
+        </div>
+      </div>
+
+      <!-- Warning-only banner -->
+      <div class="warning-banner" *ngIf="!qualityReport.blocking && (qualityReport.warnings.length || qualityReport.infos.length)">
+        <mat-icon>warning_amber</mat-icon>
+        <div>
+          <strong>Avertissements détectés</strong>
+          <p>Des warnings ont été détectés mais n'empêchent pas la confirmation de l'import.</p>
+        </div>
+      </div>
+
+      <!-- Score + stats -->
+      <div class="quality-header">
+        <div class="quality-title-row">
+          <mat-icon>verified</mat-icon>
+          <span class="quality-title">Rapport qualité de l'import</span>
+        </div>
+
+        <div class="quality-score-row">
+          <div class="score-badge" [ngClass]="qualityScoreClass()">
+            {{ qualityScorePercent() }}%
+          </div>
+          <span class="score-label">Score qualité global</span>
+        </div>
+      </div>
+
+      <div class="quality-stats-grid">
+        <div class="quality-stat">
+          <mat-icon class="stat-icon icon-total">format_list_numbered</mat-icon>
+          <div>
+            <div class="stat-value">{{ qualityReport.totalRows }}</div>
+            <div class="stat-label">Lignes lues</div>
+          </div>
+        </div>
+        <div class="quality-stat">
+          <mat-icon class="stat-icon icon-valid">check_circle</mat-icon>
+          <div>
+            <div class="stat-value text-up">{{ qualityReport.validRows }}</div>
+            <div class="stat-label">Lignes valides</div>
+          </div>
+        </div>
+        <div class="quality-stat">
+          <mat-icon class="stat-icon icon-invalid">cancel</mat-icon>
+          <div>
+            <div class="stat-value text-down">{{ qualityReport.invalidRows }}</div>
+            <div class="stat-label">Lignes invalides</div>
+          </div>
+        </div>
+        <div class="quality-stat">
+          <mat-icon class="stat-icon icon-warning">warning</mat-icon>
+          <div>
+            <div class="stat-value">{{ qualityReport.warningRows }}</div>
+            <div class="stat-label">Avec warnings</div>
+          </div>
+        </div>
+        <div class="quality-stat" matTooltip="Nombre d'occurrences de doublons écartées">
+          <mat-icon class="stat-icon icon-duplicate">content_copy</mat-icon>
+          <div>
+            <div class="stat-value">{{ qualityReport.duplicateRows }}</div>
+            <div class="stat-label">Doublons écartés (occurrences)</div>
+          </div>
+        </div>
+        <div class="quality-stat">
+          <mat-icon class="stat-icon icon-outlier">show_chart</mat-icon>
+          <div>
+            <div class="stat-value">{{ qualityReport.outlierRows }}</div>
+            <div class="stat-label">Outliers</div>
+          </div>
+        </div>
+        <div class="quality-stat">
+          <mat-icon class="stat-icon icon-imported">task_alt</mat-icon>
+          <div>
+            <div class="stat-value text-up">{{ qualityReport.importedRowsCount ?? 0 }}</div>
+            <div class="stat-label">Lignes importées</div>
+          </div>
+        </div>
+        <div class="quality-stat">
+          <mat-icon class="stat-icon icon-rejected">remove_circle</mat-icon>
+          <div>
+            <div class="stat-value text-down">{{ qualityReport.rejectedRowsCount ?? 0 }}</div>
+            <div class="stat-label">Lignes rejetées</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rejected-reasons" *ngIf="rejectedReasons.length > 0">
+        <p class="section-label">Motifs de rejet</p>
+        <div class="rejected-reason-list">
+          <div class="rejected-reason-item" *ngFor="let reason of rejectedReasons">
+            <span class="reason-code">{{ reason.code }}</span>
+            <span class="reason-count">{{ reason.count }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="blocking-reason-box" *ngIf="hasBlockingReason">
+        <mat-icon>info</mat-icon>
+        <div>
+          <strong>Raison du blocage</strong>
+          <p>{{ qualityReport.blockingReason }}</p>
+        </div>
+      </div>
+
+      <!-- Issues table -->
+      <div class="issues-table-wrap" *ngIf="allIssues.length > 0">
+        <p class="section-label">Détail des issues ({{ allIssues.length }})</p>
+        <div class="table-scroll">
+          <table mat-table [dataSource]="allIssues" class="issues-table">
+
+            <ng-container matColumnDef="severity">
+              <th mat-header-cell *matHeaderCellDef>Sévérité</th>
+              <td mat-cell *matCellDef="let issue">
+                <span [ngClass]="severityClass(issue.severity)" class="severity-chip">
+                  <mat-icon>{{ severityIcon(issue.severity) }}</mat-icon>
+                  {{ issue.severity }}
+                </span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="row">
+              <th mat-header-cell *matHeaderCellDef>Ligne</th>
+              <td mat-cell *matCellDef="let issue">{{ issueRowLabel(issue) }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="column">
+              <th mat-header-cell *matHeaderCellDef>Colonne</th>
+              <td mat-cell *matCellDef="let issue">{{ issue.column ?? '—' }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="message">
+              <th mat-header-cell *matHeaderCellDef>Message</th>
+              <td mat-cell *matCellDef="let issue">
+                <span class="issue-message">{{ issue.message }}</span>
+                <span class="issue-correction" *ngIf="issue.cleanedValue">
+                  → {{ issue.cleanedValue }}
+                </span>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="issueColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: issueColumns;" [ngClass]="severityClass(row.severity) + '-row'"></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preview table -->
     <div class="preview-table" *ngIf="previewResponse()?.calculatedData?.length">
       <h3>Aperçu des données et enrichissement IA</h3>
       <div class="table-scroll">
         <table mat-table [dataSource]="previewResponse()?.calculatedData ?? []" class="kpi-table">
+
+          <!-- Row status indicator -->
+          <ng-container matColumnDef="rowStatus">
+            <th mat-header-cell *matHeaderCellDef></th>
+            <td mat-cell *matCellDef="let row">
+              <mat-icon
+                *ngIf="rowHasError(row.rowIndex)"
+                class="row-status-icon icon-error"
+                [matTooltip]="rowIssueTooltip(row.rowIndex)">
+                error
+              </mat-icon>
+              <mat-icon
+                *ngIf="!rowHasError(row.rowIndex) && rowHasWarning(row.rowIndex)"
+                class="row-status-icon icon-warn"
+                [matTooltip]="rowIssueTooltip(row.rowIndex)">
+                warning
+              </mat-icon>
+            </td>
+          </ng-container>
 
           <ng-container matColumnDef="kpiName">
             <th mat-header-cell *matHeaderCellDef>KPI</th>
@@ -270,7 +469,10 @@
           </ng-container>
 
           <tr mat-header-row *matHeaderRowDef="previewColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: previewColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: previewColumns"
+              [class.row-has-error]="rowHasError(row.rowIndex)"
+              [class.row-has-warning]="!rowHasError(row.rowIndex) && rowHasWarning(row.rowIndex)">
+          </tr>
         </table>
       </div>
     </div>
@@ -290,7 +492,6 @@
       </div>
       <div class="results-table-container">
         <table mat-table [dataSource]="result()?.calculatedData ?? []" class="kpi-table results-table">
-
           <ng-container matColumnDef="kpiName">
             <th mat-header-cell *matHeaderCellDef>KPI</th>
             <td mat-cell *matCellDef="let row"><strong>{{ row.kpiName }}</strong></td>
@@ -335,7 +536,6 @@
               <span [ngClass]="getStatusClass(row.statusColor)">{{ row.status }}</span>
             </td>
           </ng-container>
-
           <tr mat-header-row *matHeaderRowDef="resultColumns"></tr>
           <tr mat-row *matRowDef="let row; columns: resultColumns"></tr>
         </table>
