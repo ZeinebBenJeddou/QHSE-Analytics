@@ -2,20 +2,32 @@ package com.QHSEAnalytics.service.processing;
 
 import com.QHSEAnalytics.dto.llm.AiResponse;
 import com.QHSEAnalytics.dto.llm.KpiInsight;
+import com.QHSEAnalytics.dto.response.AiAnalysisStructuredResponse;
+import com.QHSEAnalytics.dto.response.AiConfidenceResponse;
+import com.QHSEAnalytics.dto.response.AiTraceabilityResponse;
 import com.QHSEAnalytics.dto.response.KpiCalculatedDTO;
 import com.QHSEAnalytics.entity.AnalyseGlobale;
 import com.QHSEAnalytics.entity.Kpi;
 import com.QHSEAnalytics.repository.AnalyseGlobaleRepository;
 import com.QHSEAnalytics.repository.KpiRepository;
 import com.QHSEAnalytics.service.LlmProviderChain;
+import com.QHSEAnalytics.service.TextNormalizer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tags;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -27,6 +39,9 @@ public class AnalysisAgent {
     private final KpiRepository kpiRepository;
     private final AnalyseGlobaleRepository analyseGlobaleRepository;
     private final ObjectMapper objectMapper;
+    private final StructuredAnalysisPromptBuilder structuredAnalysisPromptBuilder;
+    private final StructuredAnalysisValidator structuredAnalysisValidator;
+    private final MeterRegistry meterRegistry;
 
     public String analyze(List<KpiCalculatedDTO> calculatedData) {
         if (calculatedData == null || calculatedData.isEmpty()) {
@@ -72,6 +87,226 @@ public class AnalysisAgent {
                 .kpis(List.of())
                 .recommendations(List.of())
                 .build();
+    }
+
+    public AiAnalysisStructuredResponse analyzeStructured(List<KpiCalculatedDTO> calculatedData) {
+        return analyzeStructured(calculatedData, null);
+    }
+
+    public AiAnalysisStructuredResponse analyzeStructured(List<KpiCalculatedDTO> calculatedData, Long importSessionId) {
+        return analyzeStructured(calculatedData, importSessionId, false);
+    }
+
+    public AiAnalysisStructuredResponse analyzeStructured(List<KpiCalculatedDTO> calculatedData, Long importSessionId, boolean bypassCache) {
+        if (calculatedData == null || calculatedData.isEmpty()) {
+            return buildStructuredFallback("FAILED", "Aucune donnée KPI disponible pour l'analyse structurée.");
+        }
+
+        List<KpiCalculatedDTO> topKpis = calculatedData.stream()
+                .filter(k -> k.getVariationPercentage() != null)
+                .sorted(Comparator.comparingDouble(k -> -Math.abs(k.getVariationPercentage())))
+                .limit(20)
+                .collect(Collectors.toList());
+
+        String prompt = structuredAnalysisPromptBuilder.buildPrompt(topKpis);
+        String cacheKeyPrefix = String.format("importSessionId=%s|mode=structured|promptVersion=%s|schemaVersion=%s|providerChainVersion=%s",
+                importSessionId == null ? "unknown" : importSessionId,
+                structuredAnalysisPromptBuilder.getPromptVersion(),
+            "1.1",
+            LlmProviderChain.PROVIDER_CHAIN_VERSION);
+        log.info("[AnalysisAgent] analyseStructured: starting with {} KPIs, importSessionId={}, cachePrefix={}, bypassCache={}", topKpis.size(), importSessionId, cacheKeyPrefix, bypassCache);
+
+        long start = System.currentTimeMillis();
+        LlmProviderChain.ProviderResult providerResult = llmProviderChain.generate(prompt, cacheKeyPrefix, bypassCache);
+        long latency = System.currentTimeMillis() - start;
+        String providerUsed = providerResult == null ? "none" : providerResult.provider();
+        String responseJson = providerResult == null ? null : providerResult.response();
+        log.info("[AnalysisAgent] analyseStructured: provider response received in {}ms, importSessionId={}, provider={}, cachePrefix={}", latency, importSessionId, providerUsed, cacheKeyPrefix);
+
+        if (responseJson == null || responseJson.isBlank()) {
+            log.warn("[AnalysisAgent] analyseStructured: empty response from provider. reason=empty_response, latency={}ms, provider={}", latency, providerUsed);
+            incrementCounter("ai.request.count", Tags.of("mode", "structured", "status", "failed"));
+            recordLatency("ai.latency.ms", Tags.of("mode", "structured"), latency);
+            return buildStructuredFallback("FAILED", "Aucune réponse du provider IA.");
+        }
+
+        AiAnalysisStructuredResponse response = parseStructuredResponse(responseJson);
+        if (response != null) {
+            var errors = structuredAnalysisValidator.validate(response, topKpis);
+            int missingCount = computeMissingKpiCount(topKpis, response.getKpiInsights());
+            log.info("[AnalysisAgent] analyseStructured: coverage total_input_kpis={} total_output_insights={} missing_kpis_count={} importSessionId={}",
+                    topKpis.size(), response.getKpiInsights() == null ? 0 : response.getKpiInsights().size(), missingCount, importSessionId);
+            if (errors.isEmpty()) {
+                enrichStructuredResponse(response, providerUsed, importSessionId);
+                response.setStatus("SUCCESS");
+                incrementCounter("ai.request.count", Tags.of("mode", "structured", "status", "success"));
+                recordLatency("ai.latency.ms", Tags.of("mode", "structured"), latency);
+                return response;
+            }
+
+            log.warn("[AnalysisAgent] analyseStructured: validation failed. reason=validation_errors, error_count={}, errors={}, latency={}ms", errors.size(), errors, latency);
+            String retryPrompt = structuredAnalysisPromptBuilder.buildRetryPrompt(prompt, String.join("; ", errors));
+            log.info("[AnalysisAgent] analyseStructured: retry attempt initiated. retry_count=1");
+            LlmProviderChain.ProviderResult retryResult = llmProviderChain.generate(retryPrompt, cacheKeyPrefix, bypassCache);
+            AiAnalysisStructuredResponse retryResponse = parseStructuredResponse(retryResult == null ? null : retryResult.response());
+            if (retryResponse != null) {
+                var retryErrors = structuredAnalysisValidator.validate(retryResponse, topKpis);
+                int retryMissingCount = computeMissingKpiCount(topKpis, retryResponse.getKpiInsights());
+                log.info("[AnalysisAgent] analyseStructured: retry coverage total_input_kpis={} total_output_insights={} missing_kpis_count={} importSessionId={}",
+                        topKpis.size(), retryResponse.getKpiInsights() == null ? 0 : retryResponse.getKpiInsights().size(), retryMissingCount, importSessionId);
+                if (retryErrors.isEmpty()) {
+                    enrichStructuredResponse(retryResponse, retryResult == null ? providerUsed : retryResult.provider(), importSessionId);
+                    retryResponse.setStatus("SUCCESS");
+                    incrementCounter("ai.request.count", Tags.of("mode", "structured", "status", "success"));
+                    incrementCounter("ai.retry.count", Tags.of("mode", "structured"));
+                    recordLatency("ai.latency.ms", Tags.of("mode", "structured"), latency);
+                    return retryResponse;
+                }
+                log.warn("[AnalysisAgent] analyseStructured: retry validation failed. reason=retry_validation_errors, error_count={}, errors={}, retry_count=1, latency={}ms", retryErrors.size(), retryErrors, latency);
+                incrementCounter("ai.request.count", Tags.of("mode", "structured", "status", "partial"));
+                incrementCounter("ai.retry.count", Tags.of("mode", "structured"));
+                incrementCounter("ai.validation.error.count", Tags.of("mode", "structured"));
+                recordLatency("ai.latency.ms", Tags.of("mode", "structured"), latency);
+                return buildStructuredFallback("PARTIAL", "Réponse IA invalide après retry : " + String.join("; ", retryErrors));
+            }
+            log.warn("[AnalysisAgent] analyseStructured: retry parsing failed. reason=retry_parsing_failed, retry_count=1, latency={}ms", latency);
+            incrementCounter("ai.request.count", Tags.of("mode", "structured", "status", "partial"));
+            incrementCounter("ai.retry.count", Tags.of("mode", "structured"));
+            incrementCounter("ai.parse.error.count", Tags.of("mode", "structured"));
+            recordLatency("ai.latency.ms", Tags.of("mode", "structured"), latency);
+            return buildStructuredFallback("PARTIAL", "Impossible de parser la réponse IA après retry.");
+        }
+
+        log.warn("[AnalysisAgent] analyseStructured: initial parsing failed. reason=initial_parsing_failed, latency={}ms", latency);
+        incrementCounter("ai.request.count", Tags.of("mode", "structured", "status", "failed"));
+        incrementCounter("ai.parse.error.count", Tags.of("mode", "structured"));
+        recordLatency("ai.latency.ms", Tags.of("mode", "structured"), latency);
+        return buildStructuredFallback("FAILED", "Impossible de parser la réponse IA.");
+    }
+
+    private int computeMissingKpiCount(List<KpiCalculatedDTO> availableKpis, List<? extends Object> insights) {
+        if (availableKpis == null || availableKpis.isEmpty() || insights == null) {
+            return availableKpis == null ? 0 : availableKpis.size();
+        }
+        Set<String> coveredIds = new HashSet<>();
+        Set<String> coveredNames = new HashSet<>();
+        insights.forEach(item -> {
+            if (item instanceof com.QHSEAnalytics.dto.response.AiKpiInsightResponse insight) {
+                if (insight.getKpiId() != null) {
+                    coveredIds.add(String.valueOf(insight.getKpiId()));
+                }
+                String normalizedName = TextNormalizer.normalizeForMatching(insight.getKpiName());
+                if (!normalizedName.isBlank()) {
+                    coveredNames.add(normalizedName);
+                }
+            }
+        });
+
+        return (int) availableKpis.stream()
+                .filter(kpi -> {
+                    String expectedId = kpi.getMatchedKpiId() == null ? null : String.valueOf(kpi.getMatchedKpiId());
+                    String expectedName = TextNormalizer.normalizeForMatching(kpi.getKpiName());
+                    boolean matchedById = expectedId != null && coveredIds.contains(expectedId);
+                    boolean matchedByName = !expectedName.isBlank() && coveredNames.contains(expectedName);
+                    return !matchedById && !matchedByName;
+                })
+                .count();
+    }
+
+    private void enrichStructuredResponse(AiAnalysisStructuredResponse response, String provider, Long importSessionId) {
+        if (response == null) {
+            return;
+        }
+        if (response.getTraceability() == null) {
+            response.setTraceability(AiTraceabilityResponse.builder()
+                    .contextSourcesUsed(List.of())
+                    .build());
+        }
+        String modelName = provider == null || provider.isBlank() || "none".equalsIgnoreCase(provider)
+                ? "fallback"
+                : provider;
+        response.getTraceability().setModelName(modelName);
+        response.getTraceability().setGeneratedAt(OffsetDateTime.now(ZoneOffset.UTC).toString());
+        response.getTraceability().setSchemaVersion("1.1");
+        response.getTraceability().setPromptVersion(structuredAnalysisPromptBuilder.getPromptVersion());
+        response.getTraceability().setImportSessionId(importSessionId);
+        response.setSchemaVersion("1.1");
+        response.setPromptVersion(structuredAnalysisPromptBuilder.getPromptVersion());
+        response.setImportSessionId(importSessionId);
+    }
+
+    private AiAnalysisStructuredResponse parseStructuredResponse(String rawJson) {
+        if (rawJson == null || rawJson.isBlank()) {
+            return null;
+        }
+
+        try {
+            String cleaned = rawJson.trim();
+            if (cleaned.startsWith("```") || cleaned.startsWith("~~~")) {
+                cleaned = cleaned.replaceAll("^(```|~~~)[^\n]*\\n", "").replaceAll("(```|~~~)$", "").trim();
+            }
+            int start = cleaned.indexOf('{');
+            int end = cleaned.lastIndexOf('}');
+            if (start >= 0 && end >= start) {
+                cleaned = cleaned.substring(start, end + 1).trim();
+            }
+
+            return objectMapper.readValue(cleaned, AiAnalysisStructuredResponse.class);
+        } catch (Exception ex) {
+            log.warn("Échec parsing réponse structurée IA : {}", ex.getMessage());
+            return null;
+        }
+    }
+
+    private AiAnalysisStructuredResponse buildStructuredFallback(String status, String fallbackReason) {
+        return AiAnalysisStructuredResponse.builder()
+                .globalSummary("")
+                .confidence(AiConfidenceResponse.builder()
+                        .overall(0.0)
+                        .sections(Map.of(
+                                "summary", 0.0,
+                                "probableCauses", 0.0,
+                                "recommendations", 0.0,
+                                "actionPlan", 0.0
+                        ))
+                        .build())
+                .kpiInsights(List.of())
+                .probableCauses(List.of())
+                .recommendations(List.of())
+                .actionPlan(List.of())
+                .traceability(AiTraceabilityResponse.builder()
+                        .modelName("fallback")
+                        .generatedAt(OffsetDateTime.now(ZoneOffset.UTC).toString())
+                        .contextSourcesUsed(List.of())
+                    .schemaVersion("1.1")
+                    .promptVersion(structuredAnalysisPromptBuilder.getPromptVersion())
+                    .importSessionId(null)
+                        .build())
+                .status(status)
+                .fallbackReason(fallbackReason)
+                .schemaVersion("1.1")
+                .promptVersion(structuredAnalysisPromptBuilder.getPromptVersion())
+                .build();
+    }
+
+    private void incrementCounter(String name, Tags tags) {
+        if (meterRegistry == null || tags == null) {
+            return;
+        }
+        var counter = meterRegistry.counter(name, tags);
+        if (counter != null) {
+            counter.increment();
+        }
+    }
+
+    private void recordLatency(String name, Tags tags, long latencyMs) {
+        if (meterRegistry == null || tags == null) {
+            return;
+        }
+        var timer = meterRegistry.timer(name, tags);
+        if (timer != null) {
+            timer.record(latencyMs, TimeUnit.MILLISECONDS);
+        }
     }
 
     private AiResponse parseAiResponse(String jsonText) {
@@ -137,40 +372,39 @@ public class AnalysisAgent {
                 }
                 insight.setAiNote(aiNote.isBlank() ? null : aiNote);
 
-                // Extract enrichment fields with fallback to English names
                 String identificationRisque = n.path("identificationRisque").asText();
                 if (identificationRisque.isBlank()) {
                     identificationRisque = n.path("riskJustification").asText();
                 }
                 insight.setIdentificationRisque(identificationRisque.isBlank() ? null : identificationRisque);
                 insight.setRiskJustification(n.path("riskJustification").asText());
-                
+
                 String problemeDetecte = n.path("problemeDetecte").asText();
                 if (problemeDetecte.isBlank()) {
                     problemeDetecte = n.path("issueDetected").asText();
                 }
                 insight.setProblemeDetecte(problemeDetecte.isBlank() ? null : problemeDetecte);
                 insight.setIssueDetected(n.path("issueDetected").asText());
-                
+
                 String actionsPreventives = n.path("actionsPreventives").asText();
                 if (actionsPreventives.isBlank()) {
                     actionsPreventives = n.path("preventiveAction").asText();
                 }
                 insight.setActionsPreventives(actionsPreventives.isBlank() ? null : actionsPreventives);
                 insight.setPreventiveAction(n.path("preventiveAction").asText());
-                
+
                 insight.setActionImmediate(n.path("actionImmediate").asText());
                 insight.setPrioriteAction(n.path("prioriteAction").asText());
-                
+
                 String methode8D = n.path("methode8D").asText();
                 insight.setMethode8D(methode8D.isBlank() ? null : methode8D);
-                
+
                 String noteFinale = n.path("noteFinale").asText();
                 if (noteFinale.isBlank()) {
                     noteFinale = n.path("insight").asText();
                 }
                 insight.setNoteFinale(noteFinale.isBlank() ? null : noteFinale);
-                
+
                 kpis.add(insight);
             });
             response.setKpis(kpis);
@@ -184,7 +418,7 @@ public class AnalysisAgent {
 
     private String buildPrompt(List<KpiCalculatedDTO> data) {
         StringBuilder prompt = new StringBuilder();
-        
+
         // RAG Context: All indicators (Definitions & Thresholds)
         List<Kpi> allKpis = kpiRepository.findByIsActiveTrueOrderByOrdreAsc();
         prompt.append("=== CONTEXTE MÉTIER : TOUS LES INDICATEURS ===\n");

@@ -3,6 +3,7 @@ package com.QHSEAnalytics.controller;
 import com.QHSEAnalytics.auth.entity.User;
 import com.QHSEAnalytics.auth.exception.UserNotFoundException;
 import com.QHSEAnalytics.auth.repository.UserRepository;
+import com.QHSEAnalytics.dto.response.AiAnalysisStructuredResponse;
 import com.QHSEAnalytics.dto.response.AnalyseCategorieResponse;
 import com.QHSEAnalytics.dto.response.AnalyseCompleteResponse;
 import com.QHSEAnalytics.dto.response.AnalyseGlobaleResponse;
@@ -46,6 +47,13 @@ public class AnalyseIaController {
     public ResponseEntity<AnalyseGlobaleResponse> getAnalyseGlobale(@PathVariable Long importId) {
         User user = getCurrentUser();
         return ResponseEntity.ok(analyseIaService.getAnalyseGlobale(importId, user.getId(), isAdmin()));
+    }
+
+    @GetMapping("/{importId}/structured")
+    @PreAuthorize("hasAnyRole('ADMIN','ANALYSTE')")
+    public ResponseEntity<AiAnalysisStructuredResponse> getAnalyseStructured(@PathVariable Long importId) {
+        User user = getCurrentUser();
+        return ResponseEntity.ok(analyseIaService.getAnalyseStructured(importId, user.getId(), isAdmin()));
     }
 
     @PostMapping("/{importId}")

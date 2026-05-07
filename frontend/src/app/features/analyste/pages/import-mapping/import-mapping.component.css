@@ -712,6 +712,13 @@ h1 {
 .classif-critique { background: var(--red-soft);   color: var(--red); }
 .classif-modere   { background: #FFF5F5; color: #C53030; }
 .classif-faible   { background: var(--green-soft); color: var(--green); }
+.classif-indetermine { background: #F3F0FF; color: #7C3AED; }
+
+.meta-cell { display:flex; flex-direction:column; gap:6px; align-items:flex-start; }
+.review-badge { background: #FFF4E6; color: var(--orange); padding: 4px 8px; border-radius: 10px; font-weight:700; font-size:0.72rem; }
+.reason { font-size:0.78rem; color:var(--ink-mid); max-width:180px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.confidence-bar { width:100px; height:8px; border-radius:6px; }
+.data-flags { font-size:0.9rem; color:var(--orange); }
 
 /* RESPONSIVE */
 @media (max-width: 980px) {

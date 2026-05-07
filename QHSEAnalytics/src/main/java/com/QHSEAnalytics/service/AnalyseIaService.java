@@ -4,6 +4,7 @@ import com.QHSEAnalytics.auth.entity.User;
 import com.QHSEAnalytics.auth.exception.UserNotFoundException;
 import com.QHSEAnalytics.auth.repository.UserRepository;
 import com.QHSEAnalytics.dto.response.AnalyseCategorieResponse;
+import com.QHSEAnalytics.dto.response.AiAnalysisStructuredResponse;
 import com.QHSEAnalytics.dto.response.AnalyseCompleteResponse;
 import com.QHSEAnalytics.dto.response.AnalyseGlobaleResponse;
 import com.QHSEAnalytics.dto.response.ResultatKpiResponse;
@@ -21,6 +22,8 @@ import com.QHSEAnalytics.repository.AnalyseCategorieRepository;
 import com.QHSEAnalytics.repository.AnalyseGlobaleRepository;
 import com.QHSEAnalytics.repository.ImportSessionRepository;
 import com.QHSEAnalytics.repository.ResultatKpiRepository;
+import com.QHSEAnalytics.service.TextNormalizer;
+import com.QHSEAnalytics.service.LlmProviderChain;
 import com.QHSEAnalytics.service.processing.AnalysisAgent;
 import com.QHSEAnalytics.dto.response.KpiCalculatedDTO;
 import lombok.RequiredArgsConstructor;
@@ -45,11 +48,17 @@ public class AnalyseIaService {
     private final AnalyseCategorieRepository analyseCategorieRepository;
     private final AnalyseGlobaleRepository analyseGlobaleRepository;
     private final AnalysisAgent analysisAgent;
+    private final LlmProviderChain llmProviderChain;
     private final ImportSessionRepository importSessionRepository;
     private final UserRepository userRepository;
 
     @Transactional
     public void genererToutesLesAnalyses(Long importSessionId, Long userId) {
+        genererToutesLesAnalyses(importSessionId, userId, false);
+    }
+
+    @Transactional
+    public void genererToutesLesAnalyses(Long importSessionId, Long userId, boolean bypassStructuredCache) {
         ImportSession session = null;
         long startAt = System.currentTimeMillis();
         try {
@@ -89,7 +98,7 @@ public class AnalyseIaService {
             Map<String, String> insightsByKpiName = response.getKpis().stream()
                     .filter(kpi -> kpi.getName() != null && !kpi.getName().isBlank())
                     .collect(Collectors.toMap(
-                            kpi -> kpi.getName().trim().toLowerCase(),
+                            kpi -> TextNormalizer.normalizeForSearch(kpi.getName()),
                             kpi -> firstNonBlankText(
                                     kpi.getInsight(),
                                     kpi.getNoteFinale(),
@@ -98,7 +107,7 @@ public class AnalyseIaService {
 
             for (ResultatKpi resultat : resultats) {
                 String key = resultat.getKpi().getNom() == null ? null
-                        : resultat.getKpi().getNom().trim().toLowerCase();
+                        : TextNormalizer.normalizeForSearch(resultat.getKpi().getNom());
                 String analyseIa = key == null ? null : insightsByKpiName.get(key);
 
                 // Fallback: fuzzy match if exact match not found
@@ -275,6 +284,32 @@ public class AnalyseIaService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
+    public AiAnalysisStructuredResponse getAnalyseStructured(Long importSessionId, Long userId, boolean isAdmin) {
+        ImportSession session = loadSessionWithOwnership(importSessionId, userId, isAdmin);
+        List<ResultatKpi> resultats = resultatKpiRepository.findByImportSessionIdOrderByCreatedAtDesc(importSessionId).stream()
+                .filter(resultat -> resultat.getKpi() != null && resultat.getKpi().getCategorieKpi() != null)
+                .toList();
+
+        if (resultats.isEmpty()) {
+            return AiAnalysisStructuredResponse.builder()
+                    .status("FAILED")
+                    .fallbackReason("Aucune donnée KPI disponible pour l'analyse structurée.")
+                    .globalSummary("")
+                    .confidence(null)
+                    .kpiInsights(List.of())
+                    .probableCauses(List.of())
+                    .recommendations(List.of())
+                    .actionPlan(List.of())
+                    .traceability(null)
+                    .build();
+        }
+
+        List<KpiCalculatedDTO> kpiData = resultats.stream().map(this::toKpiCalculatedDTO).toList();
+        List<KpiCalculatedDTO> cleanedData = cleanKpis(kpiData);
+        return analysisAgent.analyzeStructured(cleanedData, importSessionId);
+    }
+
     @Transactional
     public AnalyseCompleteResponse regenerer(Long importSessionId, Long userId) {
         log.info("Régénération analyses demandée pour session {}", importSessionId);
@@ -287,6 +322,7 @@ public class AnalyseIaService {
             // Clear all previous AI analysis data so we start from a clean slate
             analyseCategorieRepository.deleteByImportSessionId(importSessionId);
             analyseGlobaleRepository.deleteByImportSessionId(importSessionId);
+            llmProviderChain.clearKpiAnalysisCache();
 
             // Clear analyseIa text on all KPI results so no stale partial data persists
             List<ResultatKpi> resultats = resultatKpiRepository.findByImportSessionIdOrderByCreatedAtDesc(importSessionId);
@@ -299,7 +335,7 @@ public class AnalyseIaService {
             log.error("Erreur suppression anciennes analyses session {} : {}", importSessionId, ex.getMessage());
         }
 
-        genererToutesLesAnalyses(importSessionId, userId);
+        genererToutesLesAnalyses(importSessionId, userId, true);
         return getAnalyseComplete(importSessionId, userId, false);
     }
 
@@ -385,7 +421,7 @@ public class AnalyseIaService {
                 .filter(kpi -> kpi.getVariationPercentage() != null)
                 .collect(Collectors.toMap(
                         kpi -> kpi.getMatchedKpiId() != null ? kpi.getMatchedKpiId()
-                                : kpi.getKpiName().trim().toLowerCase(),
+                                : TextNormalizer.normalizeForSearch(kpi.getKpiName()),
                         kpi -> kpi,
                         (first, second) -> first,
                         LinkedHashMap::new))

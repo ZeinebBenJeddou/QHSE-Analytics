@@ -1,6 +1,7 @@
 package com.QHSEAnalytics.dto.request;
 
 import com.QHSEAnalytics.entity.UniteKpi;
+import com.QHSEAnalytics.enums.Direction;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
@@ -25,4 +26,14 @@ public class UpdateKpiRequest {
 
     @Positive(message = "L'ordre doit être positif")
     private Integer ordre;
+
+    /**
+     * Optional: explicit direction for the KPI (HIGHER_IS_BETTER, LOWER_IS_BETTER, TARGET_IS_BEST).
+     */
+    private Direction direction;
+
+    /**
+     * Optional: explicit target value for TARGET_IS_BEST KPIs.
+     */
+    private Double targetValue;
 }

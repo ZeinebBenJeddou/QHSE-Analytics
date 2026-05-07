@@ -45,13 +45,19 @@ export interface KpiCalculatedDTO {
   definition?: string;
   variationAbsolute?: number;
   variationPercentage: number;
-  classification: 'FAIBLE' | 'MODERE' | 'CRITIQUE' | 'UNKNOWN';
+  classification: 'FAIBLE' | 'MODERE' | 'CRITIQUE' | 'INDETERMINE' | 'UNKNOWN';
   tendance: 'HAUSSE' | 'BAISSE' | 'STABLE' | null;
   matchedKpi?: string | null;
   matchedKpiId?: number | null;
   // Business Intelligence Enrichment Fields
   businessClassification?: 'CRITICAL' | 'WARNING' | 'OK';
   isAnomaly?: boolean;
+  // New fields
+  direction?: 'HIGHER_IS_BETTER' | 'LOWER_IS_BETTER' | 'TARGET_IS_BEST';
+  calcConfidence?: number; // 0..100
+  classificationReason?: string;
+  reviewRequired?: boolean;
+  dataFlags?: string[];
 }
 
 export interface KpiRawDataDTO {

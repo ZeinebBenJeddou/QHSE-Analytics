@@ -24,12 +24,24 @@ public class KpiCalculatedDTO {
     private String statusColor;
     private String commentaire;
     private Boolean isBoolean;
-    private String classification;
     private String tendance;
     private String matchedKpi;
     private Long matchedKpiId;
     
     // Business Intelligence Enrichment Fields
+    // direction: HIGHER_IS_BETTER | LOWER_IS_BETTER | TARGET_IS_BEST
+    private String direction;
+    // 0..100 confidence score computed for the comparative calculation
+    private Integer calcConfidence;
+    // classification: FAIBLE | MODERE | CRITIQUE | INDETERMINE
+    private String classification;
+    // short explanation oriented to analyst
+    private String classificationReason;
+    // suggest analyst review if true
+    private Boolean reviewRequired;
+    // data quality flags (LOW_BASE, OUTLIER, MISSING_CONTEXT, UNIT_MISMATCH)
+    private java.util.List<String> dataFlags;
+    // legacy fields kept for compatibility
     private String businessClassification;  // CRITICAL, WARNING, OK
     private Boolean isAnomaly;  // true if critical risk detected
 } 

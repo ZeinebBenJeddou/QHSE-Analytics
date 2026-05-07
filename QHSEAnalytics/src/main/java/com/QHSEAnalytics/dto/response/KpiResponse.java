@@ -1,6 +1,7 @@
 package com.QHSEAnalytics.dto.response;
 
 import com.QHSEAnalytics.entity.UniteKpi;
+import com.QHSEAnalytics.enums.Direction;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;
 import lombok.Data;
@@ -24,4 +25,6 @@ public class KpiResponse {
     private boolean isActive;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private Direction direction;
+    private Double targetValue;
 }

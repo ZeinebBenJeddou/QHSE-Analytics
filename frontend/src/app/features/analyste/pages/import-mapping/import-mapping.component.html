@@ -468,6 +468,18 @@
             </td>
           </ng-container>
 
+          <ng-container matColumnDef="meta">
+            <th mat-header-cell *matHeaderCellDef></th>
+            <td mat-cell *matCellDef="let row">
+              <div class="meta-cell">
+                <span *ngIf="row.reviewRequired" class="review-badge" matTooltip="Validation analyste recommandée">À vérifier</span>
+                <span *ngIf="row.classificationReason" class="reason" matTooltip="{{ row.classificationReason }}">{{ row.classificationReason }}</span>
+                <mat-progress-bar *ngIf="row.calcConfidence !== undefined" [value]="row.calcConfidence" mode="determinate" color="primary" class="confidence-bar"></mat-progress-bar>
+                <span *ngIf="row.dataFlags?.length" class="data-flags" matTooltip="{{ row.dataFlags.join(', ') }}">⚑</span>
+              </div>
+            </td>
+          </ng-container>
+
           <tr mat-header-row *matHeaderRowDef="previewColumns"></tr>
           <tr mat-row *matRowDef="let row; columns: previewColumns"
               [class.row-has-error]="rowHasError(row.rowIndex)"
@@ -534,6 +546,18 @@
             <th mat-header-cell *matHeaderCellDef>Status</th>
             <td mat-cell *matCellDef="let row">
               <span [ngClass]="getStatusClass(row.statusColor)">{{ row.status }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="meta">
+            <th mat-header-cell *matHeaderCellDef></th>
+            <td mat-cell *matCellDef="let row">
+              <div class="meta-cell">
+                <span *ngIf="row.reviewRequired" class="review-badge" matTooltip="Validation analyste recommandée">À vérifier</span>
+                <span *ngIf="row.classificationReason" class="reason" matTooltip="{{ row.classificationReason }}">{{ row.classificationReason }}</span>
+                <mat-progress-bar *ngIf="row.calcConfidence !== undefined" [value]="row.calcConfidence" mode="determinate" color="primary" class="confidence-bar"></mat-progress-bar>
+                <span *ngIf="row.dataFlags?.length" class="data-flags" matTooltip="{{ row.dataFlags.join(', ') }}">⚑</span>
+              </div>
             </td>
           </ng-container>
           <tr mat-header-row *matHeaderRowDef="resultColumns"></tr>

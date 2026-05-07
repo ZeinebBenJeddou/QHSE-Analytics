@@ -13,58 +13,15 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatButtonModule } from '@angular/material/button';
 
 import { DashboardService } from '../../../../core/services/dashboard.service';
+import { AiAnalysisService } from '../../../../core/services/ai-analysis.service';
 import { ResumeAnalysteResponse } from '../../../../core/models/dashboard.model';
+import { AiAnalysisStructuredResponse, AnalyseCompleteResponse, AnalyseGlobaleResponse, AnalyseCategorieResponse, ResultatKpiIaResponse } from '../../../../core/models/analyse-ia.model';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../../environments/environment';
 
 /* ══════════════════════════════════════════════════════════════════════
    DTOs — miroir exact du backend
 ══════════════════════════════════════════════════════════════════════ */
-
-export interface AnalyseGlobaleResponse {
-  id: number;
-  importSessionId: number;
-  synthese: string;
-  planActions: string;       // newline-separated recommendations
-  createdAt: string;
-}
-
-export interface AnalyseCategorieResponse {
-  id: number;
-  importSessionId: number;
-  categorieCode: string;     // Q | H | S | E
-  categorieLibelle: string;
-  contenu: string;           // full IA text for this category
-  createdAt: string;
-}
-
-export interface ResultatKpiResponse {
-  id: number;
-  kpiId: number;
-  kpiNom: string;
-  kpiUnite: string;
-  categorieCode: string;
-  categorieLibelle: string;
-  periodeN1: number;
-  periodeN: number;
-  valeurN1: number;
-  valeurN: number;
-  variationAbsolue: number;
-  variationRelative: number;  // %
-  niveauVariation: 'FAIBLE' | 'MODERE' | 'CRITIQUE' | null;
-  tendance: 'HAUSSE' | 'BAISSE' | 'STABLE' | null;
-  analyseIa: string | null;   // insight texte par KPI
-  createdAt: string;
-}
-
-export interface AnalyseCompleteResponse {
-  importSessionId: number;
-  periodeN1: number;
-  periodeN: number;
-  analyseGlobale: AnalyseGlobaleResponse | null;
-  analysesCategories: AnalyseCategorieResponse[];
-  analysesKpis: ResultatKpiResponse[];
-}
 
 /* ── Category metadata ─────────────────────────────────────────────── */
 interface CategorieInfo {
@@ -96,6 +53,7 @@ const CATEGORIES: CategorieInfo[] = [
 export class AnalyseIAComponent implements OnInit {
 
   private dashboardService = inject(DashboardService);
+  private aiAnalysisService = inject(AiAnalysisService);
   private snackBar         = inject(MatSnackBar);
   private route            = inject(ActivatedRoute);
   private http             = inject(HttpClient);
@@ -109,6 +67,7 @@ export class AnalyseIAComponent implements OnInit {
   error           = signal('');
   resume          = signal<ResumeAnalysteResponse | null>(null);
   analyse         = signal<AnalyseCompleteResponse | null>(null);
+  structured      = signal<AiAnalysisStructuredResponse | null>(null);
 
   // ── UI state ─────────────────────────────────────────────────────────
   activeCatCode   = signal('Q');
@@ -122,6 +81,33 @@ export class AnalyseIAComponent implements OnInit {
     const pa = this.analyse()?.analyseGlobale?.planActions ?? '';
     return pa.split('\n').map(s => s.trim()).filter(s => s.length > 0);
   });
+
+  // ── Computed : structured analysis status ───────────────────────────
+  isStructuredSuccess = computed(() => this.structured()?.status === 'SUCCESS');
+  isStructuredPartial = computed(() => this.structured()?.status === 'PARTIAL');
+  isStructuredFailed = computed(() => this.structured()?.status === 'FAILED');
+  showLegacyFallback = computed(() => this.isStructuredFailed() || this.isStructuredPartial());
+  structuredExpectedKpis = computed(() => this.analyse()?.analysesKpis?.length ?? 0);
+  structuredReceivedKpis = computed(() => this.structured()?.kpiInsights?.length ?? 0);
+  structuredMissingKpis = computed(() => Math.max(this.structuredExpectedKpis() - this.structuredReceivedKpis(), 0));
+  structuredCoverageLabel = computed(() => {
+    const expected = this.structuredExpectedKpis();
+    const received = this.structuredReceivedKpis();
+    return `${received}/${expected}`;
+  });
+  structuredStatusLabel = computed(() => {
+    if (this.isStructuredPartial()) return 'PARTIAL';
+    if (this.isStructuredFailed()) return 'FAILED';
+    return 'SUCCESS';
+  });
+
+  // ── Computed : confidence badge ─────────────────────────────────────
+  showConfidenceBadge = computed(() => {
+    const conf = this.structured()?.confidence?.overall ?? 100;
+    return conf < 60 || this.isStructuredPartial() || this.isStructuredFailed();
+  });
+
+  structuredConfidence = computed(() => this.structured()?.confidence?.overall ?? 0);
 
   // ── Computed : catégorie active ──────────────────────────────────────
   activeCatAnalyse = computed(() => {
@@ -224,17 +210,35 @@ export class AnalyseIAComponent implements OnInit {
   loadAnalyse(importId: number) {
     this.loading.set(true);
     this.error.set('');
+    this.structured.set(null);
+    this.analyse.set(null);
 
+    // First, try to load structured analysis
+    this.aiAnalysisService.getStructuredAnalysis(importId)
+      .pipe(
+        catchError(() => of(null)),
+        finalize(() => {
+          // Always attempt to load legacy analysis metadata to render the full page.
+          this.loadLegacyAnalyse(importId);
+        })
+      )
+      .subscribe(data => {
+        if (data) {
+          this.structured.set(data);
+        }
+      });
+  }
+
+  loadLegacyAnalyse(importId: number) {
     // Endpoint principal : GET /api/dashboard/analyste/analyses/{importId}
     this.http.get<AnalyseCompleteResponse>(`${this.dashboardAnalysteBase}/analyses/${importId}`)
       .pipe(
         catchError(() =>
           // Fallback : GET /api/ia/{importId}
-          this.http.get<AnalyseCompleteResponse>(`${this.iaBase}/${importId}`).pipe(
+          this.aiAnalysisService.getAnalyseComplete(importId).pipe(
             catchError(() => of(null))
           )
-        ),
-        finalize(() => this.loading.set(false))
+        )
       )
       .subscribe(data => {
         if (data) {
@@ -244,9 +248,10 @@ export class AnalyseIAComponent implements OnInit {
             data.analysesKpis.some(k => k.categorieCode === c.code)
           );
           if (firstCat) this.activeCatCode.set(firstCat.code);
-        } else {
+        } else if (!this.isStructuredSuccess()) {
           this.error.set('Aucune analyse IA disponible pour cet import. Lancez une analyse.');
         }
+        this.loading.set(false);
       });
   }
 
@@ -255,12 +260,14 @@ export class AnalyseIAComponent implements OnInit {
     if (!id || this.regenerating()) return;
 
     this.regenerating.set(true);
-    this.http.post<AnalyseCompleteResponse>(`${this.iaBase}/${id}/regenerer`, {})
+    this.aiAnalysisService.regenerer(id)
       .pipe(finalize(() => this.regenerating.set(false)))
       .subscribe({
         next: data => {
           this.analyse.set(data);
           this.snackBar.open('Analyse IA régénérée avec succès', 'Fermer', { duration: 4000 });
+          // Reload structured after regeneration
+          this.loadAnalyse(id);
         },
         error: () => this.snackBar.open('Erreur lors de la régénération', 'Fermer', { duration: 4000 })
       });
@@ -356,5 +363,21 @@ export class AnalyseIAComponent implements OnInit {
     return new Date(ag.createdAt).toLocaleDateString('fr-FR', {
       day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
     });
+  }
+
+  getStructuredFallbackMessage(): string {
+    return this.structured()?.fallbackReason || 'Affichage des analyses classiques en fallback.';
+  }
+
+  getRecommendationTitle(rec: { title?: string; rationale?: string; expectedBenefit?: string } | null | undefined): string {
+    return rec?.title?.trim() || rec?.rationale?.trim() || rec?.expectedBenefit?.trim() || 'Recommandation';
+  }
+
+  getRecommendationRationale(rec: { rationale?: string; expectedBenefit?: string } | null | undefined): string {
+    return rec?.rationale?.trim() || rec?.expectedBenefit?.trim() || '';
+  }
+
+  getRecommendationBenefit(rec: { expectedBenefit?: string } | null | undefined): string {
+    return rec?.expectedBenefit?.trim() || '';
   }
 }

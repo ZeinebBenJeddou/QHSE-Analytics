@@ -1,0 +1,62 @@
+package com.QHSEAnalytics.service.processing;
+
+import com.QHSEAnalytics.dto.request.KpiRawDataDTO;
+import com.QHSEAnalytics.dto.response.KpiCalculatedDTO;
+import com.QHSEAnalytics.entity.CategorieKpi;
+import com.QHSEAnalytics.entity.Kpi;
+import com.QHSEAnalytics.entity.UniteKpi;
+import com.QHSEAnalytics.repository.KpiRepository;
+import com.QHSEAnalytics.repository.ResultatKpiRepository;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+class CalculationAgentIntegrationTest {
+
+    @Test
+    void testIntegrationImportToCalculation() {
+        KpiRepository repo = Mockito.mock(KpiRepository.class);
+        ResultatKpiRepository histRepo = Mockito.mock(ResultatKpiRepository.class);
+        Kpi sample = Kpi.builder()
+                .id(1L)
+                .nom("Test KPI")
+                .definition("def")
+                .unite(UniteKpi.NOMBRE)
+                .categorieKpi(CategorieKpi.builder().libelle("Q").code("Q").build())
+                .seuilFaible(1.0).seuilModere(5.0).seuilCritique(10.0)
+                .ordre(1).createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+                .build();
+        Mockito.when(repo.findByIsActiveTrueOrderByOrdreAsc()).thenReturn(List.of(sample));
+            Mockito.when(histRepo.findVariationHistoryByKpiId(1L)).thenReturn(List.of(1.0, 2.0, 1.5, 3.0, 1.2, 2.1, 2.8, 1.1, 2.4, 2.0));
+
+        ComparativeCalculator comp = new ComparativeCalculator();
+        ClassificationEngine cls = new ClassificationEngine();
+            CalculationAgent agent = new CalculationAgent(repo, histRepo, comp, cls);
+
+        KpiRawDataDTO row = KpiRawDataDTO.builder()
+                .rowIndex(1)
+                .kpiName("Test KPI")
+                .categorie("Q")
+                .unite("%")
+                .valeurN1(0d)
+                .valeurN(8d)
+                .valid(true)
+                .build();
+
+        List<KpiCalculatedDTO> out = agent.calculate(List.of(row));
+        assertEquals(1, out.size());
+        KpiCalculatedDTO dto = out.get(0);
+        assertEquals("EMERGING_RISK", dto.getStatus());
+        assertEquals("MODERE", dto.getClassification());
+        assertTrue(dto.getReviewRequired());
+        assertEquals("HIGHER_IS_BETTER", dto.getDirection());
+        assertNotNull(dto.getCalcConfidence());
+        assertNotNull(dto.getClassificationReason());
+        assertNotNull(dto.getDataFlags());
+        Mockito.verify(histRepo).findVariationHistoryByKpiId(1L);
+    }
+}

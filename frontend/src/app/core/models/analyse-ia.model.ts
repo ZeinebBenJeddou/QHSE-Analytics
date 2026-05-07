@@ -11,9 +11,9 @@ export interface ResultatKpiIaResponse {
   valeurN: number;
   variationAbsolue: number;
   variationRelative: number;
-  niveauVariation: 'FAIBLE' | 'MODERE' | 'CRITIQUE';
-  tendance: 'HAUSSE' | 'BAISSE' | 'STABLE';
-  analyseIa?: string;
+  niveauVariation: 'FAIBLE' | 'MODERE' | 'CRITIQUE' | null;
+  tendance: 'HAUSSE' | 'BAISSE' | 'STABLE' | null;
+  analyseIa: string | null;
   riskLevel?: 'Faible' | 'Modéré' | 'Élevé';
   riskJustification?: string;
   issueDetected?: string;
@@ -69,4 +69,71 @@ export interface MappingTemplateResponse {
   templateName: string;
   mappings: MappingConfigRequest[];
   createdAt: string;
+}
+
+// Structured AI Response Interfaces
+export interface AiConfidenceResponse {
+  overall: number;
+  sections: { [key: string]: number };
+}
+
+export interface AiTraceabilityResponse {
+  modelName: string;
+  generatedAt: string;
+  contextSourcesUsed: AiContextSourceResponse[];
+  schemaVersion?: string;
+  promptVersion?: string;
+  importSessionId?: number | null;
+}
+
+export interface AiContextSourceResponse {
+  sourceName: string;
+  relevanceScore: number;
+}
+
+export interface AiKpiInsightResponse {
+  kpiId?: number;
+  kpiName: string;
+  confidence: number;
+  insight: string;
+  probableCauses: string[];
+  recommendations: string[];
+  actionImmediate: string;
+  urgency: string;
+  ownerRole: string;
+  dueHorizon: string;
+  successMetric: string;
+  riskIfNotDone: string;
+  note?: string;
+}
+
+export interface AiRecommendationResponse {
+  title: string;
+  rationale: string;
+  expectedBenefit: string;
+  urgency: string;
+}
+
+export interface AiActionPlanItemResponse {
+  action: string;
+  priority: string;
+  ownerRole: string;
+  dueHorizon: string;
+  successMetric: string;
+  riskIfNotDone: string;
+}
+
+export interface AiAnalysisStructuredResponse {
+  status: 'SUCCESS' | 'PARTIAL' | 'FAILED';
+  fallbackReason?: string;
+  globalSummary: string;
+  confidence: AiConfidenceResponse;
+  kpiInsights: AiKpiInsightResponse[];
+  probableCauses: string[];
+  recommendations: AiRecommendationResponse[];
+  actionPlan: AiActionPlanItemResponse[];
+  traceability: AiTraceabilityResponse;
+  schemaVersion?: string;
+  promptVersion?: string;
+  importSessionId?: number | null;
 }

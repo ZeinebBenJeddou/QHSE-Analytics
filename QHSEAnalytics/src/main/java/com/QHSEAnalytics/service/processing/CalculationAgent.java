@@ -6,7 +6,7 @@ import com.QHSEAnalytics.entity.Kpi;
 import com.QHSEAnalytics.entity.UniteKpi;
 import com.QHSEAnalytics.enums.Tendance;
 import com.QHSEAnalytics.repository.KpiRepository;
-import lombok.RequiredArgsConstructor;
+import com.QHSEAnalytics.repository.ResultatKpiRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -16,13 +16,26 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class CalculationAgent {
 
     private final KpiRepository kpiRepository;
+    private final ResultatKpiRepository resultatKpiRepository;
+    private final ComparativeCalculator comparativeCalculator;
+    private final ClassificationEngine classificationEngine;
+
+    public CalculationAgent(KpiRepository kpiRepository,
+                            ResultatKpiRepository resultatKpiRepository,
+                            ComparativeCalculator comparativeCalculator,
+                            ClassificationEngine classificationEngine) {
+        this.kpiRepository = kpiRepository;
+        this.resultatKpiRepository = resultatKpiRepository;
+        this.comparativeCalculator = comparativeCalculator;
+        this.classificationEngine = classificationEngine;
+    }
 
     public List<KpiCalculatedDTO> calculate(List<KpiRawDataDTO> rawData) {
         List<Kpi> activeKpis = kpiRepository.findByIsActiveTrueOrderByOrdreAsc();
@@ -56,8 +69,11 @@ public class CalculationAgent {
         String status = "Inconnu";
         String statusColor = "gray";
         
+        ComparativeCalculator.ComparativeResult comp = null;
+        ClassificationEngine.ClassificationResult classRes = null;
+
         if (row.isValid()) {
-            absoluteGap = valN - valN1;
+            absoluteGap = (valN != null && valN1 != null) ? (valN - valN1) : 0.0;
             
             if (isBoolean) {
                 // Boolean Logic (0/1)
@@ -67,23 +83,23 @@ public class CalculationAgent {
                 else { status = "Non atteint"; statusColor = "yellow"; }
                 variationPercentage = null; // No variation for boolean
             } else {
-                // Numeric Logic
-                if (valN1 == 0) {
-                    if (valN > 0) {
-                        status = "Nouveau";
-                        statusColor = "blue";
-                        variationPercentage = null; // "N/A" in UI
-                    } else {
-                        status = "Stable";
-                        statusColor = "yellow";
-                        variationPercentage = 0.0; // "—" in UI if both 0
-                    }
+                // Numeric Logic: delegate enhanced comparatives to ComparativeCalculator
+                comp = comparativeCalculator.compute(matchedKpi, valN1, valN);
+                variationPercentage = comp.getRelativePercentage();
+                if (comp.getSpecialCase() != null) {
+                    status = comp.getSpecialCase();
+                    statusColor = "yellow";
+                } else if (variationPercentage == null) {
+                    status = "Nouveau";
+                    statusColor = "blue";
                 } else {
-                    variationPercentage = ((valN - valN1) / Math.abs(valN1)) * 100.0;
                     if (variationPercentage > 0) { status = "Augmentation"; statusColor = "green"; }
                     else if (variationPercentage < 0) { status = "Diminution"; statusColor = "red"; }
                     else { status = "Stable"; statusColor = "yellow"; }
                 }
+
+                List<Double> historicalSeries = findHistoricalSeries(matchedKpi);
+                classRes = classificationEngine.classify(matchedKpi, comp, historicalSeries);
             }
         } else {
             status = "Invalide";
@@ -94,7 +110,7 @@ public class CalculationAgent {
         String categorie = matchedKpi != null && matchedKpi.getCategorieKpi() != null ? matchedKpi.getCategorieKpi().getLibelle() : row.getCategorie();
         String categorieCode = matchedKpi != null && matchedKpi.getCategorieKpi() != null ? matchedKpi.getCategorieKpi().getCode() : "AUTO";
 
-        return KpiCalculatedDTO.builder()
+        KpiCalculatedDTO.KpiCalculatedDTOBuilder builder = KpiCalculatedDTO.builder()
                 .rowIndex(row.getRowIndex())
                 .kpiName(row.getKpiName())
                 .categorie(categorie)
@@ -110,11 +126,27 @@ public class CalculationAgent {
                 .statusColor(statusColor)
                 .commentaire(row.getValidationMessage() != null ? row.getValidationMessage() : (row.isValid() ? "Données validées" : "Données non validées"))
                 .isBoolean(isBoolean)
-                .classification(status) // using status as classification for now
-                .tendance(isBoolean ? getBooleanTendance(valN1, valN) : (variationPercentage != null ? computeTendance(variationPercentage).name() : "STABLE"))
-                .matchedKpi(Optional.ofNullable(matchedKpi).map(Kpi::getNom).orElse(null))
-                .matchedKpiId(Optional.ofNullable(matchedKpi).map(Kpi::getId).orElse(null))
-                .build();
+            .matchedKpi(Optional.ofNullable(matchedKpi).map(Kpi::getNom).orElse(null))
+            .matchedKpiId(Optional.ofNullable(matchedKpi).map(Kpi::getId).orElse(null));
+
+        String tendance = isBoolean
+                ? getBooleanTendance(valN1, valN)
+                : (variationPercentage != null ? computeTendance(variationPercentage).name() : "STABLE");
+
+        // if numeric and valid, enrich DTO with comparative and classification info
+        if (row.isValid() && !isBoolean && comp != null) {
+            builder.direction(comp.getDirection().name())
+                .calcConfidence(comp.getCalcConfidence())
+                .classification(classRes != null ? classRes.getClassification() : "INDETERMINE")
+                .classificationReason(classRes != null ? classRes.getReason() : "Classification indisponible")
+                .reviewRequired(classRes != null ? classRes.isReviewRequired() : true)
+                .dataFlags(comp.getDataFlags() == null ? null : comp.getDataFlags().stream().map(Enum::name).collect(Collectors.toList()))
+                .tendance(tendance);
+        } else {
+            builder.tendance(tendance);
+        }
+
+        return builder.build();
     }
 
     private Kpi findMatchingKpi(KpiRawDataDTO row, Map<String, Kpi> byName) {
@@ -130,24 +162,6 @@ public class CalculationAgent {
                 .map(Map.Entry::getValue)
                 .findFirst()
                 .orElse(null);
-    }
-
-
-    private double calculateAbsolute(Double valeurN1, Double valeurN) {
-        if (valeurN1 == null || valeurN == null) {
-            return 0d;
-        }
-        return valeurN - valeurN1;
-    }
-
-    private double calculatePercentage(Double valeurN1, Double valeurN) {
-        if (valeurN1 == null || valeurN == null) {
-            return 0d;
-        }
-        if (valeurN1 == 0d) {
-            return valeurN == 0d ? 0d : 100d;
-        }
-        return ((valeurN - valeurN1) / Math.abs(valeurN1)) * 100d;
     }
 
     private Tendance computeTendance(double variationPercentage) {
@@ -185,5 +199,21 @@ public class CalculationAgent {
         if (valN1 == 0 && valN == 1) return Tendance.HAUSSE.name(); // Amélioration
         if (valN1 == 1 && valN == 0) return Tendance.BAISSE.name(); // Dégradation
         return Tendance.STABLE.name();
+    }
+
+    private List<Double> findHistoricalSeries(Kpi kpi) {
+        if (kpi == null || kpi.getId() == null) {
+            return List.of();
+        }
+        try {
+            return resultatKpiRepository.findVariationHistoryByKpiId(kpi.getId())
+                    .stream()
+                    .filter(v -> v != null && !v.isNaN() && !v.isInfinite())
+                    .limit(60)
+                    .toList();
+        } catch (Exception ex) {
+            log.debug("Historique indisponible pour KPI {}: {}", kpi.getId(), ex.getMessage());
+            return List.of();
+        }
     }
 }

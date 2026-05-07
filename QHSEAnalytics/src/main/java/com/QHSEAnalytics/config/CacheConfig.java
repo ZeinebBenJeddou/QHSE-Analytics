@@ -1,6 +1,7 @@
 package com.QHSEAnalytics.config;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
@@ -15,12 +16,12 @@ import java.util.concurrent.TimeUnit;
 public class CacheConfig {
 
     @Bean
-    public CacheManager cacheManager() {
+    public CacheManager cacheManager(@Value("${cache.kpiAnalysis.ttl.hours:24}") long cacheTtlHours) {
         CaffeineCacheManager manager = new CaffeineCacheManager();
         manager.setCacheNames(List.of("kpiAnalysis", "ragKnowledge"));
         manager.setCaffeine(
                 Caffeine.newBuilder()
-                        .expireAfterWrite(24, TimeUnit.HOURS)
+                        .expireAfterWrite(cacheTtlHours, TimeUnit.HOURS)
                         .maximumSize(500)
                         .recordStats()
         );

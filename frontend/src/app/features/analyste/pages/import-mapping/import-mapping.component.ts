@@ -11,6 +11,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ImportService } from '../../../../core/services/import.service';
 import { ImportUploadStateService } from '../../../../core/services/import-upload-state.service';
@@ -35,6 +36,7 @@ import {
     MatSnackBarModule,
     MatTableModule,
     MatProgressSpinnerModule,
+    MatProgressBarModule,
     MatTooltipModule,
   ],
   templateUrl: './import-mapping.component.html',
@@ -57,8 +59,8 @@ export class ImportMappingComponent implements OnInit {
   previewResponse = signal<ImportProcessingResponse | null>(null);
   result = signal<ImportProcessingResponse | null>(null);
 
-  readonly previewColumns = ['rowStatus', 'kpiName', 'categorie', 'unite', 'definition', 'valeurN', 'valeurN1', 'status', 'commentaire', 'variation', 'absoluteGap'];
-  readonly resultColumns  = ['kpiName', 'categorie', 'unite', 'valeurN', 'valeurN1', 'variation', 'absoluteGap', 'status'];
+  readonly previewColumns = ['rowStatus', 'kpiName', 'categorie', 'unite', 'definition', 'valeurN', 'valeurN1', 'status', 'commentaire', 'variation', 'absoluteGap', 'meta'];
+  readonly resultColumns  = ['kpiName', 'categorie', 'unite', 'valeurN', 'valeurN1', 'variation', 'absoluteGap', 'status', 'meta'];
   readonly issueColumns   = ['severity', 'row', 'column', 'message'];
 
   ngOnInit() {

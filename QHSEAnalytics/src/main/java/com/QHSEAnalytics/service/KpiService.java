@@ -105,6 +105,8 @@ public class KpiService {
                 .seuilModere(request.getSeuilModere())
                 .seuilCritique(request.getSeuilCritique())
                 .ordre(request.getOrdre())
+                .direction(request.getDirection())
+                .targetValue(request.getTargetValue())
                 .isActive(true)
                 .build();
 
@@ -165,6 +167,12 @@ public class KpiService {
         }
         if (request.getOrdre() != null) {
             kpi.setOrdre(request.getOrdre());
+        }
+        if (request.getDirection() != null) {
+            kpi.setDirection(request.getDirection());
+        }
+        if (request.getTargetValue() != null) {
+            kpi.setTargetValue(request.getTargetValue());
         }
 
         Kpi saved = kpiRepository.save(kpi);
@@ -245,6 +253,8 @@ public class KpiService {
                 .isActive(kpi.isActive())
                 .createdAt(kpi.getCreatedAt())
                 .updatedAt(kpi.getUpdatedAt())
+                .direction(kpi.getDirection())
+                .targetValue(kpi.getTargetValue())
                 .build();
     }
 

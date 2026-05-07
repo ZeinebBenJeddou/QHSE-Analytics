@@ -1,5 +1,6 @@
 package com.QHSEAnalytics.entity;
 
+import com.QHSEAnalytics.enums.Direction;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -58,6 +59,21 @@ public class Kpi {
 
     @Column(nullable = false)
     private LocalDateTime updatedAt;
+
+    /**
+     * Optional explicit business direction used by processing rules when provided.
+     * Persisted as VARCHAR enum value; nullable to maintain backward compatibility.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "direction", length = 50, nullable = true)
+    private Direction direction;
+
+    /**
+     * Optional explicit target value used for TARGET_IS_BEST KPIs.
+     * Persisted as DOUBLE PRECISION; nullable to maintain backward compatibility.
+     */
+    @Column(name = "target_value", nullable = true)
+    private Double targetValue;
 
     @PrePersist
     public void onCreate() {

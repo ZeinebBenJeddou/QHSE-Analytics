@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { AnalyseCompleteResponse } from '../models/analyse-ia.model';
+import { AnalyseCompleteResponse, AiAnalysisStructuredResponse } from '../models/analyse-ia.model';
 import {
   MappingTemplateRequest,
   MappingTemplateResponse,
@@ -16,17 +16,22 @@ export class AiAnalysisService {
 
   /** Get or trigger complete AI analysis for an import session */
   getAnalyseComplete(importSessionId: number): Observable<AnalyseCompleteResponse> {
-    return this.http.get<AnalyseCompleteResponse>(`${this.iaBase}/${importSessionId}/complete`);
+    return this.http.get<AnalyseCompleteResponse>(`${this.iaBase}/${importSessionId}`);
   }
 
   /** Run or regenerate AI analysis for the import session */
-  runAi(importSessionId: number): Observable<void> {
-    return this.http.post<void>(`${environment.apiUrl}/api/analysis/${importSessionId}/ai`, {});
+  runAi(importSessionId: number): Observable<AnalyseCompleteResponse> {
+    return this.http.post<AnalyseCompleteResponse>(`${this.iaBase}/${importSessionId}`, {});
   }
 
   /** Regenerate all AI analyses */
-  regenerer(importSessionId: number): Observable<void> {
-    return this.runAi(importSessionId);
+  regenerer(importSessionId: number): Observable<AnalyseCompleteResponse> {
+    return this.http.post<AnalyseCompleteResponse>(`${this.iaBase}/${importSessionId}/regenerer`, {});
+  }
+
+  /** Get structured AI analysis for an import session */
+  getStructuredAnalysis(importSessionId: number): Observable<AiAnalysisStructuredResponse> {
+    return this.http.get<AiAnalysisStructuredResponse>(`${this.iaBase}/${importSessionId}/structured`);
   }
 
   /** Save a column-mapping template */

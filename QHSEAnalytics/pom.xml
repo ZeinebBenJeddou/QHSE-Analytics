@@ -68,6 +68,12 @@
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
 
+		<!-- MICROMETER -->
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-core</artifactId>
+		</dependency>
+
 		<!-- JWT  -->
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>

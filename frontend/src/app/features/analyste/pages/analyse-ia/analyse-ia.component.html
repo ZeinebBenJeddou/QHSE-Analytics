@@ -27,7 +27,7 @@
   <!-- ══════════════════════════════════════════════════════════════
        CONTENU PRINCIPAL
   ══════════════════════════════════════════════════════════════════ -->
-  <ng-container *ngIf="!loading() && !error() && analyse()">
+  <ng-container *ngIf="!loading() && !error() && (analyse() || structured())">
 
     <!-- ── PAGE HEADER ─────────────────────────────────────────── -->
     <header class="page-header">
@@ -62,8 +62,230 @@
     </header>
 
     <!-- ══════════════════════════════════════════════════════════
-         SECTION 1 — SYNTHÈSE GLOBALE
+         STRUCTURED ANALYSIS BANNER (if partial/failed)
     ══════════════════════════════════════════════════════════════ -->
+    <div class="structured-banner" *ngIf="showLegacyFallback()">
+      <div class="banner-content">
+        <mat-icon class="banner-icon">info</mat-icon>
+        <div class="banner-text">
+          <strong>Analyse IA structurée {{ isStructuredPartial() ? 'partielle' : 'indisponible' }}</strong>
+          <p>{{ getStructuredFallbackMessage() }}</p>
+          <p class="banner-meta">
+            KPI reçus: {{ structuredReceivedKpis() }} / {{ structuredExpectedKpis() }}
+            <span *ngIf="structuredMissingKpis() > 0">· KPI manquants: {{ structuredMissingKpis() }}</span>
+          </p>
+        </div>
+        <div class="banner-status-wrap">
+          <span class="status-chip" [class.status-chip--partial]="isStructuredPartial()" [class.status-chip--failed]="isStructuredFailed()">
+            {{ structuredStatusLabel() }}
+          </span>
+          <span class="confidence-badge" *ngIf="showConfidenceBadge()">
+          <mat-icon>warning</mat-icon>
+          À vérifier
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         STRUCTURED ANALYSIS SECTIONS (if SUCCESS)
+    ══════════════════════════════════════════════════════════════ -->
+    <ng-container *ngIf="isStructuredSuccess() && structured() as str">
+
+      <!-- SECTION 1 — SYNTHÈSE GLOBALE STRUCTURÉE -->
+      <section class="section">
+        <div class="section-header">
+          <h2 class="section-title">
+            <mat-icon class="s-icon">analytics</mat-icon>
+            Synthèse Globale
+          </h2>
+          <div class="section-badges">
+            <span class="confidence-score" [class.low-confidence]="structuredConfidence() < 60">
+              <mat-icon>verified</mat-icon>
+              Confiance: {{ structuredConfidence() }}%
+            </span>
+            <span class="confidence-score confidence-score--coverage">
+              <mat-icon>dataset</mat-icon>
+              Couverture KPI: {{ structuredCoverageLabel() }}
+            </span>
+          </div>
+        </div>
+
+        <div class="synthese-card">
+          <div class="synthese-body">
+            <p class="synthese-text">{{ str.globalSummary }}</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 2 — CAUSES PROBABLES -->
+      <section class="section" *ngIf="str.probableCauses?.length">
+        <div class="section-header">
+          <h2 class="section-title">
+            <mat-icon class="s-icon">search</mat-icon>
+            Causes Probables
+          </h2>
+          <span class="table-count">{{ str.probableCauses.length }} cause(s)</span>
+        </div>
+
+        <div class="causes-list">
+          <div class="cause-item" *ngFor="let cause of str.probableCauses; let i = index">
+            <div class="cause-number">{{ i + 1 }}</div>
+            <div class="cause-content">{{ cause }}</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 3 — RECOMMANDATIONS -->
+      <section class="section" *ngIf="str.recommendations?.length">
+        <div class="section-header">
+          <h2 class="section-title">
+            <mat-icon class="s-icon">lightbulb</mat-icon>
+            Recommandations
+          </h2>
+          <span class="table-count">{{ str.recommendations.length }} recommandation(s)</span>
+        </div>
+
+        <div class="recommendations-grid">
+          <div class="recommendation-card" *ngFor="let rec of str.recommendations">
+            <div class="rec-header">
+              <span class="rec-priority" [class]="'priority-' + (rec.urgency || 'medium').toLowerCase()">
+                {{ rec.urgency || 'Moyenne' }}
+              </span>
+            </div>
+            <h4 class="rec-title">{{ getRecommendationTitle(rec) }}</h4>
+            <p class="rec-rationale" *ngIf="getRecommendationRationale(rec)">{{ getRecommendationRationale(rec) }}</p>
+            <p class="rec-benefit" *ngIf="getRecommendationBenefit(rec)"><strong>Bénéfice attendu:</strong> {{ getRecommendationBenefit(rec) }}</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 4 — PLAN D'ACTION -->
+      <section class="section" *ngIf="str.actionPlan?.length">
+        <div class="section-header">
+          <h2 class="section-title">
+            <mat-icon class="s-icon">task_alt</mat-icon>
+            Plan d'Action
+          </h2>
+          <span class="table-count">{{ str.actionPlan.length }} action(s)</span>
+        </div>
+
+        <div class="action-plan-table">
+          <div class="ap-header">
+            <span>Action</span>
+            <span>Priorité</span>
+            <span>Responsable</span>
+            <span>Échéance</span>
+            <span>Métrique de succès</span>
+            <span>Risque si non fait</span>
+          </div>
+          <div class="ap-row" *ngFor="let action of str.actionPlan">
+            <span class="ap-action">{{ action.action }}</span>
+            <span class="ap-priority" [class]="'priority-' + (action.priority || 'medium').toLowerCase()">{{ action.priority || 'Moyenne' }}</span>
+            <span class="ap-owner">{{ action.ownerRole || 'Non défini' }}</span>
+            <span class="ap-due">{{ action.dueHorizon || 'Non défini' }}</span>
+            <span class="ap-metric">{{ action.successMetric || 'Non défini' }}</span>
+            <span class="ap-risk">{{ action.riskIfNotDone || 'Non défini' }}</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 5 — INSIGHTS PAR KPI -->
+      <section class="section" *ngIf="str.kpiInsights?.length">
+        <div class="section-header">
+          <h2 class="section-title">
+            <mat-icon class="s-icon">insights</mat-icon>
+            Insights par Indicateur
+          </h2>
+          <span class="table-count">{{ str.kpiInsights.length }} insight(s)</span>
+        </div>
+
+        <div class="kpi-insights-list">
+          <div class="kpi-insight-card" *ngFor="let insight of str.kpiInsights">
+            <div class="insight-header">
+              <h4 class="insight-kpi-name">{{ insight.kpiName || 'KPI sans nom' }}</h4>
+              <span class="insight-confidence" [class.low-confidence]="insight.confidence < 60">
+                {{ insight.confidence }}%
+              </span>
+            </div>
+            <p class="insight-text">{{ insight.insight || 'Aucun insight fourni.' }}</p>
+
+            <div class="insight-details" *ngIf="insight.probableCauses?.length || insight.recommendations?.length || insight.actionImmediate">
+              <div class="insight-causes" *ngIf="insight.probableCauses?.length">
+                <strong>Causes probables:</strong>
+                <ul>
+                  <li *ngFor="let cause of insight.probableCauses">{{ cause }}</li>
+                </ul>
+              </div>
+
+              <div class="insight-recos" *ngIf="insight.recommendations?.length">
+                <strong>Recommandations:</strong>
+                <ul>
+                  <li *ngFor="let rec of insight.recommendations">{{ rec }}</li>
+                </ul>
+              </div>
+
+              <div class="insight-action" *ngIf="insight.actionImmediate">
+                <strong>Action immédiate:</strong> {{ insight.actionImmediate }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 6 — TRACEABILITY -->
+      <section class="section" *ngIf="str.traceability">
+        <div class="section-header">
+          <h2 class="section-title">
+            <mat-icon class="s-icon">track_changes</mat-icon>
+            Traçabilité de l'Analyse
+          </h2>
+        </div>
+
+        <div class="traceability-card">
+          <div class="trace-info">
+            <div class="trace-item">
+              <mat-icon>memory</mat-icon>
+              <span><strong>Modèle:</strong> {{ str.traceability.modelName }}</span>
+            </div>
+            <div class="trace-item">
+              <mat-icon>schedule</mat-icon>
+              <span><strong>Généré le:</strong> {{ str.traceability.generatedAt ? (str.traceability.generatedAt | date:'dd/MM/yyyy HH:mm') : 'Non disponible' }}</span>
+            </div>
+            <div class="trace-item">
+              <mat-icon>rule</mat-icon>
+              <span><strong>Version schéma:</strong> {{ str.traceability.schemaVersion || str.schemaVersion || 'N/A' }}</span>
+            </div>
+            <div class="trace-item">
+              <mat-icon>receipt_long</mat-icon>
+              <span><strong>Version prompt:</strong> {{ str.traceability.promptVersion || str.promptVersion || 'N/A' }}</span>
+            </div>
+            <div class="trace-item">
+              <mat-icon>tag</mat-icon>
+              <span><strong>Import session:</strong> {{ str.traceability.importSessionId ?? structured()?.importSessionId ?? 'N/A' }}</span>
+            </div>
+          </div>
+
+          <div class="context-sources" *ngIf="str.traceability.contextSourcesUsed?.length">
+            <h4>Sources de contexte utilisées:</h4>
+            <div class="sources-list">
+              <div class="source-item" *ngFor="let source of str.traceability.contextSourcesUsed">
+                <span class="source-name">{{ source.sourceName }}</span>
+                <span class="source-score" [matTooltip]="'Pertinence: ' + source.relevanceScore + '%'">
+                  {{ source.relevanceScore }}%
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </ng-container>
+
+    <!-- ══════════════════════════════════════════════════════════
+         LEGACY ANALYSIS SECTIONS (fallback or when no structured)
+    ══════════════════════════════════════════════════════════════ -->
+    <ng-container *ngIf="!isStructuredSuccess() || showLegacyFallback()">
     <section class="section" *ngIf="analyse()?.analyseGlobale">
       <div class="section-header">
         <h2 class="section-title">
@@ -420,5 +642,6 @@
       </div>
     </section>
 
+    </ng-container>
   </ng-container>
 </div>
