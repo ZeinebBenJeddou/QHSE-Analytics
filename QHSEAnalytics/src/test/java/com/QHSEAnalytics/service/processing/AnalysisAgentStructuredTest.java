@@ -128,7 +128,7 @@ class AnalysisAgentStructuredTest {
 
         assertThat(result.getStatus()).isEqualTo("SUCCESS");
         assertThat(result.getGlobalSummary()).isEqualTo("Test summary");
-        assertThat(result.getSchemaVersion()).isEqualTo("1.1");
+        assertThat(result.getSchemaVersion()).isEqualTo("1.2");
         assertThat(result.getPromptVersion()).isEqualTo("structured-qhse-v4");
     }
 
@@ -235,7 +235,7 @@ class AnalysisAgentStructuredTest {
 
         assertThat(result.getTraceability().getModelName()).isEqualTo("gemini");
         assertThat(java.time.OffsetDateTime.parse(result.getTraceability().getGeneratedAt())).isAfterOrEqualTo(before);
-        assertThat(result.getTraceability().getSchemaVersion()).isEqualTo("1.1");
+        assertThat(result.getTraceability().getSchemaVersion()).isEqualTo("1.2");
         assertThat(result.getTraceability().getPromptVersion()).isEqualTo("structured-qhse-v4");
         assertThat(result.getTraceability().getImportSessionId()).isEqualTo(987L);
     }

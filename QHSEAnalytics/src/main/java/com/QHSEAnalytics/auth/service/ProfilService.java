@@ -9,7 +9,7 @@ import com.QHSEAnalytics.auth.exception.PasswordMismatchException;
 import com.QHSEAnalytics.auth.exception.UserNotFoundException;
 import com.QHSEAnalytics.auth.repository.RefreshTokenRepository;
 import com.QHSEAnalytics.auth.repository.UserRepository;
-import com.QHSEAnalytics.exception.WrongPasswordException;
+import com.QHSEAnalytics.shared.exception.WrongPasswordException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;

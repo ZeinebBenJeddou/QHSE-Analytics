@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { HistoriqueAnalysteResponse, ImportProcessingResponse } from '../models/import-session.model';
+import { ColumnProfileDTO, HistoriqueAnalysteResponse, ImportProcessingResponse } from '../models/import-session.model';
 
 @Injectable({ providedIn: 'root' })
 export class ImportService {
@@ -27,7 +27,7 @@ export class ImportService {
     return this.http.post<ImportProcessingResponse>(`${this.manualBase}/preview`, form);
   }
 
-  processManualImport(file: File, yearN: number, yearNMinus1: number, mapping: Record<string, number>, allowPartialImport = false): Observable<ImportProcessingResponse> {
+  processManualImport(file: File, yearN: number, yearNMinus1: number, mapping: Record<string, number>, allowPartialImport = false, clientId?: string): Observable<ImportProcessingResponse> {
     const form = new FormData();
     form.append('file', file);
     form.append('yearN', String(yearN));
@@ -36,17 +36,28 @@ export class ImportService {
     if (allowPartialImport) {
       form.append('allowPartialImport', 'true');
     }
-    return this.http.post<ImportProcessingResponse>(this.manualBase, form);
+    const url = clientId ? `${this.manualBase}?clientId=${encodeURIComponent(clientId)}` : this.manualBase;
+    return this.http.post<ImportProcessingResponse>(url, form);
+  }
+
+  progressStreamUrl(clientId: string): string {
+    return `${this.manualBase}/progress?clientId=${encodeURIComponent(clientId)}`;
+  }
+
+  profileColumns(file: File): Observable<ColumnProfileDTO[]> {
+    const form = new FormData();
+    form.append('file', file);
+    return this.http.post<ColumnProfileDTO[]>(`${this.manualBase}/profile`, form);
   }
 
   /** Confirm strict (default) — no partial import */
-  confirmStrict(file: File, yearN: number, yearNMinus1: number, mapping: Record<string, number>): Observable<ImportProcessingResponse> {
-    return this.processManualImport(file, yearN, yearNMinus1, mapping, false);
+  confirmStrict(file: File, yearN: number, yearNMinus1: number, mapping: Record<string, number>, clientId?: string): Observable<ImportProcessingResponse> {
+    return this.processManualImport(file, yearN, yearNMinus1, mapping, false, clientId);
   }
 
   /** Confirm partial — import only valid rows */
-  confirmPartial(file: File, yearN: number, yearNMinus1: number, mapping: Record<string, number>): Observable<ImportProcessingResponse> {
-    return this.processManualImport(file, yearN, yearNMinus1, mapping, true);
+  confirmPartial(file: File, yearN: number, yearNMinus1: number, mapping: Record<string, number>, clientId?: string): Observable<ImportProcessingResponse> {
+    return this.processManualImport(file, yearN, yearNMinus1, mapping, true, clientId);
   }
 
   /** Cancel an import session */

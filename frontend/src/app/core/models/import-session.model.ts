@@ -45,10 +45,11 @@ export interface KpiCalculatedDTO {
   definition?: string;
   variationAbsolute?: number;
   variationPercentage: number;
-  classification: 'FAIBLE' | 'MODERE' | 'CRITIQUE' | 'INDETERMINE' | 'UNKNOWN';
+  classification: 'EXCELLENT' | 'FAIBLE' | 'MODERE' | 'PRE_ESCALADE' | 'CRITIQUE' | 'INDETERMINE' | 'UNKNOWN';
   tendance: 'HAUSSE' | 'BAISSE' | 'STABLE' | null;
   matchedKpi?: string | null;
   matchedKpiId?: number | null;
+  matchConfidence?: number | null;       // P2.1 — Jaro-Winkler score 0–1
   // Business Intelligence Enrichment Fields
   businessClassification?: 'CRITICAL' | 'WARNING' | 'OK';
   isAnomaly?: boolean;
@@ -58,6 +59,48 @@ export interface KpiCalculatedDTO {
   classificationReason?: string;
   reviewRequired?: boolean;
   dataFlags?: string[];
+  // P3.1 — SPC
+  spcMean?: number | null;
+  spcStd?: number | null;
+  spcUcl?: number | null;
+  spcLcl?: number | null;
+  spcOutOfControl?: boolean | null;
+  // P2.2 — Risk matrix
+  riskProbability?: number | null;
+  riskImpact?: number | null;
+  riskScore?: number | null;
+  riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' | null;
+}
+
+// P4.1 — Column profile
+export interface ColumnProfileDTO {
+  columnIndex: number;
+  detectedHeader: string;
+  inferredType: 'TEXT' | 'NUMERIC' | 'BOOLEAN' | 'DATE' | 'MIXED';
+  sampleValues: string[];
+  totalRows: number;
+  nullCount: number;
+  uniqueCount: number;
+  numericMin?: number | null;
+  numericMax?: number | null;
+  numericMean?: number | null;
+  likelySemantic: 'KPI_NAME' | 'VALUE_N' | 'VALUE_N1' | 'CATEGORY' | 'UNIT' | 'UNKNOWN';
+  semanticConfidence: number; // 0–1
+}
+
+// P2.3 — Category composite score
+export interface CategoryScoreDTO {
+  categoryCode: string;
+  categoryLibelle: string;
+  kpiCount: number;
+  excellentCount: number;
+  faibleCount: number;
+  preEscaladeCount: number;
+  modereCount: number;
+  critiqueCount: number;
+  indetermineCount: number;
+  compositeScore: number;   // 0–100
+  compositeLabel: string;   // Excellent / Bon / Acceptable / À surveiller / Critique
 }
 
 export interface KpiRawDataDTO {
@@ -154,5 +197,7 @@ export interface ImportProcessingResponse {
   riskScore?: number;
   // Quality Report
   qualityReport?: ImportQualityReport;
+  // P2.3 — Composite scores
+  categoryScores?: CategoryScoreDTO[];
 }
 

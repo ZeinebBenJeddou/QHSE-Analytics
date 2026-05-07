@@ -15,13 +15,24 @@ import { MatButtonModule } from '@angular/material/button';
 import { DashboardService } from '../../../../core/services/dashboard.service';
 import { AiAnalysisService } from '../../../../core/services/ai-analysis.service';
 import { ResumeAnalysteResponse } from '../../../../core/models/dashboard.model';
-import { AiAnalysisStructuredResponse, AnalyseCompleteResponse, AnalyseGlobaleResponse, AnalyseCategorieResponse, ResultatKpiIaResponse } from '../../../../core/models/analyse-ia.model';
+import { AiAnalysisStructuredResponse, AiPredictiveAlertResponse, AiRootCauseResponse, AnalyseCompleteResponse, AnalyseGlobaleResponse, AnalyseCategorieResponse, ResultatKpiIaResponse } from '../../../../core/models/analyse-ia.model';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../../environments/environment';
 
 /* ══════════════════════════════════════════════════════════════════════
    DTOs — miroir exact du backend
 ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Kanban item ────────────────────────────────────────────────────── */
+interface KanbanItem {
+  id: string;
+  action: string;
+  priority: string;
+  ownerRole?: string;
+  dueHorizon?: string;
+  source: 'action_plan' | 'kpi_immediate';
+  kpiRef?: string;
+}
 
 /* ── Category metadata ─────────────────────────────────────────────── */
 interface CategorieInfo {
@@ -212,6 +223,7 @@ export class AnalyseIAComponent implements OnInit {
     this.error.set('');
     this.structured.set(null);
     this.analyse.set(null);
+    this.loadKanbanState();
 
     // First, try to load structured analysis
     this.aiAnalysisService.getStructuredAnalysis(importId)
@@ -379,5 +391,99 @@ export class AnalyseIAComponent implements OnInit {
 
   getRecommendationBenefit(rec: { expectedBenefit?: string } | null | undefined): string {
     return rec?.expectedBenefit?.trim() || '';
+  }
+
+  // ── P3.3 — Kanban action board ────────────────────────────────────────
+  readonly KANBAN_COLS = ['todo', 'in_progress', 'done'] as const;
+  readonly KANBAN_LABELS: Record<string, string> = { todo: 'À Faire', in_progress: 'En Cours', done: 'Terminé' };
+  readonly KANBAN_ICONS:  Record<string, string> = { todo: 'assignment', in_progress: 'pending_actions', done: 'task_alt' };
+
+  kanbanState = signal<Record<string, string>>({});
+
+  kanbanItems = computed((): KanbanItem[] => {
+    const structured = this.structured();
+    if (!structured) return [];
+    const items: KanbanItem[] = [];
+
+    (structured.actionPlan ?? []).forEach((item, i) => {
+      items.push({ id: `plan-${i}`, action: item.action, priority: item.priority, ownerRole: item.ownerRole, dueHorizon: item.dueHorizon, source: 'action_plan' });
+    });
+
+    (structured.kpiInsights ?? []).filter(ins => ins.urgency === 'HIGH' && ins.actionImmediate).forEach((ins, i) => {
+      items.push({ id: `kpi-imm-${i}`, action: ins.actionImmediate, priority: 'HIGH', ownerRole: ins.ownerRole, dueHorizon: ins.dueHorizon, source: 'kpi_immediate', kpiRef: ins.kpiName });
+    });
+
+    return items;
+  });
+
+  hasKanban = computed(() => this.kanbanItems().length > 0);
+
+  itemsInColumn(col: string): KanbanItem[] {
+    const state = this.kanbanState();
+    return this.kanbanItems().filter(item => (state[item.id] ?? 'todo') === col);
+  }
+
+  moveItem(id: string, col: string): void {
+    this.kanbanState.update(s => ({ ...s, [id]: col }));
+    this.saveKanbanState();
+  }
+
+  kanbanPriorityClass(priority: string): string {
+    if (priority === 'HIGH' || priority === 'CRITIQUE')   return 'k-prio-high';
+    if (priority === 'MEDIUM' || priority === 'MODERE')  return 'k-prio-medium';
+    return 'k-prio-low';
+  }
+
+  private kanbanStorageKey(): string {
+    return `qhse-kanban-${this.importId() ?? 'default'}`;
+  }
+
+  private saveKanbanState(): void {
+    try { localStorage.setItem(this.kanbanStorageKey(), JSON.stringify(this.kanbanState())); } catch { /* quota */ }
+  }
+
+  private loadKanbanState(): void {
+    try {
+      const raw = localStorage.getItem(this.kanbanStorageKey());
+      if (raw) this.kanbanState.set(JSON.parse(raw));
+    } catch { /* parse error */ }
+  }
+
+  // ── P1.2 — Root cause analysis helpers ────────────────────────────────
+  hasRootCauses = computed(() => (this.structured()?.rootCauseAnalysis ?? []).length > 0);
+
+  ishikawaClass(category: string): string {
+    const map: Record<string, string> = {
+      'Homme':   'ishi-homme',
+      'Machine': 'ishi-machine',
+      'Méthode': 'ishi-methode',
+      'Milieu':  'ishi-milieu',
+      'Matière': 'ishi-matiere',
+    };
+    return map[category] ?? 'ishi-default';
+  }
+
+  // ── P1.3 — Predictive alerts helpers ──────────────────────────────────
+  hasAlerts = computed(() => (this.structured()?.predictiveAlerts ?? []).length > 0);
+  criticalAlertsCount = computed(() =>
+    (this.structured()?.predictiveAlerts ?? []).filter(a => a.severity === 'HIGH').length
+  );
+
+  alertSeverityClass(severity: string): string {
+    if (severity === 'HIGH')   return 'alert-sev-high';
+    if (severity === 'MEDIUM') return 'alert-sev-medium';
+    return 'alert-sev-low';
+  }
+
+  alertSeverityLabel(severity: string): string {
+    if (severity === 'HIGH')   return 'Critique';
+    if (severity === 'MEDIUM') return 'Modérée';
+    return 'Faible';
+  }
+
+  alertSeverityIcon(severity: string): string {
+    if (severity === 'HIGH')   return 'error';
+    if (severity === 'MEDIUM') return 'warning';
+    return 'info';
   }
 }

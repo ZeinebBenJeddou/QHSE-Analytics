@@ -9,22 +9,40 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
   const token = tokenService.getToken();
 
-  let authReq = req;
-  if (token) {
-    authReq = req.clone({
-      setHeaders: {
-        Authorization: `Bearer ${token}`
-      }
-    });
-  }
+  const authReq = token
+    ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } })
+    : req;
 
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
-      if (error.status === 401 || error.status === 403) {
-        // On unauthorized or forbidden, clear token and force login
-        tokenService.removeToken();
-        router.navigate(['/auth/login'], { queryParams: { expired: true } });
+      switch (error.status) {
+        case 401:
+          tokenService.removeToken();
+          router.navigate(['/auth/login'], { queryParams: { expired: true } });
+          break;
+
+        case 403:
+          // Token valide mais rôle insuffisant — redirection dashboard
+          router.navigate(['/dashboard']);
+          break;
+
+        case 429:
+          // Rate limiting — le composant gère l'affichage du message
+          console.warn('[Auth Interceptor] Trop de tentatives, rate limit atteint.');
+          break;
+
+        case 0:
+          // Réseau indisponible / CORS bloqué
+          console.error('[Auth Interceptor] Serveur inaccessible ou erreur réseau.');
+          break;
+
+        case 500:
+        case 502:
+        case 503:
+          console.error(`[Auth Interceptor] Erreur serveur ${error.status}.`);
+          break;
       }
+
       return throwError(() => error);
     })
   );

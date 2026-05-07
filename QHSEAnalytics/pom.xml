@@ -74,6 +74,23 @@
 			<artifactId>micrometer-core</artifactId>
 		</dependency>
 
+		<!-- PROMETHEUS (metrics endpoint) -->
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-registry-prometheus</artifactId>
+		</dependency>
+
+		<!-- FLYWAY (migrations DB) -->
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-core</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-database-postgresql</artifactId>
+		</dependency>
+
 		<!-- JWT  -->
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>

@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -13,12 +13,16 @@ import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatChipsModule } from '@angular/material/chips';
 import { ImportService } from '../../../../core/services/import.service';
 import { ImportUploadStateService } from '../../../../core/services/import-upload-state.service';
 import {
+  CategoryScoreDTO,
+  ColumnProfileDTO,
   ImportIssue,
   ImportProcessingResponse,
   ImportQualityReport,
+  KpiCalculatedDTO,
   RejectedReasonSummary,
 } from '../../../../core/models/import-session.model';
 
@@ -38,11 +42,12 @@ import {
     MatProgressSpinnerModule,
     MatProgressBarModule,
     MatTooltipModule,
+    MatChipsModule,
   ],
   templateUrl: './import-mapping.component.html',
   styleUrls: ['./import-mapping.component.css'],
 })
-export class ImportMappingComponent implements OnInit {
+export class ImportMappingComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private importService = inject(ImportService);
   private uploadState = inject(ImportUploadStateService);
@@ -56,17 +61,153 @@ export class ImportMappingComponent implements OnInit {
 
   errorMsg = signal('');
   processing = signal(false);
+  progressPercent = signal(0);
+  progressStage = signal('');
+  progressMessage = signal('');
   previewResponse = signal<ImportProcessingResponse | null>(null);
   result = signal<ImportProcessingResponse | null>(null);
 
+  // P4.1 — Column profiles
+  columnProfiles = signal<ColumnProfileDTO[]>([]);
+  profilingLoading = signal(false);
+
+  private eventSource: EventSource | null = null;
+
+  // P4.2 — Mapping memory helpers
+  private mappingKey(headers: string[]): string {
+    return `qhse-col-mapping-${btoa(encodeURIComponent(headers.join('|'))).slice(0, 40)}`;
+  }
+
+  private saveMapping(headers: string[]): void {
+    try {
+      const payload = { kpiColumn: this.kpiColumn(), valueNColumn: this.valueNColumn(), valueNMinus1Column: this.valueNMinus1Column() };
+      localStorage.setItem(this.mappingKey(headers), JSON.stringify(payload));
+    } catch { /* ignore quota errors */ }
+  }
+
+  private restoreMapping(headers: string[]): void {
+    try {
+      const raw = localStorage.getItem(this.mappingKey(headers));
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      if (saved.kpiColumn !== undefined && saved.kpiColumn !== null) this.kpiColumn.set(saved.kpiColumn);
+      if (saved.valueNColumn !== undefined && saved.valueNColumn !== null) this.valueNColumn.set(saved.valueNColumn);
+      if (saved.valueNMinus1Column !== undefined && saved.valueNMinus1Column !== null) this.valueNMinus1Column.set(saved.valueNMinus1Column);
+    } catch { /* ignore parse errors */ }
+  }
+
   readonly previewColumns = ['rowStatus', 'kpiName', 'categorie', 'unite', 'definition', 'valeurN', 'valeurN1', 'status', 'commentaire', 'variation', 'absoluteGap', 'meta'];
-  readonly resultColumns  = ['kpiName', 'categorie', 'unite', 'valeurN', 'valeurN1', 'variation', 'absoluteGap', 'status', 'meta'];
+  readonly resultColumns  = ['spark', 'kpiName', 'categorie', 'unite', 'valeurN', 'valeurN1', 'variation', 'absoluteGap', 'status', 'risk', 'meta'];
   readonly issueColumns   = ['severity', 'row', 'column', 'message'];
+
+  // P2.2 — Risk matrix
+  readonly riskRows    = [5, 4, 3, 2, 1]; // impact descending (y axis)
+  readonly riskColumns = [1, 2, 3, 4, 5]; // probability ascending (x axis)
+
+  riskKpis = computed(() =>
+    (this.result()?.calculatedData ?? []).filter(k => k.riskProbability != null && k.riskImpact != null)
+  );
+
+  categoryScores = computed((): CategoryScoreDTO[] => this.result()?.categoryScores ?? []);
+
+  kpisAtCell(prob: number, impact: number): KpiCalculatedDTO[] {
+    return this.riskKpis().filter(k => k.riskProbability === prob && k.riskImpact === impact);
+  }
+
+  riskCellClass(prob: number, impact: number): string {
+    const score = prob * impact;
+    if (score >= 20) return 'risk-cell critical';
+    if (score >= 12) return 'risk-cell high';
+    if (score >= 6)  return 'risk-cell medium';
+    return 'risk-cell low';
+  }
+
+  riskLevelClass(level: string | null | undefined): string {
+    if (level === 'CRITICAL') return 'risk-tag critical';
+    if (level === 'HIGH')     return 'risk-tag high';
+    if (level === 'MEDIUM')   return 'risk-tag medium';
+    return 'risk-tag low';
+  }
+
+  // P3.3 — Sparklines: normalized bar heights for N-1 and N within the result dataset
+  private sparkMax = computed((): number => {
+    const vals = (this.result()?.calculatedData ?? [])
+      .flatMap(k => [Math.abs(k.valeurN ?? 0), Math.abs(k.valeurN1 ?? 0)]);
+    return Math.max(...vals, 1);
+  });
+
+  sparkN1Height(row: KpiCalculatedDTO): number {
+    return Math.round((Math.abs(row.valeurN1 ?? 0) / this.sparkMax()) * 24);
+  }
+
+  sparkNHeight(row: KpiCalculatedDTO): number {
+    return Math.round((Math.abs(row.valeurN ?? 0) / this.sparkMax()) * 24);
+  }
+
+  sparkNColor(row: KpiCalculatedDTO): string {
+    const n = row.valeurN ?? 0;
+    const n1 = row.valeurN1 ?? 0;
+    if (row.spcOutOfControl) return '#E53E3E';
+    return n >= n1 ? '#38A169' : '#DD6B20';
+  }
+
+  categoryScoreClass(score: number): string {
+    if (score >= 90) return 'cat-score-excellent';
+    if (score >= 75) return 'cat-score-bon';
+    if (score >= 55) return 'cat-score-acceptable';
+    if (score >= 30) return 'cat-score-surveiller';
+    return 'cat-score-critique';
+  }
 
   ngOnInit() {
     const state = this.uploadState.getUpload();
     if (!state) { this.router.navigate(['/analyste/import']); return; }
     this.uploadStateData.set(state);
+    // P4.2 — restore saved mapping for this header set
+    this.restoreMapping(state.headers);
+    // P4.1 — load column profiles in background
+    this.loadColumnProfiles(state.file);
+  }
+
+  private async loadColumnProfiles(file: File): Promise<void> {
+    this.profilingLoading.set(true);
+    try {
+      const profiles = await firstValueFrom(this.importService.profileColumns(file));
+      this.columnProfiles.set(profiles ?? []);
+    } catch {
+      this.columnProfiles.set([]);
+    } finally {
+      this.profilingLoading.set(false);
+    }
+  }
+
+  ngOnDestroy() {
+    this.closeProgressStream();
+  }
+
+  private openProgressStream(clientId: string): void {
+    this.closeProgressStream();
+    const url = this.importService.progressStreamUrl(clientId);
+    this.eventSource = new EventSource(url);
+    this.eventSource.addEventListener('progress', (event: MessageEvent) => {
+      const data = JSON.parse(event.data);
+      this.progressPercent.set(data.percent ?? 0);
+      this.progressStage.set(data.stage ?? '');
+      this.progressMessage.set(data.message ?? '');
+    });
+    this.eventSource.addEventListener('import-error', (event: MessageEvent) => {
+      const data = JSON.parse(event.data);
+      this.progressMessage.set(data.message ?? 'Erreur de traitement.');
+      this.closeProgressStream();
+    });
+    this.eventSource.onerror = () => { this.closeProgressStream(); };
+  }
+
+  private closeProgressStream(): void {
+    if (this.eventSource) {
+      this.eventSource.close();
+      this.eventSource = null;
+    }
   }
 
   get steps() { return ['Importer', 'Mapper les colonnes', 'Traiter']; }
@@ -105,6 +246,7 @@ export class ImportMappingComponent implements OnInit {
       const response = await firstValueFrom(this.importService.previewImport(state.file, state.yearN, state.yearNMinus1, mapping));
       this.previewResponse.set(response);
       this.uploadState.saveResponse(response);
+      this.saveMapping(state.headers); // P4.2
       if (response.qualityReport?.hardBlocking) {
         this.snackBar.open('Erreur structurelle bloquante.', 'OK', { duration: 7000 });
       } else if (response.qualityReport?.softBlocking) {
@@ -131,12 +273,17 @@ export class ImportMappingComponent implements OnInit {
     if (this.isSoftBlocking()) { this.errorMsg.set('Des lignes comportent des erreurs. Utilisez "Continuer avec lignes valides".'); return; }
     if (this.isImportBlocking()) { this.errorMsg.set("Corrigez les erreurs bloquantes avant de confirmer l'import."); return; }
 
+    const clientId = crypto.randomUUID();
     const mapping = { kpiNameIndex: this.kpiColumn()!, unitIndex: -1, valueNIndex: this.valueNColumn()!, valueN1Index: this.valueNMinus1Column()!, categoryIndex: -1 };
+    this.progressPercent.set(0);
+    this.progressStage.set('INITIALISATION');
+    this.progressMessage.set('Démarrage du traitement...');
     this.processing.set(true);
     this.errorMsg.set('');
+    this.openProgressStream(clientId);
 
     try {
-      const response = await firstValueFrom(this.importService.confirmStrict(state.file, state.yearN, state.yearNMinus1, mapping));
+      const response = await firstValueFrom(this.importService.confirmStrict(state.file, state.yearN, state.yearNMinus1, mapping, clientId));
       this.result.set(response);
       this.uploadState.saveResponse(response);
       this.snackBar.open('Importation confirmée avec succès.', 'OK', { duration: 3000 });
@@ -145,6 +292,7 @@ export class ImportMappingComponent implements OnInit {
       this.snackBar.open(this.errorMsg(), 'OK', { duration: 5000 });
     } finally {
       this.processing.set(false);
+      this.closeProgressStream();
     }
   }
 
@@ -155,12 +303,17 @@ export class ImportMappingComponent implements OnInit {
     if (!state || !preview) { this.errorMsg.set('Aucune prévisualisation disponible.'); return; }
     if (this.isHardBlocking()) { this.errorMsg.set('Erreur structurelle bloquante. Impossible d\'importer même partiellement.'); return; }
 
+    const clientId = crypto.randomUUID();
     const mapping = { kpiNameIndex: this.kpiColumn()!, unitIndex: -1, valueNIndex: this.valueNColumn()!, valueN1Index: this.valueNMinus1Column()!, categoryIndex: -1 };
+    this.progressPercent.set(0);
+    this.progressStage.set('INITIALISATION');
+    this.progressMessage.set('Démarrage du traitement partiel...');
     this.processing.set(true);
     this.errorMsg.set('');
+    this.openProgressStream(clientId);
 
     try {
-      const response = await firstValueFrom(this.importService.confirmPartial(state.file, state.yearN, state.yearNMinus1, mapping));
+      const response = await firstValueFrom(this.importService.confirmPartial(state.file, state.yearN, state.yearNMinus1, mapping, clientId));
       this.result.set(response);
       this.uploadState.saveResponse(response);
       const imported = response.qualityReport?.importedRowsCount ?? 0;
@@ -171,6 +324,7 @@ export class ImportMappingComponent implements OnInit {
       this.snackBar.open(this.errorMsg(), 'OK', { duration: 5000 });
     } finally {
       this.processing.set(false);
+      this.closeProgressStream();
     }
   }
 
@@ -262,6 +416,27 @@ export class ImportMappingComponent implements OnInit {
       .filter(i => i.rowIndex === rowIndex)
       .map(i => `[${i.severity}] ${i.message}`)
       .join('\n');
+  }
+
+  // ── P4.1 — Column profile helpers ──────────────────────────────────────
+
+  profileForColumn(colIndex: number): ColumnProfileDTO | undefined {
+    return this.columnProfiles().find(p => p.columnIndex === colIndex);
+  }
+
+  profileTypeIcon(type: ColumnProfileDTO['inferredType']): string {
+    const icons: Record<string, string> = { NUMERIC: 'tag', TEXT: 'text_fields', BOOLEAN: 'toggle_on', DATE: 'calendar_today', MIXED: 'join_full' };
+    return icons[type] ?? 'help_outline';
+  }
+
+  profileSemanticClass(semantic: ColumnProfileDTO['likelySemantic']): string {
+    const cls: Record<string, string> = { KPI_NAME: 'sem-kpi', VALUE_N: 'sem-n', VALUE_N1: 'sem-n1', CATEGORY: 'sem-cat', UNIT: 'sem-unit', UNKNOWN: 'sem-unknown' };
+    return cls[semantic] ?? 'sem-unknown';
+  }
+
+  profileNullRate(p: ColumnProfileDTO): string {
+    if (!p.totalRows) return '0%';
+    return `${Math.round((p.nullCount / p.totalRows) * 100)}%`;
   }
 
   // ── Helpers existants ───────────────────────────────────────────────────

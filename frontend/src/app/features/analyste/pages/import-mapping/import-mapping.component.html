@@ -101,6 +101,40 @@
       </div>
     </div>
 
+    <!-- P4.1 — Column profiles -->
+    <div class="profile-section" *ngIf="columnProfiles().length > 0 || profilingLoading()" style="margin-top: 20px;">
+      <p class="section-label">
+        <mat-icon style="font-size:16px;vertical-align:middle;">analytics</mat-icon>
+        Profil des colonnes
+        <span class="profile-hint">Aide à identifier les colonnes à mapper</span>
+      </p>
+      <div *ngIf="profilingLoading()" class="profile-loading">
+        <mat-spinner diameter="20"></mat-spinner>
+        <span>Analyse des colonnes…</span>
+      </div>
+      <div class="profile-cards-row" *ngIf="!profilingLoading()">
+        <div class="profile-card" *ngFor="let p of columnProfiles()">
+          <div class="profile-card-header">
+            <mat-icon class="profile-type-icon">{{ profileTypeIcon(p.inferredType) }}</mat-icon>
+            <span class="profile-col-name" [matTooltip]="p.detectedHeader">{{ p.detectedHeader | slice:0:18 }}{{ p.detectedHeader.length > 18 ? '…' : '' }}</span>
+          </div>
+          <span class="profile-semantic-badge" [ngClass]="profileSemanticClass(p.likelySemantic)">{{ p.likelySemantic }}</span>
+          <div class="profile-stats">
+            <span class="profile-type-tag">{{ p.inferredType }}</span>
+            <span class="profile-null">null: {{ profileNullRate(p) }}</span>
+          </div>
+          <div class="profile-samples" *ngIf="p.sampleValues.length">
+            <span *ngFor="let s of p.sampleValues.slice(0,3)" class="profile-sample">{{ s }}</span>
+          </div>
+          <div class="profile-numeric" *ngIf="p.inferredType === 'NUMERIC' && p.numericMean !== null">
+            <span class="profile-stat-pill">∅ {{ p.numericMean | number:'1.1-2' }}</span>
+            <span class="profile-stat-pill">↓ {{ p.numericMin | number:'1.0-2' }}</span>
+            <span class="profile-stat-pill">↑ {{ p.numericMax | number:'1.0-2' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Mapping selects -->
     <div class="mapping-grid" style="margin-top: 20px;">
       <mat-form-field appearance="outline">
@@ -185,6 +219,24 @@
           Continuer avec lignes valides
         </button>
       </div>
+    </div>
+
+    <!-- ── PROCESSING PROGRESS ──────────────────────────────────────────── -->
+    <div class="progress-section" *ngIf="processing() && progressStage()">
+      <div class="progress-header">
+        <div class="progress-label">
+          <mat-icon class="progress-spin-icon">sync</mat-icon>
+          <span class="progress-stage-text">{{ progressStage() }}</span>
+        </div>
+        <span class="progress-pct-text">{{ progressPercent() }}%</span>
+      </div>
+      <mat-progress-bar
+        mode="determinate"
+        [value]="progressPercent()"
+        color="primary"
+        class="import-progress-bar">
+      </mat-progress-bar>
+      <p class="progress-message-text">{{ progressMessage() }}</p>
     </div>
 
     <!-- ── QUALITY REPORT ───────────────────────────────────────────────── -->
@@ -504,6 +556,24 @@
       </div>
       <div class="results-table-container">
         <table mat-table [dataSource]="result()?.calculatedData ?? []" class="kpi-table results-table">
+
+          <!-- P3.3 Sparkline column -->
+          <ng-container matColumnDef="spark">
+            <th mat-header-cell *matHeaderCellDef></th>
+            <td mat-cell *matCellDef="let row">
+              <svg width="34" height="26" viewBox="0 0 34 26" class="spark-svg">
+                <!-- N-1 bar (gray) -->
+                <rect x="2" [attr.y]="26 - sparkN1Height(row)" width="12" [attr.height]="sparkN1Height(row)"
+                      fill="#CBD5E0" rx="2" [matTooltip]="'N-1: ' + (row.valeurN1 | number:'1.0-2')"/>
+                <!-- N bar (colored) -->
+                <rect x="18" [attr.y]="26 - sparkNHeight(row)" width="12" [attr.height]="sparkNHeight(row)"
+                      [attr.fill]="sparkNColor(row)" rx="2" [matTooltip]="'N: ' + (row.valeurN | number:'1.0-2')"/>
+                <!-- SPC out-of-control indicator -->
+                <circle *ngIf="row.spcOutOfControl" cx="30" cy="4" r="3" fill="#E53E3E" matTooltip="Hors contrôle SPC"/>
+              </svg>
+            </td>
+          </ng-container>
+
           <ng-container matColumnDef="kpiName">
             <th mat-header-cell *matHeaderCellDef>KPI</th>
             <td mat-cell *matCellDef="let row"><strong>{{ row.kpiName }}</strong></td>
@@ -549,6 +619,17 @@
             </td>
           </ng-container>
 
+          <!-- P2.2 Risk column -->
+          <ng-container matColumnDef="risk">
+            <th mat-header-cell *matHeaderCellDef>Risque</th>
+            <td mat-cell *matCellDef="let row">
+              <span *ngIf="row.riskLevel" [ngClass]="riskLevelClass(row.riskLevel)"
+                    [matTooltip]="'Score: ' + row.riskScore + ' | P×I: ' + row.riskProbability + '×' + row.riskImpact">
+                {{ row.riskLevel }}
+              </span>
+            </td>
+          </ng-container>
+
           <ng-container matColumnDef="meta">
             <th mat-header-cell *matHeaderCellDef></th>
             <td mat-cell *matCellDef="let row">
@@ -564,6 +645,72 @@
           <tr mat-row *matRowDef="let row; columns: resultColumns"></tr>
         </table>
       </div>
+
+      <!-- P2.3 — Category scores -->
+      <div class="cat-scores-section" *ngIf="categoryScores().length > 0">
+        <p class="section-label" style="margin-top:20px;">
+          <mat-icon style="font-size:16px;vertical-align:middle;">bar_chart</mat-icon>
+          Scores composites par catégorie
+        </p>
+        <div class="cat-scores-grid">
+          <div class="cat-score-card" *ngFor="let cs of categoryScores()">
+            <div class="cat-score-header">
+              <span class="cat-score-code">{{ cs.categoryCode }}</span>
+              <span class="cat-score-libelle">{{ cs.categoryLibelle }}</span>
+              <span class="cat-score-label" [ngClass]="categoryScoreClass(cs.compositeScore)">{{ cs.compositeLabel }}</span>
+            </div>
+            <div class="cat-score-bar-wrap">
+              <div class="cat-score-bar" [style.width.%]="cs.compositeScore" [ngClass]="categoryScoreClass(cs.compositeScore)"></div>
+            </div>
+            <div class="cat-score-value">{{ cs.compositeScore | number:'1.0-1' }}/100 · {{ cs.kpiCount }} KPIs</div>
+            <div class="cat-score-breakdown">
+              <span class="cs-pill excellent" *ngIf="cs.excellentCount">{{ cs.excellentCount }} Exc.</span>
+              <span class="cs-pill faible" *ngIf="cs.faibleCount">{{ cs.faibleCount }} Faible</span>
+              <span class="cs-pill modere" *ngIf="cs.modereCount">{{ cs.modereCount }} Modéré</span>
+              <span class="cs-pill pre-esc" *ngIf="cs.preEscaladeCount">{{ cs.preEscaladeCount }} Pré-esc.</span>
+              <span class="cs-pill critique" *ngIf="cs.critiqueCount">{{ cs.critiqueCount }} Crit.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- P2.2 — Risk matrix 5×5 -->
+      <div class="risk-matrix-section" *ngIf="riskKpis().length > 0">
+        <p class="section-label" style="margin-top:20px;">
+          <mat-icon style="font-size:16px;vertical-align:middle;">grid_on</mat-icon>
+          Matrice de risque (probabilité × impact)
+        </p>
+        <div class="risk-matrix-wrap">
+          <div class="risk-matrix-grid">
+            <!-- Y-axis label -->
+            <div class="risk-y-label">Impact ↑</div>
+            <div class="risk-matrix-body">
+              <div class="risk-matrix-row" *ngFor="let imp of riskRows">
+                <div class="risk-row-label">{{ imp }}</div>
+                <div *ngFor="let prob of riskColumns"
+                     [ngClass]="riskCellClass(prob, imp)"
+                     [matTooltip]="kpisAtCell(prob, imp).length ? kpisAtCell(prob, imp).map(k => k.kpiName).join(', ') : ''">
+                  <span class="risk-dot" *ngFor="let kpi of kpisAtCell(prob, imp).slice(0,3)"
+                        [matTooltip]="kpi.kpiName"></span>
+                  <span class="risk-overflow" *ngIf="kpisAtCell(prob, imp).length > 3">+{{ kpisAtCell(prob, imp).length - 3 }}</span>
+                  <span class="risk-score-hint">{{ prob * imp }}</span>
+                </div>
+              </div>
+              <div class="risk-matrix-xaxis">
+                <div class="risk-x-label">Prob.</div>
+                <div class="risk-x-tick" *ngFor="let prob of riskColumns">{{ prob }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="risk-legend">
+            <div class="risk-legend-item"><span class="risk-legend-dot low"></span>LOW</div>
+            <div class="risk-legend-item"><span class="risk-legend-dot medium"></span>MEDIUM</div>
+            <div class="risk-legend-item"><span class="risk-legend-dot high"></span>HIGH</div>
+            <div class="risk-legend-item"><span class="risk-legend-dot critical"></span>CRITICAL</div>
+          </div>
+        </div>
+      </div>
+
     </mat-card-content>
     <mat-card-actions>
       <button mat-flat-button class="dashboard-btn" (click)="goToDashboard()">

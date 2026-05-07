@@ -1,6 +1,7 @@
 package com.QHSEAnalytics.config;
 
 import com.QHSEAnalytics.security.JwtAuthFilter;
+import com.QHSEAnalytics.security.RateLimitingFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,6 +21,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+    private final RateLimitingFilter rateLimitingFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -37,7 +39,8 @@ public class SecurityConfig {
                         "/api/auth/refresh",
                         "/api/auth/forgot-password",
                         "/api/auth/reset-password",
-                        "/actuator/health"
+                        "/actuator/health",
+                        "/api/import/manual/progress"
                     ).permitAll()
                     .requestMatchers("/api/auth/logout").authenticated()
                         .requestMatchers(
@@ -56,6 +59,7 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
+                .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

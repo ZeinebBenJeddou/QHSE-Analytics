@@ -45,8 +45,10 @@ services:
       # Admin
       ADMIN_EMAIL: ${ADMIN_EMAIL}
       ADMIN_DEFAULT_PASSWORD: ${ADMIN_DEFAULT_PASSWORD}
-      # Groq IA
-      GROQ_API_KEY: ${GROQ_API_KEY}
+      # Groq IA (plusieurs clés séparées par virgule)
+      GROQ_API_KEYS: ${GROQ_API_KEYS}
+      # Gemini IA (fallback)
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       # Frontend URL (pour les liens dans les emails)
       APP_FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
     ports:

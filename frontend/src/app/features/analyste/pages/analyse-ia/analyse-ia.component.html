@@ -190,7 +190,90 @@
         </div>
       </section>
 
-      <!-- SECTION 5 — INSIGHTS PAR KPI -->
+      <!-- SECTION 5 — ROOT CAUSE ANALYSIS -->
+      <section class="section" *ngIf="hasRootCauses()">
+        <div class="section-header">
+          <h2 class="section-title">
+            <mat-icon class="s-icon">account_tree</mat-icon>
+            Analyse des Causes Racines (5 Pourquoi)
+          </h2>
+          <span class="table-count">{{ structured()?.rootCauseAnalysis?.length }} cause(s) racine</span>
+        </div>
+
+        <div class="root-cause-list">
+          <div class="root-cause-card" *ngFor="let rc of structured()?.rootCauseAnalysis">
+            <div class="rc-header">
+              <div class="rc-kpi-ref">
+                <mat-icon>bar_chart</mat-icon>
+                {{ rc.kpiRef }}
+              </div>
+              <span class="rc-ishikawa-badge" [class]="ishikawaClass(rc.ishikawaCategory)">
+                {{ rc.ishikawaCategory || 'N/A' }}
+              </span>
+            </div>
+
+            <div class="rc-why-chain">
+              <div class="why-step" *ngFor="let why of rc.whyChain; let i = index">
+                <span class="why-number">Pourquoi {{ i + 1 }}</span>
+                <span class="why-text">{{ why }}</span>
+              </div>
+            </div>
+
+            <div class="rc-root-cause">
+              <mat-icon>flag</mat-icon>
+              <div>
+                <strong>Cause racine :</strong>
+                <p>{{ rc.rootCause }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 6 — PREDICTIVE ALERTS -->
+      <section class="section" *ngIf="hasAlerts()">
+        <div class="section-header">
+          <h2 class="section-title">
+            <mat-icon class="s-icon s-icon--alert">radar</mat-icon>
+            Alertes Prédictives
+          </h2>
+          <div class="section-badges">
+            <span class="table-count">{{ structured()?.predictiveAlerts?.length }} alerte(s)</span>
+            <span class="critical-count" *ngIf="criticalAlertsCount() > 0">
+              <mat-icon>error</mat-icon>
+              {{ criticalAlertsCount() }} critique(s)
+            </span>
+          </div>
+        </div>
+
+        <div class="alerts-list">
+          <div class="alert-card" *ngFor="let alert of structured()?.predictiveAlerts"
+               [class]="alertSeverityClass(alert.severity)">
+            <div class="alert-header">
+              <div class="alert-kpi-ref">
+                <mat-icon>{{ alertSeverityIcon(alert.severity) }}</mat-icon>
+                {{ alert.kpiRef }}
+              </div>
+              <div class="alert-meta">
+                <span class="alert-sev-badge" [class]="alertSeverityClass(alert.severity)">
+                  {{ alertSeverityLabel(alert.severity) }}
+                </span>
+                <span class="alert-horizon" *ngIf="alert.estimatedHorizonMonths !== null">
+                  <mat-icon>schedule</mat-icon>
+                  ~{{ alert.estimatedHorizonMonths }} mois
+                </span>
+                <span class="alert-confidence" *ngIf="alert.confidence !== null">
+                  <mat-icon>verified</mat-icon>
+                  {{ alert.confidence }}%
+                </span>
+              </div>
+            </div>
+            <p class="alert-projection">{{ alert.projection }}</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 7 — INSIGHTS PAR KPI -->
       <section class="section" *ngIf="str.kpiInsights?.length">
         <div class="section-header">
           <h2 class="section-title">
@@ -233,7 +316,7 @@
         </div>
       </section>
 
-      <!-- SECTION 6 — TRACEABILITY -->
+      <!-- SECTION 8 — TRACEABILITY -->
       <section class="section" *ngIf="str.traceability">
         <div class="section-header">
           <h2 class="section-title">
@@ -638,6 +721,56 @@
             </span>
             <span *ngIf="!kpi.analyseIa" class="detail-text--muted">—</span>
           </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 5 — KANBAN PLAN D'ACTIONS (P3.3)
+    ══════════════════════════════════════════════════════════════ -->
+    <section class="section" *ngIf="hasKanban()">
+      <div class="section-header">
+        <h2 class="section-title">
+          <mat-icon class="s-icon">view_kanban</mat-icon>
+          Plan d'Actions — Tableau de Bord
+        </h2>
+        <span class="table-count">{{ kanbanItems().length }} action(s)</span>
+      </div>
+
+      <div class="kanban-board">
+        <div class="kanban-col" *ngFor="let col of KANBAN_COLS">
+          <div class="kanban-col-header">
+            <mat-icon class="k-col-icon">{{ KANBAN_ICONS[col] }}</mat-icon>
+            <span class="k-col-title">{{ KANBAN_LABELS[col] }}</span>
+            <span class="k-col-count">{{ itemsInColumn(col).length }}</span>
+          </div>
+          <div class="kanban-cards">
+            <div class="kanban-card" *ngFor="let item of itemsInColumn(col)">
+              <div class="k-card-top">
+                <span class="k-prio-badge" [ngClass]="kanbanPriorityClass(item.priority)">{{ item.priority }}</span>
+                <span *ngIf="item.source === 'kpi_immediate'" class="k-source-badge">Immédiat</span>
+              </div>
+              <p class="k-action-text">{{ item.action }}</p>
+              <div class="k-meta" *ngIf="item.kpiRef || item.ownerRole || item.dueHorizon">
+                <span *ngIf="item.kpiRef" class="k-meta-chip">{{ item.kpiRef }}</span>
+                <span *ngIf="item.ownerRole" class="k-meta-chip">
+                  <mat-icon style="font-size:11px;vertical-align:middle;">person</mat-icon>{{ item.ownerRole }}
+                </span>
+                <span *ngIf="item.dueHorizon" class="k-meta-chip">
+                  <mat-icon style="font-size:11px;vertical-align:middle;">schedule</mat-icon>{{ item.dueHorizon }}
+                </span>
+              </div>
+              <div class="k-card-actions">
+                <button *ngIf="col !== 'todo'"       class="k-move-btn" (click)="moveItem(item.id, 'todo')">← À Faire</button>
+                <button *ngIf="col !== 'in_progress'" class="k-move-btn" (click)="moveItem(item.id, 'in_progress')">En Cours</button>
+                <button *ngIf="col !== 'done'"       class="k-move-btn k-move-btn--done" (click)="moveItem(item.id, 'done')">Terminé ✓</button>
+              </div>
+            </div>
+            <div class="kanban-empty" *ngIf="itemsInColumn(col).length === 0">
+              <mat-icon>inbox</mat-icon>
+              <span>Aucune action</span>
+            </div>
+          </div>
         </div>
       </div>
     </section>

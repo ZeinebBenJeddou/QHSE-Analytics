@@ -123,6 +123,22 @@ export interface AiActionPlanItemResponse {
   riskIfNotDone: string;
 }
 
+export interface AiRootCauseResponse {
+  kpiRef: string;
+  method: string;
+  whyChain: string[];
+  ishikawaCategory: string;
+  rootCause: string;
+}
+
+export interface AiPredictiveAlertResponse {
+  kpiRef: string;
+  projection: string;
+  estimatedHorizonMonths: number | null;
+  confidence: number | null;
+  severity: 'LOW' | 'MEDIUM' | 'HIGH';
+}
+
 export interface AiAnalysisStructuredResponse {
   status: 'SUCCESS' | 'PARTIAL' | 'FAILED';
   fallbackReason?: string;
@@ -132,6 +148,8 @@ export interface AiAnalysisStructuredResponse {
   probableCauses: string[];
   recommendations: AiRecommendationResponse[];
   actionPlan: AiActionPlanItemResponse[];
+  rootCauseAnalysis?: AiRootCauseResponse[];
+  predictiveAlerts?: AiPredictiveAlertResponse[];
   traceability: AiTraceabilityResponse;
   schemaVersion?: string;
   promptVersion?: string;

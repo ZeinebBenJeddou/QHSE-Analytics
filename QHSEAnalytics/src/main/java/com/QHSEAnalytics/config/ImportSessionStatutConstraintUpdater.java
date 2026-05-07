@@ -1,6 +1,6 @@
 package com.QHSEAnalytics.config;
 
-import com.QHSEAnalytics.enums.ImportStatut;
+import com.QHSEAnalytics.shared.enums.ImportStatut;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;

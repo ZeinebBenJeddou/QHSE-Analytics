@@ -1,12 +1,12 @@
 package com.QHSEAnalytics.initializer;
 
-import com.QHSEAnalytics.entity.CategorieKpi;
-import com.QHSEAnalytics.entity.Kpi;
-import com.QHSEAnalytics.entity.RagKnowledge;
-import com.QHSEAnalytics.entity.UniteKpi;
-import com.QHSEAnalytics.repository.CategorieKpiRepository;
-import com.QHSEAnalytics.repository.KpiRepository;
-import com.QHSEAnalytics.repository.RagKnowledgeRepository;
+import com.QHSEAnalytics.shared.entity.CategorieKpi;
+import com.QHSEAnalytics.shared.entity.Kpi;
+import com.QHSEAnalytics.shared.entity.RagKnowledge;
+import com.QHSEAnalytics.shared.entity.UniteKpi;
+import com.QHSEAnalytics.shared.repository.CategorieKpiRepository;
+import com.QHSEAnalytics.shared.repository.KpiRepository;
+import com.QHSEAnalytics.shared.repository.RagKnowledgeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
