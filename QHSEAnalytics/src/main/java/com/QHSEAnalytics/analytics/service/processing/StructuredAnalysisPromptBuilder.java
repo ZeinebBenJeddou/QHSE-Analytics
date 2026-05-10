@@ -3,17 +3,23 @@ package com.QHSEAnalytics.analytics.service.processing;
 import com.QHSEAnalytics.shared.dto.response.AiContextSourceResponse;
 import com.QHSEAnalytics.shared.dto.response.AiTraceabilityResponse;
 import com.QHSEAnalytics.shared.dto.response.KpiCalculatedDTO;
+import com.QHSEAnalytics.shared.entity.RagKnowledge;
+import com.QHSEAnalytics.analytics.service.RagSearchService;
 import com.QHSEAnalytics.analytics.service.TextNormalizer;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import com.QHSEAnalytics.analytics.service.processing.PromptSanitizer;
 
-import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Component
+@RequiredArgsConstructor
 public class StructuredAnalysisPromptBuilder {
+
+    private final RagSearchService ragSearchService;
+    private final PromptSanitizer promptSanitizer;
 
     public String buildPrompt(List<KpiCalculatedDTO> kpis) {
         if (kpis == null || kpis.isEmpty()) {
@@ -36,6 +42,24 @@ public class StructuredAnalysisPromptBuilder {
         prompt.append("USER:\n");
         prompt.append("You have the following targeted context sources and KPI results.\n");
         prompt.append("Use the provided sources to answer. Do not use any external knowledge.\n\n");
+
+        // Vector RAG: one combined embedding call → top-8 enriched definitions
+        String combinedQuery = orderedKpis.stream()
+                .map(k -> safeText(k.getKpiName()))
+                .collect(Collectors.joining(", "));
+        List<RagKnowledge> ragResults = ragSearchService.findRelevant(combinedQuery, 8, null, 0.65);
+        if (!ragResults.isEmpty()) {
+            prompt.append("=== BASE DE CONNAISSANCES QHSE (RAG vectoriel) ===\n");
+            prompt.append("sourceId: rag_knowledge | sourceName: QHSE enriched definitions | relevanceScore: 0.95\n");
+            for (RagKnowledge r : ragResults) {
+                prompt.append("• ").append(r.getKpiName()).append(": ").append(r.getDefinition());
+                if (r.getThresholds() != null) {
+                    prompt.append(" | Seuils: ").append(r.getThresholds());
+                }
+                prompt.append("\n");
+            }
+            prompt.append("\n");
+        }
 
         prompt.append("=== KPI CONTEXT & RAG SOURCES ===\n");
         for (KpiCalculatedDTO kpi : orderedKpis) {
@@ -179,7 +203,7 @@ public class StructuredAnalysisPromptBuilder {
             return "N/A";
         }
         String normalized = TextNormalizer.normalizeForPrompt(value);
-        return normalized.length() > 1000 ? normalized.substring(0, 1000) + "..." : normalized;
+        return promptSanitizer.sanitize(normalized, 1000);
     }
 
     private String safeNumber(Number value) {

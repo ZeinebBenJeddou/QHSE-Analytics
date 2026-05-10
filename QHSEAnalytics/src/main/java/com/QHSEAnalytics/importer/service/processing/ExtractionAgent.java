@@ -20,6 +20,8 @@ import java.util.regex.Pattern;
 @Slf4j
 public class ExtractionAgent {
 
+    private final ExcelFileValidator excelFileValidator;
+
     // ── Constantes méthodes ──────────────────────────────────────────────────
     public static final String EXTRACTION_METHOD_CUSTOM   = "CUSTOM";
 
@@ -35,7 +37,6 @@ public class ExtractionAgent {
     public static final String MAPPING_VALUE_N_INDEX   = "valueNIndex";
     public static final String MAPPING_VALUE_N1_INDEX  = "valueN1Index";
 
-    private static final long   MAX_FILE_SIZE_BYTES = 10L * 1024 * 1024; // 10 MB
     private static final double LOW_CONFIDENCE_THRESHOLD = 0.4;
 
     // Synonymes de colonnes (normalisés sans accents, minuscules)
@@ -61,7 +62,7 @@ public class ExtractionAgent {
 
     // ── Point d'entrée public ─────────────────────────────────────────────────
     public ExtractionResult extract(MultipartFile file, Map<String, Integer> mapping) {
-        validateFile(file);
+        excelFileValidator.validate(file);
         try (InputStream inputStream = file.getInputStream();
              Workbook workbook = WorkbookFactory.create(inputStream)) {
 
@@ -587,21 +588,6 @@ public class ExtractionAgent {
             headers.add(v != null && !v.isBlank() ? v.trim() : "Colonne " + c);
         }
         return headers;
-    }
-
-    private void validateFile(MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new InvalidFileFormatException("Le fichier Excel est requis.");
-        }
-        if (file.getSize() > MAX_FILE_SIZE_BYTES) {
-            throw new InvalidFileFormatException(
-                    "Le fichier dépasse la taille maximale autorisée (10 Mo).");
-        }
-        String filename = file.getOriginalFilename();
-        if (filename == null || (!filename.toLowerCase(Locale.ROOT).endsWith(".xlsx")
-                && !filename.toLowerCase(Locale.ROOT).endsWith(".xls"))) {
-            throw new InvalidFileFormatException("Seuls les fichiers Excel (.xlsx, .xls) sont autorisés.");
-        }
     }
 
     private String safeTrim(String value) {

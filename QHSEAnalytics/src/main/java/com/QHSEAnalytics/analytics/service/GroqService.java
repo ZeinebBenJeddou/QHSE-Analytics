@@ -44,6 +44,12 @@ public class GroqService {
     @Value("${app.groq.timeout:30}")
     private int timeoutSeconds;
 
+    @Value("${app.groq.temperature.json:0.1}")
+    private double temperatureJson;
+
+    @Value("${app.groq.temperature.text:0.5}")
+    private double temperatureText;
+
     public String generate(String prompt) {
         String response = appelerJson(prompt, 1200);
         if (response == null || response.isBlank() || FALLBACK_MESSAGE.equals(response)) {
@@ -122,7 +128,7 @@ public class GroqService {
 
         com.fasterxml.jackson.databind.node.ObjectNode payloadNode = objectMapper.createObjectNode()
                 .put("model", candidateModel)
-                .put("temperature", jsonMode ? 0.1d : 0.3d)
+                .put("temperature", jsonMode ? temperatureJson : temperatureText)
                 .put("max_tokens", maxTokens)
                 .set("messages", objectMapper.createArrayNode()
                         .add(objectMapper.createObjectNode()
@@ -167,7 +173,7 @@ public class GroqService {
         }
 
         String body = ex.getResponseBodyAsString();
-        if (body != null && !body.isBlank()) {
+        if (!body.isBlank()) {
             Matcher matcher = Pattern.compile("(?i)retry[- ]after[^0-9]{0,20}(\\d+)").matcher(body);
             if (matcher.find()) {
                 try {
@@ -227,7 +233,8 @@ public class GroqService {
                 niveau,
                 tendance,
                 periodeN1,
-                periodeN
+                periodeN,
+                null
         );
         return analyserKpi(prompt);
     }

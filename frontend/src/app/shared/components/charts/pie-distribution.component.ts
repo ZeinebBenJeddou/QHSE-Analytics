@@ -45,10 +45,10 @@ export class PieDistributionComponent implements AfterViewInit, OnChanges, OnDes
     const ctx = this.canvas.nativeElement.getContext('2d');
     if (!ctx) return;
 
-    const BORDER = '#e2e8f0';
-    const MUTED  = '#a3aed1';
-    const NAVY   = '#2b3674';
-    const FONT   = "'DM Sans', system-ui, sans-serif";
+    const BORDER = '#E2E8F0';
+    const MUTED  = '#94A3B8';
+    const NAVY   = '#0F172A';
+    const FONT   = "'Inter', system-ui, sans-serif";
     const MONO   = "'DM Mono', monospace";
 
     const totalVal = this.total;
@@ -80,7 +80,7 @@ export class PieDistributionComponent implements AfterViewInit, OnChanges, OnDes
         labels: ['Hausse critique', 'Hausse modérée', 'Baisse modérée', 'Baisse faible'],
         datasets: [{
           data: [this.enHausseCritique, this.enHausseModeree, this.enBaisseModeree, this.enBaisseFaible],
-          backgroundColor: ['#ee5d50', '#ff9800', '#4318ff', '#05cd99'],
+          backgroundColor: ['#1E40AF', '#6366F1', '#10B981', '#F59E0B'],
           borderColor: '#fff',
           borderWidth: 3,
           hoverOffset: 10,

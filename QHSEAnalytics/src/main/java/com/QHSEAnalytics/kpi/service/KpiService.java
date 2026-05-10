@@ -22,9 +22,15 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 
+import com.QHSEAnalytics.analytics.service.EmbeddingService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.jdbc.core.JdbcTemplate;
+
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +41,8 @@ public class KpiService {
     private final KpiRepository kpiRepository;
     private final CategorieKpiRepository categorieKpiRepository;
     private final RagKnowledgeRepository ragKnowledgeRepository;
+    private final EmbeddingService embeddingService;
+    private final JdbcTemplate jdbcTemplate;
 
     public List<KpiResponse> getKpis(String categorie) {
 
@@ -42,6 +50,16 @@ public class KpiService {
             return getKpisByCategorie(categorie);
         }
         return getAllKpis();
+    }
+
+    public Page<KpiResponse> getKpis(String categorie, Pageable pageable) {
+        if (categorie != null && !categorie.isBlank()) {
+            String normalizedCode = normalizeCode(categorie);
+            return kpiRepository.findByCategorieKpiCodeAndIsActiveTrueOrderByOrdreAsc(normalizedCode, pageable)
+                    .map(this::toKpiResponse);
+        }
+        return kpiRepository.findByIsActiveTrueOrderByOrdreAsc(pageable)
+                .map(this::toKpiResponse);
     }
 
     public List<KpiResponse> getAllKpis() {
@@ -112,9 +130,10 @@ public class KpiService {
 
         Kpi saved = kpiRepository.save(kpi);
         log.info("KPI créé id={} catégorie={} nom={}", saved.getId(), normalizedCode, saved.getNom());
-        
+
         syncRagKnowledge(saved);
-        
+        embedRagEntryAsync(saved.getNom());
+
         return toKpiResponse(saved);
     }
 
@@ -177,9 +196,10 @@ public class KpiService {
 
         Kpi saved = kpiRepository.save(kpi);
         log.info("KPI mis à jour id={}", saved.getId());
-        
+
         updateRagKnowledge(oldName, saved);
-        
+        embedRagEntryAsync(saved.getNom());
+
         return toKpiResponse(saved);
     }
 
@@ -222,6 +242,7 @@ public class KpiService {
         Kpi saved = kpiRepository.save(kpi);
         log.info("KPI restauré id={}", id);
         syncRagKnowledge(saved);
+        embedRagEntryAsync(saved.getNom());
         return toKpiResponse(saved);
     }
 
@@ -320,5 +341,27 @@ public class KpiService {
     private String buildThresholdJson(Kpi kpi) {
         return String.format(Locale.US, "{\"faible\":%f, \"modere\":%f, \"critique\":%f}",
                 kpi.getSeuilFaible(), kpi.getSeuilModere(), kpi.getSeuilCritique());
+    }
+
+    private void embedRagEntryAsync(String kpiName) {
+        if (!embeddingService.isConfigured()) return;
+        CompletableFuture.runAsync(() -> {
+            try {
+                ragKnowledgeRepository.findByKpiName(kpiName).ifPresent(rag -> {
+                    String text = kpiName + ". " + rag.getDefinition()
+                            + (rag.getCategory() != null ? " Catégorie: " + rag.getCategory() + "." : "");
+                    float[] vector = embeddingService.embed(text);
+                    if (vector != null) {
+                        jdbcTemplate.update(
+                            "UPDATE rag_knowledge SET embedding = ?::vector WHERE id = ?",
+                            EmbeddingService.toVectorLiteral(vector), rag.getId()
+                        );
+                        log.debug("[Embed] RAG entry embedded for KPI: {}", kpiName);
+                    }
+                });
+            } catch (Exception ex) {
+                log.warn("[Embed] Failed to embed RAG entry for KPI '{}': {}", kpiName, ex.getMessage());
+            }
+        });
     }
 }

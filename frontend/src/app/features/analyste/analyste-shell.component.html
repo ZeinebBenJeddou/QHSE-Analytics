@@ -5,117 +5,130 @@
     mode="side"
     class="sidenav"
   >
-    
-
+    <!-- BRAND -->
     <div class="brand">
-      <div class="brand-info">
-        <div class="brand-name">QHSE <strong>Analytics</strong></div>
-        <div class="brand-role">Espace Analyste</div>
+      <div class="brand-logo">
+        <div class="brand-icon">
+          <mat-icon>shield</mat-icon>
+        </div>
+        <div class="brand-info">
+          <div class="brand-name">QHSE <strong>Analytics</strong></div>
+          <div class="brand-role">Espace Analyste</div>
+        </div>
       </div>
+      <div class="brand-divider"></div>
     </div>
 
-    <nav class="nav-section">
-      <mat-nav-list class="nav-list">
-        @for (item of dashItems; track item.route) {
-          <a
-            mat-list-item
-            [routerLink]="item.route"
-            routerLinkActive="active-link"
-            class="nav-item"
-            [matTooltip]="item.label"
-            matTooltipPosition="right"
-            [matTooltipDisabled]="sidenavOpen"
-          >
-            <mat-icon matListItemIcon class="nav-icon">{{ item.icon }}</mat-icon>
-            <span matListItemTitle class="nav-item-title">{{ item.label }}</span>
-            @if (item.badge) {
-              <span class="nav-badge">{{ item.badge }}</span>
-            }
-          </a>
-        }
-      </mat-nav-list>
-    </nav>
+    <!-- SCROLL AREA -->
+    <div class="nav-scroll-area">
 
-    <nav class="nav-section">
-      <p class="nav-label">Données</p>
-      <mat-nav-list class="nav-list">
-        @for (item of dataItems; track item.route) {
-          <a
-            mat-list-item
-            [routerLink]="item.route"
-            routerLinkActive="active-link"
-            class="nav-item"
-            [matTooltip]="item.label"
-            matTooltipPosition="right"
-            [matTooltipDisabled]="sidenavOpen"
-          >
-            <mat-icon matListItemIcon class="nav-icon">{{ item.icon }}</mat-icon>
-            <span matListItemTitle class="nav-item-title">{{ item.label }}</span>
-            @if (item.badge) {
-              <span class="nav-badge">{{ item.badge }}</span>
-            }
-          </a>
-        }
-      </mat-nav-list>
-    </nav>
+      <!-- Dashboard -->
+      <nav class="nav-section">
+        <mat-nav-list class="nav-list">
+          @for (item of dashItems; track item.route) {
+            <a
+              mat-list-item
+              [routerLink]="item.route"
+              routerLinkActive="active-link"
+              class="nav-item"
+              [matTooltip]="item.label"
+              matTooltipPosition="right"
+              [matTooltipDisabled]="sidenavOpen"
+            >
+              <mat-icon matListItemIcon class="nav-icon">{{ item.icon }}</mat-icon>
+              <span matListItemTitle class="nav-item-title">{{ item.label }}</span>
+              @if (item.badge) {
+                <span class="nav-badge">{{ item.badge }}</span>
+              }
+            </a>
+          }
+        </mat-nav-list>
+      </nav>
 
-    <nav class="nav-section">
-      <p class="nav-label">Analyse</p>
-      <mat-nav-list class="nav-list">
-        @for (item of navItems; track item.route) {
-          <a
-            mat-list-item
-            [routerLink]="item.route"
-            routerLinkActive="active-link"
-            class="nav-item"
-            [matTooltip]="item.label"
-            matTooltipPosition="right"
-            [matTooltipDisabled]="sidenavOpen"
-          >
-            <mat-icon matListItemIcon class="nav-icon">{{ item.icon }}</mat-icon>
-            <span matListItemTitle class="nav-item-title">{{ item.label }}</span>
-            @if (item.badge) {
-              <span class="nav-badge">{{ item.badge }}</span>
-            }
-          </a>
-        }
-      </mat-nav-list>
-    </nav>
+      <!-- Données -->
+      <nav class="nav-section">
+        <p class="nav-label">Données</p>
+        <mat-nav-list class="nav-list">
+          @for (item of dataItems; track item.route) {
+            <a
+              mat-list-item
+              [routerLink]="item.route"
+              routerLinkActive="active-link"
+              class="nav-item"
+              [matTooltip]="item.label"
+              matTooltipPosition="right"
+              [matTooltipDisabled]="sidenavOpen"
+            >
+              <mat-icon matListItemIcon class="nav-icon">{{ item.icon }}</mat-icon>
+              <span matListItemTitle class="nav-item-title">{{ item.label }}</span>
+              @if (item.badge) {
+                <span class="nav-badge">{{ item.badge }}</span>
+              }
+            </a>
+          }
+        </mat-nav-list>
+      </nav>
 
-    <nav class="nav-section">
-      <p class="nav-label">Rapports</p>
-      <mat-nav-list class="nav-list">
-        @for (item of rapportItems; track item.route) {
-          <a
-            mat-list-item
-            [routerLink]="item.route"
-            routerLinkActive="active-link"
-            class="nav-item"
-            [matTooltip]="item.label"
-            matTooltipPosition="right"
-            [matTooltipDisabled]="sidenavOpen"
-          >
-            <mat-icon matListItemIcon class="nav-icon">{{ item.icon }}</mat-icon>
-            <span matListItemTitle class="nav-item-title">{{ item.label }}</span>
-            @if (item.badge) {
-              <span class="nav-badge">{{ item.badge }}</span>
-            }
-          </a>
-        }
-      </mat-nav-list>
-    </nav>
+      <!-- Analyse -->
+      <nav class="nav-section">
+        <p class="nav-label">Analyse</p>
+        <mat-nav-list class="nav-list">
+          @for (item of navItems; track item.route) {
+            <a
+              mat-list-item
+              [routerLink]="item.route"
+              routerLinkActive="active-link"
+              class="nav-item"
+              [matTooltip]="item.label"
+              matTooltipPosition="right"
+              [matTooltipDisabled]="sidenavOpen"
+            >
+              <mat-icon matListItemIcon class="nav-icon">{{ item.icon }}</mat-icon>
+              <span matListItemTitle class="nav-item-title">{{ item.label }}</span>
+              @if (item.badge) {
+                <span class="nav-badge">{{ item.badge }}</span>
+              }
+            </a>
+          }
+        </mat-nav-list>
+      </nav>
 
-   
-    
+      <!-- Rapports -->
+      <nav class="nav-section">
+        <p class="nav-label">Rapports</p>
+        <mat-nav-list class="nav-list">
+          @for (item of rapportItems; track item.route) {
+            <a
+              mat-list-item
+              [routerLink]="item.route"
+              routerLinkActive="active-link"
+              class="nav-item"
+              [matTooltip]="item.label"
+              matTooltipPosition="right"
+              [matTooltipDisabled]="sidenavOpen"
+            >
+              <mat-icon matListItemIcon class="nav-icon">{{ item.icon }}</mat-icon>
+              <span matListItemTitle class="nav-item-title">{{ item.label }}</span>
+              @if (item.badge) {
+                <span class="nav-badge">{{ item.badge }}</span>
+              }
+            </a>
+          }
+        </mat-nav-list>
+      </nav>
 
+    </div><!-- /nav-scroll-area -->
+
+    <!-- FOOTER -->
     <div class="sidenav-footer">
       <a mat-list-item class="nav-item logout-btn" (click)="logout()">
-        <mat-icon matListItemIcon>logout</mat-icon>
-        <span matListItemTitle>Déconnexion</span>
+        <mat-icon matListItemIcon class="logout-icon">logout</mat-icon>
+        <span matListItemTitle class="nav-item-title">Déconnexion</span>
       </a>
     </div>
   </mat-sidenav>
 
+  <!-- MAIN CONTENT -->
   <mat-sidenav-content class="main-content">
     <mat-toolbar class="toolbar">
       <button mat-icon-button class="menu-btn" (click)="toggleSidenav()" matTooltip="Menu">
@@ -130,7 +143,11 @@
 
       <span class="spacer"></span>
 
-      
+      <div class="toolbar-right">
+        <div class="toolbar-avatar-circle" matTooltip="Mon profil">
+          {{ profileName.charAt(0).toUpperCase() }}
+        </div>
+      </div>
     </mat-toolbar>
 
     <div class="content-area">

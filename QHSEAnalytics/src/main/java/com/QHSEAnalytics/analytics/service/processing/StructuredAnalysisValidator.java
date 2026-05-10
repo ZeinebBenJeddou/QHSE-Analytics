@@ -10,6 +10,7 @@ import com.QHSEAnalytics.shared.dto.response.AiRootCauseResponse;
 import com.QHSEAnalytics.shared.dto.response.AiTraceabilityResponse;
 import com.QHSEAnalytics.shared.dto.response.KpiCalculatedDTO;
 import com.QHSEAnalytics.analytics.service.TextNormalizer;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -18,7 +19,10 @@ import java.util.List;
 import java.util.Set;
 
 @Component
+@Slf4j
 public class StructuredAnalysisValidator {
+
+    private static final Set<String> VALID_SEVERITY = Set.of("LOW", "MEDIUM", "HIGH");
 
     public List<String> validate(AiAnalysisStructuredResponse response, List<KpiCalculatedDTO> availableKpis) {
         List<String> errors = new ArrayList<>();
@@ -110,14 +114,9 @@ public class StructuredAnalysisValidator {
     }
 
     private void validateTraceability(AiTraceabilityResponse trace, List<String> errors) {
-        if (isBlank(trace.getModelName())) {
-            errors.add("traceability.modelName is mandatory.");
-        }
-        if (isBlank(trace.getGeneratedAt())) {
-            errors.add("traceability.generatedAt is mandatory.");
-        }
-        if (trace.getContextSourcesUsed() == null || trace.getContextSourcesUsed().isEmpty()) {
-            errors.add("traceability.contextSourcesUsed must contain at least one source.");
+        // modelName and generatedAt are injected by enrichStructuredResponse after validation — not validated here
+        if (trace.getContextSourcesUsed() == null) {
+            trace.setContextSourcesUsed(new ArrayList<>());
         }
     }
 
@@ -218,11 +217,109 @@ public class StructuredAnalysisValidator {
         }
 
         if (!missingKpis.isEmpty()) {
-            errors.add("kpiInsights coverage is incomplete: missing " + missingKpis.size() + " KPI(s) -> " + String.join(", ", missingKpis));
+            int total = availableKpis.size();
+            int missing = missingKpis.size();
+            double coverageRatio = (double)(total - missing) / total;
+            if (coverageRatio < 0.5) {
+                errors.add("kpiInsights coverage is incomplete: missing " + missing + " KPI(s) -> " + String.join(", ", missingKpis));
+            } else {
+                log.warn("[AI Validation] Partial KPI coverage {}/{} — missing: {}", total - missing, total, String.join(", ", missingKpis));
+            }
         }
     }
 
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
+    }
+
+    /**
+     * Clamps numeric fields to valid ranges and truncates text fields in-place.
+     * Called BEFORE validate() so out-of-range values are fixed rather than triggering a retry.
+     */
+    public void sanitize(AiAnalysisStructuredResponse response) {
+        if (response == null) return;
+
+        response.setGlobalSummary(truncate(response.getGlobalSummary(), 3000));
+
+        // Initialize null required fields to prevent null-check failures in validate()
+        if (response.getProbableCauses() == null) response.setProbableCauses(new ArrayList<>());
+        if (response.getRecommendations() == null) response.setRecommendations(new ArrayList<>());
+        if (response.getActionPlan() == null) response.setActionPlan(new ArrayList<>());
+        if (response.getTraceability() == null) {
+            response.setTraceability(AiTraceabilityResponse.builder().contextSourcesUsed(new ArrayList<>()).build());
+        } else if (response.getTraceability().getContextSourcesUsed() == null) {
+            response.getTraceability().setContextSourcesUsed(new ArrayList<>());
+        }
+
+        AiConfidenceResponse confidence = response.getConfidence();
+        if (confidence != null) {
+            if (confidence.getOverall() != null) {
+                double clamped = clamp(confidence.getOverall(), 0, 100);
+                if (Double.compare(clamped, confidence.getOverall()) != 0) {
+                    log.warn("[AI Validation] Clamped confidence.overall {} → {}", confidence.getOverall(), clamped);
+                    confidence.setOverall(clamped);
+                }
+            }
+            if (confidence.getSections() != null) {
+                confidence.getSections().replaceAll((k, v) -> v == null ? 0.0 : clamp(v, 0, 100));
+            }
+        }
+
+        if (response.getKpiInsights() != null) {
+            response.getKpiInsights().forEach(insight -> {
+                if (insight == null) return;
+                if (insight.getConfidence() != null) {
+                    insight.setConfidence(clamp(insight.getConfidence(), 0, 100));
+                }
+                if (insight.getProbableCauses() == null) insight.setProbableCauses(new ArrayList<>());
+                if (insight.getRecommendations() == null) insight.setRecommendations(new ArrayList<>());
+                insight.setInsight(truncate(insight.getInsight(), 2000));
+                insight.setActionImmediate(truncate(insight.getActionImmediate(), 500));
+                insight.setSuccessMetric(truncate(insight.getSuccessMetric(), 500));
+                insight.setRiskIfNotDone(truncate(insight.getRiskIfNotDone(), 500));
+                insight.setNote(truncate(insight.getNote(), 500));
+            });
+        }
+
+        if (response.getRecommendations() != null) {
+            response.getRecommendations().forEach(rec -> {
+                if (rec == null) return;
+                rec.setTitle(truncate(rec.getTitle(), 200));
+                rec.setRationale(truncate(rec.getRationale(), 1000));
+                rec.setExpectedBenefit(truncate(rec.getExpectedBenefit(), 500));
+            });
+        }
+
+        if (response.getPredictiveAlerts() != null) {
+            response.getPredictiveAlerts().forEach(alert -> {
+                if (alert == null) return;
+                if (alert.getConfidence() != null) {
+                    alert.setConfidence(clamp(alert.getConfidence(), 0, 100));
+                }
+                if (alert.getEstimatedHorizonMonths() != null) {
+                    alert.setEstimatedHorizonMonths(Math.max(0, Math.min(24, alert.getEstimatedHorizonMonths())));
+                }
+                if (alert.getSeverity() != null) {
+                    String upper = alert.getSeverity().toUpperCase();
+                    if (!VALID_SEVERITY.contains(upper)) {
+                        log.warn("[AI Validation] Invalid predictiveAlert severity '{}' normalized to MEDIUM", alert.getSeverity());
+                        alert.setSeverity("MEDIUM");
+                    } else {
+                        alert.setSeverity(upper);
+                    }
+                }
+                alert.setProjection(truncate(alert.getProjection(), 500));
+            });
+        }
+    }
+
+    private double clamp(double value, double min, double max) {
+        if (Double.isNaN(value) || Double.isInfinite(value)) return min;
+        return Math.max(min, Math.min(max, value));
+    }
+
+    private String truncate(String value, int maxLen) {
+        if (value == null) return null;
+        return value.length() > maxLen ? value.substring(0, maxLen) + "…" : value;
     }
 }

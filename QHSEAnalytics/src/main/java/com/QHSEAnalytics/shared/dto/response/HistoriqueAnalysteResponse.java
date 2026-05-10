@@ -18,4 +18,8 @@ public class HistoriqueAnalysteResponse {
     private int totalImports;
     private int totalTraites;
     private int totalErreurs;
+    private long totalElements;
+    private int totalPages;
+    private int currentPage;
+    private int pageSize;
 }

@@ -2,6 +2,7 @@ package com.QHSEAnalytics.kpi.service;
 
 import com.QHSEAnalytics.analytics.service.LlmProviderChain;
 import com.QHSEAnalytics.analytics.service.GroqPromptBuilder;
+import com.QHSEAnalytics.analytics.service.RagSearchService;
 import com.QHSEAnalytics.shared.dto.response.KpiAnalysisResult;
 import com.QHSEAnalytics.shared.dto.response.KpiEnrichedResponse;
 import com.QHSEAnalytics.shared.entity.*;
@@ -45,6 +46,7 @@ public class KpiEnrichmentService {
     private final GroqPromptBuilder groqPromptBuilder;
     private final ObjectProvider<KpiEnrichmentService> selfProvider;
     private final ObjectMapper objectMapper;
+    private final RagSearchService ragSearchService;
 
     // ───────────────────────────── Public API ──────────────────────────────
 
@@ -168,18 +170,21 @@ public class KpiEnrichmentService {
     }
 
     private String buildRagContext(KpiImportPreview preview) {
-        RagKnowledge knowledge = findRagKnowledge(preview.getKpiName());
-        if (knowledge != null) {
-            StringBuilder sb = new StringBuilder();
+        List<RagKnowledge> results = ragSearchService.findRelevant(
+            preview.getKpiName(), 3, preview.getCategory(), 0.72);
+        if (results.isEmpty()) return null;
+
+        StringBuilder sb = new StringBuilder("Contexte QHSE pertinent:\n");
+        for (RagKnowledge knowledge : results) {
             if (knowledge.getDefinition() != null) {
-                sb.append("Définition: ").append(knowledge.getDefinition()).append("\n");
+                sb.append("• ").append(knowledge.getKpiName())
+                  .append(": ").append(knowledge.getDefinition()).append("\n");
             }
             if (knowledge.getThresholds() != null) {
-                sb.append("Seuils: ").append(knowledge.getThresholds()).append("\n");
+                sb.append("  Seuils: ").append(knowledge.getThresholds()).append("\n");
             }
-            return sb.toString().trim();
         }
-        return null;
+        return sb.toString().trim();
     }
 
     private String buildGeminiPrompt(KpiImportPreview preview, String ragContext) {
@@ -191,7 +196,6 @@ public class KpiEnrichmentService {
         int periodeN = currentYear;
         int periodeN1 = currentYear - 1;
 
-        // Delegate to the centralized prompt builder which enforces token-safety and strict JSON
         return groqPromptBuilder.buildKpiPrompt(
                 preview.getKpiName(),
                 preview.getDefinition(),
@@ -203,7 +207,8 @@ public class KpiEnrichmentService {
                 null,
                 null,
                 periodeN1,
-                periodeN
+                periodeN,
+                ragContext
         );
     }
 
@@ -224,27 +229,28 @@ public class KpiEnrichmentService {
             result.setKpiName(kpiName);
 
             // Prefer French field names, fall back to legacy English ones
-            result.setRiskLevel(textOrNull(root, "risqueIa") != null ? textOrNull(root, "risqueIa") : textOrNull(root, "riskLevel"));
+            String rawRiskLevel = textOrNull(root, "risqueIa") != null ? textOrNull(root, "risqueIa") : textOrNull(root, "riskLevel");
+            result.setRiskLevel(sanitizeRiskLevel(rawRiskLevel));
             // risk justification: identificationRisque or short note
-            String identification = textOrNull(root, "identificationRisque");
-            String noteIa = textOrNull(root, "noteIa");
-            result.setRiskJustification(identification != null ? identification : (noteIa != null ? noteIa : textOrNull(root, "riskJustification")));
+            String identification = truncateField(textOrNull(root, "identificationRisque"), 1000);
+            String noteIa = truncateField(textOrNull(root, "noteIa"), 1000);
+            result.setRiskJustification(identification != null ? identification : (noteIa != null ? noteIa : truncateField(textOrNull(root, "riskJustification"), 1000)));
             result.setIdentificationRisque(identification);
 
             result.setObjectiveReached(root.path("objectiveAtteint").asBoolean(root.path("objectiveReached").asBoolean(false)));
             result.setImprovementDetected(root.path("ameliorationDetectee").asBoolean(root.path("improvementDetected").asBoolean(false)));
 
-            String problemeDetecte = textOrNull(root, "problemeDetecte");
-            result.setIssueDetected(problemeDetecte != null ? problemeDetecte : textOrNull(root, "issueDetected"));
+            String problemeDetecte = truncateField(textOrNull(root, "problemeDetecte"), 1000);
+            result.setIssueDetected(problemeDetecte != null ? problemeDetecte : truncateField(textOrNull(root, "issueDetected"), 1000));
             result.setProblemeDetecte(problemeDetecte);
 
-            result.setCorrectiveAction(textOrNull(root, "actionsCorrectives") != null ? textOrNull(root, "actionsCorrectives") : textOrNull(root, "correctiveAction"));
-            String actionsPreventives = textOrNull(root, "actionsPreventives");
-            result.setPreventiveAction(actionsPreventives != null ? actionsPreventives : textOrNull(root, "preventiveAction"));
+            result.setCorrectiveAction(truncateField(textOrNull(root, "actionsCorrectives") != null ? textOrNull(root, "actionsCorrectives") : textOrNull(root, "correctiveAction"), 1000));
+            String actionsPreventives = truncateField(textOrNull(root, "actionsPreventives"), 1000);
+            result.setPreventiveAction(actionsPreventives != null ? actionsPreventives : truncateField(textOrNull(root, "preventiveAction"), 1000));
             result.setActionsPreventives(actionsPreventives);
 
-            String actionImmediate = textOrNull(root, "actionImmediate");
-            result.setImmediateAction(actionImmediate != null ? actionImmediate : textOrNull(root, "immediateAction"));
+            String actionImmediate = truncateField(textOrNull(root, "actionImmediate"), 500);
+            result.setImmediateAction(actionImmediate != null ? actionImmediate : truncateField(textOrNull(root, "immediateAction"), 500));
             result.setActionImmediate(actionImmediate);
             String prioriteAction = textOrNull(root, "prioriteAction");
             result.setImmediatePriority(prioriteAction != null ? prioriteAction : textOrNull(root, "immediatePriority"));
@@ -264,8 +270,8 @@ public class KpiEnrichmentService {
             }
 
             // noteFinale preferred for final note, fallback to aiNote
-            String noteFinale = textOrNull(root, "noteFinale");
-            result.setAiNote(noteFinale != null ? noteFinale : textOrNull(root, "aiNote"));
+            String noteFinale = truncateField(textOrNull(root, "noteFinale"), 1000);
+            result.setAiNote(noteFinale != null ? noteFinale : truncateField(textOrNull(root, "aiNote"), 1000));
             result.setNoteFinale(noteFinale);
 
             return result;
@@ -503,6 +509,31 @@ public class KpiEnrichmentService {
         if (f.isMissingNode() || f.isNull()) return null;
         String v = f.asText("").trim();
         return v.isEmpty() ? null : v;
+    }
+
+    private String truncateField(String value, int maxLen) {
+        if (value == null) return null;
+        return value.length() > maxLen ? value.substring(0, maxLen) + "…" : value;
+    }
+
+    private static final Set<String> VALID_RISK_LEVELS = Set.of("élevé", "modéré", "faible");
+
+    private String sanitizeRiskLevel(String raw) {
+        if (raw == null || raw.isBlank()) return "Modéré";
+        String normalized = Normalizer
+                .normalize(raw.trim().toLowerCase(Locale.ROOT), Normalizer.Form.NFD)
+                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
+        if (normalized.equals("eleve") || normalized.startsWith("elev") || normalized.equals("haut") || normalized.equals("high") || normalized.equals("critique")) {
+            return "Élevé";
+        }
+        if (normalized.equals("modere") || normalized.startsWith("moder") || normalized.equals("medium") || normalized.equals("moyen")) {
+            return "Modéré";
+        }
+        if (normalized.equals("faible") || normalized.equals("low") || normalized.equals("bas")) {
+            return "Faible";
+        }
+        log.warn("[KpiEnrichment] Unrecognised riskLevel '{}' — defaulting to Modéré", raw);
+        return "Modéré";
     }
 
     // ─────────────────── Inner input DTO ──────────────────────────────────

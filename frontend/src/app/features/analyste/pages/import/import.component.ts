@@ -1,7 +1,7 @@
-import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject, signal } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Subject, takeUntil } from 'rxjs';
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -34,7 +34,7 @@ Chart.register(...registerables);
   templateUrl: './import.component.html',
   styleUrls: ['./import.component.css'],
 })
-export class ImportComponent implements OnInit, OnDestroy {
+export class ImportComponent implements OnInit, AfterViewInit, OnDestroy {
   private importService = inject(ImportService);
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
@@ -57,6 +57,7 @@ export class ImportComponent implements OnInit, OnDestroy {
   private barChart?: Chart<'bar'>;
   private lineChart?: Chart<'line'>;
   private pieChart?: Chart<'pie'>;
+  private readonly destroy$ = new Subject<void>();
 
   get fileName(): string {
     return this.selectedFile()?.name ?? '';
@@ -123,12 +124,17 @@ export class ImportComponent implements OnInit, OnDestroy {
     return value?.trim() || 'UNKNOWN';
   }
 
-  ngOnInit() {
-    const saved = this.uploadState.getResponse();
-    if (saved) {
-      this.result.set(saved);
-      this.buildCharts();
-    }
+  ngOnInit() {}
+
+  ngAfterViewInit() {
+    // Subscribe reactively so any downstream saveResponse() auto-refreshes the view.
+    // AfterViewInit ensures @ViewChild refs are ready before buildCharts() is called.
+    this.uploadState.response$.pipe(takeUntil(this.destroy$)).subscribe(saved => {
+      if (saved) {
+        this.result.set(saved);
+        this.buildCharts();
+      }
+    });
   }
 
   onFileSelected(event: Event) {
@@ -326,6 +332,8 @@ export class ImportComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
     this.destroyCharts();
   }
 }

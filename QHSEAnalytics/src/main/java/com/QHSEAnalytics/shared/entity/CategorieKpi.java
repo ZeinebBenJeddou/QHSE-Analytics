@@ -19,7 +19,7 @@ public class CategorieKpi {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 1)
+    @Column(nullable = false, unique = true, length = 10)
     private String code;
 
     @Column(nullable = false, length = 100)

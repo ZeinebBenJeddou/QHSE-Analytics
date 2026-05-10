@@ -15,4 +15,8 @@ public class UserListResponse {
     private int totalAnalystes;
     private int totalActifs;
     private int totalInactifs;
+    private long totalElements;
+    private int totalPages;
+    private int currentPage;
+    private int pageSize;
 }

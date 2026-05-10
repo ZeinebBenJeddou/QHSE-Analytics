@@ -134,7 +134,6 @@ export class OtpComponent {
     this.authService.verifyOtp(otpRequest).subscribe({
       next: (response) => {
         this.tokenService.clearPendingEmail();
-        this.tokenService.setToken(response.accessToken);
         this.tokenService.setUserRole(response.role);
         const role = response.role;
         const targetRoute = role === 'ADMIN' ? '/admin/overview' : '/analyste/dashboard';

@@ -31,6 +31,13 @@ public class PromptSanitizer {
      * Sanitise un champ texte provenant du fichier Excel ou d'une entrée utilisateur.
      */
     public String sanitize(String input) {
+        return sanitize(input, MAX_FIELD_LENGTH);
+    }
+
+    /**
+     * Sanitise avec une limite de longueur personnalisée (pour les champs plus longs comme les définitions).
+     */
+    public String sanitize(String input, int maxLength) {
         if (input == null) return "N/A";
 
         String cleaned = input.trim();
@@ -47,8 +54,8 @@ public class PromptSanitizer {
         cleaned = MULTI_SPACE.matcher(cleaned).replaceAll(" ").trim();
 
         // 4. Limiter la longueur pour éviter les débordements de contexte
-        if (cleaned.length() > MAX_FIELD_LENGTH) {
-            cleaned = cleaned.substring(0, MAX_FIELD_LENGTH) + "…";
+        if (cleaned.length() > maxLength) {
+            cleaned = cleaned.substring(0, maxLength) + "…";
         }
 
         return cleaned.isBlank() ? "N/A" : cleaned;

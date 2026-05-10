@@ -1,6 +1,7 @@
 package com.QHSEAnalytics.importer.service.processing;
 
 import com.QHSEAnalytics.shared.dto.response.ColumnProfileDTO;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
 import org.springframework.stereotype.Service;
@@ -12,8 +13,11 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 @Service
+@RequiredArgsConstructor
 @Slf4j
 public class ColumnProfileService {
+
+    private final ExcelFileValidator excelFileValidator;
 
     private static final int MAX_SAMPLE = 5;
 
@@ -38,6 +42,7 @@ public class ColumnProfileService {
             "oui", "non", "true", "false", "vrai", "faux", "yes", "no", "acquis", "perdu", "1", "0");
 
     public List<ColumnProfileDTO> profile(MultipartFile file) {
+        excelFileValidator.validate(file);
         try (InputStream is = file.getInputStream();
              Workbook workbook = WorkbookFactory.create(is)) {
 

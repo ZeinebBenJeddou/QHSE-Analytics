@@ -1,6 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import {
   AdminAnalysteItemResponse,
@@ -101,12 +102,11 @@ export class AdminService {
   }
 
   getKpis(categorie?: string): Observable<KpiResponse[]> {
-    if (!categorie) {
-      return this.http.get<KpiResponse[]>(this.kpiBase);
-    }
-
-    const params = new HttpParams().set('categorie', categorie);
-    return this.http.get<KpiResponse[]>(this.kpiBase, { params });
+    let params = new HttpParams();
+    if (categorie) params = params.set('categorie', categorie);
+    return this.http.get<{ content: KpiResponse[] }>(this.kpiBase, { params }).pipe(
+      map(page => page.content)
+    );
   }
 
   getInactiveKpis(): Observable<KpiResponse[]> {

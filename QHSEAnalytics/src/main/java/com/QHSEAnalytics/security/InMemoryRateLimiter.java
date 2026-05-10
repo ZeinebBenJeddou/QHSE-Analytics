@@ -1,6 +1,8 @@
 package com.QHSEAnalytics.security;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -9,9 +11,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Rate limiter en mémoire — protège les endpoints d'auth contre le brute-force.
- * Clé = IP + endpoint. Fenêtre glissante basée sur la première tentative.
+ * Clé = IP + endpoint. Fenêtre fixe basée sur la première tentative dans la fenêtre.
+ * Un job planifié purge automatiquement les entrées expirées toutes les 10 minutes.
  */
 @Component
+@Slf4j
 public class InMemoryRateLimiter {
 
     @Value("${app.rate-limit.auth.max-attempts:5}")
@@ -45,5 +49,20 @@ public class InMemoryRateLimiter {
 
     public void reset(String ip, String endpoint) {
         buckets.remove(ip + "|" + endpoint);
+    }
+
+    /**
+     * Purge les entrées dont la fenêtre est expirée pour éviter une fuite mémoire.
+     * Toutes les 10 minutes, indépendamment de la fenêtre configurée.
+     */
+    @Scheduled(fixedDelay = 600_000)
+    public void evictExpiredEntries() {
+        Instant cutoff = Instant.now().minusSeconds(windowSeconds);
+        int before = buckets.size();
+        buckets.entrySet().removeIf(e -> e.getValue().windowStart().isBefore(cutoff));
+        int removed = before - buckets.size();
+        if (removed > 0) {
+            log.debug("[RateLimit] Purged {} expired bucket(s), {} remaining", removed, buckets.size());
+        }
     }
 }

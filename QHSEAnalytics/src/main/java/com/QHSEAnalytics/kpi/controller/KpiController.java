@@ -8,6 +8,8 @@ import com.QHSEAnalytics.shared.dto.response.KpiResponse;
 import com.QHSEAnalytics.kpi.service.KpiService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,8 +26,11 @@ public class KpiController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','ANALYSTE')")
-    public ResponseEntity<List<KpiResponse>> getKpis(@RequestParam(required = false) String categorie) {
-        return ResponseEntity.ok(kpiService.getKpis(categorie));
+    public ResponseEntity<Page<KpiResponse>> getKpis(
+            @RequestParam(required = false) String categorie,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        return ResponseEntity.ok(kpiService.getKpis(categorie, PageRequest.of(page, size)));
     }
 
     @GetMapping("/categories")

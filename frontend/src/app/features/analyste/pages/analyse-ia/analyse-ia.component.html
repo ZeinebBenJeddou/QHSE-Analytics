@@ -1,780 +1,703 @@
-<!-- ══════════════════════════════════════════════════════════════════
-     Page : Analyses IA — QHSE Analytics
-     Affiche : synthèse globale · analyses par catégorie · KPIs détaillés
-               (analyseIa, risque, problème, actions préventives, méthode 8D,
-                plan d'actions global, recommandations)
-══════════════════════════════════════════════════════════════════ -->
-
 <div class="ia-page">
 
-  <!-- ── LOADER ──────────────────────────────────────────────────── -->
-  <div *ngIf="loading()" class="loader-overlay">
-    <mat-spinner [diameter]="48" color="primary"></mat-spinner>
-    <p class="loader-text">Chargement des analyses IA…</p>
-  </div>
+  <!-- ── LOADER ─────────────────────────────────────────────────────── -->
+  @if (loading()) {
+    <div class="loader-overlay">
+      <mat-spinner [diameter]="48" color="primary"></mat-spinner>
+      <p class="loader-text">Chargement des analyses IA…</p>
+    </div>
+  }
 
-  <!-- ── ERROR / EMPTY ────────────────────────────────────────────── -->
-  <div *ngIf="!loading() && error()" class="empty-state">
-    <mat-icon class="empty-icon">smart_toy</mat-icon>
-    <h2>Aucune analyse IA disponible</h2>
-    <p>{{ error() }}</p>
-    <button class="btn-regen" (click)="regenerer()" [disabled]="regenerating()">
-      <mat-icon>play_circle</mat-icon>
-      Lancer l'analyse IA
-    </button>
-  </div>
+  <!-- ── ERROR / EMPTY ──────────────────────────────────────────────── -->
+  @if (!loading() && error()) {
+    <div class="empty-state">
+      <div class="empty-icon-wrap">
+        <mat-icon>smart_toy</mat-icon>
+      </div>
+      <h2>Aucune analyse disponible</h2>
+      <p>{{ error() }}</p>
+      <button class="btn-regen" (click)="regenerer()" [disabled]="regenerating()">
+        <mat-icon>play_circle</mat-icon>
+        Lancer l'analyse IA
+      </button>
+    </div>
+  }
 
-  <!-- ══════════════════════════════════════════════════════════════
-       CONTENU PRINCIPAL
-  ══════════════════════════════════════════════════════════════════ -->
-  <ng-container *ngIf="!loading() && !error() && (analyse() || structured())">
+  <!-- ══════════════════════════════════════════════════════════════════
+       MAIN CONTENT
+  ══════════════════════════════════════════════════════════════════════ -->
+  @if (!loading() && !error() && (analyse() || structured())) {
 
-    <!-- ── PAGE HEADER ─────────────────────────────────────────── -->
+    <!-- ── PAGE HEADER ──────────────────────────────────────────────── -->
     <header class="page-header">
-      <div class="page-header-top">
-        <div>
-          <div class="breadcrumb">
-            <span>Dashboard</span>
-            <mat-icon class="bc-sep">chevron_right</mat-icon>
-            <span class="bc-active">Analyses IA</span>
-          </div>
-          <h1 class="page-title">
-            <mat-icon class="title-icon">smart_toy</mat-icon>
-            Analyses Intelligence Artificielle
+      <div class="page-header-left">
+        <nav class="breadcrumb">
+          <span>Dashboard</span>
+          <mat-icon class="bc-sep">chevron_right</mat-icon>
+          <span class="bc-active">Analyses IA</span>
+        </nav>
+        <div class="page-title-row">
+          <mat-icon class="title-icon">smart_toy</mat-icon>
+          <h1 class="page-title">Analyses Intelligence Artificielle</h1>
+          @if (periode) {
             <span class="period-badge">{{ periode }}</span>
-          </h1>
-          <p class="page-subtitle" *ngIf="createdAt">
-            Dernière analyse générée le {{ createdAt }}
-          </p>
+          }
         </div>
+        @if (createdAt) {
+          <p class="page-subtitle">Dernière analyse générée le {{ createdAt }}</p>
+        }
+      </div>
 
-        <div class="header-actions">
-          <button class="btn-regen"
-                  (click)="regenerer()"
-                  [disabled]="regenerating()"
-                  matTooltip="Régénérer toutes les analyses IA">
-            <mat-spinner *ngIf="regenerating()" [diameter]="16"></mat-spinner>
-            <mat-icon *ngIf="!regenerating()">refresh</mat-icon>
-            {{ regenerating() ? 'Analyse en cours…' : 'Régénérer' }}
-          </button>
-        </div>
+      <div class="page-header-right">
+        <!-- Model / confidence badges -->
+        @if (structured()?.traceability?.modelName) {
+          <span class="model-badge">
+            <mat-icon>memory</mat-icon>
+            {{ modelLabel }}
+          </span>
+        }
+        <span class="provider-badge">
+          <mat-icon>bolt</mat-icon>
+          Propulsé par Groq
+        </span>
+        @if (structured()?.confidence?.overall != null) {
+          <span class="confidence-badge"
+                [class.conf-low]="structured()!.confidence.overall < 60"
+                [class.conf-ok]="structured()!.confidence.overall >= 60">
+            <mat-icon>verified</mat-icon>
+            {{ structured()!.confidence.overall }}% confiance
+          </span>
+        }
+        @if (showLegacyFallback()) {
+          <span class="status-chip"
+                [class.status-partial]="isStructuredPartial()"
+                [class.status-failed]="isStructuredFailed()">
+            {{ structuredStatusLabel() }} · {{ structuredCoverageLabel() }} KPIs
+          </span>
+        }
+        <button class="btn-regen"
+                (click)="regenerer()"
+                [disabled]="regenerating()"
+                matTooltip="Régénérer toutes les analyses IA">
+          @if (regenerating()) {
+            <mat-spinner [diameter]="14"></mat-spinner>
+          } @else {
+            <mat-icon>refresh</mat-icon>
+          }
+          {{ regenerating() ? 'Analyse en cours…' : 'Régénérer' }}
+        </button>
       </div>
     </header>
 
-    <!-- ══════════════════════════════════════════════════════════
-         STRUCTURED ANALYSIS BANNER (if partial/failed)
-    ══════════════════════════════════════════════════════════════ -->
-    <div class="structured-banner" *ngIf="showLegacyFallback()">
-      <div class="banner-content">
-        <mat-icon class="banner-icon">info</mat-icon>
-        <div class="banner-text">
-          <strong>Analyse IA structurée {{ isStructuredPartial() ? 'partielle' : 'indisponible' }}</strong>
-          <p>{{ getStructuredFallbackMessage() }}</p>
-          <p class="banner-meta">
-            KPI reçus: {{ structuredReceivedKpis() }} / {{ structuredExpectedKpis() }}
-            <span *ngIf="structuredMissingKpis() > 0">· KPI manquants: {{ structuredMissingKpis() }}</span>
-          </p>
+    <!-- ── STATS STRIP ──────────────────────────────────────────────── -->
+    <div class="stats-strip">
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-blue"><mat-icon>bar_chart</mat-icon></div>
+        <div class="stat-body">
+          <div class="stat-value">{{ heroStats().total }}</div>
+          <div class="stat-label">Indicateurs analysés</div>
         </div>
-        <div class="banner-status-wrap">
-          <span class="status-chip" [class.status-chip--partial]="isStructuredPartial()" [class.status-chip--failed]="isStructuredFailed()">
-            {{ structuredStatusLabel() }}
-          </span>
-          <span class="confidence-badge" *ngIf="showConfidenceBadge()">
-          <mat-icon>warning</mat-icon>
-          À vérifier
-          </span>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" [style.background]="scoreColor() + '22'" [style.color]="scoreColor()">
+          <mat-icon>verified</mat-icon>
+        </div>
+        <div class="stat-body">
+          <div class="stat-value" [style.color]="scoreColor()">{{ globalScore() }}<span class="stat-unit">/100</span></div>
+          <div class="stat-label">Score QHSE global</div>
+        </div>
+      </div>
+      <div class="stat-card stat-card-danger">
+        <div class="stat-icon stat-icon-red"><mat-icon>warning</mat-icon></div>
+        <div class="stat-body">
+          <div class="stat-value stat-value-red">{{ heroStats().critiques }}</div>
+          <div class="stat-label">KPIs critiques</div>
+        </div>
+      </div>
+      <div class="stat-card stat-card-warn">
+        <div class="stat-icon stat-icon-orange"><mat-icon>info</mat-icon></div>
+        <div class="stat-body">
+          <div class="stat-value stat-value-orange">{{ heroStats().moderes }}</div>
+          <div class="stat-label">KPIs modérés</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-green"><mat-icon>smart_toy</mat-icon></div>
+        <div class="stat-body">
+          <div class="stat-value stat-value-green">{{ heroStats().withAi }}</div>
+          <div class="stat-label">KPIs avec analyse IA</div>
         </div>
       </div>
     </div>
 
-    <!-- ══════════════════════════════════════════════════════════
-         STRUCTURED ANALYSIS SECTIONS (if SUCCESS)
-    ══════════════════════════════════════════════════════════════ -->
-    <ng-container *ngIf="isStructuredSuccess() && structured() as str">
-
-      <!-- SECTION 1 — SYNTHÈSE GLOBALE STRUCTURÉE -->
+    <!-- ── HERO: SCORE + SYNTHÈSE ───────────────────────────────────── -->
+    @if (globalSummaryText()) {
       <section class="section">
-        <div class="section-header">
-          <h2 class="section-title">
-            <mat-icon class="s-icon">analytics</mat-icon>
-            Synthèse Globale
-          </h2>
-          <div class="section-badges">
-            <span class="confidence-score" [class.low-confidence]="structuredConfidence() < 60">
-              <mat-icon>verified</mat-icon>
-              Confiance: {{ structuredConfidence() }}%
-            </span>
-            <span class="confidence-score confidence-score--coverage">
-              <mat-icon>dataset</mat-icon>
-              Couverture KPI: {{ structuredCoverageLabel() }}
-            </span>
-          </div>
-        </div>
+        <div class="hero-grid">
 
-        <div class="synthese-card">
-          <div class="synthese-body">
-            <p class="synthese-text">{{ str.globalSummary }}</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- SECTION 2 — CAUSES PROBABLES -->
-      <section class="section" *ngIf="str.probableCauses?.length">
-        <div class="section-header">
-          <h2 class="section-title">
-            <mat-icon class="s-icon">search</mat-icon>
-            Causes Probables
-          </h2>
-          <span class="table-count">{{ str.probableCauses.length }} cause(s)</span>
-        </div>
-
-        <div class="causes-list">
-          <div class="cause-item" *ngFor="let cause of str.probableCauses; let i = index">
-            <div class="cause-number">{{ i + 1 }}</div>
-            <div class="cause-content">{{ cause }}</div>
-          </div>
-        </div>
-      </section>
-
-      <!-- SECTION 3 — RECOMMANDATIONS -->
-      <section class="section" *ngIf="str.recommendations?.length">
-        <div class="section-header">
-          <h2 class="section-title">
-            <mat-icon class="s-icon">lightbulb</mat-icon>
-            Recommandations
-          </h2>
-          <span class="table-count">{{ str.recommendations.length }} recommandation(s)</span>
-        </div>
-
-        <div class="recommendations-grid">
-          <div class="recommendation-card" *ngFor="let rec of str.recommendations">
-            <div class="rec-header">
-              <span class="rec-priority" [class]="'priority-' + (rec.urgency || 'medium').toLowerCase()">
-                {{ rec.urgency || 'Moyenne' }}
-              </span>
+          <!-- Score ring -->
+          <div class="score-ring-wrap"
+               [class.score-good]="globalScore() >= 80"
+               [class.score-medium]="globalScore() >= 50 && globalScore() < 80"
+               [class.score-low]="globalScore() < 50">
+            <svg class="score-ring" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="54" fill="none" stroke="var(--border)" stroke-width="10"/>
+              <circle cx="60" cy="60" r="54" fill="none"
+                      [attr.stroke]="scoreColor()"
+                      stroke-width="10"
+                      stroke-linecap="round"
+                      [style.stroke-dasharray]="scoreRingDash()"
+                      transform="rotate(-90 60 60)"/>
+            </svg>
+            <div class="score-center">
+              <span class="score-value" [style.color]="scoreColor()">{{ globalScore() }}</span>
+              <span class="score-unit">/100</span>
+              <span class="score-label" [style.color]="scoreColor()">{{ scoreLabel() }}</span>
             </div>
-            <h4 class="rec-title">{{ getRecommendationTitle(rec) }}</h4>
-            <p class="rec-rationale" *ngIf="getRecommendationRationale(rec)">{{ getRecommendationRationale(rec) }}</p>
-            <p class="rec-benefit" *ngIf="getRecommendationBenefit(rec)"><strong>Bénéfice attendu:</strong> {{ getRecommendationBenefit(rec) }}</p>
+          </div>
+
+          <!-- Summary -->
+          <div class="hero-summary">
+            <div class="hero-summary-header">
+              <mat-icon class="hero-icon">analytics</mat-icon>
+              <h2>Synthèse Globale</h2>
+            </div>
+            <p class="synthese-text">{{ globalSummaryText() }}</p>
+
+            <!-- Category mini cards -->
+            <div class="cat-mini-row">
+              @for (stat of catStats(); track stat.code) {
+                @if (stat.total > 0) {
+                  <div class="cat-mini-card"
+                       [style.background]="stat.bgLight"
+                       [style.border-color]="stat.color">
+                    <mat-icon [style.color]="stat.color">{{ stat.icon }}</mat-icon>
+                    <div class="cat-mini-info">
+                      <span class="cat-mini-label" [style.color]="stat.color">{{ stat.libelle }}</span>
+                      <div class="cat-mini-counts">
+                        @if (stat.critique > 0) {
+                          <span class="mini-count mini-c">{{ stat.critique }} critique{{ stat.critique > 1 ? 's' : '' }}</span>
+                        }
+                        @if (stat.modere > 0) {
+                          <span class="mini-count mini-m">{{ stat.modere }} modéré{{ stat.modere > 1 ? 's' : '' }}</span>
+                        }
+                        @if (stat.critique === 0 && stat.modere === 0) {
+                          <span class="mini-count mini-ok">{{ stat.faible }} OK</span>
+                        }
+                      </div>
+                    </div>
+                    <span class="cat-mini-score" [style.color]="stat.color">{{ miniScore(stat) }}</span>
+                  </div>
+                }
+              }
+            </div>
           </div>
         </div>
       </section>
+    }
 
-      <!-- SECTION 4 — PLAN D'ACTION -->
-      <section class="section" *ngIf="str.actionPlan?.length">
-        <div class="section-header">
-          <h2 class="section-title">
-            <mat-icon class="s-icon">task_alt</mat-icon>
-            Plan d'Action
-          </h2>
-          <span class="table-count">{{ str.actionPlan.length }} action(s)</span>
-        </div>
+    <!-- ── CAUSES + RECOMMENDATIONS ────────────────────────────────── -->
+    @if (probableCausesList().length || structured()?.recommendations?.length) {
+      <section class="section">
+        <div class="causes-reco-grid">
 
-        <div class="action-plan-table">
-          <div class="ap-header">
-            <span>Action</span>
-            <span>Priorité</span>
-            <span>Responsable</span>
-            <span>Échéance</span>
-            <span>Métrique de succès</span>
-            <span>Risque si non fait</span>
-          </div>
-          <div class="ap-row" *ngFor="let action of str.actionPlan">
-            <span class="ap-action">{{ action.action }}</span>
-            <span class="ap-priority" [class]="'priority-' + (action.priority || 'medium').toLowerCase()">{{ action.priority || 'Moyenne' }}</span>
-            <span class="ap-owner">{{ action.ownerRole || 'Non défini' }}</span>
-            <span class="ap-due">{{ action.dueHorizon || 'Non défini' }}</span>
-            <span class="ap-metric">{{ action.successMetric || 'Non défini' }}</span>
-            <span class="ap-risk">{{ action.riskIfNotDone || 'Non défini' }}</span>
-          </div>
-        </div>
-      </section>
-
-      <!-- SECTION 5 — ROOT CAUSE ANALYSIS -->
-      <section class="section" *ngIf="hasRootCauses()">
-        <div class="section-header">
-          <h2 class="section-title">
-            <mat-icon class="s-icon">account_tree</mat-icon>
-            Analyse des Causes Racines (5 Pourquoi)
-          </h2>
-          <span class="table-count">{{ structured()?.rootCauseAnalysis?.length }} cause(s) racine</span>
-        </div>
-
-        <div class="root-cause-list">
-          <div class="root-cause-card" *ngFor="let rc of structured()?.rootCauseAnalysis">
-            <div class="rc-header">
-              <div class="rc-kpi-ref">
-                <mat-icon>bar_chart</mat-icon>
-                {{ rc.kpiRef }}
+          <!-- Causes -->
+          @if (probableCausesList().length) {
+            <div class="causes-panel">
+              <div class="panel-head">
+                <mat-icon>search</mat-icon>
+                <h3>Causes Probables</h3>
+                <span class="head-count">{{ probableCausesList().length }}</span>
               </div>
-              <span class="rc-ishikawa-badge" [class]="ishikawaClass(rc.ishikawaCategory)">
-                {{ rc.ishikawaCategory || 'N/A' }}
-              </span>
+              <ol class="causes-list">
+                @for (cause of probableCausesList(); track $index) {
+                  <li class="cause-item">
+                    <span class="cause-num">{{ $index + 1 }}</span>
+                    <span class="cause-text">{{ cause }}</span>
+                  </li>
+                }
+              </ol>
             </div>
+          }
 
-            <div class="rc-why-chain">
-              <div class="why-step" *ngFor="let why of rc.whyChain; let i = index">
-                <span class="why-number">Pourquoi {{ i + 1 }}</span>
-                <span class="why-text">{{ why }}</span>
+          <!-- Recommendations -->
+          @if (structured()?.recommendations?.length) {
+            <div class="recos-panel">
+              <div class="panel-head">
+                <mat-icon>lightbulb</mat-icon>
+                <h3>Recommandations</h3>
+                <span class="head-count">{{ structured()!.recommendations.length }}</span>
+              </div>
+              <div class="recos-list">
+                @for (rec of structured()!.recommendations; track $index) {
+                  <div class="reco-card">
+                    <div class="reco-card-top">
+                      <span class="reco-priority" [class]="'prio-' + (rec.urgency || 'medium').toLowerCase()">
+                        {{ rec.urgency || 'Moyenne' }}
+                      </span>
+                    </div>
+                    <p class="reco-title">{{ rec.title || rec.rationale }}</p>
+                    @if (rec.expectedBenefit) {
+                      <p class="reco-benefit"><mat-icon>trending_up</mat-icon>{{ rec.expectedBenefit }}</p>
+                    }
+                  </div>
+                }
               </div>
             </div>
+          }
 
-            <div class="rc-root-cause">
-              <mat-icon>flag</mat-icon>
-              <div>
-                <strong>Cause racine :</strong>
-                <p>{{ rc.rootCause }}</p>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
+    }
 
-      <!-- SECTION 6 — PREDICTIVE ALERTS -->
-      <section class="section" *ngIf="hasAlerts()">
-        <div class="section-header">
-          <h2 class="section-title">
-            <mat-icon class="s-icon s-icon--alert">radar</mat-icon>
-            Alertes Prédictives
-          </h2>
-          <div class="section-badges">
-            <span class="table-count">{{ structured()?.predictiveAlerts?.length }} alerte(s)</span>
-            <span class="critical-count" *ngIf="criticalAlertsCount() > 0">
+    <!-- ══════════════════════════════════════════════════════════════
+         TOUS LES INDICATEURS — section principale
+    ══════════════════════════════════════════════════════════════════ -->
+    <section class="section kpis-main-section">
+      <div class="section-header-row">
+        <div class="section-header-left">
+          <mat-icon class="s-icon">insights</mat-icon>
+          <h2>Tous les Indicateurs</h2>
+          <span class="head-count">{{ filteredKpis().length }} / {{ enrichedKpis().length }}</span>
+        </div>
+      </div>
+
+      <!-- Filter bar -->
+      <div class="kpi-filter-bar">
+        <div class="kpi-filter-left">
+          <!-- Category tabs -->
+          <div class="kpi-cat-tabs">
+            <button class="kct-btn" [class.active]="!catFilter()" (click)="setCatFilter('')">
+              Tous
+              <span class="kct-count">{{ enrichedKpis().length }}</span>
+            </button>
+            @for (cat of CATEGORIES; track cat.code) {
+              @if (catCountAll(cat.code) > 0) {
+                <button class="kct-btn"
+                        [class.active]="catFilter() === cat.code"
+                        [style.--cat-color]="cat.color"
+                        (click)="setCatFilter(cat.code)">
+                  <mat-icon>{{ cat.icon }}</mat-icon>
+                  {{ cat.libelle }}
+                  <span class="kct-count"
+                        [class.has-critique]="(catStats()[CATEGORIES.indexOf(cat)]?.critique ?? 0) > 0">
+                    {{ catCountAll(cat.code) }}
+                  </span>
+                </button>
+              }
+            }
+          </div>
+        </div>
+        <div class="kpi-filter-right">
+          <!-- Niveau chips -->
+          <div class="niveau-chips">
+            <button class="nv-chip" [class.active]="!niveauKpiFilter()" (click)="setNiveauFilter('')">Tous</button>
+            <button class="nv-chip nv-faible" [class.active]="niveauKpiFilter() === 'FAIBLE'" (click)="setNiveauFilter('FAIBLE')">Faible</button>
+            <button class="nv-chip nv-modere" [class.active]="niveauKpiFilter() === 'MODERE'" (click)="setNiveauFilter('MODERE')">Modéré</button>
+            <button class="nv-chip nv-critique" [class.active]="niveauKpiFilter() === 'CRITIQUE'" (click)="setNiveauFilter('CRITIQUE')">Critique</button>
+          </div>
+          <!-- Search -->
+          <div class="kpi-search">
+            <mat-icon>search</mat-icon>
+            <input placeholder="Rechercher un indicateur…"
+                   (input)="setSearch($any($event.target).value)"
+                   [value]="searchKpi()" />
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI list -->
+      @if (filteredKpis().length === 0) {
+        <div class="kpi-empty-msg">
+          <mat-icon>inbox</mat-icon>
+          <span>Aucun indicateur ne correspond aux filtres actifs.</span>
+        </div>
+      }
+
+      <div class="kpi-list">
+        @for (kpi of filteredKpis(); track kpi.kpiId) {
+          <div class="kpi-item"
+               [class.kpi-critique]="kpi.niveauVariation === 'CRITIQUE'"
+               [class.kpi-modere]="kpi.niveauVariation === 'MODERE'"
+               [class.kpi-expanded]="isExpanded(kpi.id)">
+
+            <!-- KPI header row -->
+            <div class="kpi-header" (click)="toggleKpi(kpi.id)">
+              <div class="kpi-left">
+                <!-- Niveau badge -->
+                <span class="kpi-niveau" [class]="getNiveauClass(kpi.niveauVariation)">
+                  {{ kpi.niveauVariation ?? '—' }}
+                </span>
+                <!-- Category dot -->
+                <span class="kpi-cat-dot"
+                      [style.background]="getCatInfo(kpi.categorieCode).bgLight"
+                      [style.color]="getCatInfo(kpi.categorieCode).color"
+                      [matTooltip]="kpi.categorieLibelle || kpi.categorieCode">
+                  <mat-icon>{{ getCatInfo(kpi.categorieCode).icon }}</mat-icon>
+                </span>
+                <!-- Name + unit -->
+                <div class="kpi-name-block">
+                  <span class="kpi-name">{{ kpi.kpiNom }}</span>
+                  @if (kpi.kpiUnite) {
+                    <span class="kpi-unit">{{ kpi.kpiUnite }}</span>
+                  }
+                </div>
+              </div>
+
+              <div class="kpi-right">
+                <!-- Values N-1 → N -->
+                @if (kpi.valeurN1 !== 0 || kpi.valeurN !== 0) {
+                  <div class="kpi-values">
+                    <span class="val-n1">{{ kpi.valeurN1 | number:'1.0-2' }}</span>
+                    <mat-icon class="val-arrow">arrow_forward</mat-icon>
+                    <span class="val-n">{{ kpi.valeurN | number:'1.0-2' }}</span>
+                  </div>
+                  <span class="kpi-var-chip" [class]="getVariationClass(kpi.variationRelative)">
+                    <mat-icon [class]="getTendanceClass(kpi.tendance)">{{ getTendanceIcon(kpi.tendance) }}</mat-icon>
+                    {{ formatVariation(kpi.variationRelative) }}
+                  </span>
+                }
+                <!-- AI available -->
+                @if (kpi.insight) {
+                  <span class="ai-tag" matTooltip="Analyse IA disponible">
+                    <mat-icon>smart_toy</mat-icon> IA
+                  </span>
+                }
+                <mat-icon class="expand-chevron" [class.open]="isExpanded(kpi.id)">expand_more</mat-icon>
+              </div>
+            </div>
+
+            <!-- KPI detail (expanded) -->
+            @if (isExpanded(kpi.id)) {
+              <div class="kpi-detail">
+
+                <!-- AI Insight -->
+                @if (kpi.insight) {
+                  <div class="insight-box">
+                    <div class="insight-box-header">
+                      <mat-icon>smart_toy</mat-icon>
+                      <span>Analyse IA</span>
+                      @if (kpi.insightConfidence != null) {
+                        <span class="conf-mini" [class.conf-low]="kpi.insightConfidence < 60">
+                          {{ kpi.insightConfidence }}% confiance
+                        </span>
+                      }
+                    </div>
+                    <p class="insight-text">{{ kpi.insight }}</p>
+                  </div>
+                }
+
+                <!-- Detail cards grid -->
+                <div class="detail-grid">
+
+                  <!-- Causes -->
+                  @if (kpi.structuredCauses.length) {
+                    <div class="detail-card dc-causes">
+                      <div class="dc-head"><mat-icon>search</mat-icon> Causes probables</div>
+                      <ul class="dc-list">
+                        @for (c of kpi.structuredCauses; track $index) {
+                          <li>{{ c }}</li>
+                        }
+                      </ul>
+                    </div>
+                  }
+
+                  <!-- Actions -->
+                  @if (kpi.structuredAction || kpi.correctiveAction || kpi.preventiveAction) {
+                    <div class="detail-card dc-actions">
+                      <div class="dc-head"><mat-icon>build</mat-icon> Plan d'actions</div>
+                      <div class="dc-actions-stack">
+                        @if (kpi.structuredAction) {
+                          <div class="dc-action dc-immediate">
+                            <div class="dc-action-label"><mat-icon>bolt</mat-icon> Immédiate</div>
+                            <p>{{ kpi.structuredAction }}</p>
+                          </div>
+                        }
+                        @if (kpi.correctiveAction && kpi.correctiveAction !== kpi.structuredAction) {
+                          <div class="dc-action dc-corrective">
+                            <div class="dc-action-label"><mat-icon>build_circle</mat-icon> Corrective</div>
+                            <p>{{ kpi.correctiveAction }}</p>
+                          </div>
+                        }
+                        @if (kpi.preventiveAction) {
+                          <div class="dc-action dc-preventive">
+                            <div class="dc-action-label"><mat-icon>shield</mat-icon> Préventive</div>
+                            <p>{{ kpi.preventiveAction }}</p>
+                          </div>
+                        }
+                      </div>
+                      @if (kpi.structuredOwner || kpi.structuredDue) {
+                        <div class="dc-meta">
+                          @if (kpi.structuredOwner) {
+                            <span class="dc-meta-chip"><mat-icon>person</mat-icon>{{ kpi.structuredOwner }}</span>
+                          }
+                          @if (kpi.structuredDue) {
+                            <span class="dc-meta-chip"><mat-icon>schedule</mat-icon>{{ kpi.structuredDue }}</span>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
+
+                  <!-- Recommendations -->
+                  @if (kpi.structuredRecos.length) {
+                    <div class="detail-card dc-recos">
+                      <div class="dc-head"><mat-icon>lightbulb</mat-icon> Recommandations</div>
+                      <ul class="dc-list">
+                        @for (r of kpi.structuredRecos; track $index) {
+                          <li>{{ r }}</li>
+                        }
+                      </ul>
+                    </div>
+                  }
+
+                  <!-- Outcome -->
+                  @if (kpi.structuredSuccess || kpi.structuredRisk) {
+                    <div class="detail-card dc-outcome">
+                      <div class="dc-head"><mat-icon>flag</mat-icon> Objectifs & Risques</div>
+                      @if (kpi.structuredSuccess) {
+                        <div class="dc-outcome-row dc-success">
+                          <div class="dc-outcome-label">Métrique de succès</div>
+                          <p>{{ kpi.structuredSuccess }}</p>
+                        </div>
+                      }
+                      @if (kpi.structuredRisk) {
+                        <div class="dc-outcome-row dc-risk-row">
+                          <div class="dc-outcome-label">Risque si non traité</div>
+                          <p>{{ kpi.structuredRisk }}</p>
+                        </div>
+                      }
+                    </div>
+                  }
+
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         PLAN D'ACTION + KANBAN
+    ══════════════════════════════════════════════════════════════════ -->
+    @if (structured()?.actionPlan?.length || planActionsList().length) {
+      <section class="section">
+        <div class="section-header-row">
+          <mat-icon class="s-icon">task_alt</mat-icon>
+          <h2>Plan d'Action Global</h2>
+          <span class="head-count">
+            {{ structured()?.actionPlan?.length || planActionsList().length }} action(s)
+          </span>
+        </div>
+
+        @if (structured()?.actionPlan?.length) {
+          <div class="ap-table">
+            <div class="apt-head">
+              <span>Action</span>
+              <span>Priorité</span>
+              <span>Responsable</span>
+              <span>Échéance</span>
+              <span>Succès</span>
+            </div>
+            @for (action of structured()!.actionPlan; track $index) {
+              <div class="apt-row">
+                <span class="apt-action">{{ action.action }}</span>
+                <span class="apt-priority" [class]="'prio-' + (action.priority || 'medium').toLowerCase()">{{ action.priority || '—' }}</span>
+                <span class="apt-owner">{{ action.ownerRole || '—' }}</span>
+                <span class="apt-due">{{ action.dueHorizon || '—' }}</span>
+                <span class="apt-metric">{{ action.successMetric || '—' }}</span>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="plan-cards">
+            @for (action of planActionsList(); track $index) {
+              <div class="plan-card">
+                <div class="plan-num">{{ $index + 1 }}</div>
+                <p>{{ action }}</p>
+              </div>
+            }
+          </div>
+        }
+      </section>
+    }
+
+    <!-- ── KANBAN ────────────────────────────────────────────────────── -->
+    @if (hasKanban()) {
+      <section class="section">
+        <div class="section-header-row">
+          <mat-icon class="s-icon">view_kanban</mat-icon>
+          <h2>Tableau de Suivi des Actions</h2>
+          <span class="head-count">{{ kanbanItems().length }} action(s)</span>
+        </div>
+
+        <div class="kanban-board">
+          @for (col of KANBAN_COLS; track col) {
+            <div class="kanban-col">
+              <div class="kanban-col-header">
+                <mat-icon>{{ KANBAN_ICONS[col] }}</mat-icon>
+                <span>{{ KANBAN_LABELS[col] }}</span>
+                <span class="k-col-count">{{ itemsInColumn(col).length }}</span>
+              </div>
+              <div class="kanban-cards">
+                @for (item of itemsInColumn(col); track item.id) {
+                  <div class="kanban-card">
+                    <div class="k-card-top">
+                      <span class="k-prio" [ngClass]="kanbanPriorityClass(item.priority)">{{ item.priority }}</span>
+                      @if (item.source === 'kpi_immediate') {
+                        <span class="k-imm-badge">Immédiat</span>
+                      }
+                    </div>
+                    <p class="k-action">{{ item.action }}</p>
+                    @if (item.kpiRef || item.ownerRole || item.dueHorizon) {
+                      <div class="k-meta">
+                        @if (item.kpiRef) { <span class="k-chip">{{ item.kpiRef }}</span> }
+                        @if (item.ownerRole) { <span class="k-chip"><mat-icon>person</mat-icon>{{ item.ownerRole }}</span> }
+                        @if (item.dueHorizon) { <span class="k-chip"><mat-icon>schedule</mat-icon>{{ item.dueHorizon }}</span> }
+                      </div>
+                    }
+                    <div class="k-btns">
+                      @if (col !== 'todo') {
+                        <button class="k-btn" (click)="moveItem(item.id, 'todo')">← À faire</button>
+                      }
+                      @if (col !== 'in_progress') {
+                        <button class="k-btn" (click)="moveItem(item.id, 'in_progress')">En cours</button>
+                      }
+                      @if (col !== 'done') {
+                        <button class="k-btn k-btn-done" (click)="moveItem(item.id, 'done')">Terminé ✓</button>
+                      }
+                    </div>
+                  </div>
+                }
+                @if (itemsInColumn(col).length === 0) {
+                  <div class="k-empty"><mat-icon>inbox</mat-icon> Aucune action</div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+    }
+
+    <!-- ══════════════════════════════════════════════════════════════
+         ALERTES PRÉDICTIVES
+    ══════════════════════════════════════════════════════════════════ -->
+    @if (hasAlerts()) {
+      <section class="section">
+        <div class="section-header-row">
+          <mat-icon class="s-icon s-icon-alert">radar</mat-icon>
+          <h2>Alertes Prédictives</h2>
+          <span class="head-count">{{ structured()?.predictiveAlerts?.length }}</span>
+          @if (criticalAlertsCount() > 0) {
+            <span class="critical-count-badge">
               <mat-icon>error</mat-icon>
               {{ criticalAlertsCount() }} critique(s)
             </span>
-          </div>
+          }
         </div>
 
-        <div class="alerts-list">
-          <div class="alert-card" *ngFor="let alert of structured()?.predictiveAlerts"
-               [class]="alertSeverityClass(alert.severity)">
-            <div class="alert-header">
-              <div class="alert-kpi-ref">
-                <mat-icon>{{ alertSeverityIcon(alert.severity) }}</mat-icon>
-                {{ alert.kpiRef }}
-              </div>
-              <div class="alert-meta">
-                <span class="alert-sev-badge" [class]="alertSeverityClass(alert.severity)">
-                  {{ alertSeverityLabel(alert.severity) }}
-                </span>
-                <span class="alert-horizon" *ngIf="alert.estimatedHorizonMonths !== null">
-                  <mat-icon>schedule</mat-icon>
-                  ~{{ alert.estimatedHorizonMonths }} mois
-                </span>
-                <span class="alert-confidence" *ngIf="alert.confidence !== null">
-                  <mat-icon>verified</mat-icon>
-                  {{ alert.confidence }}%
-                </span>
-              </div>
-            </div>
-            <p class="alert-projection">{{ alert.projection }}</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- SECTION 7 — INSIGHTS PAR KPI -->
-      <section class="section" *ngIf="str.kpiInsights?.length">
-        <div class="section-header">
-          <h2 class="section-title">
-            <mat-icon class="s-icon">insights</mat-icon>
-            Insights par Indicateur
-          </h2>
-          <span class="table-count">{{ str.kpiInsights.length }} insight(s)</span>
-        </div>
-
-        <div class="kpi-insights-list">
-          <div class="kpi-insight-card" *ngFor="let insight of str.kpiInsights">
-            <div class="insight-header">
-              <h4 class="insight-kpi-name">{{ insight.kpiName || 'KPI sans nom' }}</h4>
-              <span class="insight-confidence" [class.low-confidence]="insight.confidence < 60">
-                {{ insight.confidence }}%
-              </span>
-            </div>
-            <p class="insight-text">{{ insight.insight || 'Aucun insight fourni.' }}</p>
-
-            <div class="insight-details" *ngIf="insight.probableCauses?.length || insight.recommendations?.length || insight.actionImmediate">
-              <div class="insight-causes" *ngIf="insight.probableCauses?.length">
-                <strong>Causes probables:</strong>
-                <ul>
-                  <li *ngFor="let cause of insight.probableCauses">{{ cause }}</li>
-                </ul>
-              </div>
-
-              <div class="insight-recos" *ngIf="insight.recommendations?.length">
-                <strong>Recommandations:</strong>
-                <ul>
-                  <li *ngFor="let rec of insight.recommendations">{{ rec }}</li>
-                </ul>
-              </div>
-
-              <div class="insight-action" *ngIf="insight.actionImmediate">
-                <strong>Action immédiate:</strong> {{ insight.actionImmediate }}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- SECTION 8 — TRACEABILITY -->
-      <section class="section" *ngIf="str.traceability">
-        <div class="section-header">
-          <h2 class="section-title">
-            <mat-icon class="s-icon">track_changes</mat-icon>
-            Traçabilité de l'Analyse
-          </h2>
-        </div>
-
-        <div class="traceability-card">
-          <div class="trace-info">
-            <div class="trace-item">
-              <mat-icon>memory</mat-icon>
-              <span><strong>Modèle:</strong> {{ str.traceability.modelName }}</span>
-            </div>
-            <div class="trace-item">
-              <mat-icon>schedule</mat-icon>
-              <span><strong>Généré le:</strong> {{ str.traceability.generatedAt ? (str.traceability.generatedAt | date:'dd/MM/yyyy HH:mm') : 'Non disponible' }}</span>
-            </div>
-            <div class="trace-item">
-              <mat-icon>rule</mat-icon>
-              <span><strong>Version schéma:</strong> {{ str.traceability.schemaVersion || str.schemaVersion || 'N/A' }}</span>
-            </div>
-            <div class="trace-item">
-              <mat-icon>receipt_long</mat-icon>
-              <span><strong>Version prompt:</strong> {{ str.traceability.promptVersion || str.promptVersion || 'N/A' }}</span>
-            </div>
-            <div class="trace-item">
-              <mat-icon>tag</mat-icon>
-              <span><strong>Import session:</strong> {{ str.traceability.importSessionId ?? structured()?.importSessionId ?? 'N/A' }}</span>
-            </div>
-          </div>
-
-          <div class="context-sources" *ngIf="str.traceability.contextSourcesUsed?.length">
-            <h4>Sources de contexte utilisées:</h4>
-            <div class="sources-list">
-              <div class="source-item" *ngFor="let source of str.traceability.contextSourcesUsed">
-                <span class="source-name">{{ source.sourceName }}</span>
-                <span class="source-score" [matTooltip]="'Pertinence: ' + source.relevanceScore + '%'">
-                  {{ source.relevanceScore }}%
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-    </ng-container>
-
-    <!-- ══════════════════════════════════════════════════════════
-         LEGACY ANALYSIS SECTIONS (fallback or when no structured)
-    ══════════════════════════════════════════════════════════════ -->
-    <ng-container *ngIf="!isStructuredSuccess() || showLegacyFallback()">
-    <section class="section" *ngIf="analyse()?.analyseGlobale">
-      <div class="section-header">
-        <h2 class="section-title">
-          <mat-icon class="s-icon">analytics</mat-icon>
-          Synthèse Globale
-        </h2>
-      </div>
-
-      <div class="synthese-card">
-
-        <!-- Score ring -->
-        <div class="score-ring-wrap">
-          <svg class="score-ring" viewBox="0 0 120 120">
-            <circle cx="60" cy="60" r="54" fill="none" stroke="var(--border)" stroke-width="10"/>
-            <circle cx="60" cy="60" r="54" fill="none"
-                    [attr.stroke]="scoreColor()"
-                    stroke-width="10"
-                    stroke-linecap="round"
-                    stroke-dasharray="339 339"
-                    [style.stroke-dasharray]="scoreRingDash()"
-                    transform="rotate(-90 60 60)"
-                    class="ring-progress"/>
-          </svg>
-          <div class="score-center">
-            <span class="score-value" [style.color]="scoreColor()">{{ globalScore() }}</span>
-            <span class="score-unit">/100</span>
-            <span class="score-label" [style.color]="scoreColor()">{{ scoreLabel() }}</span>
-          </div>
-        </div>
-
-        <!-- Texte synthèse -->
-        <div class="synthese-body">
-          <div class="synthese-meta">
-            <span class="meta-pill">
-              <mat-icon>calendar_today</mat-icon>
-              {{ periode }}
-            </span>
-            <span class="meta-pill meta-pill--count">
-              <mat-icon>bar_chart</mat-icon>
-              {{ (analyse()?.analysesKpis ?? []).length }} indicateurs analysés
-            </span>
-            <span class="meta-pill meta-pill--critique" *ngIf="kpisCritiques().length">
-              <mat-icon>warning</mat-icon>
-              {{ kpisCritiques().length }} KPI(s) critiques
-            </span>
-          </div>
-
-          <p class="synthese-text">{{ analyse()?.analyseGlobale?.synthese }}</p>
-
-          <!-- Cat chips -->
-          <div class="cat-chips">
-            <div *ngFor="let stat of catStats()" class="cat-chip"
-                 [style.background]="stat.bgLight"
-                 [style.border-color]="stat.color">
-              <mat-icon [style.color]="stat.color">{{ stat.icon }}</mat-icon>
-              <span class="cat-chip-label" [style.color]="stat.color">{{ stat.libelle }}</span>
-              <span class="cat-chip-score" [style.color]="stat.color">{{ miniScore(stat) }}/100</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ══════════════════════════════════════════════════════════
-         SECTION 2 — ANALYSE PAR CATÉGORIE + KPIs DÉTAILLÉS
-    ══════════════════════════════════════════════════════════════ -->
-    <section class="section">
-      <div class="section-header">
-        <h2 class="section-title">
-          <mat-icon class="s-icon">category</mat-icon>
-          Analyse par Catégorie
-        </h2>
-      </div>
-
-      <!-- Onglets catégories -->
-      <div class="cat-tabs">
-        <button *ngFor="let cat of CATEGORIES"
-                class="cat-tab"
-                [class.active]="activeCatCode() === cat.code"
-                [style.--cat-color]="cat.color"
-                [style.--cat-bg]="cat.bgLight"
-                (click)="setActiveCat(cat.code)">
-          <mat-icon>{{ cat.icon }}</mat-icon>
-          <span>{{ cat.libelle }}</span>
-          <span class="tab-count" [class.tab-critique]="(catStats()[CATEGORIES.indexOf(cat)]?.critique ?? 0) > 0">
-            {{ catStats()[CATEGORIES.indexOf(cat)]?.total ?? 0 }}
-          </span>
-        </button>
-      </div>
-
-      <!-- Panel catégorie active -->
-      <div class="cat-panel" *ngIf="getCatInfo(activeCatCode()) as catInfo">
-
-        <!-- Analyse IA catégorie -->
-        <div class="cat-analyse-card" *ngIf="activeCatAnalyse() as catAnalyse">
-          <div class="cat-analyse-header">
-            <div class="cat-analyse-icon" [style.background]="catInfo.bgLight">
-              <mat-icon [style.color]="catInfo.color">{{ catInfo.icon }}</mat-icon>
-            </div>
-            <div>
-              <h3 class="cat-analyse-title" [style.color]="catInfo.color">
-                Analyse IA — {{ catAnalyse.categorieLibelle }}
-              </h3>
-              <p class="cat-analyse-date" *ngIf="catAnalyse.createdAt">
-                Générée le {{ catAnalyse.createdAt | date:'dd/MM/yyyy HH:mm' }}
-              </p>
-            </div>
-          </div>
-          <div class="cat-analyse-text">{{ catAnalyse.contenu }}</div>
-        </div>
-
-        <!-- Message si pas d'analyse catégorie -->
-        <div class="no-cat-analyse" *ngIf="!activeCatAnalyse()">
-          <mat-icon>info_outline</mat-icon>
-          <span>Analyse IA par catégorie non disponible — consultez la synthèse globale.</span>
-        </div>
-
-        <!-- ── KPIs de la catégorie ─────────────────────────────── -->
-        <div class="kpis-section">
-          <div class="kpis-section-header">
-            <h3 class="kpis-section-title">Indicateurs {{ catInfo.libelle }}</h3>
-            <span class="table-count">{{ activeKpis().length }} indicateurs</span>
-          </div>
-
-          <div class="kpi-empty" *ngIf="!activeKpis().length">
-            <mat-icon>inbox</mat-icon>
-            Aucun KPI pour cette catégorie
-          </div>
-
-          <div class="kpi-list">
-            <div *ngFor="let kpi of activeKpis()"
-                 class="kpi-item"
-                 [class.kpi-expanded]="isExpanded(kpi.id)"
-                 [class.kpi-critique]="kpi.niveauVariation === 'CRITIQUE'"
-                 [class.kpi-modere]="kpi.niveauVariation === 'MODERE'">
-
-              <!-- KPI header (toujours visible) -->
-              <div class="kpi-header" (click)="toggleKpi(kpi.id)">
-
-                <div class="kpi-header-left">
-                  <span class="kpi-niveau" [class]="getNiveauClass(kpi.niveauVariation)">
-                    {{ kpi.niveauVariation ?? 'N/A' }}
-                  </span>
-                  <div class="kpi-info">
-                    <span class="kpi-nom">{{ kpi.kpiNom }}</span>
-                    <span class="kpi-unite">{{ kpi.kpiUnite }}</span>
-                  </div>
+        <div class="alerts-grid">
+          @for (alert of structured()?.predictiveAlerts ?? []; track $index) {
+            <div class="alert-card" [class]="alertSeverityClass(alert.severity)">
+              <div class="alert-card-header">
+                <div class="alert-kpi">
+                  <mat-icon>{{ alertSeverityIcon(alert.severity) }}</mat-icon>
+                  <span class="alert-kpi-name">{{ alert.kpiRef }}</span>
                 </div>
-
-                <div class="kpi-header-right">
-                  <!-- Valeurs N-1 → N -->
-                  <div class="kpi-values">
-                    <span class="kpi-val">
-                      <span class="val-label">N-1</span>
-                      <span class="val-number">{{ kpi.valeurN1 | number:'1.0-2' }}</span>
-                    </span>
-                    <mat-icon class="val-arrow">arrow_forward</mat-icon>
-                    <span class="kpi-val">
-                      <span class="val-label">N</span>
-                      <span class="val-number">{{ kpi.valeurN | number:'1.0-2' }}</span>
-                    </span>
-                  </div>
-
-                  <!-- Variation -->
-                  <span class="kpi-variation" [class]="getVariationClass(kpi.variationRelative)">
-                    <mat-icon class="trend-icon" [class]="getTendanceClass(kpi.tendance)">
-                      {{ getTendanceIcon(kpi.tendance) }}
-                    </mat-icon>
-                    {{ formatVariation(kpi.variationRelative) }}
+                <div class="alert-badges">
+                  <span class="alert-sev" [class]="alertSeverityClass(alert.severity)">
+                    {{ alertSeverityLabel(alert.severity) }}
                   </span>
-
-                  <!-- Indicateur analyse IA disponible -->
-                  <span class="ia-dot" [class.ia-dot--on]="kpi.analyseIa"
-                        [matTooltip]="kpi.analyseIa ? 'Analyse IA disponible' : 'Analyse IA indisponible'">
-                    <mat-icon>smart_toy</mat-icon>
-                  </span>
-
-                  <mat-icon class="expand-icon">
-                    {{ isExpanded(kpi.id) ? 'expand_less' : 'expand_more' }}
-                  </mat-icon>
+                  @if (alert.estimatedHorizonMonths != null) {
+                    <span class="alert-horizon"><mat-icon>schedule</mat-icon>{{ alert.estimatedHorizonMonths }} mois</span>
+                  }
+                  @if (alert.confidence != null) {
+                    <span class="alert-conf"><mat-icon>verified</mat-icon>{{ alert.confidence }}%</span>
+                  }
                 </div>
               </div>
+              <p class="alert-projection">{{ alert.projection }}</p>
+            </div>
+          }
+        </div>
+      </section>
+    }
 
-              <!-- KPI détail (expand) -->
-              <div class="kpi-detail" *ngIf="isExpanded(kpi.id)">
+    <!-- ══════════════════════════════════════════════════════════════
+         ANALYSE DES CAUSES RACINES (5 POURQUOI)
+    ══════════════════════════════════════════════════════════════════ -->
+    @if (hasRootCauses()) {
+      <section class="section">
+        <div class="section-header-row">
+          <mat-icon class="s-icon">account_tree</mat-icon>
+          <h2>Analyse des Causes Racines — 5 Pourquoi</h2>
+          <span class="head-count">{{ structured()?.rootCauseAnalysis?.length }} cause(s)</span>
+        </div>
 
-                <!-- Analyse IA principale -->
-                <div class="detail-block detail-block--ia" *ngIf="kpi.analyseIa">
-                  <div class="detail-block-header">
-                    <mat-icon class="db-icon db-icon--ia">smart_toy</mat-icon>
-                    <h4>Analyse IA</h4>
-                  </div>
-                  <p class="detail-text">{{ kpi.analyseIa }}</p>
+        <div class="root-causes-grid">
+          @for (rc of structured()?.rootCauseAnalysis ?? []; track $index) {
+            <div class="rc-card">
+              <div class="rc-card-header">
+                <div class="rc-kpi-ref">
+                  <mat-icon>bar_chart</mat-icon>
+                  {{ rc.kpiRef }}
                 </div>
-
-                <!-- Grille des blocs IA enrichis -->
-                <div class="detail-grid">
-
-                  <!-- Identification du risque -->
-                  <div class="detail-block detail-block--risk">
-                    <div class="detail-block-header">
-                      <mat-icon class="db-icon db-icon--risk">report_problem</mat-icon>
-                      <h4>Identification du Risque</h4>
-                    </div>
-                    <p class="detail-text" *ngIf="kpi.analyseIa; else noData">
-                      {{ kpi.analyseIa | slice:0:300 }}{{ (kpi.analyseIa.length) > 300 ? '…' : '' }}
-                    </p>
-                    <ng-template #noData>
-                      <p class="detail-text detail-text--muted">Non disponible pour cet indicateur.</p>
-                    </ng-template>
-                  </div>
-
-                  <!-- Problème détecté -->
-                  <div class="detail-block detail-block--prob">
-                    <div class="detail-block-header">
-                      <mat-icon class="db-icon db-icon--prob">bug_report</mat-icon>
-                      <h4>Problème Détecté</h4>
-                    </div>
-                    <div class="detail-text" *ngIf="kpi.niveauVariation === 'CRITIQUE' || kpi.niveauVariation === 'MODERE'; else noProb">
-                      <span class="prob-niveau" [class]="getNiveauClass(kpi.niveauVariation)">
-                        {{ kpi.niveauVariation }}
-                      </span>
-                      Variation de {{ formatVariation(kpi.variationRelative) }}
-                      ({{ kpi.valeurN1 | number:'1.0-2' }} → {{ kpi.valeurN | number:'1.0-2' }} {{ kpi.kpiUnite }})
-                    </div>
-                    <ng-template #noProb>
-                      <p class="detail-text detail-text--ok">
-                        <mat-icon>check_circle</mat-icon>
-                        Indicateur dans les normes — variation faible ou stable.
-                      </p>
-                    </ng-template>
-                  </div>
-
-                  <!-- Actions préventives -->
-                  <div class="detail-block detail-block--action">
-                    <div class="detail-block-header">
-                      <mat-icon class="db-icon db-icon--action">shield</mat-icon>
-                      <h4>Actions Préventives</h4>
-                    </div>
-                    <ul class="detail-list" *ngIf="extractRecos(kpi.analyseIa).length; else noAction">
-                      <li *ngFor="let r of extractRecos(kpi.analyseIa)">{{ r }}</li>
-                    </ul>
-                    <ng-template #noAction>
-                      <p class="detail-text detail-text--muted">Consultez la synthèse globale pour les actions préventives.</p>
-                    </ng-template>
-                  </div>
-
-                  <!-- Action immédiate -->
-                  <div class="detail-block detail-block--urgent"
-                       *ngIf="kpi.niveauVariation === 'CRITIQUE'">
-                    <div class="detail-block-header">
-                      <mat-icon class="db-icon db-icon--urgent">bolt</mat-icon>
-                      <h4>Action Immédiate — CRITIQUE</h4>
-                    </div>
-                    <div class="urgent-badge">
-                      <mat-icon>priority_high</mat-icon>
-                      Intervention requise immédiatement sur {{ kpi.kpiNom }}
-                    </div>
-                    <p class="detail-text" *ngIf="kpi.analyseIa">
-                      {{ kpi.analyseIa | slice:0:200 }}{{ (kpi.analyseIa.length) > 200 ? '…' : '' }}
-                    </p>
-                  </div>
-
-                  <!-- Méthode 8D -->
-                  <div class="detail-block detail-block--8d"
-                       *ngIf="parse8D(kpi.analyseIa).length > 0">
-                    <div class="detail-block-header">
-                      <mat-icon class="db-icon db-icon--8d">format_list_numbered</mat-icon>
-                      <h4>Méthode 8D</h4>
-                    </div>
-                    <ol class="methode-8d-list">
-                      <li *ngFor="let step of parse8D(kpi.analyseIa); let i = index">
-                        <span class="d-badge">D{{ i + 1 }}</span>
-                        {{ step }}
-                      </li>
-                    </ol>
-                  </div>
-
-                </div><!-- /detail-grid -->
-              </div><!-- /kpi-detail -->
-            </div><!-- /kpi-item -->
-          </div><!-- /kpi-list -->
-        </div><!-- /kpis-section -->
-      </div><!-- /cat-panel -->
-    </section>
-
-    <!-- ══════════════════════════════════════════════════════════
-         SECTION 3 — RECOMMANDATIONS & PLAN D'ACTIONS GLOBAL
-    ══════════════════════════════════════════════════════════════ -->
-    <section class="section" *ngIf="planActionsList().length">
-      <div class="section-header">
-        <h2 class="section-title">
-          <mat-icon class="s-icon">task_alt</mat-icon>
-          Plan d'Actions Global &amp; Recommandations
-        </h2>
-        <span class="table-count">{{ planActionsList().length }} action(s)</span>
-      </div>
-
-      <div class="plan-grid">
-        <div class="plan-card" *ngFor="let action of planActionsList(); let i = index">
-          <div class="plan-number">{{ i + 1 }}</div>
-          <div class="plan-content">
-            <p>{{ action }}</p>
-          </div>
-          <mat-icon class="plan-arrow">arrow_forward_ios</mat-icon>
-        </div>
-      </div>
-    </section>
-
-    <!-- ══════════════════════════════════════════════════════════
-         SECTION 4 — KPIs CRITIQUES (vue transversale)
-    ══════════════════════════════════════════════════════════════ -->
-    <section class="section" *ngIf="kpisCritiques().length">
-      <div class="section-header">
-        <h2 class="section-title">
-          <mat-icon class="s-icon s-icon--alert">warning</mat-icon>
-          Indicateurs Critiques — Vue Transversale
-        </h2>
-        <span class="table-count niveau-critique">{{ kpisCritiques().length }} critique(s)</span>
-      </div>
-
-      <div class="critique-table">
-        <div class="ct-head">
-          <span>Indicateur</span>
-          <span>Catégorie</span>
-          <span>N-1</span>
-          <span>N</span>
-          <span>Variation</span>
-          <span>Analyse IA</span>
-        </div>
-        <div class="ct-row" *ngFor="let kpi of kpisCritiques()">
-          <span class="ct-nom">
-            <mat-icon class="ct-alert">warning</mat-icon>
-            {{ kpi.kpiNom }}
-          </span>
-          <span>
-            <span class="cat-badge" [style.color]="getCatInfo(kpi.categorieCode).color"
-                  [style.background]="getCatInfo(kpi.categorieCode).bgLight">
-              {{ kpi.categorieLibelle }}
-            </span>
-          </span>
-          <span class="ct-val">{{ kpi.valeurN1 | number:'1.0-2' }}</span>
-          <span class="ct-val">{{ kpi.valeurN | number:'1.0-2' }}</span>
-          <span class="kpi-variation var-neg">
-            {{ formatVariation(kpi.variationRelative) }}
-          </span>
-          <span class="ct-ia">
-            <span *ngIf="kpi.analyseIa" class="ia-snippet" [matTooltip]="kpi.analyseIa">
-              {{ kpi.analyseIa | slice:0:80 }}{{ (kpi.analyseIa.length) > 80 ? '…' : '' }}
-            </span>
-            <span *ngIf="!kpi.analyseIa" class="detail-text--muted">—</span>
-          </span>
-        </div>
-      </div>
-    </section>
-
-    <!-- ══════════════════════════════════════════════════════════
-         SECTION 5 — KANBAN PLAN D'ACTIONS (P3.3)
-    ══════════════════════════════════════════════════════════════ -->
-    <section class="section" *ngIf="hasKanban()">
-      <div class="section-header">
-        <h2 class="section-title">
-          <mat-icon class="s-icon">view_kanban</mat-icon>
-          Plan d'Actions — Tableau de Bord
-        </h2>
-        <span class="table-count">{{ kanbanItems().length }} action(s)</span>
-      </div>
-
-      <div class="kanban-board">
-        <div class="kanban-col" *ngFor="let col of KANBAN_COLS">
-          <div class="kanban-col-header">
-            <mat-icon class="k-col-icon">{{ KANBAN_ICONS[col] }}</mat-icon>
-            <span class="k-col-title">{{ KANBAN_LABELS[col] }}</span>
-            <span class="k-col-count">{{ itemsInColumn(col).length }}</span>
-          </div>
-          <div class="kanban-cards">
-            <div class="kanban-card" *ngFor="let item of itemsInColumn(col)">
-              <div class="k-card-top">
-                <span class="k-prio-badge" [ngClass]="kanbanPriorityClass(item.priority)">{{ item.priority }}</span>
-                <span *ngIf="item.source === 'kpi_immediate'" class="k-source-badge">Immédiat</span>
-              </div>
-              <p class="k-action-text">{{ item.action }}</p>
-              <div class="k-meta" *ngIf="item.kpiRef || item.ownerRole || item.dueHorizon">
-                <span *ngIf="item.kpiRef" class="k-meta-chip">{{ item.kpiRef }}</span>
-                <span *ngIf="item.ownerRole" class="k-meta-chip">
-                  <mat-icon style="font-size:11px;vertical-align:middle;">person</mat-icon>{{ item.ownerRole }}
-                </span>
-                <span *ngIf="item.dueHorizon" class="k-meta-chip">
-                  <mat-icon style="font-size:11px;vertical-align:middle;">schedule</mat-icon>{{ item.dueHorizon }}
+                <span class="rc-ishikawa" [class]="ishikawaClass(rc.ishikawaCategory)">
+                  {{ rc.ishikawaCategory || 'N/A' }}
                 </span>
               </div>
-              <div class="k-card-actions">
-                <button *ngIf="col !== 'todo'"       class="k-move-btn" (click)="moveItem(item.id, 'todo')">← À Faire</button>
-                <button *ngIf="col !== 'in_progress'" class="k-move-btn" (click)="moveItem(item.id, 'in_progress')">En Cours</button>
-                <button *ngIf="col !== 'done'"       class="k-move-btn k-move-btn--done" (click)="moveItem(item.id, 'done')">Terminé ✓</button>
+
+              <div class="rc-why-chain">
+                @for (why of rc.whyChain; track $index) {
+                  <div class="why-step">
+                    <span class="why-num">P{{ $index + 1 }}</span>
+                    <span class="why-text">{{ why }}</span>
+                    @if ($index < rc.whyChain.length - 1) {
+                      <mat-icon class="why-arrow">arrow_downward</mat-icon>
+                    }
+                  </div>
+                }
+              </div>
+
+              <div class="rc-root-cause">
+                <mat-icon>flag</mat-icon>
+                <div>
+                  <div class="rc-root-label">Cause racine identifiée</div>
+                  <p>{{ rc.rootCause }}</p>
+                </div>
               </div>
             </div>
-            <div class="kanban-empty" *ngIf="itemsInColumn(col).length === 0">
-              <mat-icon>inbox</mat-icon>
-              <span>Aucune action</span>
-            </div>
-          </div>
+          }
         </div>
-      </div>
-    </section>
+      </section>
+    }
 
-    </ng-container>
-  </ng-container>
+    <!-- ── TRACEABILITY FOOTER ─────────────────────────────────────── -->
+    @if (structured()?.traceability?.modelName) {
+      <div class="trace-footer">
+        <span class="trace-item">
+          <mat-icon>memory</mat-icon>
+          Modèle: <strong>{{ structured()!.traceability.modelName }}</strong>
+        </span>
+        @if (structured()!.traceability.generatedAt) {
+          <span class="trace-item">
+            <mat-icon>schedule</mat-icon>
+            Généré le: <strong>{{ structured()!.traceability.generatedAt | date:'dd/MM/yyyy HH:mm' }}</strong>
+          </span>
+        }
+        @if (structured()!.traceability.schemaVersion || structured()!.schemaVersion) {
+          <span class="trace-item">
+            <mat-icon>rule</mat-icon>
+            Schéma: <strong>{{ structured()!.traceability.schemaVersion || structured()!.schemaVersion }}</strong>
+          </span>
+        }
+        <span class="trace-item">
+          <mat-icon>dataset</mat-icon>
+          Couverture KPI: <strong>{{ structuredCoverageLabel() }}</strong>
+        </span>
+      </div>
+    }
+
+  }
 </div>

@@ -30,198 +30,237 @@ public class PdfTemplateBuilder {
     private String getCommonStyles() {
         return """
                 :root {
-                  --blue-dark: #1F3864;
-                  --blue-med: #2E75B6;
-                  --teal: #1D7874;
-                  --orange: #C55A11;
-                  --red: #C00000;
-                  --green: #375623;
-                  --gray-light: #F2F2F2;
+                  --primary:  #1E40AF;
+                  --indigo:   #6366F1;
+                  --green:    #10B981;
+                  --orange:   #F59E0B;
+                  --red:      #EF4444;
+                  --navy:     #0F172A;
+                  --surface:  #F8FAFC;
+                  --border:   #E2E8F0;
                 }
+                * { box-sizing: border-box; }
                 body {
                   margin: 0;
-                  padding: 20px;
-                  font-family: Arial, sans-serif;
-                  color: #222;
+                  padding: 28px 32px;
+                  font-family: Arial, Helvetica, sans-serif;
+                  font-size: 12px;
+                  color: #1E293B;
+                  background: #fff;
                 }
-                .page-break {
-                  page-break-after: always;
-                }
-                .header {
-                  background: #1F3864;
+                .page-break { page-break-after: always; }
+
+                /* ── Cover / Header ── */
+                .cover {
+                  background: #0F172A;
                   color: white;
-                  padding: 20px;
-                  border-radius: 8px;
-                  margin-bottom: 24px;
+                  padding: 40px 36px;
+                  border-radius: 12px;
+                  margin-bottom: 28px;
                 }
+                .cover h1 {
+                  margin: 0 0 6px;
+                  font-size: 26px;
+                  font-weight: 900;
+                  letter-spacing: -0.02em;
+                }
+                .cover .subtitle {
+                  font-size: 14px;
+                  color: #94A3B8;
+                  margin: 0 0 20px;
+                }
+                .cover-meta {
+                  display: flex;
+                  gap: 24px;
+                  flex-wrap: wrap;
+                  margin-top: 16px;
+                  padding-top: 16px;
+                  border-top: 1px solid #1E3A5F;
+                }
+                .cover-meta-item { font-size: 11px; color: #94A3B8; }
+                .cover-meta-item strong { color: #E2E8F0; display: block; font-size: 13px; }
+                .confidential {
+                  display: inline-block;
+                  padding: 3px 12px;
+                  border-radius: 999px;
+                  background: #1E3A5F;
+                  color: #93C5FD;
+                  font-size: 10px;
+                  font-weight: bold;
+                  letter-spacing: .08em;
+                  text-transform: uppercase;
+                  float: right;
+                  margin-top: -5px;
+                }
+
+                /* ── Section titles ── */
+                .section-title {
+                  font-size: 15px;
+                  font-weight: 800;
+                  color: #0F172A;
+                  border-left: 4px solid #1E40AF;
+                  padding-left: 12px;
+                  margin: 28px 0 14px;
+                }
+
+                /* ── Cards ── */
                 .card {
-                  border: 1px solid #BDD7EE;
+                  border: 1px solid #E2E8F0;
                   border-radius: 8px;
-                  padding: 16px;
-                  margin-bottom: 16px;
+                  padding: 14px 16px;
+                  margin-bottom: 12px;
+                  background: #fff;
                 }
                 .card-title {
-                  font-weight: bold;
-                  color: #1F3864;
-                  font-size: 14px;
+                  font-weight: 700;
+                  color: #1E40AF;
+                  font-size: 13px;
                   margin-bottom: 8px;
                 }
+
+                /* ── Level badges ── */
                 .badge-critique {
-                  background: #C00000;
-                  color: white;
-                  padding: 2px 8px;
-                  border-radius: 4px;
-                  font-size: 11px;
-                  font-weight: bold;
+                  background: #FEF2F2; color: #DC2626;
+                  padding: 2px 9px; border-radius: 999px;
+                  font-size: 10px; font-weight: 700; border: 1px solid #FCA5A5;
                 }
                 .badge-modere {
-                  background: #C55A11;
-                  color: white;
-                  padding: 2px 8px;
-                  border-radius: 4px;
-                  font-size: 11px;
-                  font-weight: bold;
+                  background: #FFFBEB; color: #D97706;
+                  padding: 2px 9px; border-radius: 999px;
+                  font-size: 10px; font-weight: 700; border: 1px solid #FDE68A;
                 }
                 .badge-faible {
-                  background: #375623;
-                  color: white;
-                  padding: 2px 8px;
-                  border-radius: 4px;
-                  font-size: 11px;
-                  font-weight: bold;
+                  background: #F0FDF4; color: #16A34A;
+                  padding: 2px 9px; border-radius: 999px;
+                  font-size: 10px; font-weight: 700; border: 1px solid #86EFAC;
                 }
-                .badge-hausse {
-                  color: #C00000;
-                  font-weight: bold;
-                }
-                .badge-baisse {
-                  color: #375623;
-                  font-weight: bold;
-                }
-                .badge-stable {
-                  color: #555555;
-                }
+                .badge-stable { color: #64748B; font-weight: 600; }
+                .badge-hausse { color: #EF4444; font-weight: 700; }
+                .badge-baisse { color: #10B981; font-weight: 700; }
                 .badge-ok {
-                  background: #375623;
-                  color: white;
-                  padding: 2px 8px;
-                  border-radius: 4px;
-                  font-size: 11px;
-                  font-weight: bold;
+                  background: #F0FDF4; color: #16A34A;
+                  padding: 2px 9px; border-radius: 999px;
+                  font-size: 10px; font-weight: 700;
                 }
                 .badge-alerte {
-                  background: #C00000;
-                  color: white;
-                  padding: 2px 8px;
-                  border-radius: 4px;
-                  font-size: 11px;
-                  font-weight: bold;
+                  background: #FEF2F2; color: #DC2626;
+                  padding: 2px 9px; border-radius: 999px;
+                  font-size: 10px; font-weight: 700;
                 }
                 .badge-inactif {
-                  background: #777;
-                  color: white;
-                  padding: 2px 8px;
-                  border-radius: 4px;
-                  font-size: 11px;
-                  font-weight: bold;
+                  background: #F1F5F9; color: #64748B;
+                  padding: 2px 9px; border-radius: 999px;
+                  font-size: 10px; font-weight: 700;
                 }
+
+                /* ── Tables ── */
                 table {
                   width: 100%;
                   border-collapse: collapse;
                   font-size: 11px;
                 }
                 th {
-                  background: #1F3864;
+                  background: #1E40AF;
                   color: white;
-                  padding: 8px;
+                  padding: 9px 10px;
                   text-align: left;
+                  font-weight: 700;
+                  letter-spacing: .03em;
                 }
                 td {
-                  padding: 6px 8px;
-                  border-bottom: 1px solid #E0E0E0;
+                  padding: 7px 10px;
+                  border-bottom: 1px solid #E2E8F0;
+                  vertical-align: middle;
                 }
-                tr:nth-child(even) {
-                  background: #F2F2F2;
+                tr:nth-child(even) td { background: #F8FAFC; }
+                .category-row td {
+                  background: #DBEAFE !important;
+                  font-weight: 700;
+                  color: #1E3A8A;
                 }
-                .section-title {
-                  font-size: 16px;
-                  font-weight: bold;
-                  color: #1F3864;
-                  border-left: 4px solid #2E75B6;
-                  padding-left: 12px;
-                  margin: 24px 0 12px 0;
-                }
+
+                /* ── AI block ── */
                 .analyse-ia {
-                  background: #EBF3FB;
-                  border-radius: 6px;
-                  padding: 12px;
+                  background: #EEF2FF;
+                  border-left: 4px solid #6366F1;
+                  border-radius: 0 6px 6px 0;
+                  padding: 12px 14px;
                   margin-bottom: 8px;
                   font-size: 11px;
+                  color: #312E81;
                 }
+                .analyse-ia-label {
+                  font-size: 10px;
+                  font-weight: 800;
+                  color: #6366F1;
+                  text-transform: uppercase;
+                  letter-spacing: .05em;
+                  margin-bottom: 5px;
+                }
+
+                /* ── Action plan blocks ── */
                 .plan-critique {
-                  background: #FFF2F2;
-                  border-left: 4px solid #C00000;
-                  padding: 12px;
-                  margin-bottom: 8px;
-                  border-radius: 4px;
+                  background: #FEF2F2;
+                  border-left: 4px solid #EF4444;
+                  padding: 12px 14px;
+                  margin-bottom: 10px;
+                  border-radius: 0 6px 6px 0;
                 }
+                .plan-critique strong { color: #DC2626; }
                 .plan-modere {
-                  background: #FFF8F2;
-                  border-left: 4px solid #C55A11;
-                  padding: 12px;
-                  margin-bottom: 8px;
-                  border-radius: 4px;
+                  background: #FFFBEB;
+                  border-left: 4px solid #F59E0B;
+                  padding: 12px 14px;
+                  margin-bottom: 10px;
+                  border-radius: 0 6px 6px 0;
                 }
+                .plan-modere strong { color: #D97706; }
                 .plan-surveillance {
-                  background: #F2FFF2;
-                  border-left: 4px solid #375623;
-                  padding: 12px;
-                  margin-bottom: 8px;
-                  border-radius: 4px;
+                  background: #F0FDF4;
+                  border-left: 4px solid #10B981;
+                  padding: 12px 14px;
+                  margin-bottom: 10px;
+                  border-radius: 0 6px 6px 0;
                 }
+                .plan-surveillance strong { color: #059669; }
+
+                /* ── Action boxes ── */
+                .action-box {
+                  border-left: 3px solid #6366F1;
+                  padding-left: 8px;
+                  margin-top: 6px;
+                  font-size: 11px;
+                  color: #334155;
+                }
+
+                /* ── Footer ── */
                 .footer {
                   text-align: center;
-                  font-size: 10px;
-                  color: #888;
-                  margin-top: 32px;
-                  padding-top: 12px;
-                  border-top: 1px solid #CCCCCC;
+                  font-size: 9px;
+                  color: #94A3B8;
+                  margin-top: 28px;
+                  padding-top: 10px;
+                  border-top: 1px solid #E2E8F0;
                 }
-                .muted {
-                  color: #666;
-                  font-size: 11px;
-                }
-                .category-row {
-                  background: #DDEBF7 !important;
-                  font-weight: bold;
-                }
+
+                /* ── 8D table ── */
                 .eightd-table {
                   width: 100%;
                   margin-top: 10px;
-                  border: 1px solid #BDD7EE;
+                  border: 1px solid #E2E8F0;
                   font-size: 10px;
                 }
                 .eightd-table th {
-                  background: #DEEAF6;
-                  color: #1F3864;
-                  width: 20%;
-                  font-weight: bold;
+                  background: #EEF2FF;
+                  color: #3730A3;
+                  width: 22%;
+                  font-weight: 700;
                 }
-                .eightd-table td {
-                  background: white;
-                }
-                .action-box {
-                  border-left: 3px solid #2E75B6;
-                  padding-left: 8px;
-                  margin-top: 5px;
-                }
-                ul {
-                  margin: 8px 0 0 16px;
-                  padding: 0;
-                }
-                li {
-                  margin-bottom: 6px;
-                }
+                .eightd-table td { background: white; }
+
+                ul { margin: 8px 0 0 16px; padding: 0; }
+                li { margin-bottom: 5px; line-height: 1.5; }
+                .muted { color: #64748B; font-size: 11px; }
                 """;
     }
 
@@ -243,15 +282,16 @@ public class PdfTemplateBuilder {
         String dateFormatted = formatDateTime(dateGeneration);
 
         html.append("<div class=\"page-break\">")
-                .append("<div class=\"header\">")
-                .append("<h1 style=\"margin:0 0 8px 0;font-size:30px;\">QHSE Analytics</h1>")
-                .append("<div style=\"font-size:18px;\">Rapport Comparatif QHSE</div>")
-                .append("<div style=\"margin-top:10px;font-size:13px;\">Periode : ").append(periodeN1).append(" vs ").append(periodeN).append("</div>")
+                .append("<div class=\"cover\">")
+                .append("<span class=\"confidential\">Confidentiel</span>")
+                .append("<h1>QHSE Analytics</h1>")
+                .append("<div class=\"subtitle\">Rapport Comparatif de Performance QHSE</div>")
+                .append("<div class=\"cover-meta\">")
+                .append("<div class=\"cover-meta-item\"><strong>Période</strong>").append(periodeN1).append(" vs ").append(periodeN).append("</div>")
+                .append("<div class=\"cover-meta-item\"><strong>Analyste</strong>").append(escapeHtml(analysteFullName)).append("</div>")
+                .append("<div class=\"cover-meta-item\"><strong>Généré le</strong>").append(dateFormatted).append("</div>")
+                .append("<div class=\"cover-meta-item\"><strong>Plateforme</strong>QHSE Analytics Platform</div>")
                 .append("</div>")
-                .append("<div class=\"card\">")
-                .append("<div><strong>Analyste :</strong> ").append(analysteFullName).append("</div>")
-                .append("<div><strong>Date de generation :</strong> ").append(dateFormatted).append("</div>")
-                .append("<div><strong>Genere par :</strong> QHSE Analytics Platform</div>")
                 .append("</div>");
         appendFooter(html, dateFormatted);
         html.append("</div>");
@@ -354,11 +394,13 @@ public class PdfTemplateBuilder {
                             .append("</div>");
 
                     if (ligne.getRiskJustification() != null) {
-                        html.append("<div class=\"analyse-ia\"><strong>Analyse :</strong> ")
+                        html.append("<div class=\"analyse-ia\">")
+                                .append("<div class=\"analyse-ia-label\">&#10024; Analyse IA</div>")
                                 .append(nl2br(ligne.getRiskJustification()))
                                 .append("</div>");
                     } else if (ligne.getAnalyseIa() != null) {
                         html.append("<div class=\"analyse-ia\">")
+                                .append("<div class=\"analyse-ia-label\">&#10024; Analyse IA</div>")
                                 .append(nl2br(ligne.getAnalyseIa()))
                                 .append("</div>");
                     }
@@ -459,12 +501,16 @@ public class PdfTemplateBuilder {
                 : "Global consolide";
 
         html.append("<div class=\"page-break\">")
-                .append("<div class=\"header\">")
-                .append("<h1 style=\"margin:0 0 8px 0;font-size:28px;\">Rapport Global QHSE Analytics</h1>")
-                .append("<div style=\"font-size:14px;\">Periode : ").append(escapeHtml(periodeLabel)).append("</div>")
-                .append("<div style=\"margin-top:8px;font-size:12px;\">Date de generation : ").append(dateFormatted).append("</div>")
+                .append("<div class=\"cover\">")
+                .append("<span class=\"confidential\">Confidentiel</span>")
+                .append("<h1>QHSE Analytics</h1>")
+                .append("<div class=\"subtitle\">Rapport Global Administrateur</div>")
+                .append("<div class=\"cover-meta\">")
+                .append("<div class=\"cover-meta-item\"><strong>Période</strong>").append(escapeHtml(periodeLabel)).append("</div>")
+                .append("<div class=\"cover-meta-item\"><strong>Rôle</strong>Administrateur</div>")
+                .append("<div class=\"cover-meta-item\"><strong>Généré le</strong>").append(dateFormatted).append("</div>")
                 .append("</div>")
-                .append("<div class=\"card\"><strong>Genere par :</strong> Administrateur</div>");
+                .append("</div>");
         appendFooter(html, dateFormatted);
         html.append("</div>");
 
@@ -592,9 +638,11 @@ public class PdfTemplateBuilder {
     }
 
     private void appendFooter(StringBuilder html, String dateFormatted) {
-        html.append("<div class=\"footer\">QHSE Analytics - Rapport genere le ")
+        html.append("<div class=\"footer\">")
+                .append("QHSE Analytics &nbsp;·&nbsp; Généré le ")
                 .append(escapeHtml(dateFormatted))
-                .append(" - Confidentiel</div>");
+                .append(" &nbsp;·&nbsp; <strong>Confidentiel — Usage interne uniquement</strong>")
+                .append("</div>");
     }
 
     private String buildAdminCriticalActions(List<AdminKpiCritiqueResponse> kpisCritiques) {

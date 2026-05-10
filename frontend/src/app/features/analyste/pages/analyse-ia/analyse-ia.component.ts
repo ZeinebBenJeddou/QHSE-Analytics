@@ -14,14 +14,29 @@ import { MatButtonModule } from '@angular/material/button';
 
 import { DashboardService } from '../../../../core/services/dashboard.service';
 import { AiAnalysisService } from '../../../../core/services/ai-analysis.service';
+import { ImportSessionStateService } from '../../../../core/services/import-session-state.service';
 import { ResumeAnalysteResponse } from '../../../../core/models/dashboard.model';
-import { AiAnalysisStructuredResponse, AiPredictiveAlertResponse, AiRootCauseResponse, AnalyseCompleteResponse, AnalyseGlobaleResponse, AnalyseCategorieResponse, ResultatKpiIaResponse } from '../../../../core/models/analyse-ia.model';
+import { AiAnalysisStructuredResponse, AiKpiInsightResponse, AiPredictiveAlertResponse, AiRootCauseResponse, AnalyseCompleteResponse, AnalyseGlobaleResponse, AnalyseCategorieResponse, ResultatKpiIaResponse } from '../../../../core/models/analyse-ia.model';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../../environments/environment';
 
 /* ══════════════════════════════════════════════════════════════════════
    DTOs — miroir exact du backend
 ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Enriched KPI ───────────────────────────────────────────────────── */
+interface EnrichedKpi extends ResultatKpiIaResponse {
+  insight?: string;
+  insightConfidence?: number;
+  structuredCauses: string[];
+  structuredRecos: string[];
+  structuredAction?: string;
+  structuredOwner?: string;
+  structuredDue?: string;
+  structuredSuccess?: string;
+  structuredRisk?: string;
+  urgency?: string;
+}
 
 /* ── Kanban item ────────────────────────────────────────────────────── */
 interface KanbanItem {
@@ -65,6 +80,7 @@ export class AnalyseIAComponent implements OnInit {
 
   private dashboardService = inject(DashboardService);
   private aiAnalysisService = inject(AiAnalysisService);
+  private sessionState     = inject(ImportSessionStateService);
   private snackBar         = inject(MatSnackBar);
   private route            = inject(ActivatedRoute);
   private http             = inject(HttpClient);
@@ -83,6 +99,11 @@ export class AnalyseIAComponent implements OnInit {
   // ── UI state ─────────────────────────────────────────────────────────
   activeCatCode   = signal('Q');
   expandedKpiId   = signal<number | null>(null);
+
+  // ── Filter state ─────────────────────────────────────────────────────
+  searchKpi       = signal('');
+  niveauKpiFilter = signal('');
+  catFilter       = signal('');
 
   // ── Constants ─────────────────────────────────────────────────────────
   readonly CATEGORIES = CATEGORIES;
@@ -224,6 +245,7 @@ export class AnalyseIAComponent implements OnInit {
     this.structured.set(null);
     this.analyse.set(null);
     this.loadKanbanState();
+    this.sessionState.setActiveImport(importId);
 
     // First, try to load structured analysis
     this.aiAnalysisService.getStructuredAnalysis(importId)
@@ -242,6 +264,18 @@ export class AnalyseIAComponent implements OnInit {
   }
 
   loadLegacyAnalyse(importId: number) {
+    // Reuse data already fetched by the dashboard component for the same import.
+    const cached = this.sessionState.getDashboardData();
+    if (this.sessionState.getActiveImportId() === importId && cached.analysesIa) {
+      this.analyse.set(cached.analysesIa);
+      const firstCat = CATEGORIES.find(c =>
+        cached.analysesIa!.analysesKpis.some(k => k.categorieCode === c.code)
+      );
+      if (firstCat) this.activeCatCode.set(firstCat.code);
+      this.loading.set(false);
+      return;
+    }
+
     // Endpoint principal : GET /api/dashboard/analyste/analyses/{importId}
     this.http.get<AnalyseCompleteResponse>(`${this.dashboardAnalysteBase}/analyses/${importId}`)
       .pipe(
@@ -255,7 +289,7 @@ export class AnalyseIAComponent implements OnInit {
       .subscribe(data => {
         if (data) {
           this.analyse.set(data);
-          // Sélectionner la première catégorie qui a des KPIs
+          this.sessionState.patch({ analysesIa: data });
           const firstCat = CATEGORIES.find(c =>
             data.analysesKpis.some(k => k.categorieCode === c.code)
           );
@@ -485,5 +519,108 @@ export class AnalyseIAComponent implements OnInit {
     if (severity === 'HIGH')   return 'error';
     if (severity === 'MEDIUM') return 'warning';
     return 'info';
+  }
+
+  // ── Enriched KPIs (merge legacy + structured) ────────────────────────
+  enrichedKpis = computed((): EnrichedKpi[] => {
+    const legacy   = this.analyse()?.analysesKpis ?? [];
+    const insights = this.structured()?.kpiInsights ?? [];
+
+    const byId   = new Map<number, AiKpiInsightResponse>();
+    const byName = new Map<string, AiKpiInsightResponse>();
+    insights.forEach(ins => {
+      if (ins.kpiId != null) byId.set(ins.kpiId, ins);
+      if (ins.kpiName) byName.set(ins.kpiName.toLowerCase().trim(), ins);
+    });
+
+    if (legacy.length > 0) {
+      return legacy.map(kpi => {
+        const ins = byId.get(kpi.kpiId) ?? byName.get(kpi.kpiNom?.toLowerCase().trim() ?? '');
+        return {
+          ...kpi,
+          insight:           ins?.insight ?? kpi.analyseIa ?? undefined,
+          insightConfidence: ins?.confidence,
+          structuredCauses:  ins?.probableCauses ?? [],
+          structuredRecos:   ins?.recommendations ?? [],
+          structuredAction:  ins?.actionImmediate ?? kpi.immediateAction,
+          structuredOwner:   ins?.ownerRole,
+          structuredDue:     ins?.dueHorizon,
+          structuredSuccess: ins?.successMetric,
+          structuredRisk:    ins?.riskIfNotDone,
+          urgency:           ins?.urgency,
+        };
+      });
+    }
+
+    // Structured-only fallback (no legacy data)
+    return insights.map((ins, i): EnrichedKpi => ({
+      id: i, kpiId: ins.kpiId ?? i, kpiNom: ins.kpiName, kpiUnite: '',
+      categorieCode: '', categorieLibelle: '',
+      periodeN1: 0, periodeN: 0, valeurN1: 0, valeurN: 0,
+      variationAbsolue: 0, variationRelative: 0,
+      niveauVariation: null, tendance: null,
+      analyseIa: ins.insight ?? null, createdAt: '',
+      insight: ins.insight, insightConfidence: ins.confidence,
+      structuredCauses: ins.probableCauses ?? [],
+      structuredRecos:  ins.recommendations ?? [],
+      structuredAction: ins.actionImmediate,
+      structuredOwner:  ins.ownerRole,
+      structuredDue:    ins.dueHorizon,
+      structuredSuccess: ins.successMetric,
+      structuredRisk:   ins.riskIfNotDone,
+      urgency:          ins.urgency,
+    }));
+  });
+
+  filteredKpis = computed(() => {
+    const all    = this.enrichedKpis();
+    const search = this.searchKpi().toLowerCase().trim();
+    const cat    = this.catFilter();
+    const niveau = this.niveauKpiFilter();
+    return all.filter(k =>
+      (!search || k.kpiNom?.toLowerCase().includes(search)) &&
+      (!cat    || k.categorieCode === cat) &&
+      (!niveau || k.niveauVariation === niveau)
+    );
+  });
+
+  heroStats = computed(() => {
+    const kpis     = this.analyse()?.analysesKpis ?? [];
+    const total    = kpis.length || (this.structured()?.kpiInsights?.length ?? 0);
+    const critiques = kpis.filter(k => k.niveauVariation === 'CRITIQUE').length;
+    const moderes   = kpis.filter(k => k.niveauVariation === 'MODERE').length;
+    const faibles   = kpis.filter(k => k.niveauVariation === 'FAIBLE').length;
+    const withAi    = kpis.filter(k => k.analyseIa).length
+                    + (this.structured()?.kpiInsights?.length ?? 0);
+    return { total, critiques, moderes, faibles, withAi: Math.min(withAi, total) };
+  });
+
+  get modelLabel(): string {
+    const m = this.structured()?.traceability?.modelName ?? '';
+    if (m.toLowerCase().includes('gemini')) return 'Gemini';
+    if (m.toLowerCase().includes('llama') || m.toLowerCase().includes('qwen') || m.toLowerCase().includes('groq')) return 'Groq';
+    if (m) return m;
+    return 'IA';
+  }
+
+  globalSummaryText(): string {
+    return this.structured()?.globalSummary?.trim()
+        || this.analyse()?.analyseGlobale?.synthese?.trim()
+        || '';
+  }
+
+  probableCausesList(): string[] {
+    const s = this.structured()?.probableCauses ?? [];
+    if (s.length) return s;
+    return this.planActionsList().slice(0, 5);
+  }
+
+  // ── Filter setters ───────────────────────────────────────────────────
+  setCatFilter(code: string)   { this.catFilter.set(code); }
+  setNiveauFilter(n: string)   { this.niveauKpiFilter.set(n); }
+  setSearch(v: string)         { this.searchKpi.set(v); }
+
+  catCountAll(code: string): number {
+    return this.enrichedKpis().filter(k => k.categorieCode === code).length;
   }
 }

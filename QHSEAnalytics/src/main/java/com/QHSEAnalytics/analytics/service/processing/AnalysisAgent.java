@@ -7,10 +7,11 @@ import com.QHSEAnalytics.shared.dto.response.AiConfidenceResponse;
 import com.QHSEAnalytics.shared.dto.response.AiTraceabilityResponse;
 import com.QHSEAnalytics.shared.dto.response.KpiCalculatedDTO;
 import com.QHSEAnalytics.shared.entity.AnalyseGlobale;
-import com.QHSEAnalytics.shared.entity.Kpi;
+import com.QHSEAnalytics.shared.entity.RagKnowledge;
 import com.QHSEAnalytics.shared.repository.AnalyseGlobaleRepository;
 import com.QHSEAnalytics.shared.repository.KpiRepository;
 import com.QHSEAnalytics.analytics.service.LlmProviderChain;
+import com.QHSEAnalytics.analytics.service.RagSearchService;
 import com.QHSEAnalytics.analytics.service.TextNormalizer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -43,6 +44,7 @@ public class AnalysisAgent {
     private final StructuredAnalysisValidator structuredAnalysisValidator;
     private final MeterRegistry meterRegistry;
     private final PromptSanitizer promptSanitizer;
+    private final RagSearchService ragSearchService;
 
     public String analyze(List<KpiCalculatedDTO> calculatedData) {
         if (calculatedData == null || calculatedData.isEmpty()) {
@@ -133,6 +135,7 @@ public class AnalysisAgent {
 
         AiAnalysisStructuredResponse response = parseStructuredResponse(responseJson);
         if (response != null) {
+            structuredAnalysisValidator.sanitize(response);
             var errors = structuredAnalysisValidator.validate(response, topKpis);
             int missingCount = computeMissingKpiCount(topKpis, response.getKpiInsights());
             log.info("[AnalysisAgent] analyseStructured: coverage total_input_kpis={} total_output_insights={} missing_kpis_count={} importSessionId={}",
@@ -151,6 +154,7 @@ public class AnalysisAgent {
             LlmProviderChain.ProviderResult retryResult = llmProviderChain.generate(retryPrompt, cacheKeyPrefix, bypassCache);
             AiAnalysisStructuredResponse retryResponse = parseStructuredResponse(retryResult == null ? null : retryResult.response());
             if (retryResponse != null) {
+                structuredAnalysisValidator.sanitize(retryResponse);
                 var retryErrors = structuredAnalysisValidator.validate(retryResponse, topKpis);
                 int retryMissingCount = computeMissingKpiCount(topKpis, retryResponse.getKpiInsights());
                 log.info("[AnalysisAgent] analyseStructured: retry coverage total_input_kpis={} total_output_insights={} missing_kpis_count={} importSessionId={}",
@@ -356,7 +360,8 @@ public class AnalysisAgent {
                 }
                 insight.setName(name);
 
-                double score = n.path("score").isNumber() ? n.path("score").asDouble() : n.path("rating").asDouble(0.0);
+                double kpiRawScore = n.path("score").isNumber() ? n.path("score").asDouble() : n.path("rating").asDouble(0.0);
+                double score = (Double.isNaN(kpiRawScore) || Double.isInfinite(kpiRawScore)) ? 0.0 : Math.max(0.0, Math.min(100.0, kpiRawScore));
                 insight.setScore(score);
 
                 String rawInsight = n.path("insight").asText();
@@ -430,14 +435,22 @@ public class AnalysisAgent {
     private String buildPrompt(List<KpiCalculatedDTO> data) {
         StringBuilder prompt = new StringBuilder();
 
-        // RAG Context: All indicators (Definitions & Thresholds)
-        List<Kpi> allKpis = kpiRepository.findByIsActiveTrueOrderByOrdreAsc();
-        prompt.append("=== CONTEXTE MÉTIER : TOUS LES INDICATEURS ===\n");
-        allKpis.forEach(k -> prompt.append(String.format(
-            "Indicateur: %s | Définition: %s | Seuils: Faible<%s, Modéré<%s, Critique<%s\n",
-            k.getNom(), k.getDefinition(), k.getSeuilFaible(), k.getSeuilModere(), k.getSeuilCritique()
-        )));
-        prompt.append("\n");
+        // RAG Context: vector similarity search on combined KPI names (one embedding call)
+        String combinedQuery = data.stream()
+                .map(k -> promptSanitizer.sanitize(k.getKpiName()))
+                .collect(Collectors.joining(", "));
+        List<RagKnowledge> ragResults = ragSearchService.findRelevant(combinedQuery, 10, null, 0.65);
+        if (!ragResults.isEmpty()) {
+            prompt.append("=== CONTEXTE MÉTIER QHSE (base de connaissances) ===\n");
+            ragResults.forEach(r -> {
+                prompt.append("• ").append(r.getKpiName()).append(": ").append(r.getDefinition());
+                if (r.getThresholds() != null) {
+                    prompt.append(" | Seuils: ").append(r.getThresholds());
+                }
+                prompt.append("\n");
+            });
+            prompt.append("\n");
+        }
 
         // RAG Context: Recent Action Plans
         List<AnalyseGlobale> recentAnalyses = analyseGlobaleRepository.findTop10ByOrderByCreatedAtDesc();

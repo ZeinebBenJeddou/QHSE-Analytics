@@ -25,6 +25,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { DashboardService } from '../../../../core/services/dashboard.service';
 import { ImportService } from '../../../../core/services/import.service';
 import { KpiEnrichmentService } from '../../../../core/services/kpi-enrichment.service';
+import { ImportSessionStateService } from '../../../../core/services/import-session-state.service';
 import {
   ResumeAnalysteResponse,
   ComparatifTableauResponse,
@@ -76,6 +77,7 @@ export class DashboardAnalysteComponent implements OnInit {
   private importService = inject(ImportService);
   private enrichmentService = inject(KpiEnrichmentService);
   private snackBar = inject(MatSnackBar);
+  private sessionState = inject(ImportSessionStateService);
 
   importId = signal<number | null>(null);
   exporting = signal(false);
@@ -99,6 +101,9 @@ export class DashboardAnalysteComponent implements OnInit {
   selectedYearN = signal<number | null>(null);
   selectedYearN1 = signal<number | null>(null);
 
+  sortColumn = signal<string>('variationAbsolue');
+  sortDir = signal<'asc' | 'desc'>('desc');
+
   private filtersKey = 'analyste.dashboard.filters';
 
   /** Track which KPI rows are expanded to show full AI analysis */
@@ -112,12 +117,27 @@ export class DashboardAnalysteComponent implements OnInit {
     const cat = this.categorieFilter();
     const niveau = this.niveauFilter();
     const risk = this.riskFilter();
-    return lignes.filter(l =>
+    const filtered = lignes.filter(l =>
       (!search || l.kpiNom.toLowerCase().includes(search)) &&
       (!cat || l.categorieCode === cat) &&
       (!niveau || l.niveauVariation === niveau) &&
       (!risk || l.riskLevel === risk)
     );
+    const col = this.sortColumn();
+    const dir = this.sortDir();
+    return [...filtered].sort((a, b) => {
+      const aVal = (a as any)[col] ?? 0;
+      const bVal = (b as any)[col] ?? 0;
+      if (typeof aVal === 'string') {
+        return dir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      }
+      return dir === 'asc' ? aVal - bVal : bVal - aVal;
+    });
+  });
+
+  maxVariationAbs = computed(() => {
+    const lignes = this.comparatif()?.lignes ?? [];
+    return Math.max(...lignes.map(l => Math.abs(l.variationRelative)), 1);
   });
 
   categories = computed(() => {
@@ -337,6 +357,8 @@ export class DashboardAnalysteComponent implements OnInit {
         this.selectedYearN.set(res.periodeN ?? null);
         this.selectedYearN1.set(res.periodeN1 ?? null);
         this.importId.set(res.dernierImportId);
+        this.sessionState.setActiveImport(res.dernierImportId);
+        this.sessionState.patch({ resume: res });
         this.loadDashboardData(res.dernierImportId, { includeComparatif: true });
       },
       error: err => {
@@ -353,12 +375,14 @@ export class DashboardAnalysteComponent implements OnInit {
     this.graphiques.set(null);
     this.analysesIa.set(null);
     this.expandedRows.set(new Set());
+    this.sessionState.setActiveImport(importId);
 
     this.dashboardService.getComparatif(importId).subscribe({
       next: res => {
         this.comparatif.set(res);
         this.selectedYearN.set(res.periodeN ?? null);
         this.selectedYearN1.set(res.periodeN1 ?? null);
+        this.sessionState.patch({ comparatif: res });
         this.loadDashboardData(importId, { includeComparatif: false });
       },
       error: err => {
@@ -401,6 +425,47 @@ export class DashboardAnalysteComponent implements OnInit {
   onSearchChange(val: string): void {
     this.searchFilter.set(val);
     this.saveFilters();
+  }
+
+  onNiveauChange(val: string): void {
+    this.niveauFilter.set(val);
+    this.saveFilters();
+  }
+
+  toggleSort(col: string): void {
+    if (this.sortColumn() === col) {
+      this.sortDir.set(this.sortDir() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortColumn.set(col);
+      this.sortDir.set('desc');
+    }
+  }
+
+  sortIcon(col: string): string {
+    if (this.sortColumn() !== col) return 'unfold_more';
+    return this.sortDir() === 'asc' ? 'arrow_upward' : 'arrow_downward';
+  }
+
+  getBarWidth(val: number): string {
+    const max = this.maxVariationAbs();
+    if (!max) return '0%';
+    return Math.min(100, Math.round((Math.abs(val) / max) * 100)) + '%';
+  }
+
+  variationBarClass(row: LigneComparatifResponse): string {
+    if (row.tendance === 'HAUSSE' && row.niveauVariation === 'CRITIQUE') return 'bar-critique';
+    if (row.tendance === 'HAUSSE') return 'bar-hausse';
+    if (row.tendance === 'BAISSE') return 'bar-baisse';
+    return 'bar-stable';
+  }
+
+  catLabel(code: string): string {
+    const map: Record<string, string> = { Q: 'Qualité', H: 'Hygiène', S: 'Sécurité', E: 'Environnement' };
+    return map[code?.toUpperCase()] ?? code;
+  }
+
+  catCount(code: string): number {
+    return (this.comparatif()?.lignes ?? []).filter(l => l.categorieCode === code).length;
   }
 
   onPeriodChangeN(val: string): void {
@@ -450,6 +515,7 @@ export class DashboardAnalysteComponent implements OnInit {
       .subscribe({ next: r => {
         if (r) {
           this.graphiques.set(r);
+          this.sessionState.patch({ graphiques: r });
         }
       } });
 
@@ -465,6 +531,7 @@ export class DashboardAnalysteComponent implements OnInit {
       .subscribe({ next: r => {
         if (r) {
           this.analysesIa.set(r);
+          this.sessionState.patch({ analysesIa: r });
           this.applyAnalysesToComparatif();
         }
       } });

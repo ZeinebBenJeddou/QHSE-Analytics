@@ -27,6 +27,8 @@ import com.QHSEAnalytics.shared.repository.StagingDonneeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -64,9 +66,9 @@ public class AdminUserService {
     private String adminEmail;
 
     @Transactional(readOnly = true)
-    public UserListResponse getAllUsers() {
-        List<User> users = userRepository.findAllByOrderByCreatedAtDesc();
-        List<UserResponse> responses = users.stream().map(this::toUserResponse).toList();
+    public UserListResponse getAllUsers(Pageable pageable) {
+        Page<User> page = userRepository.findAllByOrderByCreatedAtDesc(pageable);
+        List<UserResponse> responses = page.getContent().stream().map(this::toUserResponse).toList();
 
         return UserListResponse.builder()
                 .users(responses)
@@ -74,6 +76,10 @@ public class AdminUserService {
                 .totalAnalystes((int) userRepository.countByRole(User.Role.ANALYSTE))
                 .totalActifs((int) userRepository.countByActiveTrue())
                 .totalInactifs((int) userRepository.countByActiveFalse())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .currentPage(page.getNumber())
+                .pageSize(page.getSize())
                 .build();
     }
 

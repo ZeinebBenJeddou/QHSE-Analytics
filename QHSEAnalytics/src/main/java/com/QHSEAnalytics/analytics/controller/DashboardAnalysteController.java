@@ -9,12 +9,15 @@ import com.QHSEAnalytics.shared.dto.response.HistoriqueAnalysteResponse;
 import com.QHSEAnalytics.shared.dto.response.ResumeAnalysteResponse;
 import com.QHSEAnalytics.analytics.service.DashboardAnalysteService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -42,8 +45,11 @@ public class DashboardAnalysteController {
     }
 
     @GetMapping("/historique")
-    public ResponseEntity<HistoriqueAnalysteResponse> getHistorique() {
-        return ResponseEntity.ok(dashboardAnalysteService.getHistorique(getCurrentUserId()));
+    public ResponseEntity<HistoriqueAnalysteResponse> getHistorique(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(dashboardAnalysteService.getHistorique(
+                getCurrentUserId(), PageRequest.of(page, size, Sort.by("createdAt").descending())));
     }
 
     @GetMapping("/analyses/{importId}")

@@ -1,8 +1,10 @@
 package com.QHSEAnalytics.analytics.service;
 
+import com.QHSEAnalytics.analytics.service.processing.PromptSanitizer;
 import com.QHSEAnalytics.shared.entity.ResultatKpi;
 import com.QHSEAnalytics.shared.enums.NiveauVariation;
 import com.QHSEAnalytics.shared.enums.Tendance;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -15,8 +17,11 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 @Slf4j
 public class GroqPromptBuilder {
+
+    private final PromptSanitizer promptSanitizer;
 
     public String buildKpiPrompt(
             String kpiNom,
@@ -29,7 +34,8 @@ public class GroqPromptBuilder {
             NiveauVariation niveau,
             Tendance tendance,
             int periodeN1,
-            int periodeN
+            int periodeN,
+            String ragContext
     ) {
                 // Ensure KPI name is short to avoid token bloat
                 String safeName = safe(kpiNom);
@@ -57,6 +63,14 @@ public class GroqPromptBuilder {
                 sb.append("  \"noteFinale\": \"text\"\n");
                 sb.append("}\n\n");
 
+                // RAG context injected here when available (enriched definition, benchmarks, causes, norms)
+                if (ragContext != null && !ragContext.isBlank()) {
+                    sb.append("=== CONTEXTE QHSE (base de connaissances) ===\n");
+                    // Limit RAG context size to avoid token bloat
+                    String trimmedRag = ragContext.length() > 1200 ? ragContext.substring(0, 1200) + "…" : ragContext;
+                    sb.append(trimmedRag).append("\n\n");
+                }
+
                 sb.append("Contexte KPI (seulement les champs suivants) :\n");
                 sb.append("- nom: ").append(safeName).append("\n");
                 sb.append("- valeur_n: ").append(formatValue(valeurN)).append("\n");
@@ -65,6 +79,7 @@ public class GroqPromptBuilder {
                 sb.append("- unite: ").append(safe(unite)).append("\n");
                 sb.append("- categorie: ").append(safe(categorieLibelle)).append("\n\n");
 
+                sb.append("Utilise le contexte QHSE ci-dessus pour enrichir ton analyse (formule, direction, benchmarks, causes, normes ISO).\n");
                 sb.append("Réponds en français. Les champs texte doivent être brefs et factuels.\n");
 
                 return sb.toString();
@@ -280,7 +295,7 @@ public class GroqPromptBuilder {
         }
 
     private String safe(String value) {
-        return value == null ? "" : value;
+        return promptSanitizer.sanitize(value);
     }
 
         private String safeEnum(Enum<?> value) {

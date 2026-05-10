@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -16,6 +17,10 @@ import java.util.Set;
 /**
  * Filtre de rate limiting sur les endpoints d'authentification sensibles.
  * Retourne HTTP 429 quand le seuil est dépassé.
+ *
+ * X-Forwarded-For n'est utilisé que si app.rate-limit.trust-proxy=true
+ * (à activer uniquement derrière un reverse proxy de confiance — nginx, traefik…).
+ * Par défaut : RemoteAddr direct pour éviter l'usurpation d'IP.
  */
 @Component
 @RequiredArgsConstructor
@@ -23,6 +28,9 @@ import java.util.Set;
 public class RateLimitingFilter extends OncePerRequestFilter {
 
     private final InMemoryRateLimiter rateLimiter;
+
+    @Value("${app.rate-limit.trust-proxy:false}")
+    private boolean trustProxy;
 
     private static final Set<String> PROTECTED_PATHS = Set.of(
             "/api/auth/login",
@@ -64,9 +72,11 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     }
 
     private String resolveClientIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].trim();
+        if (trustProxy) {
+            String forwarded = request.getHeader("X-Forwarded-For");
+            if (forwarded != null && !forwarded.isBlank()) {
+                return forwarded.split(",")[0].trim();
+            }
         }
         return request.getRemoteAddr();
     }

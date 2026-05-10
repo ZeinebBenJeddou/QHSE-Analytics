@@ -29,6 +29,7 @@ import com.QHSEAnalytics.shared.repository.KpiRawDataRepository;
 import com.QHSEAnalytics.shared.repository.KpiRepository;
 import com.QHSEAnalytics.shared.repository.RagKnowledgeRepository;
 import com.QHSEAnalytics.shared.repository.ResultatKpiRepository;
+import com.QHSEAnalytics.importer.service.FileStorageService;
 import com.QHSEAnalytics.importer.service.ImportProgressService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -58,6 +59,7 @@ public class ImportProcessingService {
     private final CategorieKpiRepository categorieKpiRepository;
     private final RagKnowledgeRepository ragKnowledgeRepository;
     private final ImportProgressService importProgressService;
+    private final FileStorageService fileStorageService;
 
     @Transactional
     public ImportProcessingResponse processManualImport(ImportRequestDTO request, User user) {
@@ -198,12 +200,16 @@ public class ImportProcessingService {
     }
 
     private ImportSession buildImportSession(MultipartFile file, User user, int yearN, int yearNMinus1) {
+        FileStorageService.StoredFile stored = fileStorageService.store(file, user.getId(), yearN);
         return ImportSession.builder()
                 .user(user)
                 .mode(ImportMode.MANUAL)
                 .nomFichier(file.getOriginalFilename())
                 .templateVersion(null)
-                .fileContent(null)
+                .fileStoragePath(stored.path())
+                .fileStorageBucket(stored.bucket())
+                .fileSizeBytes(stored.sizeBytes())
+                .fileChecksum(stored.checksum())
                 .periodeN1(yearNMinus1)
                 .periodeN(yearN)
                 .statut(ImportStatut.initial())

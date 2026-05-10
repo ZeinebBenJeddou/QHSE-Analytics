@@ -8,6 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TokenService } from '../../core/services/token.service';
+import { AuthService } from '../../core/services/auth.service';
 import { filter } from 'rxjs/operators';
 
 @Component({
@@ -29,6 +30,7 @@ import { filter } from 'rxjs/operators';
 })
 export class AdminShellComponent {
   private readonly tokenService = inject(TokenService);
+  private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
 
   sidenavOpen = true;
@@ -57,8 +59,16 @@ export class AdminShellComponent {
   }
 
   logout(): void {
-    this.tokenService.removeToken();
-    this.router.navigate(['/auth/login']);
+    this.authService.logout().subscribe({
+      complete: () => {
+        this.tokenService.removeToken();
+        this.router.navigate(['/auth/login']);
+      },
+      error: () => {
+        this.tokenService.removeToken();
+        this.router.navigate(['/auth/login']);
+      }
+    });
   }
 
   toggleSidenav(): void {

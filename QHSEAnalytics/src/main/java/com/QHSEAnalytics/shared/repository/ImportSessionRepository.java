@@ -2,6 +2,8 @@ package com.QHSEAnalytics.shared.repository;
 
 import com.QHSEAnalytics.shared.entity.ImportSession;
 import com.QHSEAnalytics.shared.enums.ImportStatut;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -20,6 +22,13 @@ public interface ImportSessionRepository extends JpaRepository<ImportSession, Lo
 
     @EntityGraph(attributePaths = {"user"})
     List<ImportSession> findByUserIdOrderByCreatedAtDesc(Long userId);
+
+    @EntityGraph(attributePaths = {"user"})
+    Page<ImportSession> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
+
+    long countByUserIdAndStatutIn(Long userId, List<ImportStatut> statuts);
+
+    long countByUserIdAndStatut(Long userId, ImportStatut statut);
 
     Optional<ImportSession> findTopByUserIdAndStatutOrderByCreatedAtDesc(Long userId, ImportStatut statut);
 

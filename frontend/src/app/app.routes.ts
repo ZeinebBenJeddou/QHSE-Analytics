@@ -27,6 +27,7 @@ import { authGuard } from './core/guards/auth.guard';
 import { adminGuard } from './core/guards/admin.guard';
 import { analysteGuard } from './core/guards/analyste.guard';
 import { ComparatifComponent } from './features/analyste/pages/comparatif/comparatif.component';
+import { ExportPdfComponent } from './features/analyste/pages/export-pdf/export-pdf.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'auth', pathMatch: 'full' },
@@ -72,6 +73,7 @@ export const routes: Routes = [
       { path: 'comparatif', component: ComparatifComponent },
       { path: 'tendances', component: DashboardAnalysteComponent },
       { path: 'categories', component: DashboardAnalysteComponent },
+      { path: 'export', component: ExportPdfComponent },
     ],
   },
 

@@ -1,7 +1,16 @@
 package com.QHSEAnalytics.auth.controller;
 
-import com.QHSEAnalytics.auth.dto.request.*;
+import com.QHSEAnalytics.auth.dto.request.ForgotPasswordRequest;
+import com.QHSEAnalytics.auth.dto.request.LoginRequest;
+import com.QHSEAnalytics.auth.dto.request.RegisterRequest;
+import com.QHSEAnalytics.auth.dto.request.ResetPasswordRequest;
+import com.QHSEAnalytics.auth.dto.request.VerifyOtpRequest;
+import com.QHSEAnalytics.auth.dto.response.AuthResponse;
+import com.QHSEAnalytics.auth.dto.response.MessageResponse;
 import com.QHSEAnalytics.auth.service.AuthService;
+import com.QHSEAnalytics.auth.service.CookieTokenService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -15,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final CookieTokenService cookieTokenService;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
@@ -37,8 +47,12 @@ public class AuthController {
     }
 
     @PostMapping("/verify-otp")
-    public ResponseEntity<?> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
-        return ResponseEntity.ok(authService.verifyOtpAndLogin(request));
+    public ResponseEntity<?> verifyOtp(@Valid @RequestBody VerifyOtpRequest request,
+                                       HttpServletResponse response) {
+        AuthResponse auth = authService.verifyOtpAndLogin(request);
+        cookieTokenService.setAccessTokenCookie(response, auth.getAccessToken());
+        cookieTokenService.setRefreshTokenCookie(response, auth.getRefreshToken(), request.isRememberMe());
+        return ResponseEntity.ok(auth);
     }
 
     @PostMapping("/resend-otp")
@@ -47,8 +61,15 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<?> refresh(@Valid @RequestBody RefreshTokenRequest request) {
-        return ResponseEntity.ok(authService.refreshToken(request));
+    public ResponseEntity<?> refresh(HttpServletRequest request, HttpServletResponse response) {
+        String refreshToken = cookieTokenService.extractFromCookie(request, "refresh_token");
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new MessageResponse("Session expirée. Veuillez vous reconnecter."));
+        }
+        AuthResponse auth = authService.refreshToken(refreshToken);
+        cookieTokenService.setAccessTokenCookie(response, auth.getAccessToken());
+        return ResponseEntity.ok(auth);
     }
 
     @PostMapping("/forgot-password")
@@ -62,8 +83,10 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-        public ResponseEntity<?> logout() {
-            String email = SecurityContextHolder.getContext().getAuthentication().getName();
-            return ResponseEntity.ok(authService.logout(email));
+    public ResponseEntity<?> logout(HttpServletResponse response) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        MessageResponse result = authService.logout(email);
+        cookieTokenService.clearAuthCookies(response);
+        return ResponseEntity.ok(result);
     }
 }

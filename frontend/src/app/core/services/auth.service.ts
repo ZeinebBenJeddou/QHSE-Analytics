@@ -45,4 +45,8 @@ export class AuthService {
   resetPassword(request: ResetPasswordRequest): Observable<GenericResponse> {
     return this.http.post<GenericResponse>(`${this.baseUrl}/reset-password`, request);
   }
+
+  logout(): Observable<GenericResponse> {
+    return this.http.post<GenericResponse>(`${this.baseUrl}/logout`, {});
+  }
 }

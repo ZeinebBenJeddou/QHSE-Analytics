@@ -2,6 +2,8 @@ package com.QHSEAnalytics.shared.repository;
 
 import com.QHSEAnalytics.shared.entity.CategorieKpi;
 import com.QHSEAnalytics.shared.entity.Kpi;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -12,7 +14,11 @@ public interface KpiRepository extends JpaRepository<Kpi, Long> {
 
     List<Kpi> findByIsActiveTrueOrderByOrdreAsc();
 
+    Page<Kpi> findByIsActiveTrueOrderByOrdreAsc(Pageable pageable);
+
     List<Kpi> findByCategorieKpiCodeAndIsActiveTrueOrderByOrdreAsc(String code);
+
+    Page<Kpi> findByCategorieKpiCodeAndIsActiveTrueOrderByOrdreAsc(String code, Pageable pageable);
 
     Optional<Kpi> findByNomIgnoreCase(String nom);
     Optional<Kpi> findByNom(String nom);

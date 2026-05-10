@@ -92,8 +92,8 @@
       <div class="kpi-cards-grid">
 
         <div class="kpi-card kpi-card--total">
-          <div class="kpi-card-icon" style="background:#f0edff">
-            <mat-icon style="color:#4318ff">assignment</mat-icon>
+          <div class="kpi-card-icon" style="background:#DBEAFE">
+            <mat-icon style="color:#1E40AF">assignment</mat-icon>
           </div>
           <div class="kpi-card-body">
             <div class="kpi-card-label">Total KPI analysés</div>
@@ -103,8 +103,8 @@
         </div>
 
         <div class="kpi-card kpi-card--amelio">
-          <div class="kpi-card-icon" style="background:#e8f8f0">
-            <mat-icon style="color:#05cd99">trending_down</mat-icon>
+          <div class="kpi-card-icon" style="background:#D1FAE5">
+            <mat-icon style="color:#10B981">trending_down</mat-icon>
           </div>
           <div class="kpi-card-body">
             <div class="kpi-card-label">En amélioration</div>
@@ -118,8 +118,8 @@
         </div>
 
         <div class="kpi-card kpi-card--degrad">
-          <div class="kpi-card-icon" style="background:#ffebee">
-            <mat-icon style="color:#ee5d50">trending_up</mat-icon>
+          <div class="kpi-card-icon" style="background:#FEE2E2">
+            <mat-icon style="color:#EF4444">trending_up</mat-icon>
           </div>
           <div class="kpi-card-body">
             <div class="kpi-card-label">En dégradation</div>
@@ -133,8 +133,8 @@
         </div>
 
         <div class="kpi-card kpi-card--stable">
-          <div class="kpi-card-icon" style="background:#fff3e0">
-            <mat-icon style="color:#ff9800">drag_handle</mat-icon>
+          <div class="kpi-card-icon" style="background:#FEF3C7">
+            <mat-icon style="color:#F59E0B">drag_handle</mat-icon>
           </div>
           <div class="kpi-card-body">
             <div class="kpi-card-label">Stables</div>
@@ -245,9 +245,9 @@
               Valeurs moyennes par catégorie
             </div>
             <div class="chart-legend">
-              <span class="legend-dot" style="background:#1E6FD9"></span>{{ dataYearN1 ?? 'N-1' }}
+              <span class="legend-dot" style="background:#CBD5E1"></span>{{ dataYearN1 ?? 'N-1' }}
               &nbsp;&nbsp;
-              <span class="legend-dot" style="background:#6B46C1"></span>{{ dataYearN ?? 'N' }}
+              <span class="legend-dot" style="background:#1E40AF"></span>{{ dataYearN ?? 'N' }}
             </div>
           </div>
           <div class="chart-body">
@@ -284,19 +284,19 @@
             </div>
             <div class="donut-legend">
               <div class="donut-legend-item">
-                <span class="donut-dot" style="background:#ee5d50"></span>
+                <span class="donut-dot" style="background:#1E40AF"></span>
                 Hausse critique ({{ donutChartData.enHausseCritique }})
               </div>
               <div class="donut-legend-item">
-                <span class="donut-dot" style="background:#ff9800"></span>
+                <span class="donut-dot" style="background:#6366F1"></span>
                 Hausse modérée ({{ donutChartData.enHausseModeree }})
               </div>
               <div class="donut-legend-item">
-                <span class="donut-dot" style="background:#4318ff"></span>
+                <span class="donut-dot" style="background:#10B981"></span>
                 Baisse modérée ({{ donutChartData.enBaisseModeree }})
               </div>
               <div class="donut-legend-item">
-                <span class="donut-dot" style="background:#05cd99"></span>
+                <span class="donut-dot" style="background:#F59E0B"></span>
                 Baisse faible ({{ donutChartData.enBaisseFaible }})
               </div>
             </div>

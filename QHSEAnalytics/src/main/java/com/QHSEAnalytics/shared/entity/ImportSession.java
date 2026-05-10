@@ -35,9 +35,17 @@ public class ImportSession {
     @Column(length = 20)
     private String templateVersion;
 
-    @Lob
-    @Column(name = "file_content")
-    private byte[] fileContent;
+    @Column(name = "file_storage_path")
+    private String fileStoragePath;
+
+    @Column(name = "file_storage_bucket", length = 100)
+    private String fileStorageBucket;
+
+    @Column(name = "file_size_bytes")
+    private Long fileSizeBytes;
+
+    @Column(name = "file_checksum", length = 64)
+    private String fileChecksum;
 
     @Column(nullable = false)
     private Integer periodeN1;

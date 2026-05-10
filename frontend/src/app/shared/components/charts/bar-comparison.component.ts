@@ -39,20 +39,14 @@ export class BarComparisonComponent implements AfterViewInit, OnChanges, OnDestr
     const ctx = this.canvas.nativeElement.getContext('2d');
     if (!ctx) return;
 
-    // Gradient fills
-    const gradN1 = ctx.createLinearGradient(0, 0, 0, 300);
-    gradN1.addColorStop(0, 'rgba(30,111,217,0.75)');
-    gradN1.addColorStop(1, 'rgba(30,111,217,0.15)');
+    const COLOR_N1 = '#CBD5E1';   // gris clair N-1
+    const COLOR_N  = '#1E40AF';   // bleu marine N
 
-    const gradN = ctx.createLinearGradient(0, 0, 0, 300);
-    gradN.addColorStop(0, 'rgba(107,70,193,0.80)');
-    gradN.addColorStop(1, 'rgba(107,70,193,0.15)');
-
-    const NAVY   = '#2b3674';
-    const MUTED  = '#a3aed1';
-    const BORDER = '#e2e8f0';
-    const GRID   = 'rgba(226,234,246,0.7)';
-    const FONT   = "'DM Sans', system-ui, sans-serif";
+    const NAVY   = '#0F172A';
+    const MUTED  = '#94A3B8';
+    const BORDER = '#E2E8F0';
+    const GRID   = '#F1F5F9';
+    const FONT   = "'Inter', system-ui, sans-serif";
     const MONO   = "'DM Mono', monospace";
 
     // Plugin: delta label above each group
@@ -89,19 +83,19 @@ export class BarComparisonComponent implements AfterViewInit, OnChanges, OnDestr
           {
             label: this.labelN1,
             data: this.data.map(d => d.valeurMoyenneN1),
-            backgroundColor: gradN1,
-            borderColor: 'rgba(30,111,217,0.9)',
-            borderWidth: 1.5,
-            borderRadius: 8,
+            backgroundColor: COLOR_N1,
+            borderColor: '#94A3B8',
+            borderWidth: 1,
+            borderRadius: 6,
             borderSkipped: false,
           },
           {
             label: this.labelN,
             data: this.data.map(d => d.valeurMoyenneN),
-            backgroundColor: gradN,
-            borderColor: 'rgba(107,70,193,0.9)',
-            borderWidth: 1.5,
-            borderRadius: 8,
+            backgroundColor: COLOR_N,
+            borderColor: '#1E3A8A',
+            borderWidth: 1,
+            borderRadius: 6,
             borderSkipped: false,
           },
         ],
@@ -151,7 +145,7 @@ export class BarComparisonComponent implements AfterViewInit, OnChanges, OnDestr
           y: {
             ticks: { color: MUTED, font: { family: MONO, size: 10 } },
             grid: { color: GRID, lineWidth: 1 },
-            border: { color: BORDER, dash: [4, 3] },
+            border: { color: BORDER, dash: [3, 3] },
           },
         },
       },

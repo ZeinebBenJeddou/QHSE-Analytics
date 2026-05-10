@@ -12,6 +12,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { AdminService } from '../../../../core/services/admin.service';
 import { ChangePasswordRequest, ProfileResponse, UpdateProfilRequest } from '../../models/admin.models';
 import { TokenService } from '../../../../core/services/token.service';
+import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
   selector: 'app-admin-profile',
@@ -38,6 +39,7 @@ export class AdminProfileComponent implements OnInit {
   private readonly router        = inject(Router);
   private readonly route         = inject(ActivatedRoute);
   private readonly tokenService  = inject(TokenService);
+  private readonly authService   = inject(AuthService);
 
   profile: ProfileResponse | null = null;
   loading        = false;
@@ -100,8 +102,10 @@ export class AdminProfileComponent implements OnInit {
     this.adminService.changePassword(payload).subscribe({
       next: (response) => {
         this.snackBar.open(response.message, 'Fermer', { duration: 5000 });
-        this.tokenService.removeToken();
-        this.router.navigate(['/auth/login']);
+        this.authService.logout().subscribe({
+          complete: () => { this.tokenService.removeToken(); this.router.navigate(['/auth/login']); },
+          error: ()  => { this.tokenService.removeToken(); this.router.navigate(['/auth/login']); }
+        });
       },
       error: (err: any) => {
         const message = err.error?.message || 'Impossible de changer le mot de passe.';

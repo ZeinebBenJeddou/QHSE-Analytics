@@ -18,7 +18,7 @@ public class CacheConfig {
     @Bean
     public CacheManager cacheManager(@Value("${cache.kpiAnalysis.ttl.hours:24}") long cacheTtlHours) {
         CaffeineCacheManager manager = new CaffeineCacheManager();
-        manager.setCacheNames(List.of("kpiAnalysis", "ragKnowledge"));
+        manager.setCacheNames(List.of("kpiAnalysis", "ragKnowledge", "embeddings"));
         manager.setCaffeine(
                 Caffeine.newBuilder()
                         .expireAfterWrite(cacheTtlHours, TimeUnit.HOURS)

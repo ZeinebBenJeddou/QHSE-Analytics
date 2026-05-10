@@ -23,6 +23,8 @@ import com.QHSEAnalytics.shared.repository.KpiAnalysisRepository;
 import com.QHSEAnalytics.shared.repository.ResultatKpiRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -176,15 +178,19 @@ public class DashboardAnalysteService {
                 .build();
     }
 
-    public HistoriqueAnalysteResponse getHistorique(Long userId) {
-        List<ImportSession> sessions = importSessionRepository.findByUserIdOrderByCreatedAtDesc(userId);
+    public HistoriqueAnalysteResponse getHistorique(Long userId, Pageable pageable) {
+        Page<ImportSession> page = importSessionRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
 
-        List<ResultatKpi> resultatsUtilisateur = resultatKpiRepository.findByUserId(userId);
-        Map<Long, Long> critiquesBySession = resultatsUtilisateur.stream()
-            .filter(r -> r.getNiveauVariation() == NiveauVariation.CRITIQUE && r.getImportSession() != null)
-            .collect(Collectors.groupingBy(r -> r.getImportSession().getId(), Collectors.counting()));
+        List<Long> sessionIds = page.getContent().stream().map(ImportSession::getId).toList();
+        Map<Long, Long> critiquesBySession = sessionIds.isEmpty() ? Map.of() :
+            resultatKpiRepository.countByImportSessionIdsAndNiveauVariation(sessionIds, NiveauVariation.CRITIQUE)
+                .stream()
+                .collect(Collectors.toMap(
+                    ResultatKpiRepository.ImportSessionCountView::getImportSessionId,
+                    ResultatKpiRepository.ImportSessionCountView::getTotal
+                ));
 
-        List<HistoriqueItemResponse> items = sessions.stream().map(session -> {
+        List<HistoriqueItemResponse> items = page.getContent().stream().map(session -> {
             int critiques = session.getStatut().isReadyForAi()
                 ? critiquesBySession.getOrDefault(session.getId(), 0L).intValue()
                 : 0;
@@ -201,15 +207,19 @@ public class DashboardAnalysteService {
                     .build();
         }).toList();
 
-        int totalImports = sessions.size();
-        int totalTraites = (int) sessions.stream().filter(s -> s.getStatut().isReadyForAi()).count();
-        int totalErreurs = (int) sessions.stream().filter(s -> s.getStatut() == ImportStatut.ERREUR).count();
+        long totalTraites = importSessionRepository.countByUserIdAndStatutIn(userId,
+            List.of(ImportStatut.CALCULATED, ImportStatut.READY_FOR_AI, ImportStatut.TRAITE));
+        long totalErreurs = importSessionRepository.countByUserIdAndStatut(userId, ImportStatut.ERREUR);
 
         return HistoriqueAnalysteResponse.builder()
                 .items(items)
-                .totalImports(totalImports)
-                .totalTraites(totalTraites)
-                .totalErreurs(totalErreurs)
+                .totalImports((int) page.getTotalElements())
+                .totalTraites((int) totalTraites)
+                .totalErreurs((int) totalErreurs)
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .currentPage(page.getNumber())
+                .pageSize(page.getSize())
                 .build();
     }
 

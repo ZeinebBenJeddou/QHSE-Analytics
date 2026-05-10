@@ -1,6 +1,10 @@
 package com.QHSEAnalytics.auth.service;
 
-import com.QHSEAnalytics.auth.dto.request.*;
+import com.QHSEAnalytics.auth.dto.request.ForgotPasswordRequest;
+import com.QHSEAnalytics.auth.dto.request.LoginRequest;
+import com.QHSEAnalytics.auth.dto.request.RegisterRequest;
+import com.QHSEAnalytics.auth.dto.request.ResetPasswordRequest;
+import com.QHSEAnalytics.auth.dto.request.VerifyOtpRequest;
 import com.QHSEAnalytics.auth.dto.response.AuthResponse;
 import com.QHSEAnalytics.auth.dto.response.MessageResponse;
 import com.QHSEAnalytics.auth.entity.EmailToken;
@@ -213,9 +217,9 @@ public class AuthService {
 
     // REFRESH TOKEN
     @Transactional
-    public AuthResponse refreshToken(RefreshTokenRequest request) {
+    public AuthResponse refreshToken(String tokenValue) {
 
-        RefreshToken refreshToken = refreshTokenService.validateRefreshToken(request.getRefreshToken());
+        RefreshToken refreshToken = refreshTokenService.validateRefreshToken(tokenValue);
         User user = refreshToken.getUser();
 
         String newAccessToken = jwtService.generateAccessToken(user);

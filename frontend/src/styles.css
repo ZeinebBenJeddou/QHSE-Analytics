@@ -1,8 +1,23 @@
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 
 :root {
   color-scheme: light;
+
+  /* ── Design System QHSE ────────────────────────── */
+  --qhse-primary:        #1E40AF;
+  --qhse-indigo:         #6366F1;
+  --qhse-sidebar:        #0F172A;
+  --qhse-success:        #10B981;
+  --qhse-warning:        #F59E0B;
+  --qhse-danger:         #EF4444;
+  --qhse-border:         #E2E8F0;
+  --qhse-surface:        #F8FAFC;
+  --qhse-card:           #FFFFFF;
+  --qhse-text-primary:   #0F172A;
+  --qhse-text-secondary: #64748B;
+
+  /* ── Legacy aliases (keep for backward compat) ── */
   --qhse-blue-900: #0c2f5e;
   --qhse-blue-800: #123c77;
   --qhse-blue-700: #1a56aa;
@@ -10,13 +25,9 @@
   --qhse-blue-500: #3b82f6;
   --qhse-blue-100: #dbeafe;
   --qhse-blue-50:  #f4f8ff;
-  --qhse-surface:  rgba(255,255,255,0.84);
-  --qhse-border:   rgba(18,60,119,0.12);
-  --qhse-shadow:   0 24px 80px rgba(12,47,94,0.12);
-  --qhse-text:     #18304f;
-  --qhse-muted:    #5d718a;
-  --qhse-success:  #11875b;
-  --qhse-danger:   #cc3d3d;
+  --qhse-shadow:   0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04);
+  --qhse-text:     #0F172A;
+  --qhse-muted:    #64748B;
 }
 
 html, body { height: 100%; }
@@ -55,3 +66,32 @@ body {
 a { color: inherit; }
 * { box-sizing: border-box; }
 button, input, textarea, select { font: inherit; }
+
+/* ─── Snackbar severity styles ─────────────────────────────── */
+.snack-error .mat-mdc-snack-bar-container,
+.mat-mdc-snack-bar-container.snack-error {
+  --mdc-snackbar-container-color: #7f1d1d;
+  --mdc-snackbar-supporting-text-color: #fef2f2;
+  --mat-snack-bar-button-color: #fca5a5;
+}
+
+.snack-warning .mat-mdc-snack-bar-container,
+.mat-mdc-snack-bar-container.snack-warning {
+  --mdc-snackbar-container-color: #78350f;
+  --mdc-snackbar-supporting-text-color: #fffbeb;
+  --mat-snack-bar-button-color: #fcd34d;
+}
+
+.snack-success .mat-mdc-snack-bar-container,
+.mat-mdc-snack-bar-container.snack-success {
+  --mdc-snackbar-container-color: #14532d;
+  --mdc-snackbar-supporting-text-color: #f0fdf4;
+  --mat-snack-bar-button-color: #86efac;
+}
+
+.snack-info .mat-mdc-snack-bar-container,
+.mat-mdc-snack-bar-container.snack-info {
+  --mdc-snackbar-container-color: #1e3a5f;
+  --mdc-snackbar-supporting-text-color: #eff6ff;
+  --mat-snack-bar-button-color: #93c5fd;
+}

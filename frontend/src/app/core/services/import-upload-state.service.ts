@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { BehaviorSubject } from 'rxjs';
 import { ImportProcessingResponse } from '../models/import-session.model';
 
 export interface ImportUploadState {
@@ -11,31 +12,26 @@ export interface ImportUploadState {
 
 @Injectable({ providedIn: 'root' })
 export class ImportUploadStateService {
-  private state: ImportUploadState | null = null;
-  private lastResponse: ImportProcessingResponse | null = null;
+  private readonly uploadSubject = new BehaviorSubject<ImportUploadState | null>(null);
+  private readonly responseSubject = new BehaviorSubject<ImportProcessingResponse | null>(null);
+
+  readonly upload$ = this.uploadSubject.asObservable();
+  readonly response$ = this.responseSubject.asObservable();
+
+  // Synchronous snapshot access — safe to use from ngOnInit / resolvers
+  getUpload(): ImportUploadState | null { return this.uploadSubject.getValue(); }
+  getResponse(): ImportProcessingResponse | null { return this.responseSubject.getValue(); }
 
   saveUpload(state: ImportUploadState): void {
     this.clearResponse();
-    this.state = state;
+    this.uploadSubject.next(state);
   }
 
-  getUpload(): ImportUploadState | null {
-    return this.state;
-  }
-
-  clearUpload(): void {
-    this.state = null;
-  }
+  clearUpload(): void { this.uploadSubject.next(null); }
 
   saveResponse(response: ImportProcessingResponse): void {
-    this.lastResponse = response;
+    this.responseSubject.next(response);
   }
 
-  getResponse(): ImportProcessingResponse | null {
-    return this.lastResponse;
-  }
-
-  clearResponse(): void {
-    this.lastResponse = null;
-  }
+  clearResponse(): void { this.responseSubject.next(null); }
 }

@@ -4,33 +4,37 @@ import { Injectable } from '@angular/core';
   providedIn: 'root'
 })
 export class TokenService {
-  private readonly tokenKey = 'auth_token';
   private readonly roleKey = 'auth_role';
+  private readonly activeKey = 'auth_active';
   private readonly pendingEmailKey = 'pending_email';
 
-  setToken(token: string): void {
-    localStorage.setItem(this.tokenKey, token);
+  // The JWT is now stored in an HttpOnly cookie managed by the browser.
+  // JS cannot read it — only the server can set/clear it via Set-Cookie headers.
+
+  setToken(_token: string): void {
+    sessionStorage.setItem(this.activeKey, 'true');
   }
 
   getToken(): string | null {
-    return localStorage.getItem(this.tokenKey);
+    return null;
   }
 
   removeToken(): void {
-    localStorage.removeItem(this.tokenKey);
-    localStorage.removeItem(this.roleKey);
+    sessionStorage.removeItem(this.roleKey);
+    sessionStorage.removeItem(this.activeKey);
   }
 
   hasToken(): boolean {
-    return !!this.getToken();
+    return sessionStorage.getItem(this.activeKey) === 'true';
   }
 
   setUserRole(role: string): void {
-    localStorage.setItem(this.roleKey, role);
+    sessionStorage.setItem(this.roleKey, role);
+    sessionStorage.setItem(this.activeKey, 'true');
   }
 
   getUserRole(): string | null {
-    return localStorage.getItem(this.roleKey);
+    return sessionStorage.getItem(this.roleKey);
   }
 
   isAdmin(): boolean {
@@ -52,6 +56,4 @@ export class TokenService {
   clearPendingEmail(): void {
     localStorage.removeItem(this.pendingEmailKey);
   }
-
-  
 }

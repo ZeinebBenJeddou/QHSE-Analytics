@@ -9,6 +9,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatBadgeModule } from '@angular/material/badge';
 import { TokenService } from '../../core/services/token.service';
+import { AuthService } from '../../core/services/auth.service';
 import { filter } from 'rxjs/operators';
 
 @Component({
@@ -31,6 +32,7 @@ import { filter } from 'rxjs/operators';
 })
 export class AnalysteShellComponent {
   private tokenService = inject(TokenService);
+  private authService = inject(AuthService);
   private router = inject(Router);
 
   sidenavOpen = true;
@@ -56,9 +58,8 @@ export class AnalysteShellComponent {
   
   ];
 
-   rapportItems = [
-      
-      { label: 'Export PDF', icon: 'picture_as_pdf', route: '/analyste/historique', badge: null },
+  rapportItems = [
+    { label: 'Export PDF', icon: 'picture_as_pdf', route: '/analyste/export', badge: null },
   ];
 
   
@@ -75,8 +76,16 @@ export class AnalysteShellComponent {
   }
 
   logout(): void {
-    this.tokenService.removeToken();
-    this.router.navigate(['/auth/login']);
+    this.authService.logout().subscribe({
+      complete: () => {
+        this.tokenService.removeToken();
+        this.router.navigate(['/auth/login']);
+      },
+      error: () => {
+        this.tokenService.removeToken();
+        this.router.navigate(['/auth/login']);
+      }
+    });
   }
 
   toggleSidenav(): void {

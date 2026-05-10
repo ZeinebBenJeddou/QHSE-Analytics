@@ -288,6 +288,9 @@ public class ClassificationEngine {
         if (comp != null && comp.getDirection() != null) {
             return comp.getDirection();
         }
+        if (kpi != null && kpi.getDirection() != null) {
+            return kpi.getDirection();
+        }
         return Direction.HIGHER_IS_BETTER;
     }
 
