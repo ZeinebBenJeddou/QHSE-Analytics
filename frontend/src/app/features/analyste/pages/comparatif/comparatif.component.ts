@@ -67,19 +67,31 @@ export class ComparatifComponent implements OnInit {
   graphiques  = signal<GraphiquesDataResponse | null>(null);
 
   // ── Filter signals ─────────────────────────────────────────────────────────
-  searchFilter    = '';
-  categorieFilter = '';
-  niveauFilter    = '';
-  statutFilter    = '';
+  private searchFilterSig = signal('');
+  private niveauFilterSig = signal('');
+  private statutFilterSig = signal('');
   activeCatTab    = signal(''); // '' = Tous
 
   // ── Header Form Filters ────────────────────────────────────────────────────
-  formYearFilter   = '';
-  formPeriodFilter = '';
-  formCatFilter    = '';
-  formKpiFilter    = '';
 
   // ── Sorting ───────────────────────────────────────────────────────────────
+  get searchFilter(): string { return this.searchFilterSig(); }
+  set searchFilter(value: string) { this.searchFilterSig.set(value); }
+
+  get niveauFilter(): string { return this.niveauFilterSig(); }
+  set niveauFilter(value: string) { this.niveauFilterSig.set(value); }
+
+  get statutFilter(): string { return this.statutFilterSig(); }
+  set statutFilter(value: string) { this.statutFilterSig.set(value); }
+
+  get formCatFilter(): string { return this.activeCatTab(); }
+  set formCatFilter(value: string) { this.setActiveCat(value); }
+
+  get formKpiFilter(): string { return this.searchFilterSig(); }
+  set formKpiFilter(value: string) { this.searchFilterSig.set(value); }
+
+  applyFilters(): void {}
+
   sortField  = signal<keyof LigneComparatifResponse | ''>('');
   sortAsc    = signal(true);
 
@@ -89,10 +101,10 @@ export class ComparatifComponent implements OnInit {
   // ── Computed: filtered + sorted table rows ─────────────────────────────────
   filteredLignes = computed(() => {
     const lignes  = this.comparatif()?.lignes ?? [];
-    const search  = this.searchFilter.toLowerCase();
-    const cat     = this.categorieFilter || this.activeCatTab();
-    const niveau  = this.niveauFilter;
-    const statut  = this.statutFilter;
+    const search  = this.searchFilterSig().toLowerCase();
+    const cat     = this.activeCatTab();
+    const niveau  = this.niveauFilterSig();
+    const statut  = this.statutFilterSig();
     const field   = this.sortField();
     const asc     = this.sortAsc();
 
@@ -230,8 +242,6 @@ export class ComparatifComponent implements OnInit {
   // ── Category tab ──────────────────────────────────────────────────────────
   setActiveCat(code: string) {
     this.activeCatTab.set(code);
-    this.categorieFilter = code;
-    this.formCatFilter = code;
   }
 
   getCatInfo(code: string): CategorieInfo {
@@ -240,15 +250,13 @@ export class ComparatifComponent implements OnInit {
   }
 
   // ── Filter Applier ────────────────────────────────────────────────────────
-  applyFilters() {
-    this.searchFilter = this.formKpiFilter;
-    this.categorieFilter = this.formCatFilter;
-    this.activeCatTab.set(this.formCatFilter);
+  clearFilters(): void {
+    this.searchFilter = '';
+    this.niveauFilter = '';
+    this.statutFilter = '';
 
-    if (this.importId()) {
-      // Simulate API call for the requirements
-      this.loadDashboardData(this.importId()!);
-    }
+    this.setActiveCat('');
+    return;
     this.snackBar.open('Filtres appliqués', 'Fermer', { duration: 2500 });
   }
 

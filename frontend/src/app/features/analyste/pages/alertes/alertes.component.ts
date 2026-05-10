@@ -25,7 +25,7 @@ export class AlertesComponent implements OnInit {
   private readonly dashboardService = inject(DashboardService);
 
   data: AlertesResponse | null = null;
-  loading = false;
+  loading = true;
   error = '';
 
   ngOnInit(): void {

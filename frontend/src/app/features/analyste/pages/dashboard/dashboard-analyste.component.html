@@ -23,16 +23,13 @@
   @if (!loading() && !error()) {
 
     <!-- ══════════════ TOPBAR ══════════════ -->
-    <div class="topbar">
-      <div class="topbar-left">
-        <div class="page-title-wrap">
-          <h1 class="page-title">Tableau de bord</h1>
+    <div class="controls-strip">
+      <div class="controls-left">
           @if (dataYearN && dataYearN1) {
             <span class="period-label">{{ dataYearN1 }} → {{ dataYearN }}</span>
           }
-        </div>
       </div>
-      <div class="topbar-right">
+      <div class="controls-right">
         <!-- Period pills -->
         <div class="period-selectors">
           <div class="period-selector">
@@ -54,8 +51,6 @@
           <mat-icon>upload</mat-icon>
           Importer
         </button>
-        <!-- Avatar with initials -->
-        <div class="user-avatar-circle" matTooltip="Mon profil">AN</div>
       </div>
     </div>
 

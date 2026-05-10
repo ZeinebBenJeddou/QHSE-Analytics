@@ -1,37 +1,32 @@
 <div class="comparatif-page">
 
-  <!-- ═══════════ LOADER ═══════════ -->
+  
   <div *ngIf="loading()" class="loader-overlay">
     <mat-spinner diameter="52" color="primary"></mat-spinner>
     <p class="loader-text">Chargement du comparatif…</p>
   </div>
 
-  <!-- ═══════════ ERROR ═══════════ -->
+
   <div *ngIf="!loading() && error()" class="empty-state">
     <mat-icon class="empty-icon">cloud_off</mat-icon>
     <h2>{{ error() }}</h2>
     <p>Vérifiez que vous avez importé des données et que le serveur est accessible.</p>
   </div>
 
-  <!-- ═══════════ CONTENT ═══════════ -->
+  
   <ng-container *ngIf="!loading() && !error()">
 
-    <!-- ── PAGE HEADER ── -->
     <div class="page-header">
       <div class="page-header-top">
         <div class="page-header-left">
-          <div class="breadcrumb">
-            <span>Accueil</span>
-            <mat-icon class="bc-sep">chevron_right</mat-icon>
-            <span class="bc-active">Comparatif N vs N-1</span>
-          </div>
+        
           <h1 class="page-title">
             Comparatif
             <span class="year-badge">{{ dataYearN1 ?? 'N-1' }}</span>
             <span class="vs-label">vs</span>
             <span class="year-badge accent">{{ dataYearN ?? 'N' }}</span>
           </h1>
-          <p class="page-subtitle">Analyse comparative des indicateurs QHSE entre les deux périodes</p>
+          
         </div>
         <div class="page-header-right">
           <button class="btn-export" (click)="exportExcel()">
@@ -41,49 +36,7 @@
         </div>
       </div>
 
-      <!-- ── NEW HEADER FILTERS ── -->
-      <div class="header-filters">
-        <div class="filter-group">
-          <label>Période (Année)</label>
-          <select [(ngModel)]="formYearFilter" class="filter-select">
-            <option value="">N vs N-1</option>
-            <option *ngIf="dataYearN" [value]="dataYearN">{{ dataYearN }} vs {{ dataYearN1 }}</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <label>Période (Mois/Trimestre)</label>
-          <select [(ngModel)]="formPeriodFilter" class="filter-select">
-            <option value="">Année complète</option>
-            <option value="S1">Semestre 1</option>
-            <option value="S2">Semestre 2</option>
-            <option value="T1">Trimestre 1</option>
-            <option value="T2">Trimestre 2</option>
-            <option value="T3">Trimestre 3</option>
-            <option value="T4">Trimestre 4</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <label>Catégorie QHSE</label>
-          <select [(ngModel)]="formCatFilter" class="filter-select">
-            <option value="">Toutes</option>
-            <option value="Q">Qualité</option>
-            <option value="H">Hygiène</option>
-            <option value="S">Sécurité</option>
-            <option value="E">Environnement</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <label>Indicateur (KPI)</label>
-          <div class="filter-search-input">
-             <mat-icon>search</mat-icon>
-             <input type="text" placeholder="Rechercher un KPI..." [(ngModel)]="formKpiFilter" (keydown.enter)="applyFilters()">
-          </div>
-        </div>
-        <button class="btn-primary btn-apply" (click)="applyFilters()">
-          <mat-icon>filter_alt</mat-icon> Appliquer filtres
-        </button>
-      </div>
-    </div>
+      
 
     <!-- ══════════════════════════════════════════════════════════════════════
          SECTION 1 — KPI SUMMARY CARDS
@@ -262,7 +215,7 @@
             </div>
           </div>
         </div>
-
+        
         <!-- ── Right column: Donut + Radar stacked ── -->
         <div class="charts-right-col">
 
@@ -303,6 +256,7 @@
           </div>
 
           <!-- Radar performance — delta N vs N-1 per category -->
+           <!--
           <div class="chart-panel chart-panel--radar">
             <div class="chart-panel-header">
               <div class="chart-panel-title">
@@ -320,10 +274,36 @@
               </div>
             </div>
           </div>
-
+        -->
         </div><!-- /charts-right-col -->
       </div><!-- /charts-grid -->
     </section>
+
+    <!-- ── NEW HEADER FILTERS ── -->
+      <div *ngIf="false" class="header-filters">
+        
+        <div class="filter-group">
+          <label>Catégorie QHSE</label>
+          <select [(ngModel)]="formCatFilter" class="filter-select">
+            <option value="">Toutes</option>
+            <option value="Q">Qualité</option>
+            <option value="H">Hygiène</option>
+            <option value="S">Sécurité</option>
+            <option value="E">Environnement</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Indicateur (KPI)</label>
+          <div class="filter-search-input">
+             <mat-icon>search</mat-icon>
+             <input type="text" placeholder="Rechercher un KPI..." [(ngModel)]="formKpiFilter" (keydown.enter)="applyFilters()">
+          </div>
+        </div>
+        <button class="btn-primary btn-apply" (click)="applyFilters()">
+          <mat-icon>filter_alt</mat-icon> Appliquer filtres
+        </button>
+      </div>
+    </div>
 
     <!-- ══════════════════════════════════════════════════════════════════════
          SECTION 4 — DETAILED TABLE WITH INLINE FILTERS
@@ -336,6 +316,16 @@
 
       <!-- Filters bar -->
       <div class="table-filters">
+        <select class="filter-select"
+                [ngModel]="activeCatTab()"
+                (ngModelChange)="setActiveCat($event)">
+          <option value="">Toutes les catégories</option>
+          <option value="Q">Qualité</option>
+          <option value="H">Hygiène</option>
+          <option value="S">Sécurité</option>
+          <option value="E">Environnement</option>
+        </select>
+
         <div class="filter-search">
           <mat-icon>search</mat-icon>
           <input type="text" placeholder="Rechercher un KPI…" [(ngModel)]="searchFilter">
@@ -456,15 +446,7 @@
       <!-- Table legend -->
       <div class="table-legend">
         <div class="legend-items">
-          <span class="legend-item">
-            <span class="badge niveau-critique">CRITIQUE</span> Variation &gt; 20%
-          </span>
-          <span class="legend-item">
-            <span class="badge niveau-modere">MODERE</span> Variation 10–20%
-          </span>
-          <span class="legend-item">
-            <span class="badge niveau-faible">FAIBLE</span> Variation &lt; 10%
-          </span>
+         
           <span class="legend-item">
             <mat-icon style="color:#05cd99;font-size:16px">trending_down</mat-icon> BAISSE = Amélioration (QHSE)
           </span>

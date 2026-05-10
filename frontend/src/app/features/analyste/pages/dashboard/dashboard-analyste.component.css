@@ -46,47 +46,9 @@
 .empty-state p { margin: 0; font-size: 0.85rem; color: var(--text-muted); }
 
 /* ─── TOPBAR ─── */
-.topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-  height: 56px;
-  background: var(--card);
-  border-bottom: 1px solid var(--border);
-  gap: 16px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
 
-.topbar-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
 
-.page-title-wrap { display: flex; flex-direction: column; gap: 1px; }
 
-.page-title {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--text);
-  line-height: 1.2;
-}
-
-.period-label {
-  font-size: 0.68rem;
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-.topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
 
 /* ─── PERIOD PILL SELECTORS ─── */
 .period-selectors {
@@ -148,22 +110,9 @@
 .btn-primary:hover { background: #1D3A8A; }
 .btn-primary mat-icon { font-size: 16px; width: 16px; height: 16px; }
 
+.import-btn { flex-shrink: 0; }
+
 /* ─── AVATAR ─── */
-.user-avatar-circle {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #1E40AF, #6366F1);
-  color: #fff;
-  font-size: 0.7rem;
-  font-weight: 700;
-  font-family: var(--mono);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(30,64,175,0.3);
-}
 
 /* ─── ENRICHMENT BAR ─── */
 .enrichment-bar {
@@ -1225,6 +1174,36 @@
 .tone-success { background: #F0FDF4; color: #16A34A; }
 
 /* ─── RESPONSIVE ─── */
+/* ── Controls strip (replaces topbar) ── */
+.controls-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0 16px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.controls-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.controls-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.period-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink-muted, #A0AEC0);
+  letter-spacing: 0.02em;
+}
+
 @media (max-width: 1440px) {
   .second-grid { grid-template-columns: 1fr 1fr; }
 }
@@ -1240,6 +1219,5 @@
   .second-grid { grid-template-columns: 1fr; }
   .filter-bar { flex-direction: column; align-items: stretch; gap: 8px; }
   .filter-bar-right { flex-wrap: wrap; }
-  .topbar-right { gap: 6px; }
   .period-selectors { display: none; }
 }

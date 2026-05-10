@@ -37,7 +37,7 @@
 
 
 .historique-page {
-  max-width: 1100px;
+  max-width: 1320px;
   margin: 0 auto;
   font-family: var(--font);
 }
@@ -251,15 +251,13 @@ h1 {
 
 .status-error {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 5px;
   margin-top: 5px;
   color: var(--orange);
   font-size: 0.75rem;
-  max-width: 220px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-word;
 }
 .status-error .error-icon {
   font-size: 14px;

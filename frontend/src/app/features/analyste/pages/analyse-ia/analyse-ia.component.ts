@@ -4,7 +4,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
-import { catchError, finalize, of } from 'rxjs';
+import { catchError, finalize, forkJoin, of } from 'rxjs';
 
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -238,7 +238,7 @@ export class AnalyseIAComponent implements OnInit {
     });
   }
 
-  loadAnalyse(importId: number) {
+  loadAnalyse(importId: number): void {
     this.loading.set(true);
     this.error.set('');
     this.structured.set(null);
@@ -246,61 +246,45 @@ export class AnalyseIAComponent implements OnInit {
     this.loadKanbanState();
     this.sessionState.setActiveImport(importId);
 
-    // First, try to load structured analysis
-    this.aiAnalysisService.getStructuredAnalysis(importId)
-      .pipe(
-        catchError(() => of(null)),
-        finalize(() => {
-          // Always attempt to load legacy analysis metadata to render the full page.
-          this.loadLegacyAnalyse(importId);
-        })
-      )
-      .subscribe(data => {
-        if (data) {
-          this.structured.set(data);
-        }
-      });
-  }
-
-  loadLegacyAnalyse(importId: number) {
-    // Reuse data already fetched by the dashboard component for the same import.
+    // Resolve legacy source: cache hit avoids the HTTP round-trip entirely
     const cached = this.sessionState.getDashboardData();
-    if (this.sessionState.getActiveImportId() === importId && cached.analysesIa) {
-      this.analyse.set(cached.analysesIa);
-      const firstCat = CATEGORIES.find(c =>
-        cached.analysesIa!.analysesKpis.some(k => k.categorieCode === c.code)
-      );
-      if (firstCat) this.activeCatCode.set(firstCat.code);
-      this.loading.set(false);
-      return;
-    }
-
-    // Endpoint principal : GET /api/dashboard/analyste/analyses/{importId}
-    // Admin fallback   : GET /api/dashboard/admin/analyses/{importId}
-    this.http.get<AnalyseCompleteResponse>(`${this.dashboardAnalysteBase}/analyses/${importId}`)
-      .pipe(
-        catchError(() =>
-          this.http.get<AnalyseCompleteResponse>(`${this.dashboardAdminBase}/analyses/${importId}`).pipe(
-            catchError(() =>
-              this.aiAnalysisService.getAnalyseComplete(importId).pipe(
-                catchError(() => of(null))
+    const legacySource$ = (cached.analysesIa != null)
+      ? of(cached.analysesIa)
+      : this.http.get<AnalyseCompleteResponse>(`${this.dashboardAnalysteBase}/analyses/${importId}`).pipe(
+          catchError(() =>
+            this.http.get<AnalyseCompleteResponse>(`${this.dashboardAdminBase}/analyses/${importId}`).pipe(
+              catchError(() =>
+                this.aiAnalysisService.getAnalyseComplete(importId).pipe(
+                  catchError(() => of(null))
+                )
               )
             )
           )
-        )
-      )
-      .subscribe(data => {
-        if (data) {
-          this.analyse.set(data);
-          this.sessionState.patch({ analysesIa: data });
+        );
+
+    forkJoin({
+      structured: this.aiAnalysisService.getStructuredAnalysis(importId).pipe(
+        catchError(() => of(null))
+      ),
+      legacy: legacySource$,
+    })
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe(({ structured, legacy }) => {
+        if (structured) {
+          this.structured.set(structured);
+        }
+        if (legacy) {
+          this.analyse.set(legacy);
+          if (cached.analysesIa == null) {
+            this.sessionState.patch({ analysesIa: legacy });
+          }
           const firstCat = CATEGORIES.find(c =>
-            data.analysesKpis.some(k => k.categorieCode === c.code)
+            legacy.analysesKpis.some(k => k.categorieCode === c.code)
           );
           if (firstCat) this.activeCatCode.set(firstCat.code);
-        } else if (!this.isStructuredSuccess()) {
+        } else if (!structured || structured.status === 'FAILED') {
           this.error.set('Aucune analyse IA disponible pour cet import. Lancez une analyse.');
         }
-        this.loading.set(false);
       });
   }
 
