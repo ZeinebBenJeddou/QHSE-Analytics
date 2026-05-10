@@ -1,5 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -15,6 +15,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 })
 export class VerifyAccountComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
   private readonly snackBar = inject(MatSnackBar);
 
@@ -34,7 +35,8 @@ export class VerifyAccountComponent implements OnInit {
         next: (response) => {
           this.isError = false;
           this.statusMessage = response.message || 'Account verified successfully.';
-          this.snackBar.open(this.statusMessage, 'Close', { duration: 4000 });
+          this.snackBar.open(this.statusMessage, 'Fermer', { duration: 3000 });
+          setTimeout(() => this.router.navigate(['/auth/login']), 2500);
         },
         error: (error) => {
           this.handleError(error?.error?.message || 'Unable to verify account.');
