@@ -1,6 +1,5 @@
 <div class="users-page">
- 
- 
+
   <div class="page-header">
     <div class="header-left">
       <div class="header-icon-wrap">
@@ -18,16 +17,17 @@
       </button>
     </div>
   </div>
- 
-  
-  <div *ngIf="errorMessage" class="error-banner">
-    <mat-icon>error_outline</mat-icon>
-    <span>{{ errorMessage }}</span>
-  </div>
- 
+
+  @if (errorMessage) {
+    <div class="error-banner">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ errorMessage }}</span>
+    </div>
+  }
+
   <div class="page-grid">
- 
-    
+
+    <!-- CRÉER -->
     <mat-card class="glass-card">
       <mat-card-header>
         <div mat-card-avatar class="card-av-icon-wrap">
@@ -36,30 +36,25 @@
         <mat-card-title>Créer un analyste</mat-card-title>
         <mat-card-subtitle>Un email de bienvenue sera envoyé automatiquement</mat-card-subtitle>
       </mat-card-header>
- 
       <mat-card-content>
         <form [formGroup]="createUserForm" (ngSubmit)="submitCreateUser()" class="form-grid">
- 
           <div class="form-row">
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Nom</mat-label>
               <mat-icon matPrefix class="field-icon">person_outline</mat-icon>
               <input matInput formControlName="nom" />
             </mat-form-field>
- 
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Prénom</mat-label>
               <mat-icon matPrefix class="field-icon">person_outline</mat-icon>
               <input matInput formControlName="prenom" />
             </mat-form-field>
           </div>
- 
           <mat-form-field appearance="outline" class="form-field">
             <mat-label>Adresse e-mail</mat-label>
             <mat-icon matPrefix class="field-icon">alternate_email</mat-icon>
             <input matInput formControlName="email" type="email" />
           </mat-form-field>
- 
           <div class="form-actions">
             <button mat-flat-button class="primary-btn" type="submit"
               [disabled]="creating || createUserForm.invalid">
@@ -67,12 +62,57 @@
               {{ creating ? 'Création…' : 'Créer l\'analyste' }}
             </button>
           </div>
- 
         </form>
       </mat-card-content>
     </mat-card>
- 
-    
+
+    <!-- ÉDITER (affiché seulement quand editingUser != null) -->
+    @if (editingUser) {
+      <mat-card class="glass-card edit-card">
+        <mat-card-header>
+          <div mat-card-avatar class="card-av-icon-wrap amber">
+            <mat-icon class="card-av-icon amber">edit</mat-icon>
+          </div>
+          <mat-card-title>Modifier l'utilisateur</mat-card-title>
+          <mat-card-subtitle>{{ editingUser.prenom }} {{ editingUser.nom }} — {{ editingUser.email }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <form [formGroup]="editUserForm" (ngSubmit)="submitEditUser()" class="form-grid">
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Nom</mat-label>
+                <mat-icon matPrefix class="field-icon">person_outline</mat-icon>
+                <input matInput formControlName="nom" />
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Prénom</mat-label>
+                <mat-icon matPrefix class="field-icon">person_outline</mat-icon>
+                <input matInput formControlName="prenom" />
+              </mat-form-field>
+            </div>
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Adresse e-mail</mat-label>
+              <mat-icon matPrefix class="field-icon">alternate_email</mat-icon>
+              <input matInput formControlName="email" type="email" />
+              <mat-hint>Changer l'email déconnectera l'utilisateur et requerra une re-vérification.</mat-hint>
+            </mat-form-field>
+            <div class="form-actions">
+              <button mat-stroked-button class="ia-btn" type="button" (click)="cancelEdit()">
+                <mat-icon>close</mat-icon>
+                Annuler
+              </button>
+              <button mat-flat-button class="amber-btn" type="submit"
+                [disabled]="saving || editUserForm.invalid">
+                <mat-icon>{{ saving ? 'hourglass_empty' : 'save' }}</mat-icon>
+                {{ saving ? 'Enregistrement…' : 'Enregistrer' }}
+              </button>
+            </div>
+          </form>
+        </mat-card-content>
+      </mat-card>
+    }
+
+    <!-- LISTE -->
     <mat-card class="glass-card">
       <mat-card-header>
         <div mat-card-avatar class="card-av-icon-wrap">
@@ -80,41 +120,58 @@
         </div>
         <mat-card-title>
           Comptes
-          <span class="count-badge">{{ users.length }}</span>
+          <span class="count-badge">{{ totalElements }}</span>
         </mat-card-title>
         <mat-card-subtitle>Liste de tous les utilisateurs enregistrés</mat-card-subtitle>
       </mat-card-header>
- 
+
       <mat-card-content>
- 
-        
-        <div *ngIf="loading" class="loader-overlay">
-          <mat-progress-spinner diameter="36" mode="indeterminate"></mat-progress-spinner>
-          <span>Chargement des utilisateurs…</span>
+
+        <!-- RECHERCHE -->
+        <div class="search-bar">
+          <mat-form-field appearance="outline" class="search-field">
+            <mat-label>Rechercher</mat-label>
+            <mat-icon matPrefix class="field-icon">search</mat-icon>
+            <input matInput
+              [value]="searchQuery"
+              (input)="onSearchChange($any($event.target).value)"
+              placeholder="Nom, prénom ou email…" />
+            @if (searchQuery) {
+              <button matSuffix mat-icon-button (click)="clearSearch()" matTooltip="Effacer">
+                <mat-icon>close</mat-icon>
+              </button>
+            }
+          </mat-form-field>
         </div>
- 
-       
-        <div *ngIf="!loading && !users.length" class="empty-state">
-          <mat-icon>person_off</mat-icon>
-          <span>Aucun utilisateur enregistré pour le moment.</span>
-        </div>
- 
-        
-        <div *ngIf="!loading && users.length" class="user-list">
-          <div class="user-row" *ngFor="let user of users">
- 
-           
+
+        @if (loading) {
+          <div class="loader-overlay">
+            <mat-progress-spinner diameter="36" mode="indeterminate"></mat-progress-spinner>
+            <span>Chargement des utilisateurs…</span>
+          </div>
+        }
+
+        @if (!loading && !users.length) {
+          <div class="empty-state">
+            <mat-icon>{{ searchQuery ? 'search_off' : 'person_off' }}</mat-icon>
+            <span>{{ searchQuery ? 'Aucun résultat pour "' + searchQuery + '".' : 'Aucun utilisateur enregistré pour le moment.' }}</span>
+          </div>
+        }
+
+        @if (!loading && users.length) {
+          <div class="user-list">
+          @for (user of users; track user.id) {
+          <div class="user-row">
+
             <div class="user-avatar" [class.inactive]="!user.active">
               {{ user.prenom.charAt(0) + user.nom.charAt(0) }}
             </div>
- 
-            
+
             <div class="user-info">
               <span class="user-name">{{ user.prenom }} {{ user.nom }}</span>
               <span class="user-email">{{ user.email }}</span>
             </div>
- 
-        
+
             <div class="user-badges">
               <span class="badge" [ngClass]="user.role === 'ADMIN' ? 'role-admin' : 'role-analyst'">
                 {{ user.role === 'ADMIN' ? 'Admin' : 'Analyste' }}
@@ -126,19 +183,23 @@
                 {{ user.active ? 'Actif' : 'Inactif' }}
               </span>
             </div>
- 
-           
+
             <div class="user-actions">
- 
-             
+
               <button mat-icon-button class="row-icon-btn green"
                 matTooltip="Vérifier le compte"
                 (click)="verifyUser(user)"
                 [disabled]="actionInProgressId === user.id || user.verified">
                 <mat-icon>verified_user</mat-icon>
               </button>
- 
-            
+
+              <button mat-icon-button class="row-icon-btn amber"
+                matTooltip="Modifier les informations"
+                (click)="startEdit(user)"
+                [disabled]="actionInProgressId === user.id">
+                <mat-icon>edit</mat-icon>
+              </button>
+
               <button mat-icon-button class="row-icon-btn"
                 [matTooltip]="user.active ? 'Désactiver' : 'Activer'"
                 [class.amber]="user.active"
@@ -147,37 +208,59 @@
                 [disabled]="actionInProgressId === user.id">
                 <mat-icon>{{ user.active ? 'block' : 'check_circle' }}</mat-icon>
               </button>
- 
-              
+
               <button mat-icon-button class="row-icon-btn purple"
                 [matTooltip]="user.role === 'ADMIN' ? 'Rétrograder en analyste' : 'Promouvoir en admin'"
                 (click)="toggleAdmin(user)"
                 [disabled]="actionInProgressId === user.id || user.isSystemAdmin">
                 <mat-icon>{{ user.role === 'ADMIN' ? 'arrow_downward' : 'arrow_upward' }}</mat-icon>
               </button>
- 
-              
+
               <button mat-icon-button class="row-icon-btn"
                 matTooltip="Réinitialiser le mot de passe"
                 (click)="resetUserPassword(user)"
                 [disabled]="actionInProgressId === user.id">
                 <mat-icon>lock_reset</mat-icon>
               </button>
- 
-             
+
               <button mat-icon-button class="row-icon-btn red"
-                matTooltip="Supprimer l'utilisateur"
+                [matTooltip]="user.isSystemAdmin ? 'Administrateur initial — suppression impossible' : 'Supprimer l\'utilisateur'"
                 (click)="deleteUser(user)"
-                [disabled]="actionInProgressId === user.id">
+                [disabled]="actionInProgressId === user.id || user.isSystemAdmin">
                 <mat-icon>delete_outline</mat-icon>
               </button>
- 
+
             </div>
           </div>
-        </div>
- 
+          }
+          </div>
+        }
+
+        @if (!loading && totalPages > 1) {
+          <div class="pagination">
+            <button mat-icon-button class="page-btn" [disabled]="currentPage === 0" (click)="goToPage(0)" matTooltip="Première page">
+              <mat-icon>first_page</mat-icon>
+            </button>
+            <button mat-icon-button class="page-btn" [disabled]="currentPage === 0" (click)="goToPage(currentPage - 1)" matTooltip="Page précédente">
+              <mat-icon>chevron_left</mat-icon>
+            </button>
+            @for (p of pages; track p) {
+              <button mat-icon-button class="page-btn page-num" [class.active]="p === currentPage" (click)="goToPage(p)">
+                {{ p + 1 }}
+              </button>
+            }
+            <button mat-icon-button class="page-btn" [disabled]="currentPage === totalPages - 1" (click)="goToPage(currentPage + 1)" matTooltip="Page suivante">
+              <mat-icon>chevron_right</mat-icon>
+            </button>
+            <button mat-icon-button class="page-btn" [disabled]="currentPage === totalPages - 1" (click)="goToPage(totalPages - 1)" matTooltip="Dernière page">
+              <mat-icon>last_page</mat-icon>
+            </button>
+            <span class="page-info">Page {{ currentPage + 1 }} / {{ totalPages }}</span>
+          </div>
+        }
+
       </mat-card-content>
     </mat-card>
- 
+
   </div>
 </div>

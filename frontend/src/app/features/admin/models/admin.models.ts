@@ -36,6 +36,10 @@ export interface UserListResponse {
   totalAnalystes: number;
   totalActifs: number;
   totalInactifs: number;
+  totalElements: number;
+  totalPages: number;
+  currentPage: number;
+  pageSize: number;
 }
 
 export interface CreateAnalysteRequest {
@@ -154,4 +158,22 @@ export interface AnalyseCompleteResponse {
 
 export interface MessageResponse {
   message: string;
+}
+
+export interface AuditLogResponse {
+  id: number;
+  adminEmail: string;
+  action: string;
+  targetUserId: number | null;
+  targetEmail: string | null;
+  details: string | null;
+  timestamp: string;
+}
+
+export interface AuditPageResponse {
+  content: AuditLogResponse[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
 }

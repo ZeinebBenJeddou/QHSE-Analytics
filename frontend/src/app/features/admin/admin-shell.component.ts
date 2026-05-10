@@ -42,6 +42,7 @@ export class AdminShellComponent {
     { label: 'Historique',    icon: 'history',          route: '/admin/historique', badge: null },
     { label: 'Utilisateurs',  icon: 'group',            route: '/admin/users',    badge: null },
     { label: 'KPIs',          icon: 'speed',            route: '/admin/kpis',     badge: null },
+    { label: 'Audit',         icon: 'policy',           route: '/admin/audit',    badge: null },
   ];
 
   constructor() {

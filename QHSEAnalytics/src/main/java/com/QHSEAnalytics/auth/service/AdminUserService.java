@@ -8,6 +8,7 @@ import com.QHSEAnalytics.auth.dto.response.UserResponse;
 import com.QHSEAnalytics.auth.entity.EmailToken;
 import com.QHSEAnalytics.auth.entity.User;
 import com.QHSEAnalytics.auth.exception.EmailAlreadyExistsException;
+import com.QHSEAnalytics.auth.exception.UserAlreadyVerifiedException;
 import com.QHSEAnalytics.auth.exception.UserNotFoundException;
 import com.QHSEAnalytics.auth.repository.EmailTokenRepository;
 import com.QHSEAnalytics.auth.repository.OtpCodeRepository;
@@ -53,6 +54,7 @@ public class AdminUserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final AuditLogService auditLogService;
     private final RefreshTokenRepository refreshTokenRepository;
     private final EmailTokenRepository emailTokenRepository;
     private final OtpCodeRepository otpCodeRepository;
@@ -66,8 +68,11 @@ public class AdminUserService {
     private String adminEmail;
 
     @Transactional(readOnly = true)
-    public UserListResponse getAllUsers(Pageable pageable) {
-        Page<User> page = userRepository.findAllByOrderByCreatedAtDesc(pageable);
+    public UserListResponse getAllUsers(Pageable pageable, String search) {
+        Page<User> page = (search != null && !search.isBlank())
+                ? userRepository.search(search.trim(), pageable)
+                : userRepository.findAllByOrderByCreatedAtDesc(pageable);
+
         List<UserResponse> responses = page.getContent().stream().map(this::toUserResponse).toList();
 
         return UserListResponse.builder()
@@ -107,6 +112,8 @@ public class AdminUserService {
 
         User saved = userRepository.save(user);
         emailService.sendWelcomeEmail(saved.getEmail(), saved.getPrenom(), temporaryPassword);
+        auditLogService.log(AuditLogService.CREATE_USER, saved.getId(), saved.getEmail(),
+                "Analyste créé : " + saved.getPrenom() + " " + saved.getNom());
         log.info("Analyste créé par admin id={}", saved.getId());
         return toUserResponse(saved);
     }
@@ -128,9 +135,16 @@ public class AdminUserService {
         user.setPrenom(request.getPrenom());
         if (emailChanged) {
             user.setEmail(request.getEmail());
+            user.setVerified(false);
+            refreshTokenRepository.revokeAllForUser(user);
+            emailTokenRepository.invalidateAllForUser(user, EmailToken.EmailTokenType.VERIFICATION);
+            log.info("Email modifié par admin pour user id={} — tokens révoqués, vérification requise", id);
         }
 
-        return toUserResponse(userRepository.save(user));
+        UserResponse result = toUserResponse(userRepository.save(user));
+        auditLogService.log(AuditLogService.UPDATE_USER, id, result.getEmail(),
+                "Modifié : " + result.getPrenom() + " " + result.getNom() + (emailChanged ? " (email changé)" : ""));
+        return result;
     }
 
     @Transactional
@@ -152,9 +166,14 @@ public class AdminUserService {
         otpCodeRepository.deleteByUserId(id);
         refreshTokenRepository.deleteByUserId(id);
 
+        String deletedEmail = user.getEmail();
+        Long deletedId = user.getId();
+        String deletedName = user.getPrenom() + " " + user.getNom();
         userRepository.delete(user);
 
-        log.info("Utilisateur supprimé avec toutes ses données id={}", user.getId());
+        auditLogService.log(AuditLogService.DELETE_USER, deletedId, deletedEmail,
+                "Supprimé : " + deletedName + " avec toutes ses données");
+        log.info("Utilisateur supprimé avec toutes ses données id={}", deletedId);
         return new MessageResponse("Utilisateur supprimé avec succès.");
     }
 
@@ -163,12 +182,15 @@ public class AdminUserService {
         User user = getUserByIdInternal(id);
 
         if (user.isVerified()) {
-            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Compte déjà vérifié.");
+            throw new com.QHSEAnalytics.auth.exception.UserAlreadyVerifiedException("Compte déjà vérifié.");
         }
 
         user.setVerified(true);
         emailTokenRepository.invalidateAllForUser(user, EmailToken.EmailTokenType.VERIFICATION);
-        return toUserResponse(userRepository.save(user));
+        UserResponse result = toUserResponse(userRepository.save(user));
+        auditLogService.log(AuditLogService.VERIFY_USER, id, result.getEmail(),
+                "Compte vérifié manuellement");
+        return result;
     }
 
     @Transactional
@@ -181,7 +203,9 @@ public class AdminUserService {
         }
 
         user.setActive(true);
-        return toUserResponse(userRepository.save(user));
+        UserResponse result = toUserResponse(userRepository.save(user));
+        auditLogService.log(AuditLogService.ACTIVATE_USER, id, result.getEmail(), "Compte activé");
+        return result;
     }
 
     @Transactional
@@ -195,7 +219,9 @@ public class AdminUserService {
 
         user.setActive(false);
         refreshTokenRepository.revokeAllForUser(user);
-        return toUserResponse(userRepository.save(user));
+        UserResponse result = toUserResponse(userRepository.save(user));
+        auditLogService.log(AuditLogService.DEACTIVATE_USER, id, result.getEmail(), "Compte désactivé — sessions révoquées");
+        return result;
     }
 
     @Transactional
@@ -209,8 +235,11 @@ public class AdminUserService {
 
         user.setRole(User.Role.ADMIN);
         refreshTokenRepository.revokeAllForUser(user);
-        log.info("Utilisateur promu ADMIN id={}", user.getId());
-        return toUserResponse(userRepository.save(user));
+        UserResponse result = toUserResponse(userRepository.save(user));
+        auditLogService.log(AuditLogService.PROMOTE_ADMIN, id, result.getEmail(),
+                result.getPrenom() + " " + result.getNom() + " promu ADMIN");
+        log.info("Utilisateur promu ADMIN id={}", id);
+        return result;
     }
 
     @Transactional
@@ -224,8 +253,11 @@ public class AdminUserService {
 
         user.setRole(User.Role.ANALYSTE);
         refreshTokenRepository.revokeAllForUser(user);
-        log.info("Utilisateur rétrogradé ANALYSTE id={}", user.getId());
-        return toUserResponse(userRepository.save(user));
+        UserResponse result = toUserResponse(userRepository.save(user));
+        auditLogService.log(AuditLogService.DEMOTE_ANALYSTE, id, result.getEmail(),
+                result.getPrenom() + " " + result.getNom() + " rétrogradé ANALYSTE");
+        log.info("Utilisateur rétrogradé ANALYSTE id={}", id);
+        return result;
     }
 
     @Transactional
@@ -242,6 +274,8 @@ public class AdminUserService {
 
         emailTokenRepository.save(token);
         emailService.sendPasswordResetEmail(user.getEmail(), user.getPrenom(), token.getToken());
+        auditLogService.log(AuditLogService.RESET_PASSWORD, user.getId(), user.getEmail(),
+                "Réinitialisation MDP déclenchée par admin");
         log.info("Reset mdp déclenché par admin id={}", user.getId());
         return new MessageResponse("Un email de réinitialisation a été envoyé.");
     }

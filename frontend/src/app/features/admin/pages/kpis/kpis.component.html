@@ -97,21 +97,27 @@
               <mat-icon matPrefix class="field-icon">arrow_downward</mat-icon>
               <input matInput type="number" formControlName="seuilFaible" />
             </mat-form-field>
- 
+
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Seuil modéré</mat-label>
               <mat-icon matPrefix class="field-icon">remove</mat-icon>
               <input matInput type="number" formControlName="seuilModere" />
             </mat-form-field>
- 
+
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Seuil critique</mat-label>
               <mat-icon matPrefix class="field-icon">arrow_upward</mat-icon>
               <input matInput type="number" formControlName="seuilCritique" />
             </mat-form-field>
           </div>
- 
-          
+
+          @if (seuilError) {
+            <div class="seuil-error">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ seuilError }}</span>
+            </div>
+          }
+
           <div class="form-actions">
             <button mat-stroked-button class="cancel-btn" type="button"
               *ngIf="editMode" (click)="cancelEdit()">
@@ -119,7 +125,7 @@
               Annuler
             </button>
             <button mat-flat-button class="primary-btn" type="submit"
-              [disabled]="kpiForm.invalid || saving">
+              [disabled]="kpiForm.invalid || !!seuilError || saving">
               <mat-icon>{{ saving ? 'hourglass_empty' : (editMode ? 'save' : 'add') }}</mat-icon>
               {{ saving ? 'Enregistrement…' : (editMode ? 'Enregistrer les modifications' : 'Créer le KPI') }}
             </button>

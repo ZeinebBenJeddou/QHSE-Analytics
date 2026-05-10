@@ -1,0 +1,130 @@
+<div class="audit-page">
+
+  <div class="page-header">
+    <div class="header-left">
+      <div class="header-icon-wrap">
+        <mat-icon class="header-icon">policy</mat-icon>
+      </div>
+      <div>
+        <h1>Journal d'audit</h1>
+        <p class="subtitle">Historique de toutes les actions administrateur</p>
+      </div>
+    </div>
+    <button mat-stroked-button class="ia-btn" routerLink="/admin/overview">
+      <mat-icon>arrow_back</mat-icon>
+      Retour
+    </button>
+  </div>
+
+  @if (error) {
+    <div class="error-banner">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ error }}</span>
+    </div>
+  }
+
+  <mat-card class="glass-card">
+    <mat-card-header>
+      <div mat-card-avatar class="card-av-icon-wrap">
+        <mat-icon class="card-av-icon">manage_search</mat-icon>
+      </div>
+      <mat-card-title>
+        Événements
+        <span class="count-badge">{{ totalElements }}</span>
+      </mat-card-title>
+      <mat-card-subtitle>Actions effectuées par les administrateurs</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+
+      @if (loading) {
+        <div class="loader-overlay">
+          <mat-progress-spinner diameter="36" mode="indeterminate"></mat-progress-spinner>
+          <span>Chargement du journal…</span>
+        </div>
+      }
+
+      @if (!loading && !logs.length) {
+        <div class="empty-state">
+          <mat-icon>playlist_remove</mat-icon>
+          <span>Aucune action enregistrée.</span>
+        </div>
+      }
+
+      @if (!loading && logs.length) {
+        <div class="table-wrap">
+          <table mat-table [dataSource]="logs" class="audit-table">
+
+            <ng-container matColumnDef="timestamp">
+              <th mat-header-cell *matHeaderCellDef>Date</th>
+              <td mat-cell *matCellDef="let row">
+                <span class="ts-date">{{ row.timestamp | date:'dd/MM/yyyy' }}</span>
+                <span class="ts-time">{{ row.timestamp | date:'HH:mm:ss' }}</span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="admin">
+              <th mat-header-cell *matHeaderCellDef>Administrateur</th>
+              <td mat-cell *matCellDef="let row">
+                <span class="admin-email">{{ row.adminEmail }}</span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="action">
+              <th mat-header-cell *matHeaderCellDef>Action</th>
+              <td mat-cell *matCellDef="let row">
+                <span class="action-chip" [ngClass]="actionClass(row.action)">
+                  {{ actionLabel(row.action) }}
+                </span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="cible">
+              <th mat-header-cell *matHeaderCellDef>Utilisateur cible</th>
+              <td mat-cell *matCellDef="let row">
+                <span class="target-email">{{ row.targetEmail ?? '—' }}</span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="details">
+              <th mat-header-cell *matHeaderCellDef>Détails</th>
+              <td mat-cell *matCellDef="let row">
+                <span class="details-text" [matTooltip]="row.details ?? ''">
+                  {{ row.details ?? '—' }}
+                </span>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="audit-row"></tr>
+          </table>
+        </div>
+
+        @if (totalPages > 1) {
+          <div class="pagination">
+            <button mat-icon-button class="page-btn" [disabled]="currentPage === 0" (click)="goToPage(0)" matTooltip="Première page">
+              <mat-icon>first_page</mat-icon>
+            </button>
+            <button mat-icon-button class="page-btn" [disabled]="currentPage === 0" (click)="goToPage(currentPage - 1)" matTooltip="Précédente">
+              <mat-icon>chevron_left</mat-icon>
+            </button>
+            @for (p of pages; track p) {
+              <button mat-icon-button class="page-btn page-num" [class.active]="p === currentPage" (click)="goToPage(p)">
+                {{ p + 1 }}
+              </button>
+            }
+            <button mat-icon-button class="page-btn" [disabled]="currentPage === totalPages - 1" (click)="goToPage(currentPage + 1)" matTooltip="Suivante">
+              <mat-icon>chevron_right</mat-icon>
+            </button>
+            <button mat-icon-button class="page-btn" [disabled]="currentPage === totalPages - 1" (click)="goToPage(totalPages - 1)" matTooltip="Dernière page">
+              <mat-icon>last_page</mat-icon>
+            </button>
+            <span class="page-info">Page {{ currentPage + 1 }} / {{ totalPages }}</span>
+          </div>
+        }
+      }
+
+    </mat-card-content>
+  </mat-card>
+
+</div>

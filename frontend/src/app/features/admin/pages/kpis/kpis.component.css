@@ -253,7 +253,26 @@ h1 {
   grid-template-columns: repeat(3, 1fr);
   gap: 4px;
 }
- 
+
+.seuil-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-item);
+  background: var(--amber-soft);
+  border: 1.5px solid rgba(217,119,6,0.25);
+  color: var(--amber);
+  font-size: 0.83rem;
+  font-weight: 500;
+  margin-top: 2px;
+}
+.seuil-error mat-icon {
+  font-size: 16px !important;
+  width: 16px !important;
+  height: 16px !important;
+  flex-shrink: 0;
+}
 
 .loader-overlay {
   display: flex;

@@ -1,6 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -13,6 +13,12 @@ import { AdminService } from '../../../../core/services/admin.service';
 import { ChangePasswordRequest, ProfileResponse, UpdateProfilRequest } from '../../models/admin.models';
 import { TokenService } from '../../../../core/services/token.service';
 import { AuthService } from '../../../../core/services/auth.service';
+
+const passwordMatchValidator: ValidatorFn = (group: AbstractControl): ValidationErrors | null => {
+  const nouveau = group.get('nouveauPassword')?.value;
+  const confirm = group.get('confirmPassword')?.value;
+  return nouveau && confirm && nouveau !== confirm ? { passwordMismatch: true } : null;
+};
 
 @Component({
   selector: 'app-admin-profile',
@@ -56,7 +62,12 @@ export class AdminProfileComponent implements OnInit {
     ancienPassword:  ['', Validators.required],
     nouveauPassword: ['', [Validators.required, Validators.minLength(8)]],
     confirmPassword: ['', Validators.required],
-  });
+  }, { validators: passwordMatchValidator });
+
+  get passwordMismatch(): boolean {
+    return this.passwordForm.hasError('passwordMismatch') &&
+           !!this.passwordForm.get('confirmPassword')?.dirty;
+  }
 
   ngOnInit(): void {
   

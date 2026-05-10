@@ -1,6 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -20,6 +20,16 @@ import {
 } from '../../models/admin.models';
 import { KpisResolvedData } from './kpis.resolver';
  
+const seuilOrderValidator: ValidatorFn = (group: AbstractControl): ValidationErrors | null => {
+  const faible   = group.get('seuilFaible')?.value;
+  const modere   = group.get('seuilModere')?.value;
+  const critique = group.get('seuilCritique')?.value;
+  if (faible == null || modere == null || critique == null) return null;
+  if (faible >= modere)   return { seuilFaibleGeMod: true };
+  if (modere >= critique) return { seuilModereGeCrit: true };
+  return null;
+};
+
 @Component({
   selector: 'app-admin-kpis',
   standalone: true,
@@ -66,11 +76,19 @@ export class AdminKpisComponent implements OnInit {
     definition:    ['', Validators.required],
     unite:         ['', Validators.required],
     categorieCode: ['', Validators.required],
-    seuilFaible:   [null as number | null, [Validators.required, Validators.min(1)]],
-    seuilModere:   [null as number | null, [Validators.required, Validators.min(1)]],
-    seuilCritique: [null as number | null, [Validators.required, Validators.min(1)]],
+    seuilFaible:   [null as number | null, [Validators.required, Validators.min(0)]],
+    seuilModere:   [null as number | null, [Validators.required, Validators.min(0)]],
+    seuilCritique: [null as number | null, [Validators.required, Validators.min(0)]],
     ordre:         [null as number | null, [Validators.required, Validators.min(1)]],
-  });
+  }, { validators: seuilOrderValidator });
+
+  get seuilError(): string | null {
+    if (this.kpiForm.hasError('seuilFaibleGeMod'))
+      return 'Le seuil faible doit être inférieur au seuil modéré.';
+    if (this.kpiForm.hasError('seuilModereGeCrit'))
+      return 'Le seuil modéré doit être inférieur au seuil critique.';
+    return null;
+  }
  
   ngOnInit(): void {
     const resolved = this.route.snapshot.data['kpis'] as KpisResolvedData | null;

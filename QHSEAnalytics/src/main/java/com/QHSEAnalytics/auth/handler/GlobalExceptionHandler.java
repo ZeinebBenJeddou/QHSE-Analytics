@@ -153,6 +153,11 @@ public class GlobalExceptionHandler {
         return buildError(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
+    @ExceptionHandler(UserAlreadyVerifiedException.class)
+    public ResponseEntity<?> handleUserAlreadyVerified(UserAlreadyVerifiedException ex) {
+        return buildError(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
     @ExceptionHandler(UserAlreadyAnalysteException.class)
     public ResponseEntity<?> handleUserAlreadyAnalyste(UserAlreadyAnalysteException ex) {
         return buildError(HttpStatus.BAD_REQUEST, ex.getMessage());

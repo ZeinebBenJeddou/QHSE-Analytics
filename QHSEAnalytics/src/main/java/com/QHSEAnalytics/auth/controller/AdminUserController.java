@@ -2,12 +2,15 @@ package com.QHSEAnalytics.auth.controller;
 
 import com.QHSEAnalytics.auth.dto.request.CreateAnalysteRequest;
 import com.QHSEAnalytics.auth.dto.request.UpdateUserRequest;
+import com.QHSEAnalytics.auth.dto.response.AuditLogResponse;
 import com.QHSEAnalytics.auth.dto.response.MessageResponse;
 import com.QHSEAnalytics.auth.dto.response.UserListResponse;
 import com.QHSEAnalytics.auth.dto.response.UserResponse;
 import com.QHSEAnalytics.auth.service.AdminUserService;
+import com.QHSEAnalytics.auth.service.AuditLogService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
@@ -25,67 +28,77 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/admin/users")
+@RequestMapping("/api/admin")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminUserController {
 
     private final AdminUserService adminUserService;
+    private final AuditLogService  auditLogService;
 
-    @GetMapping
+    @GetMapping("/users")
     public ResponseEntity<UserListResponse> getAllUsers(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "15") int size,
+            @RequestParam(required = false)    String search) {
         return ResponseEntity.ok(adminUserService.getAllUsers(
-                PageRequest.of(page, size, Sort.by("createdAt").descending())));
+                PageRequest.of(page, size, Sort.by("createdAt").descending()), search));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/audit")
+    public ResponseEntity<Page<AuditLogResponse>> getAuditLog(
+            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "30") int size) {
+        return ResponseEntity.ok(auditLogService.getAll(
+                PageRequest.of(page, size)));
+    }
+
+    @GetMapping("/users/{id}")
     public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) {
         return ResponseEntity.ok(adminUserService.getUserById(id));
     }
 
-    @PostMapping
+    @PostMapping("/users")
     public ResponseEntity<UserResponse> createAnalyste(@Valid @RequestBody CreateAnalysteRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(adminUserService.createAnalyste(request));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/users/{id}")
     public ResponseEntity<UserResponse> updateUser(@PathVariable Long id, @Valid @RequestBody UpdateUserRequest request) {
         return ResponseEntity.ok(adminUserService.updateUser(id, request));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/users/{id}")
     public ResponseEntity<MessageResponse> deleteUser(@PathVariable Long id) {
         return ResponseEntity.ok(adminUserService.deleteUser(id));
     }
 
-    @PatchMapping("/{id}/verify")
+    @PatchMapping("/users/{id}/verify")
     public ResponseEntity<UserResponse> verifyUser(@PathVariable Long id) {
         return ResponseEntity.ok(adminUserService.verifyUser(id));
     }
 
-    @PatchMapping("/{id}/activate")
+    @PatchMapping("/users/{id}/activate")
     public ResponseEntity<UserResponse> activateUser(@PathVariable Long id) {
         return ResponseEntity.ok(adminUserService.activateUser(id));
     }
 
-    @PatchMapping("/{id}/deactivate")
+    @PatchMapping("/users/{id}/deactivate")
     public ResponseEntity<UserResponse> deactivateUser(@PathVariable Long id) {
         return ResponseEntity.ok(adminUserService.deactivateUser(id));
     }
 
-    @PatchMapping("/{id}/promote")
+    @PatchMapping("/users/{id}/promote")
     public ResponseEntity<UserResponse> promoteToAdmin(@PathVariable Long id) {
         return ResponseEntity.ok(adminUserService.promoteToAdmin(id));
     }
 
-    @PatchMapping("/{id}/demote")
+    @PatchMapping("/users/{id}/demote")
     public ResponseEntity<UserResponse> demoteToAnalyste(@PathVariable Long id) {
         return ResponseEntity.ok(adminUserService.demoteToAnalyste(id));
     }
 
-    @PostMapping("/{id}/reset-password")
+    @PostMapping("/users/{id}/reset-password")
     public ResponseEntity<MessageResponse> resetPassword(@PathVariable Long id) {
         return ResponseEntity.ok(adminUserService.adminResetPassword(id));
     }

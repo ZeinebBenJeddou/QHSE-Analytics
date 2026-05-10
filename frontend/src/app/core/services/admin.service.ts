@@ -10,6 +10,7 @@ import {
   AdminRepartitionResponse,
   AdminStatsResponse,
   AnalyseCompleteResponse,
+  AuditPageResponse,
   ChangePasswordRequest,
   CategorieKpiResponse,
   CreateAnalysteRequest,
@@ -37,8 +38,15 @@ export class AdminService {
 
   constructor(private readonly http: HttpClient) {}
 
-  getUsers(): Observable<UserListResponse> {
-    return this.http.get<UserListResponse>(`${this.adminBase}/users`);
+  getUsers(page = 0, size = 15, search?: string): Observable<UserListResponse> {
+    let params = new HttpParams().set('page', page).set('size', size);
+    if (search?.trim()) params = params.set('search', search.trim());
+    return this.http.get<UserListResponse>(`${this.adminBase}/users`, { params });
+  }
+
+  getAuditLog(page = 0, size = 30): Observable<AuditPageResponse> {
+    const params = new HttpParams().set('page', page).set('size', size);
+    return this.http.get<AuditPageResponse>(`${this.adminBase}/audit`, { params });
   }
 
   getUser(id: number): Observable<UserResponse> {

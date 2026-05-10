@@ -121,11 +121,14 @@
             <mat-label>Confirmer le mot de passe</mat-label>
             <mat-icon matPrefix class="field-icon">lock_outline</mat-icon>
             <input matInput type="password" formControlName="confirmPassword" />
+            @if (passwordMismatch) {
+              <mat-error>Les mots de passe ne correspondent pas.</mat-error>
+            }
           </mat-form-field>
 
           <div class="form-actions">
             <button mat-flat-button class="danger-btn" type="submit"
-              [disabled]="passwordForm.invalid || savingPassword">
+              [disabled]="passwordForm.invalid || passwordMismatch || savingPassword">
               <mat-icon>{{ savingPassword ? 'hourglass_empty' : 'lock_reset' }}</mat-icon>
               {{ savingPassword ? 'Modification…' : 'Changer le mot de passe' }}
             </button>
