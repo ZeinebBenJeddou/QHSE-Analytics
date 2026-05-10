@@ -19,6 +19,10 @@ import { adminProfileResolver } from './features/admin/pages/profile/profile.res
 import { AdminHistoriqueComponent } from './features/admin/pages/historique/historique-admin.component';
 import { AdminAuditComponent } from './features/admin/pages/audit/audit.component';
 import { adminAuditResolver } from './features/admin/pages/audit/audit.resolver';
+import { RagAdminComponent } from './features/admin/pages/rag/rag-admin.component';
+import { ragAdminResolver } from './features/admin/pages/rag/rag-admin.resolver';
+import { IaHealthComponent } from './features/admin/pages/ia-health/ia-health.component';
+import { iaHealthResolver } from './features/admin/pages/ia-health/ia-health.resolver';
 import { AnalysteShellComponent } from './features/analyste/analyste-shell.component';
 import { ImportComponent } from './features/analyste/pages/import/import.component';
 import { ImportMappingComponent } from './features/analyste/pages/import-mapping/import-mapping.component';
@@ -52,6 +56,8 @@ export const routes: Routes = [
       { path: 'overview', component: AdminOverviewComponent, resolve: { data: adminOverviewResolver } },
       { path: 'historique', component: AdminHistoriqueComponent },
       { path: 'audit', component: AdminAuditComponent, resolve: { audit: adminAuditResolver } },
+      { path: 'rag', component: RagAdminComponent, resolve: { entries: ragAdminResolver } },
+      { path: 'ia-health', component: IaHealthComponent, resolve: { health: iaHealthResolver } },
       { path: 'users', component: AdminUsersComponent, resolve: { users: adminUsersResolver } },
       { path: 'kpis', component: AdminKpisComponent, resolve: { kpis: adminKpisResolver } },
       { path: 'profile', component: AdminProfileComponent, resolve: { profile: adminProfileResolver } },

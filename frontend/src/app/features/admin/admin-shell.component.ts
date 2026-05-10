@@ -42,7 +42,9 @@ export class AdminShellComponent {
     { label: 'Historique',    icon: 'history',          route: '/admin/historique', badge: null },
     { label: 'Utilisateurs',  icon: 'group',            route: '/admin/users',    badge: null },
     { label: 'KPIs',          icon: 'speed',            route: '/admin/kpis',     badge: null },
-    { label: 'Audit',         icon: 'policy',           route: '/admin/audit',    badge: null },
+    { label: 'Audit',         icon: 'policy',           route: '/admin/audit',     badge: null },
+    { label: 'Base RAG',      icon: 'hub',              route: '/admin/rag',       badge: null },
+    { label: 'Santé IA',      icon: 'monitor_heart',    route: '/admin/ia-health', badge: null },
   ];
 
   constructor() {

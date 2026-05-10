@@ -1,0 +1,294 @@
+<div class="rag-page">
+
+  <!-- HEADER -->
+  <div class="page-header">
+    <div class="header-left">
+      <div class="header-icon-wrap">
+        <mat-icon class="header-icon">hub</mat-icon>
+      </div>
+      <div>
+        <h1>Base de connaissances RAG</h1>
+        <p class="subtitle">Définitions, seuils et normes injectés dans les prompts IA</p>
+      </div>
+    </div>
+    <button mat-stroked-button class="back-btn" routerLink="/admin/overview">
+      <mat-icon>arrow_back</mat-icon>
+      Retour
+    </button>
+  </div>
+
+  @if (error) {
+    <div class="error-banner">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ error }}</span>
+    </div>
+  }
+
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat-chip">
+      <mat-icon>library_books</mat-icon>
+      <span class="stat-val">{{ entries.length }}</span>
+      <span class="stat-lbl">Entrées totales</span>
+    </div>
+    <div class="stat-chip green">
+      <mat-icon>memory</mat-icon>
+      <span class="stat-val">{{ totalWithEmbedding }}</span>
+      <span class="stat-lbl">Avec embedding</span>
+    </div>
+    <div class="stat-chip amber">
+      <mat-icon>warning_amber</mat-icon>
+      <span class="stat-val">{{ entries.length - totalWithEmbedding }}</span>
+      <span class="stat-lbl">Sans embedding</span>
+    </div>
+  </div>
+
+  <div class="top-grid">
+
+    <!-- FORMULAIRE CRÉER / ÉDITER -->
+    <mat-card class="glass-card" [class.edit-card]="editingEntry">
+      <mat-card-header>
+        <div mat-card-avatar class="card-av-icon-wrap" [class.amber]="editingEntry">
+          <mat-icon class="card-av-icon" [class.amber]="editingEntry">
+            {{ editingEntry ? 'edit' : 'add_circle' }}
+          </mat-icon>
+        </div>
+        <mat-card-title>{{ editingEntry ? 'Modifier l\'entrée' : 'Nouvelle entrée' }}</mat-card-title>
+        <mat-card-subtitle>
+          {{ editingEntry ? editingEntry.kpiName : 'Ajouter un KPI à la base de connaissances' }}
+        </mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <form [formGroup]="entryForm" (ngSubmit)="submitEntry()" class="entry-form">
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Nom du KPI</mat-label>
+            <mat-icon matPrefix class="field-icon">label</mat-icon>
+            <input matInput formControlName="kpiName" placeholder="ex: Taux de fréquence accidents" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Catégorie</mat-label>
+            <mat-icon matPrefix class="field-icon">category</mat-icon>
+            <mat-select formControlName="category">
+              <mat-option value="">— Aucune —</mat-option>
+              @for (cat of categories; track cat) {
+                <mat-option [value]="cat">{{ categoryLabel(cat) }} ({{ cat }})</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Définition</mat-label>
+            <mat-icon matPrefix class="field-icon">description</mat-icon>
+            <textarea matInput formControlName="definition" rows="4"
+              placeholder="Définition détaillée, normes applicables (ISO 45001…)"></textarea>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Seuils (JSON optionnel)</mat-label>
+            <mat-icon matPrefix class="field-icon">tune</mat-icon>
+            <textarea matInput formControlName="thresholds" rows="3"
+              placeholder='{"faible":5,"modere":10,"critique":20}'></textarea>
+            @if (entryForm.get('thresholds')?.value && !isValidJson(entryForm.get('thresholds')?.value ?? '')) {
+              <mat-hint class="json-error">JSON invalide</mat-hint>
+            }
+          </mat-form-field>
+
+          <div class="form-actions">
+            @if (editingEntry) {
+              <button mat-stroked-button type="button" class="back-btn" (click)="cancelEdit()">
+                <mat-icon>close</mat-icon> Annuler
+              </button>
+            }
+            <button mat-flat-button type="submit"
+              [class]="editingEntry ? 'amber-btn' : 'primary-btn'"
+              [disabled]="saving || entryForm.invalid ||
+                          !isValidJson(entryForm.get('thresholds')?.value ?? '')">
+              <mat-icon>{{ saving ? 'hourglass_empty' : (editingEntry ? 'save' : 'add') }}</mat-icon>
+              {{ saving ? 'Enregistrement…' : (editingEntry ? 'Enregistrer' : 'Créer') }}
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- TEST RECHERCHE -->
+    <mat-card class="glass-card search-card">
+      <mat-card-header>
+        <div mat-card-avatar class="card-av-icon-wrap purple">
+          <mat-icon class="card-av-icon purple">manage_search</mat-icon>
+        </div>
+        <mat-card-title>Tester la recherche RAG</mat-card-title>
+        <mat-card-subtitle>Simuler une requête vectorielle ou keyword</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <form [formGroup]="searchForm" (ngSubmit)="runSearch()" class="search-form">
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Requête</mat-label>
+            <mat-icon matPrefix class="field-icon">search</mat-icon>
+            <input matInput formControlName="query" placeholder="ex: accidents du travail" />
+          </mat-form-field>
+          <div class="search-params">
+            <mat-form-field appearance="outline" class="param-field">
+              <mat-label>Top K</mat-label>
+              <input matInput type="number" formControlName="topK" min="1" max="20" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="param-field">
+              <mat-label>Seuil (0-1)</mat-label>
+              <input matInput type="number" formControlName="threshold" min="0" max="1" step="0.05" />
+            </mat-form-field>
+          </div>
+          <div class="form-actions">
+            @if (searchResults !== null) {
+              <button mat-stroked-button type="button" class="back-btn" (click)="clearSearch()">
+                <mat-icon>clear</mat-icon> Effacer
+              </button>
+            }
+            <button mat-flat-button class="purple-btn" type="submit"
+              [disabled]="searching || searchForm.invalid">
+              <mat-icon>{{ searching ? 'hourglass_empty' : 'travel_explore' }}</mat-icon>
+              {{ searching ? 'Recherche…' : 'Lancer' }}
+            </button>
+          </div>
+        </form>
+
+        @if (searchError) {
+          <div class="error-banner small">
+            <mat-icon>error_outline</mat-icon>
+            <span>{{ searchError }}</span>
+          </div>
+        }
+
+        @if (searchResults !== null) {
+          <div class="search-results">
+            @if (!searchResults.length) {
+              <div class="empty-state small">
+                <mat-icon>search_off</mat-icon>
+                <span>Aucun résultat trouvé.</span>
+              </div>
+            }
+            @for (r of searchResults; track r.id) {
+              <div class="result-item">
+                <div class="result-name">{{ r.kpiName }}</div>
+                @if (r.category) {
+                  <span class="cat-chip cat-{{ r.category | lowercase }}">{{ categoryLabel(r.category) }}</span>
+                }
+                <div class="result-def">{{ truncate(r.definition, 120) }}</div>
+              </div>
+            }
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
+
+  </div>
+
+  <!-- TABLE DES ENTRÉES -->
+  <mat-card class="glass-card table-card">
+    <mat-card-header>
+      <div mat-card-avatar class="card-av-icon-wrap">
+        <mat-icon class="card-av-icon">table_view</mat-icon>
+      </div>
+      <mat-card-title>
+        Entrées
+        <span class="count-badge">{{ entries.length }}</span>
+      </mat-card-title>
+      <mat-card-subtitle>Toutes les définitions stockées dans la base vectorielle</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+
+      @if (loading) {
+        <div class="loader-overlay">
+          <mat-progress-spinner diameter="36" mode="indeterminate"></mat-progress-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (!loading && !entries.length) {
+        <div class="empty-state">
+          <mat-icon>library_add</mat-icon>
+          <span>Aucune entrée. Commencez par en créer une.</span>
+        </div>
+      }
+
+      @if (!loading && entries.length) {
+        <div class="table-wrap">
+          <table mat-table [dataSource]="entries" class="rag-table">
+
+            <ng-container matColumnDef="kpiName">
+              <th mat-header-cell *matHeaderCellDef>Nom KPI</th>
+              <td mat-cell *matCellDef="let row">
+                <span class="kpi-name">{{ row.kpiName }}</span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="category">
+              <th mat-header-cell *matHeaderCellDef>Catégorie</th>
+              <td mat-cell *matCellDef="let row">
+                @if (row.category) {
+                  <span class="cat-chip cat-{{ row.category | lowercase }}">
+                    {{ categoryLabel(row.category) }}
+                  </span>
+                } @else {
+                  <span class="muted">—</span>
+                }
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="definition">
+              <th mat-header-cell *matHeaderCellDef>Définition</th>
+              <td mat-cell *matCellDef="let row">
+                <span class="def-text" [matTooltip]="row.definition ?? ''">
+                  {{ truncate(row.definition) }}
+                </span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="embedding">
+              <th mat-header-cell *matHeaderCellDef>Embedding</th>
+              <td mat-cell *matCellDef="let row">
+                @if (row.hasEmbedding) {
+                  <span class="embed-badge ok">
+                    <mat-icon>check_circle</mat-icon> Vectorisé
+                  </span>
+                } @else {
+                  <span class="embed-badge warn">
+                    <mat-icon>warning</mat-icon> Absent
+                  </span>
+                }
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="updatedAt">
+              <th mat-header-cell *matHeaderCellDef>Mis à jour</th>
+              <td mat-cell *matCellDef="let row">
+                <span class="date-text">{{ row.updatedAt | date:'dd/MM/yy HH:mm' }}</span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef></th>
+              <td mat-cell *matCellDef="let row">
+                <div class="row-actions">
+                  <button mat-icon-button class="action-btn amber"
+                    matTooltip="Modifier" (click)="startEdit(row)">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button mat-icon-button class="action-btn red"
+                    matTooltip="Supprimer" (click)="deleteEntry(row)">
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
+                </div>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="rag-row"></tr>
+          </table>
+        </div>
+      }
+
+    </mat-card-content>
+  </mat-card>
+
+</div>

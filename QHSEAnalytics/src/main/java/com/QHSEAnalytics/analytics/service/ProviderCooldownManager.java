@@ -33,4 +33,8 @@ public class ProviderCooldownManager {
     public void clearCooldown(String provider) {
         cooldowns.remove(provider);
     }
+
+    public Instant getCooldownUntil(String provider) {
+        return cooldowns.get(provider);
+    }
 }

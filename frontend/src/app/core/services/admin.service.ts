@@ -15,9 +15,14 @@ import {
   CategorieKpiResponse,
   CreateAnalysteRequest,
   CreateKpiRequest,
+  IaHealthResponse,
   KpiResponse,
   MessageResponse,
   ProfileResponse,
+  RagKnowledgeRequest,
+  RagKnowledgeResponse,
+  RagSearchTestRequest,
+  RagSearchTestResultItem,
   UpdateKpiRequest,
   UpdateProfilRequest,
   UpdateUserRequest,
@@ -163,5 +168,41 @@ export class AdminService {
 
   getHistorique(): Observable<HistoriqueAnalysteResponse> {
     return this.http.get<HistoriqueAnalysteResponse>(`${this.dashboardBase}/historique`);
+  }
+
+  // ── RAG Knowledge Base ────────────────────────────────────────────────────
+
+  getRagEntries(): Observable<RagKnowledgeResponse[]> {
+    return this.http.get<RagKnowledgeResponse[]>(`${this.adminBase}/rag`);
+  }
+
+  createRagEntry(request: RagKnowledgeRequest): Observable<RagKnowledgeResponse> {
+    return this.http.post<RagKnowledgeResponse>(`${this.adminBase}/rag`, request);
+  }
+
+  updateRagEntry(id: number, request: RagKnowledgeRequest): Observable<RagKnowledgeResponse> {
+    return this.http.put<RagKnowledgeResponse>(`${this.adminBase}/rag/${id}`, request);
+  }
+
+  deleteRagEntry(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.adminBase}/rag/${id}`);
+  }
+
+  testRagSearch(request: RagSearchTestRequest): Observable<RagSearchTestResultItem[]> {
+    return this.http.post<RagSearchTestResultItem[]>(`${this.adminBase}/rag/search`, request);
+  }
+
+  // ── IA Health ─────────────────────────────────────────────────────────────
+
+  getIaHealth(): Observable<IaHealthResponse> {
+    return this.http.get<IaHealthResponse>(`${this.adminBase}/ia/health`);
+  }
+
+  clearIaCache(): Observable<void> {
+    return this.http.delete<void>(`${this.adminBase}/ia/cache`);
+  }
+
+  clearProviderCooldown(name: string): Observable<void> {
+    return this.http.delete<void>(`${this.adminBase}/ia/providers/${name}/cooldown`);
   }
 }
