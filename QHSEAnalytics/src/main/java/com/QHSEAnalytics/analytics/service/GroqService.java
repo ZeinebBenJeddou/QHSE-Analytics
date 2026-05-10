@@ -37,6 +37,7 @@ public class GroqService {
     private final GroqPromptBuilder groqPromptBuilder;
     private final GroqKeyRotator groqKeyRotator;
     private final ProviderCooldownManager cooldownManager;
+    private final AiConfigService aiConfigService;
 
     @Value("${app.groq.models:}")
     private String models;
@@ -126,9 +127,12 @@ public class GroqService {
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(apiKey);
 
+        double temperature = jsonMode
+                ? aiConfigService.getDouble("groq.temperature.json", temperatureJson)
+                : aiConfigService.getDouble("groq.temperature.text", temperatureText);
         com.fasterxml.jackson.databind.node.ObjectNode payloadNode = objectMapper.createObjectNode()
                 .put("model", candidateModel)
-                .put("temperature", jsonMode ? temperatureJson : temperatureText)
+                .put("temperature", temperature)
                 .put("max_tokens", maxTokens)
                 .set("messages", objectMapper.createArrayNode()
                         .add(objectMapper.createObjectNode()
@@ -256,7 +260,8 @@ public class GroqService {
 
     private RestTemplate buildRestTemplate() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        int timeoutMillis = Math.max(timeoutSeconds, 1) * 1000;
+        int effectiveTimeout = aiConfigService.getInt("groq.timeout.seconds", timeoutSeconds);
+        int timeoutMillis = Math.max(effectiveTimeout, 1) * 1000;
         factory.setConnectTimeout(timeoutMillis);
         factory.setReadTimeout(timeoutMillis);
         return new RestTemplate(factory);

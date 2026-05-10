@@ -3,9 +3,10 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
-  ResumeAnalysteResponse,
+  AlertesResponse,
   ComparatifTableauResponse,
   GraphiquesDataResponse,
+  ResumeAnalysteResponse,
 } from '../models/dashboard.model';
 import { AnalyseCompleteResponse } from '../models/analyse-ia.model';
 
@@ -32,5 +33,10 @@ export class DashboardService {
   /** Get complete AI analysis for given import */
   getAnalysesIa(importId: number): Observable<AnalyseCompleteResponse> {
     return this.http.get<AnalyseCompleteResponse>(`${this.base}/analyses/${importId}`);
+  }
+
+  /** Get critical KPI alerts for the latest import */
+  getAlertes(): Observable<AlertesResponse> {
+    return this.http.get<AlertesResponse>(`${this.base}/alertes`);
   }
 }

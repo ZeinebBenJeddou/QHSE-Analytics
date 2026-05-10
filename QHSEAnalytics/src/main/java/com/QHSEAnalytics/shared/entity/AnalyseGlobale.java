@@ -49,6 +49,9 @@ public class AnalyseGlobale {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "overall_confidence")
+    private Integer overallConfidence;
+
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();

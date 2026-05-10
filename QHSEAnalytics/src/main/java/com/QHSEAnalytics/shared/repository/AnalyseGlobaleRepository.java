@@ -17,6 +17,9 @@ public interface AnalyseGlobaleRepository extends JpaRepository<AnalyseGlobale, 
     @EntityGraph(attributePaths = {"importSession", "user"})
     java.util.List<AnalyseGlobale> findTop10ByOrderByCreatedAtDesc();
 
+    @EntityGraph(attributePaths = {"importSession"})
+    java.util.List<AnalyseGlobale> findByImportSessionIdIn(java.util.Collection<Long> importSessionIds);
+
     @Modifying
     @Transactional
     void deleteByImportSessionId(Long importSessionId);

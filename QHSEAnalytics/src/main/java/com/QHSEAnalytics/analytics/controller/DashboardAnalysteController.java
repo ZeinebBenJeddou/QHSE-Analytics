@@ -2,6 +2,7 @@ package com.QHSEAnalytics.analytics.controller;
 
 import com.QHSEAnalytics.auth.exception.UserNotFoundException;
 import com.QHSEAnalytics.auth.repository.UserRepository;
+import com.QHSEAnalytics.shared.dto.response.AlertesResponse;
 import com.QHSEAnalytics.shared.dto.response.AnalyseCompleteResponse;
 import com.QHSEAnalytics.shared.dto.response.ComparatifTableauResponse;
 import com.QHSEAnalytics.shared.dto.response.GraphiquesDataResponse;
@@ -55,6 +56,11 @@ public class DashboardAnalysteController {
     @GetMapping("/analyses/{importId}")
     public ResponseEntity<AnalyseCompleteResponse> getAnalysesIa(@PathVariable Long importId) {
         return ResponseEntity.ok(dashboardAnalysteService.getAnalysesIa(getCurrentUserId(), importId));
+    }
+
+    @GetMapping("/alertes")
+    public ResponseEntity<AlertesResponse> getAlertes() {
+        return ResponseEntity.ok(dashboardAnalysteService.getAlertes(getCurrentUserId()));
     }
 
     private Long getCurrentUserId() {

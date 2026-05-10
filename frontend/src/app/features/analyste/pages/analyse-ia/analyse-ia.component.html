@@ -98,15 +98,6 @@
           <div class="stat-label">Indicateurs analysés</div>
         </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-icon" [style.background]="scoreColor() + '22'" [style.color]="scoreColor()">
-          <mat-icon>verified</mat-icon>
-        </div>
-        <div class="stat-body">
-          <div class="stat-value" [style.color]="scoreColor()">{{ globalScore() }}<span class="stat-unit">/100</span></div>
-          <div class="stat-label">Score QHSE global</div>
-        </div>
-      </div>
       <div class="stat-card stat-card-danger">
         <div class="stat-icon stat-icon-red"><mat-icon>warning</mat-icon></div>
         <div class="stat-body">
@@ -192,6 +183,50 @@
               }
             </div>
           </div>
+        </div>
+      </section>
+    }
+
+    <!-- ══════════════════════════════════════════════════════════════
+         ALERTES PRÉDICTIVES — remontées ici car urgentes
+    ══════════════════════════════════════════════════════════════════ -->
+    @if (hasAlerts()) {
+      <section class="section">
+        <div class="section-header-row">
+          <mat-icon class="s-icon s-icon-alert">radar</mat-icon>
+          <h2>Alertes Prédictives</h2>
+          <span class="head-count">{{ structured()?.predictiveAlerts?.length }}</span>
+          @if (criticalAlertsCount() > 0) {
+            <span class="critical-count-badge">
+              <mat-icon>error</mat-icon>
+              {{ criticalAlertsCount() }} critique(s)
+            </span>
+          }
+        </div>
+
+        <div class="alerts-grid">
+          @for (alert of structured()?.predictiveAlerts ?? []; track $index) {
+            <div class="alert-card" [class]="alertSeverityClass(alert.severity)">
+              <div class="alert-card-header">
+                <div class="alert-kpi">
+                  <mat-icon>{{ alertSeverityIcon(alert.severity) }}</mat-icon>
+                  <span class="alert-kpi-name">{{ alert.kpiRef }}</span>
+                </div>
+                <div class="alert-badges">
+                  <span class="alert-sev" [class]="alertSeverityClass(alert.severity)">
+                    {{ alertSeverityLabel(alert.severity) }}
+                  </span>
+                  @if (alert.estimatedHorizonMonths != null) {
+                    <span class="alert-horizon"><mat-icon>schedule</mat-icon>{{ alert.estimatedHorizonMonths }} mois</span>
+                  }
+                  @if (alert.confidence != null) {
+                    <span class="alert-conf"><mat-icon>verified</mat-icon>{{ alert.confidence }}%</span>
+                  }
+                </div>
+              </div>
+              <p class="alert-projection">{{ alert.projection }}</p>
+            </div>
+          }
         </div>
       </section>
     }
@@ -558,14 +593,23 @@
                       </div>
                     }
                     <div class="k-btns">
-                      @if (col !== 'todo') {
-                        <button class="k-btn" (click)="moveItem(item.id, 'todo')">← À faire</button>
+                      @if (col === 'todo') {
+                        <button class="k-btn k-btn-next" (click)="moveItem(item.id, 'in_progress')">
+                          <mat-icon>play_arrow</mat-icon> Démarrer
+                        </button>
                       }
-                      @if (col !== 'in_progress') {
-                        <button class="k-btn" (click)="moveItem(item.id, 'in_progress')">En cours</button>
+                      @if (col === 'in_progress') {
+                        <button class="k-btn k-btn-done" (click)="moveItem(item.id, 'done')">
+                          <mat-icon>check</mat-icon> Terminer
+                        </button>
+                        <button class="k-btn k-btn-back" (click)="moveItem(item.id, 'todo')" matTooltip="Remettre À faire">
+                          <mat-icon>undo</mat-icon>
+                        </button>
                       }
-                      @if (col !== 'done') {
-                        <button class="k-btn k-btn-done" (click)="moveItem(item.id, 'done')">Terminé ✓</button>
+                      @if (col === 'done') {
+                        <button class="k-btn k-btn-back" (click)="moveItem(item.id, 'in_progress')" matTooltip="Réouvrir">
+                          <mat-icon>undo</mat-icon> Réouvrir
+                        </button>
                       }
                     </div>
                   </div>
@@ -574,50 +618,6 @@
                   <div class="k-empty"><mat-icon>inbox</mat-icon> Aucune action</div>
                 }
               </div>
-            </div>
-          }
-        </div>
-      </section>
-    }
-
-    <!-- ══════════════════════════════════════════════════════════════
-         ALERTES PRÉDICTIVES
-    ══════════════════════════════════════════════════════════════════ -->
-    @if (hasAlerts()) {
-      <section class="section">
-        <div class="section-header-row">
-          <mat-icon class="s-icon s-icon-alert">radar</mat-icon>
-          <h2>Alertes Prédictives</h2>
-          <span class="head-count">{{ structured()?.predictiveAlerts?.length }}</span>
-          @if (criticalAlertsCount() > 0) {
-            <span class="critical-count-badge">
-              <mat-icon>error</mat-icon>
-              {{ criticalAlertsCount() }} critique(s)
-            </span>
-          }
-        </div>
-
-        <div class="alerts-grid">
-          @for (alert of structured()?.predictiveAlerts ?? []; track $index) {
-            <div class="alert-card" [class]="alertSeverityClass(alert.severity)">
-              <div class="alert-card-header">
-                <div class="alert-kpi">
-                  <mat-icon>{{ alertSeverityIcon(alert.severity) }}</mat-icon>
-                  <span class="alert-kpi-name">{{ alert.kpiRef }}</span>
-                </div>
-                <div class="alert-badges">
-                  <span class="alert-sev" [class]="alertSeverityClass(alert.severity)">
-                    {{ alertSeverityLabel(alert.severity) }}
-                  </span>
-                  @if (alert.estimatedHorizonMonths != null) {
-                    <span class="alert-horizon"><mat-icon>schedule</mat-icon>{{ alert.estimatedHorizonMonths }} mois</span>
-                  }
-                  @if (alert.confidence != null) {
-                    <span class="alert-conf"><mat-icon>verified</mat-icon>{{ alert.confidence }}%</span>
-                  }
-                </div>
-              </div>
-              <p class="alert-projection">{{ alert.projection }}</p>
             </div>
           }
         </div>

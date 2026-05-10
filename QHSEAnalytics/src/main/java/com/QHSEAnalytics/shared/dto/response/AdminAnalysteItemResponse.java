@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -18,6 +20,8 @@ public class AdminAnalysteItemResponse {
     private String email;
     private Long dernierImportId;
     private String dernierePeriode;
+    private LocalDateTime dernierImportDate;
     private int nombreKpisCritiques;
     private String statut;
+    private Integer confidenceScore;
 }

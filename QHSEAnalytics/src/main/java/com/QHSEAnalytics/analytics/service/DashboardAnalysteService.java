@@ -1,5 +1,7 @@
 package com.QHSEAnalytics.analytics.service;
 
+import com.QHSEAnalytics.shared.dto.response.AlerteKpiItemResponse;
+import com.QHSEAnalytics.shared.dto.response.AlertesResponse;
 import com.QHSEAnalytics.shared.dto.response.AnalyseCompleteResponse;
 import com.QHSEAnalytics.shared.dto.response.BarreGroupeeData;
 import com.QHSEAnalytics.shared.dto.response.ComparatifTableauResponse;
@@ -409,6 +411,40 @@ public class DashboardAnalysteService {
             return "KPI inconnu";
         }
         return r.getKpi().getNom();
+    }
+
+    public AlertesResponse getAlertes(Long userId) {
+        return importSessionRepository
+                .findTopByUserIdAndStatutInOrderByCreatedAtDesc(
+                        userId,
+                        List.of(ImportStatut.CALCULATED, ImportStatut.READY_FOR_AI, ImportStatut.TRAITE))
+                .map(session -> {
+                    List<AlerteKpiItemResponse> alertes = resultatKpiRepository
+                            .findByImportSessionIdWithKpi(session.getId()).stream()
+                            .filter(r -> r.getNiveauVariation() == NiveauVariation.CRITIQUE)
+                            .sorted(Comparator.comparing(r -> r.getKpi().getCategorieKpi().getCode()))
+                            .map(r -> AlerteKpiItemResponse.builder()
+                                    .kpiId(r.getKpi().getId())
+                                    .kpiNom(r.getKpi().getNom())
+                                    .categorieCode(r.getKpi().getCategorieKpi().getCode())
+                                    .categorieLibelle(r.getKpi().getCategorieKpi().getLibelle())
+                                    .variationRelative(r.getVariationRelative())
+                                    .variationAbsolue(r.getVariationAbsolue())
+                                    .valeurN(r.getValeurN())
+                                    .valeurN1(r.getValeurN1())
+                                    .niveauVariation("CRITIQUE")
+                                    .tendance(r.getTendance() == null ? null : r.getTendance().name())
+                                    .build())
+                            .toList();
+                    return AlertesResponse.builder()
+                            .importSessionId(session.getId())
+                            .periodeN1(session.getPeriodeN1())
+                            .periodeN(session.getPeriodeN())
+                            .count(alertes.size())
+                            .alertes(alertes)
+                            .build();
+                })
+                .orElseGet(() -> AlertesResponse.builder().count(0).alertes(List.of()).build());
     }
 
     private Integer safeKpiOrdre(ResultatKpi r) {

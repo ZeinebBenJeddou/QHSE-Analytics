@@ -67,9 +67,11 @@ export interface AdminAnalysteItemResponse {
   prenom: string;
   email: string;
   dernierImportId: number | null;
-  dernierePeriode: string;
+  dernierePeriode: string | null;
+  dernierImportDate: string | null;
   nombreKpisCritiques: number;
   statut: string;
+  confidenceScore: number | null;
 }
 
 export interface AdminKpiCritiqueResponse {
@@ -97,7 +99,12 @@ export interface AdminRepartitionResponse {
 export interface AdminGraphiquesDataResponse {
   repartitionNiveaux: Record<string, number>;
   kpisCritiquesByCategorie: Record<string, number>;
-  evolutionParCategorie: Array<{ categorie: string; serieA: number; serieB: number; serieC: number }>;
+  evolutionParCategorie: Array<{
+    categorie: string;
+    valeurMoyenneN1: number;
+    valeurMoyenneN: number;
+    variationMoyenne: number;
+  }>;
 }
 
 export type UniteKpi = 'POURCENTAGE' | 'NOMBRE' | 'KWH' | 'KG';
@@ -209,6 +216,33 @@ export interface RagSearchTestResultItem {
   kpiName: string;
   category: string | null;
   definition: string | null;
+}
+
+// ── Data Retention ─────────────────────────────────────────────────────────
+
+export interface DataRetentionPolicyResponse {
+  rawRetentionDays: number;
+  previewRetentionDays: number;
+  purgeCron: string;
+  terminalStatuses: string[];
+  lastExecutedAt: string | null;
+  lastDurationMs: number | null;
+  lastScannedImports: number | null;
+  lastRawRowsDeleted: number | null;
+  lastPreviewRowsDeleted: number | null;
+}
+
+// ── AI Config ───────────────────────────────────────────────────────────────
+
+export interface AiConfigResponse {
+  key: string;
+  value: string;
+  description: string | null;
+  updatedAt: string;
+}
+
+export interface AiConfigUpdateRequest {
+  value: string;
 }
 
 // ── IA Health ───────────────────────────────────────────────────────────────

@@ -85,6 +85,7 @@ export class AnalyseIAComponent implements OnInit {
   private route            = inject(ActivatedRoute);
   private http             = inject(HttpClient);
   private readonly dashboardAnalysteBase = `${environment.apiUrl}/api/dashboard/analyste`;
+  private readonly dashboardAdminBase    = `${environment.apiUrl}/api/dashboard/admin`;
   private readonly iaBase = `${environment.apiUrl}/api/ia`;
 
   // ── State ────────────────────────────────────────────────────────────
@@ -277,12 +278,16 @@ export class AnalyseIAComponent implements OnInit {
     }
 
     // Endpoint principal : GET /api/dashboard/analyste/analyses/{importId}
+    // Admin fallback   : GET /api/dashboard/admin/analyses/{importId}
     this.http.get<AnalyseCompleteResponse>(`${this.dashboardAnalysteBase}/analyses/${importId}`)
       .pipe(
         catchError(() =>
-          // Fallback : GET /api/ia/{importId}
-          this.aiAnalysisService.getAnalyseComplete(importId).pipe(
-            catchError(() => of(null))
+          this.http.get<AnalyseCompleteResponse>(`${this.dashboardAdminBase}/analyses/${importId}`).pipe(
+            catchError(() =>
+              this.aiAnalysisService.getAnalyseComplete(importId).pipe(
+                catchError(() => of(null))
+              )
+            )
           )
         )
       )

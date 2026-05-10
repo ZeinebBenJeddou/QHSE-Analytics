@@ -96,3 +96,24 @@ export interface GraphiquesDataResponse {
   radarData: RadarPoint[];
   topKpisDegrades: KpiDegrade[];
 }
+
+export interface AlerteKpiItemResponse {
+  kpiId: number;
+  kpiNom: string;
+  categorieCode: string;
+  categorieLibelle: string;
+  variationRelative: number;
+  variationAbsolue: number;
+  valeurN: number;
+  valeurN1: number;
+  niveauVariation: string;
+  tendance: string | null;
+}
+
+export interface AlertesResponse {
+  importSessionId: number | null;
+  periodeN1: number | null;
+  periodeN: number | null;
+  count: number;
+  alertes: AlerteKpiItemResponse[];
+}

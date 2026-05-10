@@ -10,10 +10,9 @@ export const analysteGuard: CanActivateFn = (): boolean => {
     if (tokenService.isAnalyste()) {
       return true;
     }
-    // If user is admin, redirect to admin area
+    // Admin can view analyste pages for oversight
     if (tokenService.isAdmin()) {
-      router.navigate(['/admin']);
-      return false;
+      return true;
     }
   }
 

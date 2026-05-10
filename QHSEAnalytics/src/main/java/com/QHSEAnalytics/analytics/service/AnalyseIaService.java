@@ -283,9 +283,9 @@ public class AnalyseIaService {
                 .build();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public AiAnalysisStructuredResponse getAnalyseStructured(Long importSessionId, Long userId, boolean isAdmin) {
-        ImportSession session = loadSessionWithOwnership(importSessionId, userId, isAdmin);
+        loadSessionWithOwnership(importSessionId, userId, isAdmin);
         List<ResultatKpi> resultats = resultatKpiRepository.findByImportSessionIdOrderByCreatedAtDesc(importSessionId).stream()
                 .filter(resultat -> resultat.getKpi() != null && resultat.getKpi().getCategorieKpi() != null)
                 .toList();
@@ -306,7 +306,17 @@ public class AnalyseIaService {
 
         List<KpiCalculatedDTO> kpiData = resultats.stream().map(this::toKpiCalculatedDTO).toList();
         List<KpiCalculatedDTO> cleanedData = cleanKpis(kpiData);
-        return analysisAgent.analyzeStructured(cleanedData, importSessionId);
+        AiAnalysisStructuredResponse result = analysisAgent.analyzeStructured(cleanedData, importSessionId);
+
+        if (result != null && result.getConfidence() != null && result.getConfidence().getOverall() != null) {
+            int score = result.getConfidence().getOverall().intValue();
+            analyseGlobaleRepository.findByImportSessionId(importSessionId).ifPresent(ag -> {
+                ag.setOverallConfidence(score);
+                analyseGlobaleRepository.save(ag);
+            });
+        }
+
+        return result;
     }
 
     @Transactional
@@ -336,6 +346,33 @@ public class AnalyseIaService {
 
         genererToutesLesAnalyses(importSessionId, userId, true);
         return getAnalyseComplete(importSessionId, userId, false);
+    }
+
+    @Transactional
+    public AnalyseCompleteResponse regenererAsAdmin(Long importSessionId) {
+        log.info("Admin demande la régénération pour session {}", importSessionId);
+        ImportSession session = importSessionRepository.findById(importSessionId)
+                .orElseThrow(() -> new ImportNotFoundException("Import introuvable"));
+        if (!session.getStatut().isReadyForAi()) {
+            throw new ImportNotReadyException("Import non prêt pour analyse IA.");
+        }
+        Long sessionOwnerId = session.getUser().getId();
+
+        try {
+            analyseCategorieRepository.deleteByImportSessionId(importSessionId);
+            analyseGlobaleRepository.deleteByImportSessionId(importSessionId);
+            llmProviderChain.clearKpiAnalysisCache();
+            List<ResultatKpi> resultats = resultatKpiRepository.findByImportSessionIdOrderByCreatedAtDesc(importSessionId);
+            for (ResultatKpi r : resultats) {
+                r.setAnalyseIa(null);
+            }
+            resultatKpiRepository.saveAll(resultats);
+        } catch (Exception ex) {
+            log.error("Erreur suppression analyses pour session {} : {}", importSessionId, ex.getMessage());
+        }
+
+        genererToutesLesAnalyses(importSessionId, sessionOwnerId, true);
+        return getAnalyseComplete(importSessionId, sessionOwnerId, true);
     }
 
     private ResultatKpiResponse toResultatKpiResponse(ResultatKpi resultat) {

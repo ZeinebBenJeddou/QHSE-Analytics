@@ -24,6 +24,8 @@
   --yellow-bg:  #FEF3C7;
   --purple:     #6366F1;
   --purple-bg:  #EEF2FF;
+  --blue:       #1E40AF;
+  --blue-bg:    #DBEAFE;
 
   --radius-sm:  8px;
   --radius-md:  12px;
@@ -38,7 +40,7 @@
 
 /* ── Page shell ─────────────────────────────────────────────────────────── */
 .ia-page {
-  padding: 24px 28px 80px;
+  padding: 0 0 56px;
   background: var(--surface);
   min-height: 100vh;
   font-family: 'Inter', system-ui, sans-serif;
@@ -243,7 +245,7 @@
 ═══════════════════════════════════════════════════════════════════════════ */
 .stats-strip {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 14px;
   margin-bottom: 32px;
 }
@@ -1349,6 +1351,35 @@
 }
 .k-btn-done:hover { background: #b2f5e8; }
 
+.k-btn-next {
+  background: var(--blue-bg);
+  color: var(--blue);
+  border-color: #BFDBFE;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.k-btn-next:hover { background: #BFDBFE; color: var(--blue); }
+.k-btn-next mat-icon,
+.k-btn-done mat-icon,
+.k-btn-back mat-icon {
+  font-size: 13px !important;
+  width: 13px !important;
+  height: 13px !important;
+}
+
+.k-btn-back {
+  border-color: var(--border);
+  color: var(--ink-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: unset;
+  padding: 4px 8px;
+}
+.k-btn-back:hover { background: var(--surface); color: var(--navy-soft); }
+
 .k-empty {
   display: flex;
   flex-direction: column;
@@ -1627,7 +1658,7 @@
    RESPONSIVE
 ═══════════════════════════════════════════════════════════════════════════ */
 @media (max-width: 1280px) {
-  .stats-strip { grid-template-columns: repeat(3, 1fr); }
+  .stats-strip { grid-template-columns: repeat(2, 1fr); }
   .hero-grid   { grid-template-columns: 140px 1fr; }
   .causes-reco-grid { grid-template-columns: 1fr; }
 }

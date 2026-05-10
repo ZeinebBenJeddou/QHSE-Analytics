@@ -10,10 +10,12 @@ import com.QHSEAnalytics.shared.dto.response.AdminStatsResponse;
 import com.QHSEAnalytics.shared.dto.response.BarreGroupeeData;
 import com.QHSEAnalytics.shared.dto.response.HistoriqueAnalysteResponse;
 import com.QHSEAnalytics.shared.dto.response.HistoriqueItemResponse;
+import com.QHSEAnalytics.shared.entity.AnalyseGlobale;
 import com.QHSEAnalytics.shared.entity.ImportSession;
 import com.QHSEAnalytics.shared.entity.ResultatKpi;
 import com.QHSEAnalytics.shared.enums.ImportStatut;
 import com.QHSEAnalytics.shared.enums.NiveauVariation;
+import com.QHSEAnalytics.shared.repository.AnalyseGlobaleRepository;
 import com.QHSEAnalytics.shared.repository.ImportSessionRepository;
 import com.QHSEAnalytics.shared.repository.ResultatKpiRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -37,6 +40,7 @@ public class DashboardAdminService {
     private final ImportSessionRepository importSessionRepository;
     private final ResultatKpiRepository resultatKpiRepository;
     private final UserRepository userRepository;
+    private final AnalyseGlobaleRepository analyseGlobaleRepository;
 
 
     public AdminStatsResponse getStats() {
@@ -59,11 +63,10 @@ public class DashboardAdminService {
             LinkedHashMap::new
         ));
 
+        List<Long> latestImportIds = latestByUser.values().stream().map(ImportSession::getId).toList();
+
         Map<Long, Long> critiquesBySession = resultatKpiRepository
-            .countByImportSessionIdsAndNiveauVariation(
-                latestByUser.values().stream().map(ImportSession::getId).toList(),
-                NiveauVariation.CRITIQUE
-            )
+            .countByImportSessionIdsAndNiveauVariation(latestImportIds, NiveauVariation.CRITIQUE)
             .stream()
             .collect(Collectors.toMap(
                 ResultatKpiRepository.ImportSessionCountView::getImportSessionId,
@@ -71,6 +74,20 @@ public class DashboardAdminService {
                 (left, right) -> left,
                 LinkedHashMap::new
             ));
+
+        Map<Long, Integer> confidenceByImportId;
+        if (!latestImportIds.isEmpty()) {
+            confidenceByImportId = analyseGlobaleRepository.findByImportSessionIdIn(latestImportIds)
+                    .stream()
+                    .filter(ag -> ag.getOverallConfidence() != null)
+                    .collect(Collectors.toMap(
+                            ag -> ag.getImportSession().getId(),
+                            AnalyseGlobale::getOverallConfidence,
+                            (a, b) -> a,
+                            HashMap::new));
+        } else {
+            confidenceByImportId = new HashMap<>();
+        }
 
         return analystes.stream().map(user -> {
             ImportSession latest = latestByUser.get(user.getId());
@@ -88,7 +105,7 @@ public class DashboardAdminService {
                         .build();
             }
 
-                    int critiques = critiquesBySession.getOrDefault(latest.getId(), 0L).intValue();
+            int critiques = critiquesBySession.getOrDefault(latest.getId(), 0L).intValue();
             String statut = critiques > 0 ? "ALERTE" : "OK";
             return AdminAnalysteItemResponse.builder()
                     .userId(user.getId())
@@ -97,8 +114,10 @@ public class DashboardAdminService {
                     .email(user.getEmail())
                     .dernierImportId(latest.getId())
                     .dernierePeriode(latest.getPeriodeN1() + " → " + latest.getPeriodeN())
+                    .dernierImportDate(latest.getCreatedAt())
                     .nombreKpisCritiques(critiques)
                     .statut(statut)
+                    .confidenceScore(confidenceByImportId.get(latest.getId()))
                     .build();
         }).sorted(Comparator.comparingInt(item -> analysteStatusRank(item.getStatut()))).toList();
     }

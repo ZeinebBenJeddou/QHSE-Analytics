@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -61,6 +62,11 @@ public class DashboardAdminController {
         return ResponseEntity.ok(dashboardAdminService.getHistorique());
     }
 
+    @GetMapping("/analyses/{importId}")
+    public ResponseEntity<AnalyseCompleteResponse> getAnalyseById(@PathVariable Long importId) {
+        return ResponseEntity.ok(analyseIaService.getAnalyseComplete(importId, 0L, true));
+    }
+
     @GetMapping("/analystes/{userId}/comparatif/{importId}")
     public ResponseEntity<ComparatifTableauResponse> getComparatifAnalyste(@PathVariable Long userId, @PathVariable Long importId) {
         return ResponseEntity.ok(dashboardAnalysteService.getComparatif(userId, importId));
@@ -69,5 +75,10 @@ public class DashboardAdminController {
     @GetMapping("/analystes/{userId}/analyses/{importId}")
     public ResponseEntity<AnalyseCompleteResponse> getAnalysesAnalyste(@PathVariable Long userId, @PathVariable Long importId) {
         return ResponseEntity.ok(analyseIaService.getAnalyseComplete(importId, userId, true));
+    }
+
+    @PostMapping("/analystes/{userId}/analyses/{importId}/regenerer")
+    public ResponseEntity<AnalyseCompleteResponse> regenererAnalyse(@PathVariable Long userId, @PathVariable Long importId) {
+        return ResponseEntity.ok(analyseIaService.regenererAsAdmin(importId));
     }
 }

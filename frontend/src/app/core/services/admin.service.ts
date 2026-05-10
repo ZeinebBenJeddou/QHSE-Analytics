@@ -9,12 +9,15 @@ import {
   AdminKpiCritiqueResponse,
   AdminRepartitionResponse,
   AdminStatsResponse,
+  AiConfigResponse,
+  AiConfigUpdateRequest,
   AnalyseCompleteResponse,
   AuditPageResponse,
   ChangePasswordRequest,
   CategorieKpiResponse,
   CreateAnalysteRequest,
   CreateKpiRequest,
+  DataRetentionPolicyResponse,
   IaHealthResponse,
   KpiResponse,
   MessageResponse,
@@ -190,6 +193,32 @@ export class AdminService {
 
   testRagSearch(request: RagSearchTestRequest): Observable<RagSearchTestResultItem[]> {
     return this.http.post<RagSearchTestResultItem[]>(`${this.adminBase}/rag/search`, request);
+  }
+
+  // ── Data Retention ───────────────────────────────────────────────────────
+
+  getDataRetention(): Observable<DataRetentionPolicyResponse> {
+    return this.http.get<DataRetentionPolicyResponse>(`${this.adminBase}/data-retention`);
+  }
+
+  triggerPurge(): Observable<DataRetentionPolicyResponse> {
+    return this.http.post<DataRetentionPolicyResponse>(`${this.adminBase}/data-retention/purge`, {});
+  }
+
+  recalculateAnalyse(userId: number, importId: number): Observable<AnalyseCompleteResponse> {
+    return this.http.post<AnalyseCompleteResponse>(
+      `${this.dashboardBase}/analystes/${userId}/analyses/${importId}/regenerer`, {}
+    );
+  }
+
+  // ── AI Config ─────────────────────────────────────────────────────────────
+
+  getAiConfigs(): Observable<AiConfigResponse[]> {
+    return this.http.get<AiConfigResponse[]>(`${this.adminBase}/ia/config`);
+  }
+
+  updateAiConfig(key: string, request: AiConfigUpdateRequest): Observable<AiConfigResponse> {
+    return this.http.put<AiConfigResponse>(`${this.adminBase}/ia/config/${key}`, request);
   }
 
   // ── IA Health ─────────────────────────────────────────────────────────────

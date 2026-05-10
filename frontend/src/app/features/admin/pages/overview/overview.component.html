@@ -1,6 +1,5 @@
 <div class="overview-page">
 
-  
   <div class="page-header">
     <div class="header-left">
       <div class="header-icon-wrap">
@@ -19,74 +18,75 @@
     </div>
   </div>
 
+  @if (errorMessage) {
+    <div class="error-banner">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ errorMessage }}</span>
+    </div>
+  }
 
-  <div *ngIf="errorMessage" class="error-banner">
-    <mat-icon>error_outline</mat-icon>
-    <span>{{ errorMessage }}</span>
-  </div>
+  @if (stats) {
+    <div class="summary-grid">
 
- 
-  <div *ngIf="stats" class="summary-grid">
+      <mat-card class="glass-card summary-card">
+        <mat-card-content>
+          <div class="card-body">
+            <div>
+              <p class="card-label">Analyses totales</p>
+              <p class="card-value">{{ stats.totalAnalyses }}</p>
+            </div>
+            <div class="card-icon-wrap icon-blue">
+              <mat-icon>assessment</mat-icon>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
 
-    <mat-card class="glass-card summary-card">
-      <mat-card-content>
-        <div class="card-body">
-          <div>
-            <p class="card-label">Analyses totales</p>
-            <p class="card-value">{{ stats.totalAnalyses }}</p>
+      <mat-card class="glass-card summary-card">
+        <mat-card-content>
+          <div class="card-body">
+            <div>
+              <p class="card-label">KPIs critiques</p>
+              <p class="card-value">{{ stats.totalKpisCritiques }}</p>
+            </div>
+            <div class="card-icon-wrap icon-red">
+              <mat-icon>warning_amber</mat-icon>
+            </div>
           </div>
-          <div class="card-icon-wrap icon-blue">
-            <mat-icon>assessment</mat-icon>
-          </div>
-        </div>
-      </mat-card-content>
-    </mat-card>
+        </mat-card-content>
+      </mat-card>
 
-    <mat-card class="glass-card summary-card">
-      <mat-card-content>
-        <div class="card-body">
-          <div>
-            <p class="card-label">KPIs critiques</p>
-            <p class="card-value">{{ stats.totalKpisCritiques }}</p>
+      <mat-card class="glass-card summary-card">
+        <mat-card-content>
+          <div class="card-body">
+            <div>
+              <p class="card-label">Analystes actifs</p>
+              <p class="card-value">{{ stats.nombreAnalystesActifs }}</p>
+            </div>
+            <div class="card-icon-wrap icon-green">
+              <mat-icon>group</mat-icon>
+            </div>
           </div>
-          <div class="card-icon-wrap icon-red">
-            <mat-icon>warning_amber</mat-icon>
-          </div>
-        </div>
-      </mat-card-content>
-    </mat-card>
+        </mat-card-content>
+      </mat-card>
 
-    <mat-card class="glass-card summary-card">
-      <mat-card-content>
-        <div class="card-body">
-          <div>
-            <p class="card-label">Analystes actifs</p>
-            <p class="card-value">{{ stats.nombreAnalystesActifs }}</p>
+      <mat-card class="glass-card summary-card">
+        <mat-card-content>
+          <div class="card-body">
+            <div>
+              <p class="card-label">Administrateurs</p>
+              <p class="card-value">{{ stats.nombreAdmins }}</p>
+            </div>
+            <div class="card-icon-wrap icon-orange">
+              <mat-icon>admin_panel_settings</mat-icon>
+            </div>
           </div>
-          <div class="card-icon-wrap icon-green">
-            <mat-icon>group</mat-icon>
-          </div>
-        </div>
-      </mat-card-content>
-    </mat-card>
+        </mat-card-content>
+      </mat-card>
 
-    <mat-card class="glass-card summary-card">
-      <mat-card-content>
-        <div class="card-body">
-          <div>
-            <p class="card-label">Administrateurs</p>
-            <p class="card-value">{{ stats.nombreAdmins }}</p>
-          </div>
-          <div class="card-icon-wrap icon-orange">
-            <mat-icon>admin_panel_settings</mat-icon>
-          </div>
-        </div>
-      </mat-card-content>
-    </mat-card>
+    </div>
+  }
 
-  </div>
-
- 
   <mat-card class="glass-card actions-card">
     <mat-card-header>
       <div mat-card-avatar class="card-av-icon-wrap">
@@ -109,50 +109,155 @@
     </mat-card-content>
   </mat-card>
 
-  
-  <mat-card *ngIf="repartition" class="glass-card">
-    <mat-card-header>
-      <div mat-card-avatar class="card-av-icon-wrap">
-        <mat-icon class="card-av-icon">pie_chart</mat-icon>
-      </div>
-      <mat-card-title>Répartition des catégories</mat-card-title>
-      <mat-card-subtitle>Niveaux par catégorie de KPI</mat-card-subtitle>
-    </mat-card-header>
-    <mat-card-content>
-      <div class="table-container">
-        <table class="kpi-table">
-          <thead>
-            <tr>
-              <th>Catégorie</th>
-              <th class="num-cell">Faibles</th>
-              <th class="num-cell">Modérés</th>
-              <th class="num-cell">Critiques</th>
-              <th class="num-cell">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let item of repartition.categories" class="kpi-row">
-              <td class="kpi-name-cell">
-                <span class="cat-badge">{{ item.categorieLibelle }}</span>
-              </td>
-              <td class="num-cell">
-                <span class="niveau-chip chip-faible">{{ item.nombreFaibles }}</span>
-              </td>
-              <td class="num-cell">
-                <span class="niveau-chip chip-modere">{{ item.nombreModeres }}</span>
-              </td>
-              <td class="num-cell">
-                <span class="niveau-chip chip-critique">{{ item.nombreCritiques }}</span>
-              </td>
-              <td class="num-cell total-cell">{{ item.total }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </mat-card-content>
-  </mat-card>
+  @if (repartition) {
+    <mat-card class="glass-card">
+      <mat-card-header>
+        <div mat-card-avatar class="card-av-icon-wrap">
+          <mat-icon class="card-av-icon">pie_chart</mat-icon>
+        </div>
+        <mat-card-title>Répartition des catégories</mat-card-title>
+        <mat-card-subtitle>Niveaux par catégorie de KPI</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="table-container">
+          <table class="kpi-table">
+            <thead>
+              <tr>
+                <th>Catégorie</th>
+                <th class="num-cell">Faibles</th>
+                <th class="num-cell">Modérés</th>
+                <th class="num-cell">Critiques</th>
+                <th class="num-cell">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of repartition.categories; track item.categorieCode) {
+                <tr class="kpi-row">
+                  <td class="kpi-name-cell">
+                    <span class="cat-badge">{{ item.categorieLibelle }}</span>
+                  </td>
+                  <td class="num-cell">
+                    <span class="niveau-chip chip-faible">{{ item.nombreFaibles }}</span>
+                  </td>
+                  <td class="num-cell">
+                    <span class="niveau-chip chip-modere">{{ item.nombreModeres }}</span>
+                  </td>
+                  <td class="num-cell">
+                    <span class="niveau-chip chip-critique">{{ item.nombreCritiques }}</span>
+                  </td>
+                  <td class="num-cell total-cell">{{ item.total }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  }
 
-  
+  @if (graphiques) {
+
+    <!-- CHARTS ROW: donut + horizontal bars -->
+    <div class="charts-row">
+
+      <!-- Donut: répartition niveaux -->
+      <mat-card class="glass-card">
+        <mat-card-header>
+          <div mat-card-avatar class="card-av-icon-wrap">
+            <mat-icon class="card-av-icon">donut_large</mat-icon>
+          </div>
+          <mat-card-title>Répartition des niveaux</mat-card-title>
+          <mat-card-subtitle>KPIs par niveau de criticité (toutes sessions)</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="donut-wrap">
+            <div class="donut-ring" [style.background]="donutGradient">
+              <div class="donut-hole">
+                <span class="donut-total">{{ niveauxTotal }}</span>
+                <span class="donut-lbl">KPIs</span>
+              </div>
+            </div>
+            <div class="donut-legend">
+              @for (item of niveauxList; track item.label) {
+                <div class="legend-row">
+                  <span class="legend-dot" [style.background]="item.color"></span>
+                  <span class="legend-lbl">{{ item.label }}</span>
+                  <span class="legend-count">{{ item.count }}</span>
+                  <span class="legend-pct">{{ item.pct }}%</span>
+                </div>
+              }
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Horizontal bars: KPIs critiques par catégorie -->
+      <mat-card class="glass-card">
+        <mat-card-header>
+          <div mat-card-avatar class="card-av-icon-wrap danger">
+            <mat-icon class="card-av-icon danger">bar_chart</mat-icon>
+          </div>
+          <mat-card-title>KPIs critiques par catégorie</mat-card-title>
+          <mat-card-subtitle>Nombre de KPIs en niveau critique</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="hbars-wrap">
+            @for (item of critiquesParCatList; track item.cat) {
+              <div class="hbar-row">
+                <span class="hbar-cat cat-badge cat-{{ item.cat | lowercase }}">{{ item.cat }}</span>
+                <div class="hbar-track">
+                  <div class="hbar-fill cat-fill-{{ item.cat | lowercase }}" [style.width.%]="item.pct"></div>
+                </div>
+                <span class="hbar-count">{{ item.count }}</span>
+              </div>
+            }
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+    </div>
+
+    <!-- Évolution par catégorie: grouped vertical bars -->
+    <mat-card class="glass-card">
+      <mat-card-header>
+        <div mat-card-avatar class="card-av-icon-wrap">
+          <mat-icon class="card-av-icon">show_chart</mat-icon>
+        </div>
+        <mat-card-title>Évolution par catégorie</mat-card-title>
+        <mat-card-subtitle>Valeur moyenne N-1 vs N et variation</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="evo-chart-wrapper">
+          <div class="evo-chart">
+            @for (item of graphiques.evolutionParCategorie; track item.categorie) {
+              <div class="evo-group">
+                <div class="evo-bars-wrap">
+                  <div class="evo-bar bar-n1"
+                       [style.height.px]="evolutionBarPx(item.valeurMoyenneN1)"
+                       [matTooltip]="'Moy. N-1 : ' + (item.valeurMoyenneN1 | number:'1.1-2')"></div>
+                  <div class="evo-bar bar-n"
+                       [style.height.px]="evolutionBarPx(item.valeurMoyenneN)"
+                       [matTooltip]="'Moy. N : ' + (item.valeurMoyenneN | number:'1.1-2')"></div>
+                </div>
+                <span class="evo-variation"
+                      [class.var-pos]="item.variationMoyenne > 0"
+                      [class.var-neg]="item.variationMoyenne < 0">
+                  {{ item.variationMoyenne > 0 ? '+' : '' }}{{ item.variationMoyenne | number:'1.1-1' }}%
+                </span>
+                <span class="evo-cat-label">{{ item.categorie }}</span>
+              </div>
+            }
+          </div>
+          <div class="evo-legend">
+            <span class="evo-legend-item"><span class="evo-dot dot-n1"></span>Moy. N-1</span>
+            <span class="evo-legend-item"><span class="evo-dot dot-n"></span>Moy. N</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+  }
+
   <div class="list-grid">
 
     <mat-card class="glass-card">
@@ -161,22 +266,82 @@
           <mat-icon class="card-av-icon">people</mat-icon>
         </div>
         <mat-card-title>Analystes</mat-card-title>
-        <mat-card-subtitle>{{ analystes.length }} compte(s) actif(s)</mat-card-subtitle>
+        <mat-card-subtitle>{{ analystes.length }} compte(s)</mat-card-subtitle>
       </mat-card-header>
       <mat-card-content>
-        <div *ngIf="analystes.length === 0" class="empty-list">
-          <mat-icon>person_off</mat-icon>
-          <span>Aucun analyste disponible</span>
-        </div>
-        <ul *ngIf="analystes.length > 0" class="user-list">
-          <li *ngFor="let a of analystes" class="user-row">
-            <div class="user-avatar-sm">{{ a.prenom[0] }}{{ a.nom[0] }}</div>
-            <div class="user-details">
-              <span class="user-name">{{ a.prenom }} {{ a.nom }}</span>
-              <span class="user-email">{{ a.email }}</span>
-            </div>
-          </li>
-        </ul>
+        @if (analystes.length === 0) {
+          <div class="empty-list">
+            <mat-icon>person_off</mat-icon>
+            <span>Aucun analyste disponible</span>
+          </div>
+        }
+        @if (analystes.length > 0) {
+          <ul class="user-list">
+            @for (a of analystes; track a.userId) {
+
+              @if (a.dernierImportId) {
+                <!-- Analyste avec import -->
+                <li class="user-row">
+                  <div class="user-avatar-sm" [class.avatar-alert]="a.statut === 'ALERTE'">
+                    {{ a.prenom[0] }}{{ a.nom[0] }}
+                  </div>
+                  <div class="user-details">
+                    <span class="user-name">{{ a.prenom }} {{ a.nom }}</span>
+                    <span class="user-email">{{ a.email }}</span>
+                    <div class="user-meta">
+                      <mat-icon class="meta-icon">compare_arrows</mat-icon>
+                      <span class="meta-period">{{ a.dernierePeriode }}</span>
+                      @if (a.dernierImportDate) {
+                        <span class="meta-sep">·</span>
+                        <span class="meta-date">{{ a.dernierImportDate | date:'dd/MM/yy' }}</span>
+                      }
+                    </div>
+                  </div>
+                  @if (a.confidenceScore !== null && a.confidenceScore !== undefined) {
+                    <span class="confidence-badge" [class]="confidenceClass(a.confidenceScore)"
+                          [matTooltip]="'Confiance IA : ' + a.confidenceScore + '%'">
+                      {{ a.confidenceScore }}%
+                    </span>
+                  }
+                  <span class="statut-chip"
+                        [class.chip-critique]="a.statut === 'ALERTE'"
+                        [class.chip-faible]="a.statut === 'OK'">
+                    {{ a.statut }}
+                  </span>
+                  <div class="user-actions">
+                    <button mat-icon-button class="view-ia-btn"
+                            [routerLink]="['/analyste/ia', a.dernierImportId]"
+                            [matTooltip]="'Voir l\'analyse IA'">
+                      <mat-icon>analytics</mat-icon>
+                    </button>
+                    <button mat-icon-button class="recalc-btn"
+                            [disabled]="recalculating[a.userId]"
+                            [matTooltip]="'Régénérer l\'analyse IA'"
+                            (click)="recalculate(a)">
+                      <mat-icon>{{ recalculating[a.userId] ? 'hourglass_empty' : 'refresh' }}</mat-icon>
+                    </button>
+                  </div>
+                </li>
+              } @else {
+                <!-- Analyste sans import -->
+                <li class="user-row user-row-inactive">
+                  <div class="user-avatar-sm avatar-inactive">
+                    {{ a.prenom[0] }}{{ a.nom[0] }}
+                  </div>
+                  <div class="user-details">
+                    <span class="user-name">{{ a.prenom }} {{ a.nom }}</span>
+                    <span class="user-email">{{ a.email }}</span>
+                  </div>
+                  <span class="no-import-badge">
+                    <mat-icon>cloud_off</mat-icon>
+                    Aucun import
+                  </span>
+                </li>
+              }
+
+            }
+          </ul>
+        }
       </mat-card-content>
     </mat-card>
 
@@ -189,19 +354,25 @@
         <mat-card-subtitle>{{ kpisCritiques.length }} KPI(s) en alerte</mat-card-subtitle>
       </mat-card-header>
       <mat-card-content>
-        <div *ngIf="kpisCritiques.length === 0" class="empty-list">
-          <mat-icon>check_circle_outline</mat-icon>
-          <span>Aucun KPI critique</span>
-        </div>
-        <ul *ngIf="kpisCritiques.length > 0" class="kpi-list">
-          <li *ngFor="let kpi of kpisCritiques" class="kpi-row-item">
-            <div class="kpi-row-left">
-              <span class="kpi-item-name">{{ kpi.kpiNom }}</span>
-              <span class="cat-badge">{{ kpi.categorieLibelle }}</span>
-            </div>
-            <span class="niveau-chip chip-critique">{{ kpi.nombreAnalystesAvecCritique }} analystes</span>
-          </li>
-        </ul>
+        @if (kpisCritiques.length === 0) {
+          <div class="empty-list">
+            <mat-icon>check_circle_outline</mat-icon>
+            <span>Aucun KPI critique</span>
+          </div>
+        }
+        @if (kpisCritiques.length > 0) {
+          <ul class="kpi-list">
+            @for (kpi of kpisCritiques; track kpi.kpiId) {
+              <li class="kpi-row-item">
+                <div class="kpi-row-left">
+                  <span class="kpi-item-name">{{ kpi.kpiNom }}</span>
+                  <span class="cat-badge">{{ kpi.categorieLibelle }}</span>
+                </div>
+                <span class="niveau-chip chip-critique">{{ kpi.nombreAnalystesAvecCritique }} analystes</span>
+              </li>
+            }
+          </ul>
+        }
       </mat-card-content>
     </mat-card>
 

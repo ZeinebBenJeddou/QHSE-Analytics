@@ -1,0 +1,169 @@
+<div class="retention-page">
+
+  <!-- HEADER -->
+  <div class="page-header">
+    <div class="header-left">
+      <div class="header-icon-wrap">
+        <mat-icon class="header-icon">delete_sweep</mat-icon>
+      </div>
+      <div>
+        <h1>Rétention des données</h1>
+        <p class="subtitle">Politique de conservation et purge des artifacts d'import</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button mat-stroked-button class="refresh-btn" (click)="refresh()" [disabled]="loading">
+        <mat-icon>refresh</mat-icon>
+        Actualiser
+      </button>
+      <button mat-flat-button class="purge-btn" (click)="triggerPurge()" [disabled]="purging || loading">
+        <mat-icon>{{ purging ? 'hourglass_empty' : 'cleaning_services' }}</mat-icon>
+        {{ purging ? 'Purge en cours…' : 'Purger maintenant' }}
+      </button>
+    </div>
+  </div>
+
+  @if (error) {
+    <div class="error-banner">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ error }}</span>
+    </div>
+  }
+
+  @if (loading && !policy) {
+    <div class="loader-overlay">
+      <mat-progress-spinner diameter="40" mode="indeterminate"></mat-progress-spinner>
+      <span>Chargement de la politique de rétention…</span>
+    </div>
+  }
+
+  @if (policy) {
+
+    <!-- POLICY CARDS -->
+    <div class="section-title">
+      <mat-icon>policy</mat-icon>
+      Politique actuelle
+    </div>
+
+    <div class="policy-grid">
+
+      <div class="policy-card">
+        <div class="policy-icon-wrap blue">
+          <mat-icon>table_rows</mat-icon>
+        </div>
+        <div class="policy-body">
+          <div class="policy-val">{{ policy.rawRetentionDays }} j</div>
+          <div class="policy-lbl">Rétention données brutes</div>
+          <div class="policy-sub">Lignes KPI raw supprimées après {{ policy.rawRetentionDays }} jours</div>
+        </div>
+      </div>
+
+      <div class="policy-card">
+        <div class="policy-icon-wrap purple">
+          <mat-icon>preview</mat-icon>
+        </div>
+        <div class="policy-body">
+          <div class="policy-val">{{ policy.previewRetentionDays }} j</div>
+          <div class="policy-lbl">Rétention données preview</div>
+          <div class="policy-sub">Lignes preview supprimées après {{ policy.previewRetentionDays }} jours</div>
+        </div>
+      </div>
+
+      <div class="policy-card">
+        <div class="policy-icon-wrap amber">
+          <mat-icon>schedule</mat-icon>
+        </div>
+        <div class="policy-body">
+          <div class="policy-val mono">{{ policy.purgeCron }}</div>
+          <div class="policy-lbl">Planification CRON</div>
+          <div class="policy-sub">Expression cron de la purge automatique</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- STATUTS CONCERNÉS -->
+    <div class="section-title" style="margin-top:24px">
+      <mat-icon>filter_list</mat-icon>
+      Imports ciblés
+    </div>
+    <div class="statuts-row">
+      @for (s of policy.terminalStatuses; track s) {
+        <span class="statut-chip">{{ s }}</span>
+      }
+    </div>
+
+    <!-- DERNIÈRE EXÉCUTION -->
+    <div class="section-title" style="margin-top:24px">
+      <mat-icon>history</mat-icon>
+      Dernière exécution
+    </div>
+
+    @if (!policy.lastExecutedAt) {
+      <div class="no-run-banner">
+        <mat-icon>info</mat-icon>
+        <span>Aucune purge exécutée depuis le démarrage du serveur.</span>
+      </div>
+    } @else {
+      <div class="run-grid">
+
+        <div class="run-item">
+          <mat-icon class="run-icon blue-icon">calendar_today</mat-icon>
+          <div class="run-body">
+            <span class="run-label">Date d'exécution</span>
+            <span class="run-val">{{ policy.lastExecutedAt | date:'dd/MM/yyyy HH:mm:ss' }}</span>
+          </div>
+        </div>
+
+        <div class="run-item">
+          <mat-icon class="run-icon amber-icon">timer</mat-icon>
+          <div class="run-body">
+            <span class="run-label">Durée</span>
+            <span class="run-val">{{ durationSeconds }}</span>
+          </div>
+        </div>
+
+        <div class="run-item">
+          <mat-icon class="run-icon ink-icon">search</mat-icon>
+          <div class="run-body">
+            <span class="run-label">Imports scannés</span>
+            <span class="run-val">{{ policy.lastScannedImports ?? 0 }}</span>
+          </div>
+        </div>
+
+        <div class="run-item">
+          <mat-icon class="run-icon red-icon">delete_forever</mat-icon>
+          <div class="run-body">
+            <span class="run-label">Lignes raw supprimées</span>
+            <span class="run-val">{{ policy.lastRawRowsDeleted ?? 0 | number }}</span>
+          </div>
+        </div>
+
+        <div class="run-item">
+          <mat-icon class="run-icon red-icon">delete</mat-icon>
+          <div class="run-body">
+            <span class="run-label">Lignes preview supprimées</span>
+            <span class="run-val">{{ policy.lastPreviewRowsDeleted ?? 0 | number }}</span>
+          </div>
+        </div>
+
+        <div class="run-item run-item-total">
+          <mat-icon class="run-icon green-icon">check_circle</mat-icon>
+          <div class="run-body">
+            <span class="run-label">Total lignes supprimées</span>
+            <span class="run-val run-val-total">{{ totalRowsDeleted | number }}</span>
+          </div>
+        </div>
+
+      </div>
+    }
+
+    <p class="note">
+      <mat-icon>info</mat-icon>
+      Les données analysées (KPIs calculés, analyses IA) ne sont jamais supprimées — seules
+      les données intermédiaires d'import (raw/preview) sont concernées par la rétention.
+    </p>
+
+  }
+
+</div>

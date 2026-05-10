@@ -45,6 +45,8 @@ export class AdminShellComponent {
     { label: 'Audit',         icon: 'policy',           route: '/admin/audit',     badge: null },
     { label: 'Base RAG',      icon: 'hub',              route: '/admin/rag',       badge: null },
     { label: 'Santé IA',      icon: 'monitor_heart',    route: '/admin/ia-health', badge: null },
+    { label: 'Config IA',     icon: 'tune',             route: '/admin/ia-config',       badge: null },
+    { label: 'Rétention',    icon: 'delete_sweep',     route: '/admin/data-retention',  badge: null },
   ];
 
   constructor() {

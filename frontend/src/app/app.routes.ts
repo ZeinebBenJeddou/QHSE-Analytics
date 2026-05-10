@@ -23,7 +23,12 @@ import { RagAdminComponent } from './features/admin/pages/rag/rag-admin.componen
 import { ragAdminResolver } from './features/admin/pages/rag/rag-admin.resolver';
 import { IaHealthComponent } from './features/admin/pages/ia-health/ia-health.component';
 import { iaHealthResolver } from './features/admin/pages/ia-health/ia-health.resolver';
+import { IaConfigComponent } from './features/admin/pages/ia-config/ia-config.component';
+import { iaConfigResolver } from './features/admin/pages/ia-config/ia-config.resolver';
+import { DataRetentionComponent } from './features/admin/pages/data-retention/data-retention.component';
+import { dataRetentionResolver } from './features/admin/pages/data-retention/data-retention.resolver';
 import { AnalysteShellComponent } from './features/analyste/analyste-shell.component';
+import { AlertesComponent } from './features/analyste/pages/alertes/alertes.component';
 import { ImportComponent } from './features/analyste/pages/import/import.component';
 import { ImportMappingComponent } from './features/analyste/pages/import-mapping/import-mapping.component';
 import { HistoriqueComponent } from './features/analyste/pages/historique/historique.component';
@@ -58,6 +63,8 @@ export const routes: Routes = [
       { path: 'audit', component: AdminAuditComponent, resolve: { audit: adminAuditResolver } },
       { path: 'rag', component: RagAdminComponent, resolve: { entries: ragAdminResolver } },
       { path: 'ia-health', component: IaHealthComponent, resolve: { health: iaHealthResolver } },
+      { path: 'ia-config', component: IaConfigComponent, resolve: { configs: iaConfigResolver } },
+      { path: 'data-retention', component: DataRetentionComponent, resolve: { policy: dataRetentionResolver } },
       { path: 'users', component: AdminUsersComponent, resolve: { users: adminUsersResolver } },
       { path: 'kpis', component: AdminKpisComponent, resolve: { kpis: adminKpisResolver } },
       { path: 'profile', component: AdminProfileComponent, resolve: { profile: adminProfileResolver } },
@@ -80,6 +87,7 @@ export const routes: Routes = [
       { path: 'ia', component: AnalyseIAComponent },
       { path: 'ia/:id', component: AnalyseIAComponent },
       { path: 'comparatif', component: ComparatifComponent },
+      { path: 'alertes', component: AlertesComponent },
       { path: 'tendances', component: DashboardAnalysteComponent },
       { path: 'categories', component: DashboardAnalysteComponent },
       { path: 'export', component: ExportPdfComponent },
