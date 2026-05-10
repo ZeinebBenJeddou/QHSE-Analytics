@@ -1,8 +1,10 @@
 package com.QHSEAnalytics.service.processing;
 
-import com.QHSEAnalytics.entity.CategorieKpi;
-import com.QHSEAnalytics.entity.Kpi;
-import com.QHSEAnalytics.enums.Direction;
+import com.QHSEAnalytics.shared.entity.CategorieKpi;
+import com.QHSEAnalytics.shared.entity.Kpi;
+import com.QHSEAnalytics.shared.enums.Direction;
+import com.QHSEAnalytics.importer.service.processing.ClassificationEngine;
+import com.QHSEAnalytics.importer.service.processing.ComparativeCalculator;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -33,9 +35,11 @@ class ClassificationEngineTest {
                 .categorieKpi(CategorieKpi.builder().code("S").libelle("Sécurité").build())
                 .seuilFaible(1.0).seuilModere(5.0).seuilCritique(10.0)
                 .build();
+        // ComparativeCalculator infers LOWER_IS_BETTER from the name "incidents".
+        // Reduction 20→10 (magnitude 10) >> seuilFaible*1.5 (1.5) → EXCELLENT is correct.
         ComparativeCalculator.ComparativeResult comp = compCalc.compute(k, 20d, 10d);
         ClassificationEngine.ClassificationResult res = engine.classify(k, comp, null);
-        assertEquals("FAIBLE", res.getClassification());
+        assertEquals("EXCELLENT", res.getClassification());
     }
 
     @Test

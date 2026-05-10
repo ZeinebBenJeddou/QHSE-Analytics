@@ -1,8 +1,11 @@
 package com.QHSEAnalytics.service.processing;
 
-import com.QHSEAnalytics.dto.response.AiAnalysisStructuredResponse;
-import com.QHSEAnalytics.dto.response.KpiCalculatedDTO;
-import com.QHSEAnalytics.service.LlmProviderChain;
+import com.QHSEAnalytics.shared.dto.response.AiAnalysisStructuredResponse;
+import com.QHSEAnalytics.shared.dto.response.KpiCalculatedDTO;
+import com.QHSEAnalytics.analytics.service.LlmProviderChain;
+import com.QHSEAnalytics.analytics.service.processing.AnalysisAgent;
+import com.QHSEAnalytics.analytics.service.processing.StructuredAnalysisPromptBuilder;
+import com.QHSEAnalytics.analytics.service.processing.StructuredAnalysisValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;

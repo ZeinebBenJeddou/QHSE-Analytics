@@ -1,5 +1,6 @@
 package com.QHSEAnalytics.service.processing;
 
+import com.QHSEAnalytics.analytics.service.processing.PromptSanitizer;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

@@ -1,5 +1,5 @@
 import {
-  Component, inject, OnInit, signal, computed
+  Component, inject, OnInit, signal
 } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
@@ -10,7 +10,7 @@ import { MatTableModule } from '@angular/material/table';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ImportService } from '../../../../core/services/import.service';
 import { HistoriqueItemResponse } from '../../../../core/models/import-session.model';

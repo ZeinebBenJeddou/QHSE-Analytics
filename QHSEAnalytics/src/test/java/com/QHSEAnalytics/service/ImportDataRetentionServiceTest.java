@@ -1,10 +1,11 @@
 package com.QHSEAnalytics.service;
 
 import com.QHSEAnalytics.config.ImportRetentionProperties;
-import com.QHSEAnalytics.enums.ImportStatut;
-import com.QHSEAnalytics.repository.ImportSessionRepository;
-import com.QHSEAnalytics.repository.KpiImportPreviewRepository;
-import com.QHSEAnalytics.repository.KpiRawDataRepository;
+import com.QHSEAnalytics.shared.enums.ImportStatut;
+import com.QHSEAnalytics.shared.repository.ImportSessionRepository;
+import com.QHSEAnalytics.shared.repository.KpiImportPreviewRepository;
+import com.QHSEAnalytics.shared.repository.KpiRawDataRepository;
+import com.QHSEAnalytics.importer.service.ImportDataRetentionService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 

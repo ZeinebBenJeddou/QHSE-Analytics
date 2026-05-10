@@ -1,15 +1,3 @@
-export interface ImportSessionResponse {
-  id: number;
-  nomFichier: string;
-  periodeN1: number;
-  periodeN: number;
-  statut: 'EN_TRAITEMENT' | 'TRAITE' | 'ERREUR' | 'ANNULE' | 'IMPORTED' | 'CALCULATED' | 'READY_FOR_AI';
-  messageErreur?: string;
-  mode: 'MANUAL';
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface HistoriqueItemResponse {
   importId: number;
   nomFichier: string;

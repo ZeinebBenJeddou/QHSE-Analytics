@@ -1,14 +1,11 @@
 package com.QHSEAnalytics.analytics.service.processing;
 
-import com.QHSEAnalytics.shared.dto.response.AiContextSourceResponse;
-import com.QHSEAnalytics.shared.dto.response.AiTraceabilityResponse;
 import com.QHSEAnalytics.shared.dto.response.KpiCalculatedDTO;
 import com.QHSEAnalytics.shared.entity.RagKnowledge;
 import com.QHSEAnalytics.analytics.service.RagSearchService;
 import com.QHSEAnalytics.analytics.service.TextNormalizer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import com.QHSEAnalytics.analytics.service.processing.PromptSanitizer;
 
 import java.util.Comparator;
 import java.util.List;

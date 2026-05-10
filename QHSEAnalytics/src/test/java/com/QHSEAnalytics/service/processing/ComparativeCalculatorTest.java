@@ -1,8 +1,9 @@
 package com.QHSEAnalytics.service.processing;
 
-import com.QHSEAnalytics.entity.CategorieKpi;
-import com.QHSEAnalytics.entity.Kpi;
-import com.QHSEAnalytics.enums.Direction;
+import com.QHSEAnalytics.shared.entity.CategorieKpi;
+import com.QHSEAnalytics.shared.entity.Kpi;
+import com.QHSEAnalytics.shared.enums.Direction;
+import com.QHSEAnalytics.importer.service.processing.ComparativeCalculator;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -22,7 +23,7 @@ class ComparativeCalculatorTest {
     void testN1ZeroToNonZeroEmergingRisk() {
         ComparativeCalculator.ComparativeResult r = calc.compute(null, 0d, 5d);
         assertEquals("EMERGING_RISK", r.getSpecialCase());
-        assertTrue(r.getDataFlags().contains(com.QHSEAnalytics.enums.DataFlag.LOW_BASE));
+        assertTrue(r.getDataFlags().contains(com.QHSEAnalytics.shared.enums.DataFlag.LOW_BASE));
     }
 
     @Test
@@ -77,7 +78,7 @@ class ComparativeCalculatorTest {
     @Test
     void testConfidenceAndFlagsOutlier() {
         ComparativeCalculator.ComparativeResult r = calc.compute(null, 1d, 10d);
-        assertTrue(r.getDataFlags().contains(com.QHSEAnalytics.enums.DataFlag.OUTLIER));
+        assertTrue(r.getDataFlags().contains(com.QHSEAnalytics.shared.enums.DataFlag.OUTLIER));
         assertTrue(r.getCalcConfidence() < 60);
         assertTrue(r.isReviewRequired());
     }

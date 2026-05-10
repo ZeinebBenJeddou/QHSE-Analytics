@@ -1,11 +1,9 @@
 package com.QHSEAnalytics.analytics.service.processing;
 
-import com.QHSEAnalytics.shared.dto.response.AiActionPlanItemResponse;
 import com.QHSEAnalytics.shared.dto.response.AiAnalysisStructuredResponse;
 import com.QHSEAnalytics.shared.dto.response.AiConfidenceResponse;
 import com.QHSEAnalytics.shared.dto.response.AiKpiInsightResponse;
 import com.QHSEAnalytics.shared.dto.response.AiPredictiveAlertResponse;
-import com.QHSEAnalytics.shared.dto.response.AiRecommendationResponse;
 import com.QHSEAnalytics.shared.dto.response.AiRootCauseResponse;
 import com.QHSEAnalytics.shared.dto.response.AiTraceabilityResponse;
 import com.QHSEAnalytics.shared.dto.response.KpiCalculatedDTO;

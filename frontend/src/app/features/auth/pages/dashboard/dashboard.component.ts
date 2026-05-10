@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';import { MatCardModule } from '@angular/material/card';import { CommonModule } from '@angular/common';
 import { TokenService } from '../../../../core/services/token.service';

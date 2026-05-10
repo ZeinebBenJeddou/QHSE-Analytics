@@ -1,8 +1,9 @@
 package com.QHSEAnalytics.service.processing;
 
-import com.QHSEAnalytics.dto.request.KpiRawDataDTO;
-import com.QHSEAnalytics.dto.response.ImportIssue;
-import com.QHSEAnalytics.dto.response.ImportQualityReport;
+import com.QHSEAnalytics.shared.dto.request.KpiRawDataDTO;
+import com.QHSEAnalytics.shared.dto.response.ImportIssue;
+import com.QHSEAnalytics.shared.dto.response.ImportQualityReport;
+import com.QHSEAnalytics.importer.service.processing.QualityReportBuilder;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

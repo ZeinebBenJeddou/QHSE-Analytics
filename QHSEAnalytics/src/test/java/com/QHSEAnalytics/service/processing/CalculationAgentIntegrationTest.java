@@ -1,12 +1,15 @@
 package com.QHSEAnalytics.service.processing;
 
-import com.QHSEAnalytics.dto.request.KpiRawDataDTO;
-import com.QHSEAnalytics.dto.response.KpiCalculatedDTO;
-import com.QHSEAnalytics.entity.CategorieKpi;
-import com.QHSEAnalytics.entity.Kpi;
-import com.QHSEAnalytics.entity.UniteKpi;
-import com.QHSEAnalytics.repository.KpiRepository;
-import com.QHSEAnalytics.repository.ResultatKpiRepository;
+import com.QHSEAnalytics.shared.dto.request.KpiRawDataDTO;
+import com.QHSEAnalytics.shared.dto.response.KpiCalculatedDTO;
+import com.QHSEAnalytics.shared.entity.CategorieKpi;
+import com.QHSEAnalytics.shared.entity.Kpi;
+import com.QHSEAnalytics.shared.entity.UniteKpi;
+import com.QHSEAnalytics.shared.repository.KpiRepository;
+import com.QHSEAnalytics.shared.repository.ResultatKpiRepository;
+import com.QHSEAnalytics.importer.service.processing.CalculationAgent;
+import com.QHSEAnalytics.importer.service.processing.ClassificationEngine;
+import com.QHSEAnalytics.importer.service.processing.ComparativeCalculator;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 

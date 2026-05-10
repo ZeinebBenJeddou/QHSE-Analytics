@@ -53,7 +53,7 @@ export class BarComparisonComponent implements AfterViewInit, OnChanges, OnDestr
     const deltaPlugin: Plugin<'bar'> = {
       id: 'deltaLabels',
       afterDatasetsDraw(chart) {
-        const { ctx, data, scales } = chart as any;
+        const { ctx } = chart as any;
         const lignes: BarreGroupeeData[] = (chart as any).__deltaData ?? [];
         if (!lignes.length) return;
         ctx.save();

@@ -1,6 +1,8 @@
 package com.QHSEAnalytics.service.processing;
 
-import com.QHSEAnalytics.dto.response.ImportIssue;
+import com.QHSEAnalytics.shared.dto.response.ImportIssue;
+import com.QHSEAnalytics.importer.service.processing.ExtractionAgent;
+import com.QHSEAnalytics.importer.service.processing.ExcelFileValidator;
 import org.junit.jupiter.api.Test;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -12,7 +14,7 @@ class ExtractionAgentTest {
 
     @Test
     void testParseNumberRobust() throws Exception {
-        ExtractionAgent agent = new ExtractionAgent();
+        ExtractionAgent agent = new ExtractionAgent(new ExcelFileValidator());
         Method method = ExtractionAgent.class.getDeclaredMethod("parseNumberRobust", String.class, int.class, String.class, List.class);
         method.setAccessible(true);
 

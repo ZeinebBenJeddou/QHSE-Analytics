@@ -202,7 +202,9 @@ public class EmbeddingService {
                 String ra = ex.getResponseHeaders().getFirst("Retry-After");
                 if (ra != null) return Long.parseLong(ra.trim());
             }
-        } catch (NumberFormatException ignored) { }
+        } catch (NumberFormatException parseException) {
+            log.warn("[Embedding] Invalid Retry-After header: {}", parseException.getMessage());
+        }
         return -1L;
     }
 

@@ -1,7 +1,10 @@
 package com.QHSEAnalytics.service;
 
-import com.QHSEAnalytics.exception.ProviderUnavailableException;
-import com.QHSEAnalytics.service.processing.GeminiClientService;
+import com.QHSEAnalytics.shared.exception.ProviderUnavailableException;
+import com.QHSEAnalytics.analytics.service.processing.GeminiClientService;
+import com.QHSEAnalytics.analytics.service.GroqService;
+import com.QHSEAnalytics.analytics.service.LlmProviderChain;
+import com.QHSEAnalytics.analytics.service.ProviderCooldownManager;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

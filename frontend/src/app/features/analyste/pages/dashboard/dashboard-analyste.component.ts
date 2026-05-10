@@ -175,10 +175,6 @@ export class DashboardAnalysteComponent implements OnInit {
     return `Comparatif Année ${yearN1} vs Année ${yearN}`;
   }
 
-  private formatNumber(value: number): string {
-    return value.toLocaleString('fr-FR');
-  }
-
   get summaryCards(): SummaryCardVm[] {
     const resume = this.resume();
     const comparatif = this.comparatif();
@@ -305,9 +301,6 @@ export class DashboardAnalysteComponent implements OnInit {
     const incidents = this.aggregateMetric(['incident', 'accident', 'fréquence', 'gravité']).current;
     const accidents = this.aggregateMetric(['accident']).current;
     const audits = this.aggregateMetric(['audit', 'visite', 'vms']).current;
-    const securite = this.aggregateMetric(['sécurité', 'epi', 'situation', 'presque', 'near-miss']).current;
-    const qualite = this.aggregateMetric(['non-conformité', 'conformité', 'réclamation']).current;
-
     return [
       {
         title: 'Renforcer les formations sécurité',
@@ -781,26 +774,4 @@ export class DashboardAnalysteComponent implements OnInit {
     };
   }
 
-  private computeRiskScore(rows: LigneComparatifResponse[] = this.comparatif()?.lignes ?? []): number {
-    if (!rows.length) return 0;
-
-    const total = rows.length;
-    const weighted = rows.reduce((sum, row) => {
-      const levelWeight = row.niveauVariation === 'CRITIQUE' ? 3 : row.niveauVariation === 'MODERE' ? 2 : 1;
-      const trendPenalty = row.tendance === 'HAUSSE' ? 1 : 0;
-      return sum + levelWeight + trendPenalty;
-    }, 0);
-
-    return Math.min(100, Math.round((weighted / (total * 4)) * 100));
-  }
-
-  private metricNote(current: number, previous: number): string {
-    if (previous === 0) {
-      return current > 0 ? 'Nouvelle activité' : 'Stable';
-    }
-    if (current === previous) {
-      return 'Stable';
-    }
-    return current < previous ? 'Amélioration' : 'Détérioration';
-  }
 }

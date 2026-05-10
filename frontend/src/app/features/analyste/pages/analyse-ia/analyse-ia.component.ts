@@ -16,7 +16,7 @@ import { DashboardService } from '../../../../core/services/dashboard.service';
 import { AiAnalysisService } from '../../../../core/services/ai-analysis.service';
 import { ImportSessionStateService } from '../../../../core/services/import-session-state.service';
 import { ResumeAnalysteResponse } from '../../../../core/models/dashboard.model';
-import { AiAnalysisStructuredResponse, AiKpiInsightResponse, AiPredictiveAlertResponse, AiRootCauseResponse, AnalyseCompleteResponse, AnalyseGlobaleResponse, AnalyseCategorieResponse, ResultatKpiIaResponse } from '../../../../core/models/analyse-ia.model';
+import { AiAnalysisStructuredResponse, AiKpiInsightResponse, AnalyseCompleteResponse, ResultatKpiIaResponse } from '../../../../core/models/analyse-ia.model';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../../environments/environment';
 
@@ -86,8 +86,6 @@ export class AnalyseIAComponent implements OnInit {
   private http             = inject(HttpClient);
   private readonly dashboardAnalysteBase = `${environment.apiUrl}/api/dashboard/analyste`;
   private readonly dashboardAdminBase    = `${environment.apiUrl}/api/dashboard/admin`;
-  private readonly iaBase = `${environment.apiUrl}/api/ia`;
-
   // ── State ────────────────────────────────────────────────────────────
   importId        = signal<number | null>(null);
   loading         = signal(true);

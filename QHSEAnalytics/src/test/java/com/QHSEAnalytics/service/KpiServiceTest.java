@@ -1,19 +1,22 @@
 package com.QHSEAnalytics.service;
 
-import com.QHSEAnalytics.dto.request.CreateKpiRequest;
-import com.QHSEAnalytics.dto.request.UpdateKpiRequest;
-import com.QHSEAnalytics.dto.response.KpiDeleteResponse;
-import com.QHSEAnalytics.dto.response.KpiResponse;
-import com.QHSEAnalytics.entity.CategorieKpi;
-import com.QHSEAnalytics.entity.Kpi;
-import com.QHSEAnalytics.entity.UniteKpi;
-import com.QHSEAnalytics.enums.Direction;
-import com.QHSEAnalytics.exception.InvalidSeuilException;
-import com.QHSEAnalytics.exception.KpiAlreadyExistsException;
-import com.QHSEAnalytics.exception.KpiNotFoundException;
-import com.QHSEAnalytics.repository.CategorieKpiRepository;
-import com.QHSEAnalytics.repository.KpiRepository;
-import com.QHSEAnalytics.repository.RagKnowledgeRepository;
+import com.QHSEAnalytics.shared.dto.request.CreateKpiRequest;
+import com.QHSEAnalytics.shared.dto.request.UpdateKpiRequest;
+import com.QHSEAnalytics.shared.dto.response.KpiDeleteResponse;
+import com.QHSEAnalytics.shared.dto.response.KpiResponse;
+import com.QHSEAnalytics.shared.entity.CategorieKpi;
+import com.QHSEAnalytics.shared.entity.Kpi;
+import com.QHSEAnalytics.shared.entity.UniteKpi;
+import com.QHSEAnalytics.shared.enums.Direction;
+import com.QHSEAnalytics.shared.exception.InvalidSeuilException;
+import com.QHSEAnalytics.shared.exception.KpiAlreadyExistsException;
+import com.QHSEAnalytics.shared.exception.KpiNotFoundException;
+import com.QHSEAnalytics.shared.repository.CategorieKpiRepository;
+import com.QHSEAnalytics.shared.repository.KpiRepository;
+import com.QHSEAnalytics.shared.repository.RagKnowledgeRepository;
+import com.QHSEAnalytics.analytics.service.EmbeddingService;
+import com.QHSEAnalytics.kpi.service.KpiService;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -36,6 +39,8 @@ class KpiServiceTest {
     @Mock KpiRepository kpiRepository;
     @Mock CategorieKpiRepository categorieKpiRepository;
     @Mock RagKnowledgeRepository ragKnowledgeRepository;
+    @Mock EmbeddingService embeddingService;
+    @Mock JdbcTemplate jdbcTemplate;
 
     @InjectMocks KpiService kpiService;
 

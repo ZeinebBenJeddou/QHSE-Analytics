@@ -507,11 +507,4 @@ public class AnalysisAgent {
         return prompt.toString();
     }
 
-    private String safe(String value) {
-        return promptSanitizer.sanitize(value);
-    }
-
-    private String safeNumber(Number value) {
-        return promptSanitizer.sanitizeNumber(value);
-    }
 }

@@ -3,20 +3,16 @@ package com.QHSEAnalytics.auth.handler;
 import com.QHSEAnalytics.auth.exception.*;
 import com.QHSEAnalytics.shared.exception.CategorieNotFoundException;
 import com.QHSEAnalytics.shared.exception.AdminProtectedException;
-import com.QHSEAnalytics.shared.exception.AnalyseGenerationException;
 import com.QHSEAnalytics.shared.exception.AnalyseNotFoundException;
 import com.QHSEAnalytics.shared.exception.FileTooLargeException;
-import com.QHSEAnalytics.shared.exception.GroqApiException;
 import com.QHSEAnalytics.shared.exception.ImportNotFoundException;
 import com.QHSEAnalytics.shared.exception.ImportNotReadyException;
 import com.QHSEAnalytics.shared.exception.ImportTransitionException;
 import com.QHSEAnalytics.shared.exception.ImportValidationException;
 import com.QHSEAnalytics.shared.exception.InvalidFileFormatException;
 import com.QHSEAnalytics.shared.exception.InvalidSeuilException;
-import com.QHSEAnalytics.shared.exception.InvalidTemplateException;
 import com.QHSEAnalytics.shared.exception.KpiAlreadyExistsException;
 import com.QHSEAnalytics.shared.exception.KpiNotFoundException;
-import com.QHSEAnalytics.shared.exception.MappingNotFoundException;
 import com.QHSEAnalytics.shared.exception.PdfGenerationException;
 import com.QHSEAnalytics.shared.exception.UserAlreadyActiveException;
 import com.QHSEAnalytics.shared.exception.UserAlreadyAdminException;
@@ -93,7 +89,7 @@ public class GlobalExceptionHandler {
         return buildError(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
-    @ExceptionHandler({InvalidTemplateException.class, InvalidFileFormatException.class, ImportValidationException.class})
+    @ExceptionHandler({InvalidFileFormatException.class, ImportValidationException.class})
     public ResponseEntity<?> handleImportBadRequest(RuntimeException ex) {
         return buildError(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
@@ -103,7 +99,7 @@ public class GlobalExceptionHandler {
         return buildError(HttpStatus.PAYLOAD_TOO_LARGE, ex.getMessage());
     }
 
-    @ExceptionHandler({ImportNotFoundException.class, MappingNotFoundException.class})
+    @ExceptionHandler(ImportNotFoundException.class)
     public ResponseEntity<?> handleImportNotFound(RuntimeException ex) {
         return buildError(HttpStatus.NOT_FOUND, ex.getMessage());
     }
@@ -118,19 +114,9 @@ public class GlobalExceptionHandler {
         return buildError(HttpStatus.CONFLICT, ex.getMessage());
     }
 
-    @ExceptionHandler(GroqApiException.class)
-    public ResponseEntity<?> handleGroqUnavailable(GroqApiException ex) {
-        return buildError(HttpStatus.SERVICE_UNAVAILABLE, "Analyse IA temporairement indisponible");
-    }
-
     @ExceptionHandler(AnalyseNotFoundException.class)
     public ResponseEntity<?> handleAnalyseNotFound(AnalyseNotFoundException ex) {
         return buildError(HttpStatus.NOT_FOUND, ex.getMessage());
-    }
-
-    @ExceptionHandler(AnalyseGenerationException.class)
-    public ResponseEntity<?> handleAnalyseGeneration(AnalyseGenerationException ex) {
-        return buildError(HttpStatus.SERVICE_UNAVAILABLE, "La génération des analyses a échoué. Veuillez réessayer.");
     }
 
     @ExceptionHandler(AdminProtectedException.class)

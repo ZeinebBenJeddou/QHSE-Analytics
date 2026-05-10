@@ -1,7 +1,8 @@
 package com.QHSEAnalytics.service.processing;
 
-import com.QHSEAnalytics.dto.response.*;
-import com.QHSEAnalytics.dto.response.KpiCalculatedDTO;
+import com.QHSEAnalytics.shared.dto.response.*;
+import com.QHSEAnalytics.shared.dto.response.KpiCalculatedDTO;
+import com.QHSEAnalytics.analytics.service.processing.StructuredAnalysisValidator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
