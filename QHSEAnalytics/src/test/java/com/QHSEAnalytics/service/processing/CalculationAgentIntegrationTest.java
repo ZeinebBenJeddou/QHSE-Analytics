@@ -12,6 +12,7 @@ import com.QHSEAnalytics.importer.service.processing.ClassificationEngine;
 import com.QHSEAnalytics.importer.service.processing.ComparativeCalculator;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import com.QHSEAnalytics.shared.service.KpiKnowledgeLookup;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -38,7 +39,7 @@ class CalculationAgentIntegrationTest {
 
         ComparativeCalculator comp = new ComparativeCalculator();
         ClassificationEngine cls = new ClassificationEngine();
-            CalculationAgent agent = new CalculationAgent(repo, histRepo, comp, cls);
+            CalculationAgent agent = new CalculationAgent(repo, histRepo, comp, cls, KpiKnowledgeLookup.noop());
 
         KpiRawDataDTO row = KpiRawDataDTO.builder()
                 .rowIndex(1)

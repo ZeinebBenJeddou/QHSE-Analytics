@@ -1,0 +1,1 @@
+ALTER TABLE rag_knowledge ADD COLUMN IF NOT EXISTS direction VARCHAR(30);

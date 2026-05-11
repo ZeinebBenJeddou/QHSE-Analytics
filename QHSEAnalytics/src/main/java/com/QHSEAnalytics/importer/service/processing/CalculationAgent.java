@@ -3,11 +3,14 @@ package com.QHSEAnalytics.importer.service.processing;
 import com.QHSEAnalytics.shared.dto.request.KpiRawDataDTO;
 import com.QHSEAnalytics.shared.dto.response.CategoryScoreDTO;
 import com.QHSEAnalytics.shared.dto.response.KpiCalculatedDTO;
+import com.QHSEAnalytics.shared.entity.CategorieKpi;
 import com.QHSEAnalytics.shared.entity.Kpi;
 import com.QHSEAnalytics.shared.entity.UniteKpi;
+import com.QHSEAnalytics.shared.enums.Direction;
 import com.QHSEAnalytics.shared.enums.Tendance;
 import com.QHSEAnalytics.shared.repository.KpiRepository;
 import com.QHSEAnalytics.shared.repository.ResultatKpiRepository;
+import com.QHSEAnalytics.shared.service.KpiKnowledgeLookup;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -23,15 +26,18 @@ public class CalculationAgent {
     private final ResultatKpiRepository resultatKpiRepository;
     private final ComparativeCalculator comparativeCalculator;
     private final ClassificationEngine classificationEngine;
+    private final KpiKnowledgeLookup kpiKnowledgeLookup;
 
     public CalculationAgent(KpiRepository kpiRepository,
                             ResultatKpiRepository resultatKpiRepository,
                             ComparativeCalculator comparativeCalculator,
-                            ClassificationEngine classificationEngine) {
+                            ClassificationEngine classificationEngine,
+                            KpiKnowledgeLookup kpiKnowledgeLookup) {
         this.kpiRepository = kpiRepository;
         this.resultatKpiRepository = resultatKpiRepository;
         this.comparativeCalculator = comparativeCalculator;
         this.classificationEngine = classificationEngine;
+        this.kpiKnowledgeLookup = kpiKnowledgeLookup;
     }
 
     public List<KpiCalculatedDTO> calculate(List<KpiRawDataDTO> rawData) {
@@ -114,6 +120,8 @@ public class CalculationAgent {
 
         Double valN  = row.getValeurN();
         Double valN1 = row.getValeurN1();
+        String lookupCategoryCode = resolveLookupCategoryCode(matchedKpi, row.getCategorie());
+        Kpi effectiveKpi = resolveEffectiveKpi(matchedKpi, row.getKpiName(), lookupCategoryCode, valN, valN1);
 
         double absoluteGap = 0.0;
         Double variationPercentage = 0.0;
@@ -134,10 +142,11 @@ public class CalculationAgent {
                 else                              { status = "Non atteint"; statusColor = "yellow"; }
                 variationPercentage = null;
             } else {
-                comp = comparativeCalculator.compute(matchedKpi, valN1, valN);
+                comp = comparativeCalculator.compute(effectiveKpi, valN1, valN);
                 variationPercentage = comp.getRelativePercentage();
                 if (comp.getSpecialCase() != null) {
-                    status = comp.getSpecialCase(); statusColor = "yellow";
+                    status = translateSpecialCase(comp.getSpecialCase());
+                    statusColor = "STRONG_IMPROVEMENT".equals(comp.getSpecialCase()) ? "green" : "yellow";
                 } else if (variationPercentage == null) {
                     status = "Nouveau"; statusColor = "blue";
                 } else {
@@ -145,18 +154,18 @@ public class CalculationAgent {
                     else if (variationPercentage < 0) { status = "Diminution"; statusColor = "red"; }
                     else { status = "Stable"; statusColor = "yellow"; }
                 }
-                historicalSeries = findHistoricalSeries(matchedKpi);
-                classRes = classificationEngine.classify(matchedKpi, comp, historicalSeries);
+                historicalSeries = findHistoricalSeries(effectiveKpi);
+                classRes = classificationEngine.classify(effectiveKpi, comp, historicalSeries);
             }
         } else {
             status = "Invalide"; statusColor = "gray";
         }
 
-        String definition    = matchedKpi != null ? matchedKpi.getDefinition() : null;
-        String categorie     = matchedKpi != null && matchedKpi.getCategorieKpi() != null
-                               ? matchedKpi.getCategorieKpi().getLibelle() : row.getCategorie();
-        String categorieCode = matchedKpi != null && matchedKpi.getCategorieKpi() != null
-                               ? matchedKpi.getCategorieKpi().getCode() : "AUTO";
+        String definition    = effectiveKpi != null ? effectiveKpi.getDefinition() : null;
+        String categorie     = effectiveKpi != null && effectiveKpi.getCategorieKpi() != null
+                               ? effectiveKpi.getCategorieKpi().getLibelle() : row.getCategorie();
+        String categorieCode = effectiveKpi != null && effectiveKpi.getCategorieKpi() != null
+                               ? effectiveKpi.getCategorieKpi().getCode() : "AUTO";
 
         String classification = classRes != null ? classRes.getClassification() : "INDETERMINE";
         String tendance = isBoolean
@@ -175,7 +184,7 @@ public class CalculationAgent {
         }
 
         // P2.2 — Risk matrix
-        int[] risk = computeRisk(classification, tendance, categorieCode);
+        int[] risk = computeRisk(classification, tendance, categorieCode, comp != null ? comp.getDirection() : null);
 
         KpiCalculatedDTO.KpiCalculatedDTOBuilder builder = KpiCalculatedDTO.builder()
                 .rowIndex(row.getRowIndex())
@@ -185,6 +194,9 @@ public class CalculationAgent {
                 .unite(row.getUnite())
                 .valeurN1(valN1)
                 .valeurN(valN)
+                .seuilFaible(effectiveKpi != null ? effectiveKpi.getSeuilFaible() : null)
+                .seuilModere(effectiveKpi != null ? effectiveKpi.getSeuilModere() : null)
+                .seuilCritique(effectiveKpi != null ? effectiveKpi.getSeuilCritique() : null)
                 .definition(definition)
                 .variationAbsolute(absoluteGap)
                 .absoluteGap(absoluteGap)
@@ -305,7 +317,7 @@ public class CalculationAgent {
     // ── P2.2 Risk matrix helpers ──────────────────────────────────────────
 
     /** Returns [probability 1-5, impact 1-5]. */
-    private int[] computeRisk(String classification, String tendance, String categoryCode) {
+    private int[] computeRisk(String classification, String tendance, String categoryCode, Direction direction) {
         int probability = switch (classification) {
             case "CRITIQUE"     -> 5;
             case "PRE_ESCALADE" -> 4;
@@ -314,8 +326,7 @@ public class CalculationAgent {
             case "EXCELLENT"    -> 1;
             default             -> 2; // INDETERMINE
         };
-        // Augment if trend is worsening
-        if ("BAISSE".equals(tendance)) probability = Math.min(5, probability + 1);
+        if (isWorseningTrend(tendance, direction)) probability = Math.min(5, probability + 1);
 
         int impact = switch (categoryCode != null ? categoryCode : "") {
             case "S"  -> 5; // Sécurité — impact humain max
@@ -331,11 +342,32 @@ public class CalculationAgent {
         return new int[]{probability, impact};
     }
 
+    private boolean isWorseningTrend(String tendance, Direction direction) {
+        if (tendance == null || "STABLE".equals(tendance) || direction == null) {
+            return false;
+        }
+        return switch (direction) {
+            case HIGHER_IS_BETTER -> "BAISSE".equals(tendance);
+            case LOWER_IS_BETTER -> "HAUSSE".equals(tendance);
+            case TARGET_IS_BEST -> false;
+        };
+    }
+
+    private String translateSpecialCase(String specialCase) {
+        if (specialCase == null) return "Inconnu";
+        return switch (specialCase) {
+            case "EMERGING_RISK"      -> "Risque émergent";
+            case "STRONG_IMPROVEMENT" -> "Amélioration forte";
+            case "STABLE"             -> "Stable";
+            default                   -> specialCase;
+        };
+    }
+
     private String riskLevel(int score) {
-        if (score >= 20) return "CRITICAL";
-        if (score >= 12) return "HIGH";
-        if (score >= 6)  return "MEDIUM";
-        return "LOW";
+        if (score >= 20) return "Critique";
+        if (score >= 12) return "Élevé";
+        if (score >= 6)  return "Modéré";
+        return "Faible";
     }
 
     // ── General helpers ───────────────────────────────────────────────────
@@ -388,5 +420,78 @@ public class CalculationAgent {
             log.debug("Historique indisponible pour KPI {}: {}", kpi.getId(), ex.getMessage());
             return List.of();
         }
+    }
+
+    private String resolveLookupCategoryCode(Kpi matchedKpi, String dtoCategoryLabel) {
+        if (matchedKpi != null && matchedKpi.getCategorieKpi() != null && matchedKpi.getCategorieKpi().getCode() != null) {
+            return matchedKpi.getCategorieKpi().getCode();
+        }
+        if (dtoCategoryLabel != null) {
+            String trimmed = dtoCategoryLabel.trim();
+            if (trimmed.matches("^[A-Z][A-Z0-9]{0,9}$")) {
+                return trimmed;
+            }
+        }
+        return null;
+    }
+
+    private Kpi resolveEffectiveKpi(Kpi matchedKpi, String kpiName, String categoryCode, Double currentValue, Double previousValue) {
+        KpiKnowledgeLookup.KnowledgeMatch knowledgeMatch = kpiKnowledgeLookup
+                .findBestMatch(kpiName, categoryCode, currentValue, previousValue)
+                .orElse(null);
+
+        if (knowledgeMatch == null) {
+            return matchedKpi;
+        }
+
+        if (matchedKpi != null) {
+            return copyKpiWithKnowledge(matchedKpi, knowledgeMatch);
+        }
+
+        return buildKnowledgeOnlyKpi(kpiName, knowledgeMatch);
+    }
+
+    private Kpi copyKpiWithKnowledge(Kpi source, KpiKnowledgeLookup.KnowledgeMatch knowledgeMatch) {
+        return Kpi.builder()
+                .id(source.getId())
+                .nom(source.getNom())
+                .definition(firstNonBlank(source.getDefinition(), knowledgeMatch.definition()))
+                .unite(source.getUnite())
+                .categorieKpi(source.getCategorieKpi())
+                .seuilFaible(knowledgeMatch.seuilFaible() != null ? knowledgeMatch.seuilFaible() : source.getSeuilFaible())
+                .seuilModere(knowledgeMatch.seuilModere() != null ? knowledgeMatch.seuilModere() : source.getSeuilModere())
+                .seuilCritique(knowledgeMatch.seuilCritique() != null ? knowledgeMatch.seuilCritique() : source.getSeuilCritique())
+                .ordre(source.getOrdre())
+                .isActive(source.isActive())
+                .createdAt(source.getCreatedAt())
+                .updatedAt(source.getUpdatedAt())
+                .direction(knowledgeMatch.direction() != null ? knowledgeMatch.direction() : source.getDirection())
+                .targetValue(source.getTargetValue())
+                .build();
+    }
+
+    private Kpi buildKnowledgeOnlyKpi(String kpiName, KpiKnowledgeLookup.KnowledgeMatch knowledgeMatch) {
+        CategorieKpi categorie = null;
+        if (knowledgeMatch.categoryCode() != null && !knowledgeMatch.categoryCode().isBlank()) {
+            categorie = CategorieKpi.builder()
+                    .code(knowledgeMatch.categoryCode())
+                    .libelle(knowledgeMatch.categoryCode())
+                    .build();
+        }
+
+        return Kpi.builder()
+                .nom(knowledgeMatch.matchedKpiName() != null ? knowledgeMatch.matchedKpiName() : kpiName)
+                .definition(knowledgeMatch.definition())
+                .categorieKpi(categorie)
+                .seuilFaible(knowledgeMatch.seuilFaible())
+                .seuilModere(knowledgeMatch.seuilModere())
+                .seuilCritique(knowledgeMatch.seuilCritique())
+                .direction(knowledgeMatch.direction())
+                .isActive(true)
+                .build();
+    }
+
+    private String firstNonBlank(String primary, String fallback) {
+        return primary != null && !primary.isBlank() ? primary : fallback;
     }
 }

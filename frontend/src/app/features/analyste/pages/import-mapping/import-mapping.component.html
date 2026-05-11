@@ -7,7 +7,7 @@
         <mat-icon>account_tree</mat-icon>
       </div>
       <div>
-        <h1>Mapping des colonnes</h1>
+        <h1>Correspondance des colonnes</h1>
         <p class="subtitle">Associez les colonnes de votre fichier aux champs obligatoires</p>
       </div>
     </div>
@@ -22,21 +22,21 @@
     <div class="step active">
       <span class="step-number">1</span>
       <div>
-        <div class="step-title">Upload</div>
+        <div class="step-title">Téléversement</div>
         <div class="step-subtitle">Fichier sélectionné</div>
       </div>
     </div>
     <div class="step active">
       <span class="step-number">2</span>
       <div>
-        <div class="step-title">Mapping</div>
+        <div class="step-title">Correspondance</div>
         <div class="step-subtitle">Associer les colonnes</div>
       </div>
     </div>
     <div class="step" [class.active]="isProcessingStep || !!result()">
       <span class="step-number">3</span>
       <div>
-        <div class="step-title">Processing</div>
+        <div class="step-title">Traitement</div>
         <div class="step-subtitle">Calculs & IA</div>
       </div>
     </div>
@@ -50,7 +50,7 @@
         <mat-icon>tune</mat-icon>
       </div>
       <div>
-        <div class="panel-title-text">Configuration du Mapping</div>
+        <div class="panel-title-text">Configuration de la correspondance</div>
         <div class="panel-subtitle-text">Sélectionnez quelle colonne correspond à chaque champ</div>
       </div>
     </div>
@@ -190,7 +190,7 @@
         <button mat-flat-button class="submit-btn" (click)="submitMapping()" [disabled]="processing()">
           <mat-spinner *ngIf="processing()" diameter="16"></mat-spinner>
           <mat-icon *ngIf="!processing()">visibility</mat-icon>
-          {{ processing() ? 'Analyse...' : 'Générer Prévisualisation' }}
+          {{ processing() ? 'Analyse...' : 'Générer la prévisualisation' }}
         </button>
         <button
           *ngIf="isHardBlocking()"
@@ -207,7 +207,7 @@
           (click)="confirmImport()"
           [disabled]="!previewResponse() || processing()">
           <mat-icon>check_circle</mat-icon>
-          Confirmer import
+          Confirmer l'import
         </button>
         <button
           *ngIf="canConfirmPartial()"
@@ -265,7 +265,7 @@
         <mat-icon>warning_amber</mat-icon>
         <div>
           <strong>Avertissements détectés</strong>
-          <p>Des warnings ont été détectés mais n'empêchent pas la confirmation de l'import.</p>
+          <p>Des avertissements ont été détectés mais n'empêchent pas la confirmation de l'import.</p>
         </div>
       </div>
 
@@ -310,7 +310,7 @@
           <mat-icon class="stat-icon icon-warning">warning</mat-icon>
           <div>
             <div class="stat-value">{{ qualityReport.warningRows }}</div>
-            <div class="stat-label">Avec warnings</div>
+            <div class="stat-label">Avec avertissements</div>
           </div>
         </div>
         <div class="quality-stat" matTooltip="Nombre d'occurrences de doublons écartées">
@@ -324,7 +324,7 @@
           <mat-icon class="stat-icon icon-outlier">show_chart</mat-icon>
           <div>
             <div class="stat-value">{{ qualityReport.outlierRows }}</div>
-            <div class="stat-label">Outliers</div>
+            <div class="stat-label">Valeurs aberrantes</div>
           </div>
         </div>
         <div class="quality-stat">
@@ -363,7 +363,7 @@
 
       <!-- Issues table -->
       <div class="issues-table-wrap" *ngIf="allIssues.length > 0">
-        <p class="section-label">Détail des issues ({{ allIssues.length }})</p>
+        <p class="section-label">Détail des anomalies ({{ allIssues.length }})</p>
         <div class="table-scroll">
           <table mat-table [dataSource]="allIssues" class="issues-table">
 
@@ -372,7 +372,7 @@
               <td mat-cell *matCellDef="let issue">
                 <span [ngClass]="severityClass(issue.severity)" class="severity-chip">
                   <mat-icon>{{ severityIcon(issue.severity) }}</mat-icon>
-                  {{ issue.severity }}
+                  {{ severityLabel(issue.severity) }}
                 </span>
               </td>
             </ng-container>
@@ -480,7 +480,7 @@
           </ng-container>
 
           <ng-container matColumnDef="status">
-            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <th mat-header-cell *matHeaderCellDef>Statut</th>
             <td mat-cell *matCellDef="let row">
               <span [ngClass]="getStatusClass(row.statusColor)">
                 <mat-icon *ngIf="row.statusColor === 'green'">check_circle</mat-icon>
@@ -506,7 +506,7 @@
                 {{ row.variationPercentage | number:'1.1-1' }}%
               </span>
               <span *ngIf="row.variationPercentage === null" class="text-stable">
-                {{ row.status === 'Nouveau' ? 'N/A' : '—' }}
+                {{ row.status === 'Nouveau' ? 'N/D' : '—' }}
               </span>
             </td>
           </ng-container>
@@ -613,7 +613,7 @@
             </td>
           </ng-container>
           <ng-container matColumnDef="status">
-            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <th mat-header-cell *matHeaderCellDef>Statut</th>
             <td mat-cell *matCellDef="let row">
               <span [ngClass]="getStatusClass(row.statusColor)">{{ row.status }}</span>
             </td>
@@ -703,10 +703,10 @@
             </div>
           </div>
           <div class="risk-legend">
-            <div class="risk-legend-item"><span class="risk-legend-dot low"></span>LOW</div>
-            <div class="risk-legend-item"><span class="risk-legend-dot medium"></span>MEDIUM</div>
-            <div class="risk-legend-item"><span class="risk-legend-dot high"></span>HIGH</div>
-            <div class="risk-legend-item"><span class="risk-legend-dot critical"></span>CRITICAL</div>
+            <div class="risk-legend-item"><span class="risk-legend-dot low"></span>Faible</div>
+            <div class="risk-legend-item"><span class="risk-legend-dot medium"></span>Modéré</div>
+            <div class="risk-legend-item"><span class="risk-legend-dot high"></span>Élevé</div>
+            <div class="risk-legend-item"><span class="risk-legend-dot critical"></span>Critique</div>
           </div>
         </div>
       </div>
@@ -715,7 +715,7 @@
     <mat-card-actions>
       <button mat-flat-button class="dashboard-btn" (click)="goToDashboard()">
         <mat-icon>dashboard</mat-icon>
-        Dashboard
+        Tableau de bord
       </button>
       <button mat-stroked-button class="new-import-btn" (click)="goBack()">
         <mat-icon>add</mat-icon>

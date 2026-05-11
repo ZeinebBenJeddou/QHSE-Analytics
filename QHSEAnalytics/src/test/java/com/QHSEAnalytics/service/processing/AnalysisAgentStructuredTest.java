@@ -1,11 +1,11 @@
 package com.QHSEAnalytics.service.processing;
 
-import com.QHSEAnalytics.shared.dto.response.AiAnalysisStructuredResponse;
-import com.QHSEAnalytics.shared.dto.response.KpiCalculatedDTO;
 import com.QHSEAnalytics.analytics.service.LlmProviderChain;
 import com.QHSEAnalytics.analytics.service.processing.AnalysisAgent;
 import com.QHSEAnalytics.analytics.service.processing.StructuredAnalysisPromptBuilder;
 import com.QHSEAnalytics.analytics.service.processing.StructuredAnalysisValidator;
+import com.QHSEAnalytics.shared.dto.response.AiAnalysisStructuredResponse;
+import com.QHSEAnalytics.shared.dto.response.KpiCalculatedDTO;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -24,10 +24,13 @@ import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -96,7 +99,8 @@ class AnalysisAgentStructuredTest {
                 .build());
 
         when(structuredAnalysisPromptBuilder.buildPrompt(any())).thenReturn("test prompt");
-        when(llmProviderChain.generate(eq("test prompt"), anyString(), eq(false))).thenReturn(new LlmProviderChain.ProviderResult("invalid json", "groq"));
+        when(llmProviderChain.generate(eq("test prompt"), anyString(), eq(false)))
+                .thenReturn(new LlmProviderChain.ProviderResult("invalid json", "groq"));
 
         var result = analysisAgent.analyzeStructured(kpiData);
 
@@ -124,7 +128,8 @@ class AnalysisAgentStructuredTest {
                 """;
 
         when(structuredAnalysisPromptBuilder.buildPrompt(any())).thenReturn("test prompt");
-        when(llmProviderChain.generate(eq("test prompt"), anyString(), eq(false))).thenReturn(new LlmProviderChain.ProviderResult(validJson, "groq"));
+        when(llmProviderChain.generate(eq("test prompt"), anyString(), eq(false)))
+                .thenReturn(new LlmProviderChain.ProviderResult(validJson, "groq"));
         when(structuredAnalysisValidator.validate(any(), any())).thenReturn(List.of());
 
         var result = analysisAgent.analyzeStructured(kpiData);
@@ -167,9 +172,11 @@ class AnalysisAgentStructuredTest {
                 """;
 
         when(structuredAnalysisPromptBuilder.buildPrompt(any())).thenReturn("test prompt");
-        when(structuredAnalysisPromptBuilder.buildRetryPrompt("test prompt", "validation errors")).thenReturn("retry prompt");
-        when(llmProviderChain.generate(eq("test prompt"), anyString(), eq(false))).thenReturn(new LlmProviderChain.ProviderResult(invalidJson, "groq"));
-        when(llmProviderChain.generate(eq("retry prompt"), anyString(), eq(false))).thenReturn(new LlmProviderChain.ProviderResult(validJson, "groq"));
+        when(structuredAnalysisPromptBuilder.buildRetryPrompt(eq("test prompt"), anyString())).thenReturn("retry prompt");
+        when(llmProviderChain.generate(eq("test prompt"), anyString(), eq(false)))
+                .thenReturn(new LlmProviderChain.ProviderResult(invalidJson, "groq"));
+        when(llmProviderChain.generate(eq("retry prompt"), anyString(), eq(false)))
+                .thenReturn(new LlmProviderChain.ProviderResult(validJson, "groq"));
         when(structuredAnalysisValidator.validate(any(), any())).thenReturn(List.of("validation errors"), List.of());
 
         var result = analysisAgent.analyzeStructured(kpiData);
@@ -198,14 +205,16 @@ class AnalysisAgentStructuredTest {
                 """;
 
         when(structuredAnalysisPromptBuilder.buildPrompt(anyList())).thenReturn("test prompt");
-        when(structuredAnalysisPromptBuilder.buildRetryPrompt("test prompt", "validation errors")).thenReturn("retry prompt");
-        when(llmProviderChain.generate(eq("test prompt"), anyString(), eq(false))).thenReturn(new LlmProviderChain.ProviderResult(invalidJson, "groq"));
-        when(llmProviderChain.generate(eq("retry prompt"), anyString(), eq(false))).thenReturn(new LlmProviderChain.ProviderResult("invalid json after retry", "groq"));
+        when(structuredAnalysisPromptBuilder.buildRetryPrompt(eq("test prompt"), anyString())).thenReturn("retry prompt");
+        when(llmProviderChain.generate(eq("test prompt"), anyString(), eq(false)))
+                .thenReturn(new LlmProviderChain.ProviderResult(invalidJson, "groq"));
+        when(llmProviderChain.generate(eq("retry prompt"), anyString(), eq(false)))
+                .thenReturn(new LlmProviderChain.ProviderResult("invalid json after retry", "groq"));
         when(structuredAnalysisValidator.validate(any(), any())).thenReturn(List.of("validation errors"));
 
         var result = analysisAgent.analyzeStructured(kpiData);
 
-        assertThat(result.getStatus()).isEqualTo("PARTIAL");
+        assertThat(result.getStatus()).isEqualTo("FAILED");
         assertThat(result.getFallbackReason()).contains("Impossible de parser la réponse IA après retry");
     }
 
@@ -243,69 +252,112 @@ class AnalysisAgentStructuredTest {
         assertThat(result.getTraceability().getImportSessionId()).isEqualTo(987L);
     }
 
-        @Test
-        void analyzeStructured_shouldRetryUntilTenKpisAreCovered() {
-        var kpiData = IntStream.rangeClosed(1, 10)
-            .mapToObj(index -> KpiCalculatedDTO.builder()
-                .kpiName("KPI " + index)
-                .variationPercentage((double) index)
-                .build())
-            .toList();
+    @Test
+    void analyzeStructured_shouldProcessEighteenKpisInFourChunksAndMergeCoverage() {
+        var kpiData = IntStream.rangeClosed(1, 18)
+                .mapToObj(index -> KpiCalculatedDTO.builder()
+                        .kpiName("KPI " + index)
+                        .variationPercentage(100.0 - index)
+                        .build())
+                .toList();
 
-        String firstJson = buildStructuredJson(4, "Test summary initial");
-        String retryJson = buildStructuredJson(10, "Test summary retry");
-
-        when(structuredAnalysisPromptBuilder.buildPrompt(anyList())).thenReturn("test prompt");
-        when(structuredAnalysisPromptBuilder.buildRetryPrompt("test prompt", "coverage incomplete"))
-            .thenReturn("retry prompt");
-        when(llmProviderChain.generate(eq("test prompt"), anyString(), eq(false)))
-            .thenReturn(new LlmProviderChain.ProviderResult(firstJson, "groq"));
-        when(llmProviderChain.generate(eq("retry prompt"), anyString(), eq(false)))
-            .thenReturn(new LlmProviderChain.ProviderResult(retryJson, "gemini"));
-        when(structuredAnalysisValidator.validate(any(), any()))
-            .thenReturn(List.of("coverage incomplete"), List.of());
+        when(structuredAnalysisPromptBuilder.buildPrompt(anyList())).thenAnswer(invocation -> {
+            @SuppressWarnings("unchecked")
+            List<KpiCalculatedDTO> chunk = invocation.getArgument(0);
+            return "prompt-" + chunk.get(0).getKpiName();
+        });
+        when(llmProviderChain.generate(eq("prompt-KPI 1"), contains("chunk=1"), eq(false)))
+                .thenReturn(new LlmProviderChain.ProviderResult(buildStructuredJsonRange(1, 5, "Summary 1"), "groq"));
+        when(llmProviderChain.generate(eq("prompt-KPI 6"), contains("chunk=2"), eq(false)))
+                .thenReturn(new LlmProviderChain.ProviderResult(buildStructuredJsonRange(6, 10, "Summary 2"), "groq"));
+        when(llmProviderChain.generate(eq("prompt-KPI 11"), contains("chunk=3"), eq(false)))
+                .thenReturn(new LlmProviderChain.ProviderResult(buildStructuredJsonRange(11, 15, "Summary 3"), "groq"));
+        when(llmProviderChain.generate(eq("prompt-KPI 16"), contains("chunk=4"), eq(false)))
+                .thenReturn(new LlmProviderChain.ProviderResult(buildStructuredJsonRange(16, 18, "Summary 4"), "groq"));
+        when(structuredAnalysisValidator.validate(any(), any())).thenReturn(List.of());
 
         var result = analysisAgent.analyzeStructured(kpiData, 321L);
 
         assertThat(result.getStatus()).isEqualTo("SUCCESS");
-        assertThat(result.getKpiInsights()).hasSize(10);
-        assertThat(result.getTraceability().getModelName()).isEqualTo("gemini");
+        assertThat(result.getKpiInsights()).hasSize(18);
+        assertThat(result.getGlobalSummary()).contains("Summary 1", "Summary 4");
+        assertThat(result.getTraceability().getModelName()).isEqualTo("groq");
         assertThat(result.getTraceability().getImportSessionId()).isEqualTo(321L);
-        }
+        verify(structuredAnalysisPromptBuilder, times(4)).buildPrompt(anyList());
+        verify(llmProviderChain).generate(eq("prompt-KPI 1"), contains("chunk=1"), eq(false));
+        verify(llmProviderChain).generate(eq("prompt-KPI 6"), contains("chunk=2"), eq(false));
+        verify(llmProviderChain).generate(eq("prompt-KPI 11"), contains("chunk=3"), eq(false));
+        verify(llmProviderChain).generate(eq("prompt-KPI 16"), contains("chunk=4"), eq(false));
+    }
 
-        @Test
-        void analyzeStructured_shouldReturnPartialWhenCoverageStaysIncompleteAfterRetry() {
+    @Test
+    void analyzeStructured_shouldRetryOnlyIncompleteChunk() {
         var kpiData = IntStream.rangeClosed(1, 10)
-            .mapToObj(index -> KpiCalculatedDTO.builder()
-                .kpiName("KPI " + index)
-                .variationPercentage((double) index)
-                .build())
-            .toList();
+                .mapToObj(index -> KpiCalculatedDTO.builder()
+                        .kpiName("KPI " + index)
+                        .variationPercentage(100.0 - index)
+                        .build())
+                .toList();
 
-        String firstJson = buildStructuredJson(4, "Test summary initial");
-        String retryJson = buildStructuredJson(4, "Test summary retry still partial");
-
-        when(structuredAnalysisPromptBuilder.buildPrompt(anyList())).thenReturn("test prompt");
-        when(structuredAnalysisPromptBuilder.buildRetryPrompt("test prompt", "coverage incomplete"))
-            .thenReturn("retry prompt");
-        when(llmProviderChain.generate(eq("test prompt"), anyString(), eq(false)))
-            .thenReturn(new LlmProviderChain.ProviderResult(firstJson, "groq"));
-        when(llmProviderChain.generate(eq("retry prompt"), anyString(), eq(false)))
-            .thenReturn(new LlmProviderChain.ProviderResult(retryJson, "groq"));
-        when(structuredAnalysisValidator.validate(any(), any()))
-            .thenReturn(List.of("coverage incomplete"), List.of("coverage incomplete"));
+        when(structuredAnalysisPromptBuilder.buildPrompt(anyList())).thenAnswer(invocation -> {
+            @SuppressWarnings("unchecked")
+            List<KpiCalculatedDTO> chunk = invocation.getArgument(0);
+            return "prompt-" + chunk.get(0).getKpiName();
+        });
+        when(structuredAnalysisPromptBuilder.buildRetryPrompt(eq("prompt-KPI 1"), anyString()))
+                .thenReturn("retry-KPI 1");
+        when(llmProviderChain.generate(eq("prompt-KPI 1"), contains("chunk=1"), eq(false)))
+                .thenReturn(new LlmProviderChain.ProviderResult(buildStructuredJsonRange(1, 4, "Summary 1 partial"), "groq"));
+        when(llmProviderChain.generate(eq("retry-KPI 1"), contains("chunk=1"), eq(false)))
+                .thenReturn(new LlmProviderChain.ProviderResult(buildStructuredJsonRange(1, 5, "Summary 1 retry"), "groq"));
+        when(llmProviderChain.generate(eq("prompt-KPI 6"), contains("chunk=2"), eq(false)))
+                .thenReturn(new LlmProviderChain.ProviderResult(buildStructuredJsonRange(6, 10, "Summary 2"), "groq"));
+        when(structuredAnalysisValidator.validate(any(), any())).thenReturn(List.of());
 
         var result = analysisAgent.analyzeStructured(kpiData, 322L);
 
-        assertThat(result.getStatus()).isEqualTo("PARTIAL");
-        assertThat(result.getFallbackReason()).contains("coverage incomplete");
-        }
+        assertThat(result.getStatus()).isEqualTo("SUCCESS");
+        assertThat(result.getKpiInsights()).hasSize(10);
+        verify(structuredAnalysisPromptBuilder, times(1)).buildRetryPrompt(eq("prompt-KPI 1"), anyString());
+        verify(llmProviderChain).generate(eq("retry-KPI 1"), contains("chunk=1"), eq(false));
+    }
 
-        private String buildStructuredJson(int insightCount, String summary) {
+    @Test
+    void analyzeStructured_shouldReturnPartialWhenChunkRemainsIncompleteAfterRetry() {
+        var kpiData = IntStream.rangeClosed(1, 10)
+                .mapToObj(index -> KpiCalculatedDTO.builder()
+                        .kpiName("KPI " + index)
+                        .variationPercentage(100.0 - index)
+                        .build())
+                .toList();
+
+        when(structuredAnalysisPromptBuilder.buildPrompt(anyList())).thenAnswer(invocation -> {
+            @SuppressWarnings("unchecked")
+            List<KpiCalculatedDTO> chunk = invocation.getArgument(0);
+            return "prompt-" + chunk.get(0).getKpiName();
+        });
+        when(structuredAnalysisPromptBuilder.buildRetryPrompt(eq("prompt-KPI 1"), anyString()))
+                .thenReturn("retry-KPI 1");
+        when(llmProviderChain.generate(eq("prompt-KPI 1"), contains("chunk=1"), eq(false)))
+                .thenReturn(new LlmProviderChain.ProviderResult(buildStructuredJsonRange(1, 4, "Summary 1 partial"), "groq"));
+        when(llmProviderChain.generate(eq("retry-KPI 1"), contains("chunk=1"), eq(false)))
+                .thenReturn(new LlmProviderChain.ProviderResult(buildStructuredJsonRange(1, 4, "Summary 1 still partial"), "groq"));
+        when(llmProviderChain.generate(eq("prompt-KPI 6"), contains("chunk=2"), eq(false)))
+                .thenReturn(new LlmProviderChain.ProviderResult(buildStructuredJsonRange(6, 10, "Summary 2"), "groq"));
+        when(structuredAnalysisValidator.validate(any(), any())).thenReturn(List.of());
+
+        var result = analysisAgent.analyzeStructured(kpiData, 323L);
+
+        assertThat(result.getStatus()).isEqualTo("PARTIAL");
+        assertThat(result.getFallbackReason()).contains("chunk 1/2");
+        assertThat(result.getKpiInsights()).hasSize(5);
+    }
+
+    private String buildStructuredJsonRange(int startIndex, int endIndex, String summary) {
         StringBuilder insights = new StringBuilder();
-        for (int index = 1; index <= insightCount; index++) {
-            if (index > 1) {
-            insights.append(",");
+        for (int index = startIndex; index <= endIndex; index++) {
+            if (index > startIndex) {
+                insights.append(",");
             }
             insights.append(String.format("""
                 {"kpiId": %d, "kpiName": "KPI %d", "confidence": 75.0, "insight": "Insight %d", "probableCauses": ["Cause %d"], "recommendations": ["Rec %d"], "actionImmediate": "Action %d", "urgency": "HIGH", "ownerRole": "Owner", "dueHorizon": "Q1", "successMetric": "Metric", "riskIfNotDone": "Risk"}
@@ -323,5 +375,5 @@ class AnalysisAgentStructuredTest {
                 "kpiInsights": [%s]
             }
             """, summary, insights.toString());
-        }
+    }
 }

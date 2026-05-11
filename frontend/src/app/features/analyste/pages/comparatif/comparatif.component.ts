@@ -25,7 +25,7 @@ import { PieDistributionComponent } from '../../../../shared/components/charts/p
 import { RadarPerformanceComponent } from '../../../../shared/components/charts/radar-performance.component';
 import * as XLSX from 'xlsx';
 
-/** Category metadata for Q / H / S / E */
+
 interface CategorieInfo {
   code: string;
   libelle: string;
@@ -57,24 +57,22 @@ export class ComparatifComponent implements OnInit {
   private dashboardService = inject(DashboardService);
   private snackBar = inject(MatSnackBar);
 
-  // ── State signals ──────────────────────────────────────────────────────────
-  importId     = signal<number | null>(null);
+  
   loading      = signal(true);
   error        = signal('');
 
   resume      = signal<ResumeAnalysteResponse | null>(null);
   comparatif  = signal<ComparatifTableauResponse | null>(null);
   graphiques  = signal<GraphiquesDataResponse | null>(null);
+  importId    = signal<number | null>(null);
 
-  // ── Filter signals ─────────────────────────────────────────────────────────
+  
   private searchFilterSig = signal('');
   private niveauFilterSig = signal('');
   private statutFilterSig = signal('');
   activeCatTab    = signal(''); // '' = Tous
 
-  // ── Header Form Filters ────────────────────────────────────────────────────
-
-  // ── Sorting ───────────────────────────────────────────────────────────────
+ 
   get searchFilter(): string { return this.searchFilterSig(); }
   set searchFilter(value: string) { this.searchFilterSig.set(value); }
 
@@ -95,10 +93,10 @@ export class ComparatifComponent implements OnInit {
   sortField  = signal<keyof LigneComparatifResponse | ''>('');
   sortAsc    = signal(true);
 
-  // ── Constants ─────────────────────────────────────────────────────────────
+  
   readonly CATEGORIES = CATEGORIES;
 
-  // ── Computed: filtered + sorted table rows ─────────────────────────────────
+  
   filteredLignes = computed(() => {
     const lignes  = this.comparatif()?.lignes ?? [];
     const search  = this.searchFilterSig().toLowerCase();
@@ -131,7 +129,7 @@ export class ComparatifComponent implements OnInit {
     return result;
   });
 
-  // ── Computed: per-category summary ────────────────────────────────────────
+ 
   catStats = computed(() => {
     const lignes = this.filteredLignes() ?? [];
     return CATEGORIES.map(cat => {
@@ -146,7 +144,7 @@ export class ComparatifComponent implements OnInit {
     });
   });
 
-  // ── Computed: global KPI counts ───────────────────────────────────────────
+  
   get stats() {
     const lignes = this.filteredLignes() ?? [];
     const total  = lignes.length;
@@ -187,7 +185,7 @@ export class ComparatifComponent implements OnInit {
   get dataYearN():  number | null { return this.comparatif()?.periodeN  ?? this.resume()?.periodeN  ?? null; }
   get dataYearN1(): number | null { return this.comparatif()?.periodeN1 ?? this.resume()?.periodeN1 ?? null; }
 
-  // ── Lifecycle ─────────────────────────────────────────────────────────────
+  
   ngOnInit() { this.loadResume(); }
 
   loadResume() {
@@ -224,7 +222,7 @@ export class ComparatifComponent implements OnInit {
     ).subscribe(r => { if (r) this.graphiques.set(r); });
   }
 
-  // ── Sorting helper ────────────────────────────────────────────────────────
+ 
   sortBy(field: keyof LigneComparatifResponse) {
     if (this.sortField() === field) {
       this.sortAsc.update(v => !v);
@@ -239,7 +237,7 @@ export class ComparatifComponent implements OnInit {
     return this.sortAsc() ? 'keyboard_arrow_up' : 'keyboard_arrow_down';
   }
 
-  // ── Category tab ──────────────────────────────────────────────────────────
+  
   setActiveCat(code: string) {
     this.activeCatTab.set(code);
   }
@@ -249,7 +247,7 @@ export class ComparatifComponent implements OnInit {
       ?? { code, libelle: code, icon: 'label', color: '#a3aed1', bgLight: '#f4f7fe' };
   }
 
-  // ── Filter Applier ────────────────────────────────────────────────────────
+  
   clearFilters(): void {
     this.searchFilter = '';
     this.niveauFilter = '';
@@ -260,7 +258,7 @@ export class ComparatifComponent implements OnInit {
     this.snackBar.open('Filtres appliqués', 'Fermer', { duration: 2500 });
   }
 
-  // ── Display helpers ───────────────────────────────────────────────────────
+  
   getStatut(tendance: string, niveau: string): string {
     if (tendance === 'HAUSSE' && niveau === 'CRITIQUE')                          return 'Dégradation';
     if (tendance === 'HAUSSE' && (niveau === 'MODERE' || niveau === 'FAIBLE'))   return 'Dégradation légère';
@@ -304,7 +302,7 @@ export class ComparatifComponent implements OnInit {
     return value > 0 ? '+' : '';
   }
 
-  // ── Export ────────────────────────────────────────────────────────────────
+  
   exportExcel() {
     const rows = this.filteredLignes().map(r => ({
       'Indicateur'              : r.kpiNom,

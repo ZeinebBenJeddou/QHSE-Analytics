@@ -1,9 +1,4 @@
-/* ══════════════════════════════════════════════════════════════════════════
-   comparatif.component.css — Page "Comparatif N vs N-1"
-   Design: refined enterprise dashboard, QHSE-themed
-══════════════════════════════════════════════════════════════════════════ */
 
-/* ── Design tokens ──────────────────────────────────────────────────────── */
 :host {
   --navy:       #0F172A;
   --navy-soft:  #475569;
@@ -13,7 +8,7 @@
   --white:      #FFFFFF;
   --border:     #E2E8F0;
 
-  /* Design system palette */
+ 
   --primary:    #1E40AF;
   --indigo:     #6366F1;
   --red:        #EF4444;
@@ -36,7 +31,7 @@
   font-family: 'Inter', system-ui, sans-serif;
 }
 
-/* ── Page shell ─────────────────────────────────────────────────────────── */
+
 .comparatif-page {
   padding: 28px 28px 48px;
   background: var(--surface);
@@ -45,7 +40,6 @@
   color: var(--navy);
 }
 
-/* ── Loader ─────────────────────────────────────────────────────────────── */
 .loader-overlay {
   display: flex;
   flex-direction: column;
@@ -59,7 +53,7 @@
   font-size: 14px;
 }
 
-/* ── Empty / Error state ────────────────────────────────────────────────── */
+
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -79,7 +73,7 @@
 .empty-state h2 { margin: 0; font-size: 18px; color: var(--navy); }
 .empty-state p  { font-size: 14px; max-width: 400px; }
 
-/* ── Page header ────────────────────────────────────────────────────────── */
+
 .page-header {
   display: flex;
   flex-direction: column;
@@ -138,7 +132,7 @@
   color: var(--ink-light);
 }
 
-/* ── Export button — outline style ─────────────────────────────────────── */
+
 .btn-export {
   display: inline-flex;
   align-items: center;
@@ -159,7 +153,7 @@
 }
 .btn-export mat-icon { font-size: 16px; width: 16px; height: 16px; }
 
-/* ── Header Filters ─────────────────────────────────────────────────────── */
+
 .header-filters {
   display: flex;
   flex-wrap: wrap;
@@ -223,7 +217,7 @@
 }
 .btn-apply mat-icon { font-size: 16px; width: 16px; height: 16px; }
 
-/* ── Section wrapper ────────────────────────────────────────────────────── */
+
 .section { margin-bottom: 32px; }
 .section-header {
   display: flex;
@@ -250,9 +244,7 @@
   padding: 3px 12px;
 }
 
-/* ══════════════════════════════════════════════════════════════════════════
-   SECTION 1 — KPI SUMMARY CARDS
-══════════════════════════════════════════════════════════════════════════ */
+
 .kpi-cards-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -309,12 +301,9 @@
   font-weight: 500;
 }
 
-/* Bottom bar supprimée — remplacée par icône cercle */
 .kpi-card-bar { display: none; }
 
-/* ══════════════════════════════════════════════════════════════════════════
-   SECTION 2 — PER-CATEGORY CARDS
-══════════════════════════════════════════════════════════════════════════ */
+
 .cat-cards-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -437,9 +426,6 @@
   margin-top: 4px;
 }
 
-/* ══════════════════════════════════════════════════════════════════════════
-   SECTION 3 — CHARTS
-══════════════════════════════════════════════════════════════════════════ */
 .charts-grid {
   display: grid;
   grid-template-columns: 2fr 1fr;
@@ -447,7 +433,7 @@
   align-items: start;
 }
 
-/* Right column stacks donut + radar vertically */
+
 .charts-right-col {
   display: flex;
   flex-direction: column;
@@ -537,11 +523,7 @@
 }
 .no-data mat-icon { opacity: .5; }
 
-/* ══════════════════════════════════════════════════════════════════════════
-   SECTION 4 — TABLE
-══════════════════════════════════════════════════════════════════════════ */
 
-/* Filters bar */
 .table-filters {
   display: flex;
   align-items: center;
@@ -629,7 +611,7 @@
 .btn-reset-filters:hover { border-color: var(--red); color: var(--red); }
 .btn-reset-filters mat-icon { font-size: 16px; width: 16px; height: 16px; }
 
-/* Table */
+
 .table-wrapper {
   background: var(--white);
   border-radius: var(--radius-lg);
@@ -720,7 +702,7 @@
 .td-center { text-align: center; }
 .td-variation { min-width: 90px; }
 
-/* Variation pills — Δ% coloré */
+
 .var-pill {
   display: inline-block;
   padding: 3px 10px;
@@ -737,7 +719,7 @@
 .var-pill.var-neg { background: #FEF2F2; color: #DC2626; }
 .var-pill.var-neutral { background: var(--surface); }
 
-/* Niveau badges — design system QHSE */
+
 .badge {
   display: inline-block;
   padding: 3px 10px;
@@ -752,20 +734,19 @@
 .niveau-faible   { background: #F0FDF4; color: #16A34A; }
 .niveau-default  { background: var(--surface); color: var(--ink-muted); }
 
-/* Statut labels */
+
 .statut-label { font-size: 13px; font-weight: 600; }
 .statut-red    { color: var(--red);      }
 .statut-orange { color: var(--orange);   }
 .statut-green  { color: var(--green);    }
 .statut-blue   { color: var(--blue);     }
 
-/* Tendance icons — arrow only, no text */
+
 .tendance-icon { font-size: 18px !important; width: 18px !important; height: 18px !important; }
 .icon-red   { color: #EF4444; }
 .icon-green { color: #10B981; }
 .icon-blue  { color: #94A3B8; }
 
-/* Empty rows */
 .no-rows {
   text-align: center;
   color: var(--ink-muted);
@@ -781,7 +762,7 @@
   opacity: .4;
 }
 
-/* Table legend */
+
 .table-legend {
   margin-top: 16px;
   padding: 12px 16px;
@@ -803,12 +784,12 @@
   color: var(--ink-light);
 }
 
-/* ── Color utility helpers ──────────────────────────────────────────────── */
+
 .text-red   { color: var(--red); }
 .text-green { color: var(--green); }
 .text-blue  { color: var(--blue); }
 
-/* ── Responsive ─────────────────────────────────────────────────────────── */
+
 @media (max-width: 1400px) {
   .kpi-cards-grid  { grid-template-columns: repeat(3, 1fr); }
 }

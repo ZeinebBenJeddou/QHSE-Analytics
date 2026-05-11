@@ -18,6 +18,7 @@ import com.QHSEAnalytics.shared.enums.ImportStatut;
 import com.QHSEAnalytics.shared.enums.NiveauVariation;
 import com.QHSEAnalytics.shared.enums.QualityStatus;
 import com.QHSEAnalytics.shared.enums.Tendance;
+import com.QHSEAnalytics.shared.enums.Direction;
 import com.QHSEAnalytics.shared.entity.UniteKpi;
 import com.QHSEAnalytics.shared.exception.ImportTransitionException;
 import com.QHSEAnalytics.shared.exception.ImportValidationException;
@@ -422,9 +423,10 @@ public class ImportProcessingService {
                     .definition("KPI auto-créé à partir d'un import. Catégorie détectée: " + dto.getCategorie())
                     .unite(parseUnite(dto.getUnite()))
                     .categorieKpi(categorie)
-                    .seuilFaible(10.0)
-                    .seuilModere(25.0)
-                    .seuilCritique(50.0)
+                    .seuilFaible(dto.getSeuilFaible() != null ? dto.getSeuilFaible() : 10.0)
+                    .seuilModere(dto.getSeuilModere() != null ? dto.getSeuilModere() : 25.0)
+                    .seuilCritique(dto.getSeuilCritique() != null ? dto.getSeuilCritique() : 50.0)
+                    .direction(parseDirection(dto.getDirection()))
                     .ordre(999) // Auto-created KPIs get high order number
                     .isActive(true)
                     .build();
@@ -491,6 +493,17 @@ public class ImportProcessingService {
             return UniteKpi.valueOf(unite);
         } catch (IllegalArgumentException ex) {
             return UniteKpi.NOMBRE;
+        }
+    }
+
+    private Direction parseDirection(String direction) {
+        if (direction == null || direction.isBlank()) {
+            return null;
+        }
+        try {
+            return Direction.valueOf(direction);
+        } catch (IllegalArgumentException ex) {
+            return null;
         }
     }
 }

@@ -5,11 +5,13 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
 
 @Data
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -18,6 +20,7 @@ import java.util.List;
 public class AiKpiInsightResponse {
 
     private Long kpiId;
+    @EqualsAndHashCode.Include
     private String kpiName;
     private Double confidence;
     private String insight;

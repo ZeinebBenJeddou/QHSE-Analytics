@@ -123,9 +123,9 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
   }
 
   riskLevelClass(level: string | null | undefined): string {
-    if (level === 'CRITICAL') return 'risk-tag critical';
-    if (level === 'HIGH')     return 'risk-tag high';
-    if (level === 'MEDIUM')   return 'risk-tag medium';
+    if (level === 'Critique' || level === 'CRITICAL') return 'risk-tag critical';
+    if (level === 'Élevé' || level === 'HIGH')       return 'risk-tag high';
+    if (level === 'Modéré' || level === 'MEDIUM')    return 'risk-tag medium';
     return 'risk-tag low';
   }
 
@@ -403,6 +403,13 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
     return 'info';
   }
 
+  severityLabel(severity: string): string {
+    if (severity === 'ERROR')   return 'Erreur';
+    if (severity === 'WARNING') return 'Avertissement';
+    if (severity === 'INFO')    return 'Information';
+    return severity;
+  }
+
   rowHasError(rowIndex: number): boolean {
     return this.allIssues.some(i => i.rowIndex === rowIndex && i.severity === 'ERROR');
   }
@@ -414,7 +421,7 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
   rowIssueTooltip(rowIndex: number): string {
     return this.allIssues
       .filter(i => i.rowIndex === rowIndex)
-      .map(i => `[${i.severity}] ${i.message}`)
+      .map(i => `[${this.severityLabel(i.severity)}] ${i.message}`)
       .join('\n');
   }
 

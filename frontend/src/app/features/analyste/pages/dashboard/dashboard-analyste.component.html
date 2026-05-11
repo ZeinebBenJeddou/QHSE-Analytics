@@ -1,16 +1,16 @@
-<div class="dashboard-page">
+﻿<div class="dashboard-page">
   @if (loading()) {
     <div class="loader-overlay">
       <div class="spinner-wrap">
         <mat-spinner diameter="48" color="primary"></mat-spinner>
-        <p>Chargement du tableau de bord…</p>
+        <p>Chargement du tableau de bord...</p>
       </div>
     </div>
   }
 
   @if (!loading() && error()) {
     <div class="empty-state">
-      <div class="empty-icon">📂</div>
+      <mat-icon class="empty-mat-icon">inbox</mat-icon>
       <h2>{{ error() }}</h2>
       <p>Aucune donnée disponible. Importez vos données pour commencer.</p>
       <button class="btn-primary" (click)="goToImport()">
@@ -21,32 +21,17 @@
   }
 
   @if (!loading() && !error()) {
-
-    <!-- ══════════════ TOPBAR ══════════════ -->
-    <div class="controls-strip">
-      <div class="controls-left">
-          @if (dataYearN && dataYearN1) {
-            <span class="period-label">{{ dataYearN1 }} → {{ dataYearN }}</span>
-          }
-      </div>
-      <div class="controls-right">
-        <!-- Period pills -->
-        <div class="period-selectors">
-          <div class="period-selector">
-            <label>Année N</label>
-            <select class="period-select" (change)="onPeriodChangeN($any($event.target).value)">
-              <option [value]="dataYearN">{{ dataYearN ?? '2024' }}</option>
-            </select>
-          </div>
-          <div class="period-separator">vs</div>
-          <div class="period-selector">
-            <label>Année N-1</label>
-            <select class="period-select" (change)="onPeriodChangeN1($any($event.target).value)">
-              <option [value]="dataYearN1">{{ dataYearN1 ?? '2023' }}</option>
-            </select>
-          </div>
+    <!-- Page header -->
+    <div class="page-header">
+      <div class="header-left">
+        <div>
+          <h1>Vue d'ensemble des indicateurs QHSE</h1>
         </div>
-        <!-- Import button -->
+      </div>
+      <div class="header-right">
+        @if (dataYearN && dataYearN1) {
+          <span class="period-pill">{{ dataYearN1 }} → {{ dataYearN }}</span>
+        }
         <button class="btn-primary import-btn" (click)="goToImport()">
           <mat-icon>upload</mat-icon>
           Importer
@@ -54,15 +39,14 @@
       </div>
     </div>
 
-    <!-- ══════════════ ANALYSE PROGRESS ══════════════ -->
     @if (isAnalysing()) {
       <div class="enrichment-bar">
         <mat-progress-bar mode="indeterminate" color="accent"></mat-progress-bar>
-        <p>Groq analyse chaque indicateur, avec Gemini en fallback, pour détecter les risques…</p>
+        <p>Groq analyse chaque indicateur, avec Gemini en fallback, pour détecter les risques...</p>
       </div>
     }
 
-    <!-- ══════════════ KPI SUMMARY CARDS ══════════════ -->
+    <!-- KPI summary cards -->
     <div class="kpi-cards-row">
       @for (card of summaryCards; track card.label) {
         <div class="kpi-card"
@@ -87,52 +71,60 @@
       }
     </div>
 
-    <!-- ══════════════ FILTER BAR ══════════════ -->
-    <div class="filter-bar">
-      <div class="filter-bar-left">
-        <div class="cat-tabs">
-          <button class="cat-tab" [class.active]="!categorieFilter()" (click)="onCategoryChange('')">
-            Tous
-            <span class="tab-badge">{{ comparatif()?.lignes?.length ?? 0 }}</span>
-          </button>
-          @for (cat of categories(); track cat) {
-            <button class="cat-tab cat-tab-{{ cat.toLowerCase() }}"
-                    [class.active]="categorieFilter() === cat"
-                    (click)="onCategoryChange(cat)">
-              {{ catLabel(cat) }}
-              <span class="tab-badge">{{ catCount(cat) }}</span>
-            </button>
-          }
+    <!-- LIGNE 1 : bar chart + donut côte à côte -->
+    <div class="charts-grid">
+      <div class="panel chart-line-panel">
+        <div class="panel-header">
+          <div class="panel-title">ÉVOLUTION PAR CATÉGORIE</div>
         </div>
+        <div class="chart-legend">
+          <span class="legend-item legend-n1">
+            <span class="legend-dot"></span>{{ dataYearN1 ?? 'N-1' }}
+          </span>
+          <span class="legend-item legend-n">
+            <span class="legend-dot"></span>{{ dataYearN ?? 'N' }}
+          </span>
+        </div>
+        @if (graphiques()?.barresGroupees?.length) {
+          <div class="chart-canvas-wrap">
+            <app-bar-comparison
+              [data]="graphiques()!.barresGroupees"
+              [labelN1]="comparatif()?.periodeN1?.toString() ?? 'N-1'"
+              [labelN]="comparatif()?.periodeN?.toString() ?? 'N'"
+            />
+          </div>
+        } @else {
+          <div class="no-data">Aucune donnée graphique disponible</div>
+        }
       </div>
-      <div class="filter-bar-right">
-        <div class="niveau-filters">
-          <button class="niveau-chip-btn" [class.active]="!niveauFilter()" (click)="onNiveauChange('')">Tous</button>
-          <button class="niveau-chip-btn nf-faible"   [class.active]="niveauFilter() === 'FAIBLE'"   (click)="onNiveauChange('FAIBLE')">Faible</button>
-          <button class="niveau-chip-btn nf-modere"   [class.active]="niveauFilter() === 'MODERE'"   (click)="onNiveauChange('MODERE')">Modéré</button>
-          <button class="niveau-chip-btn nf-critique" [class.active]="niveauFilter() === 'CRITIQUE'" (click)="onNiveauChange('CRITIQUE')">Critique</button>
+
+      <div class="panel donut-panel">
+        <div class="panel-header">
+          <div class="panel-title">RÉPARTITION DES VARIATIONS</div>
         </div>
-        <div class="search-wrap">
-          <mat-icon class="search-icon-inline">search</mat-icon>
-          <input class="search-input-bar" placeholder="Rechercher un KPI…"
-                 (input)="onSearchChange($any($event.target).value)"
-                 [value]="searchFilter()" />
+        <div class="donut-wrap">
+          <app-pie-distribution
+            [enHausseCritique]="donutChartData.enHausseCritique"
+            [enHausseModeree]="donutChartData.enHausseModeree"
+            [enBaisseModeree]="donutChartData.enBaisseModeree"
+            [enBaisseFaible]="donutChartData.enBaisseFaible"
+          />
+          <div class="donut-center-label">
+            <div class="donut-total">{{ comparatif()?.lignes?.length ?? 0 }}</div>
+            <div class="donut-total-label">KPIs</div>
+          </div>
         </div>
-        <div class="table-actions">
-          <button class="btn-outline-sm" (click)="exportPdf()" [disabled]="exporting() || !hasImport">
-            <mat-icon>picture_as_pdf</mat-icon> PDF
-          </button>
-          <button class="btn-outline-sm" (click)="exportExcel()" [disabled]="!comparatif() || comparatif()?.lignes?.length === 0">
-            <mat-icon>grid_on</mat-icon> XLSX
-          </button>
+        <div class="donut-legend">
+          <div class="donut-legend-item"><span class="dot dot-primary"></span> Hausse critique ({{ donutChartData.enHausseCritique }})</div>
+          <div class="donut-legend-item"><span class="dot dot-indigo"></span> Hausse modérée ({{ donutChartData.enHausseModeree }})</div>
+          <div class="donut-legend-item"><span class="dot dot-success"></span> Baisse modérée ({{ donutChartData.enBaisseModeree }})</div>
+          <div class="donut-legend-item"><span class="dot dot-warning"></span> Baisse faible ({{ donutChartData.enBaisseFaible }})</div>
         </div>
       </div>
     </div>
 
-    <!-- ══════════════ MAIN GRID ══════════════ -->
-    <div class="main-grid">
-
-      <!-- LEFT: Comparatif Table -->
+    <!-- LIGNE 2 : tableau pleine largeur -->
+    <div class="comparatif-full">
       <div class="panel comparatif-panel">
         <div class="panel-header">
           <div>
@@ -148,6 +140,38 @@
             <mat-icon>auto_awesome</mat-icon>
             Analyse IA détaillée
           </button>
+        </div>
+
+        <div class="filter-bar">
+          <div class="filter-bar-left">
+            <div class="cat-tabs">
+              <button class="cat-tab" [class.active]="!categorieFilter()" (click)="onCategoryChange('')">
+                Tous <span class="tab-badge">{{ comparatif()?.lignes?.length ?? 0 }}</span>
+              </button>
+              @for (cat of categories(); track cat) {
+                <button class="cat-tab cat-tab-{{ cat.toLowerCase() }}"
+                        [class.active]="categorieFilter() === cat"
+                        (click)="onCategoryChange(cat)">
+                  {{ catLabel(cat) }}
+                  <span class="tab-badge">{{ catCount(cat) }}</span>
+                </button>
+              }
+            </div>
+          </div>
+          <div class="filter-bar-right">
+            <div class="niveau-filters niveau-filters-desktop">
+              <button class="niveau-chip-btn" [class.active]="!niveauFilter()" (click)="onNiveauChange('')">Tous</button>
+              <button class="niveau-chip-btn nf-faible" [class.active]="niveauFilter() === 'FAIBLE'" (click)="onNiveauChange('FAIBLE')">Faible</button>
+              <button class="niveau-chip-btn nf-modere" [class.active]="niveauFilter() === 'MODERE'" (click)="onNiveauChange('MODERE')">Modéré</button>
+              <button class="niveau-chip-btn nf-critique" [class.active]="niveauFilter() === 'CRITIQUE'" (click)="onNiveauChange('CRITIQUE')">Critique</button>
+            </div>
+            <div class="search-wrap">
+              <mat-icon class="search-icon-inline">search</mat-icon>
+              <input class="search-input-bar" placeholder="Rechercher un KPI..."
+                     (input)="onSearchChange($any($event.target).value)"
+                     [value]="searchFilter()" />
+            </div>
+          </div>
         </div>
 
         <div class="table-scroll">
@@ -218,7 +242,6 @@
                   <td>
                     <span class="niveau-chip" [ngClass]="niveauClass(row.niveauVariation)">{{ row.niveauVariation }}</span>
                   </td>
-                  <!-- Tendance: icône seule -->
                   <td class="tendance-cell">
                     <mat-icon class="trend-icon" [ngClass]="tendanceClass(row.tendance)">{{ tendanceIcon(row.tendance) }}</mat-icon>
                   </td>
@@ -231,7 +254,7 @@
                         <div class="analysis-panel-header">
                           <div class="analysis-kpi-label">
                             <mat-icon>auto_awesome</mat-icon>
-                            Analyse IA — {{ row.kpiNom }}
+                            Analyse IA - {{ row.kpiNom }}
                           </div>
                           <div class="analysis-badges">
                             @if (row.riskLevel) {
@@ -308,125 +331,10 @@
           </table>
         </div>
       </div>
-
-      <!-- RIGHT: Bar Chart -->
-      <div class="panel chart-line-panel">
-        <div class="panel-header">
-          <div class="panel-title">ÉVOLUTION PAR CATÉGORIE</div>
-        </div>
-        <div class="chart-legend">
-          <span class="legend-item legend-n1">
-            <span class="legend-dot"></span>{{ dataYearN1 ?? 'N-1' }}
-          </span>
-          <span class="legend-item legend-n">
-            <span class="legend-dot"></span>{{ dataYearN ?? 'N' }}
-          </span>
-        </div>
-        @if (graphiques()?.barresGroupees?.length) {
-          <app-bar-comparison
-            [data]="graphiques()!.barresGroupees"
-            [labelN1]="comparatif()?.periodeN1?.toString() ?? 'N-1'"
-            [labelN]="comparatif()?.periodeN?.toString() ?? 'N'"
-          />
-        } @else {
-          <div class="no-data">Aucune donnée graphique disponible</div>
-        }
-      </div>
     </div>
 
-    <!-- ══════════════ SECOND ROW ══════════════ -->
-    <div class="second-grid">
-
-      <!-- Répartition Donut -->
-      <div class="panel donut-panel">
-        <div class="panel-header">
-          <div class="panel-title">RÉPARTITION DES VARIATIONS</div>
-        </div>
-        <div class="donut-wrap">
-          <app-pie-distribution
-            [enHausseCritique]="donutChartData.enHausseCritique"
-            [enHausseModeree]="donutChartData.enHausseModeree"
-            [enBaisseModeree]="donutChartData.enBaisseModeree"
-            [enBaisseFaible]="donutChartData.enBaisseFaible"
-          />
-          <div class="donut-center-label">
-            <div class="donut-total">{{ comparatif()?.lignes?.length ?? 0 }}</div>
-            <div class="donut-total-label">KPIs</div>
-          </div>
-        </div>
-        <div class="donut-legend">
-          <div class="donut-legend-item"><span class="dot dot-primary"></span> Hausse critique ({{ donutChartData.enHausseCritique }})</div>
-          <div class="donut-legend-item"><span class="dot dot-indigo"></span> Hausse modérée ({{ donutChartData.enHausseModeree }})</div>
-          <div class="donut-legend-item"><span class="dot dot-success"></span> Baisse modérée ({{ donutChartData.enBaisseModeree }})</div>
-          <div class="donut-legend-item"><span class="dot dot-warning"></span> Baisse faible ({{ donutChartData.enBaisseFaible }})</div>
-        </div>
-      </div>
-
-      <!-- Tendances IA -->
-      <div class="panel tendances-panel">
-        <div class="panel-header">
-          <div class="panel-title">TENDANCES DÉTECTÉES PAR IA</div>
-        </div>
-        <div class="tendances-list">
-          @for (insight of insightCards; track insight.title) {
-            <div class="tendance-item" [ngClass]="'tendance-' + insight.tone">
-              <div class="tendance-icon"><mat-icon>{{ insight.icon }}</mat-icon></div>
-              <div class="tendance-content">
-                <div class="tendance-title">{{ insight.title }}</div>
-                <div class="tendance-desc">{{ insight.description }}</div>
-              </div>
-              <span class="tendance-badge tendance-badge-{{ insight.tone }}">
-                {{ insight.tone === 'danger' ? 'Hausse' : insight.tone === 'success' ? 'Baisse' : 'Stable' }}
-              </span>
-            </div>
-          }
-        </div>
-      </div>
-
-      <!-- Alertes Actives -->
-      <div class="panel alertes-panel">
-        <div class="panel-header">
-          <div class="panel-title">ALERTES ACTIVES</div>
-          @if ((comparatif()?.nombreCritiques ?? 0) > 0) {
-            <span class="alertes-count-badge">{{ comparatif()?.nombreCritiques }}</span>
-          }
-        </div>
-        <div class="alertes-list">
-          @for (row of filteredLignes(); track row.kpiId) {
-            @if (row.niveauVariation === 'CRITIQUE') {
-              <div class="alerte-item alerte-critique">
-                <div class="alerte-icon"><mat-icon>warning</mat-icon></div>
-                <div class="alerte-content">
-                  <div class="alerte-title">{{ row.kpiNom }}</div>
-                  <div class="alerte-desc">{{ row.variationRelative > 0 ? '+' : '' }}{{ row.variationRelative | number:'1.1-1' }}% vs N-1</div>
-                </div>
-                <span class="alerte-chip alerte-critique-chip">Critique</span>
-              </div>
-            }
-            @if (row.niveauVariation === 'MODERE') {
-              <div class="alerte-item alerte-modere">
-                <div class="alerte-icon"><mat-icon>info</mat-icon></div>
-                <div class="alerte-content">
-                  <div class="alerte-title">{{ row.kpiNom }}</div>
-                  <div class="alerte-desc">{{ row.variationRelative > 0 ? '+' : '' }}{{ row.variationRelative | number:'1.1-1' }}% vs N-1</div>
-                </div>
-                <span class="alerte-chip alerte-modere-chip">Modéré</span>
-              </div>
-            }
-          }
-          <!-- Empty state -->
-          @if ((comparatif()?.nombreCritiques ?? 0) === 0 && (comparatif()?.nombreModeres ?? 0) === 0) {
-            <div class="no-alertes-state">
-              <div class="no-alertes-icon"><mat-icon>check_circle</mat-icon></div>
-              <div class="no-alertes-title">Aucune alerte active</div>
-              <div class="no-alertes-desc">Tous les indicateurs sont dans les seuils acceptables.</div>
-            </div>
-          }
-        </div>
-        <button class="link-btn" (click)="goToIA()">Voir l'analyse détaillée →</button>
-      </div>
-
-      <!-- Synthèse IA -->
+    <!-- LIGNE 3 : Synthèse IA centrée -->
+    <div class="synthese-full">
       <div class="panel synthese-ia-panel">
         <div class="panel-header">
           <div class="ai-badge-header">
@@ -439,45 +347,77 @@
         @if (analysesIa()?.analyseGlobale?.synthese) {
           <div class="ia-synthese-text">{{ analysesIa()!.analyseGlobale!.synthese }}</div>
         } @else {
-          <div class="ia-synthese-text no-data">L'analyse IA sera disponible après le traitement de l'import.</div>
+          <div class="ia-synthese-text no-data">
+            L'analyse IA sera disponible après le traitement de l'import.
+            @if (importId() && !isAnalysing()) {
+              <button class="link-btn" (click)="runFullAnalysis()">Lancer l'analyse →</button>
+            }
+          </div>
+        }
+
+        <div class="synthese-body-grid">
+          <div class="ia-sub-section">
+            <div class="ia-sub-title">INDICATEURS CRITIQUES DÉTECTÉS</div>
+            <div class="ia-sub-subtitle">Par ordre de sévérité</div>
+            <div class="ia-kpi-issues-list">
+              @for (kpi of topIssues(); track kpi.kpiId) {
+                <div class="ia-kpi-issue-item" [class.issue-critique]="kpi.niveauVariation === 'CRITIQUE'"
+                                               [class.issue-modere]="kpi.niveauVariation === 'MODERE'">
+                  <div class="issue-kpi-header">
+                    <span class="issue-kpi-name">{{ kpi.kpiNom }}</span>
+                    <span class="issue-kpi-badge" [class.badge-critique]="kpi.niveauVariation === 'CRITIQUE'"
+                                                  [class.badge-modere]="kpi.niveauVariation === 'MODERE'">
+                      {{ kpi.niveauVariation === 'CRITIQUE' ? 'Critique' : 'Modéré' }}
+                    </span>
+                  </div>
+                  @if (kpi.issueDetected) {
+                    <div class="issue-kpi-desc">{{ kpi.issueDetected }}</div>
+                  }
+                </div>
+              }
+              @if (topIssues().length === 0) {
+                <div class="no-data">Aucun indicateur critique détecté.</div>
+              }
+            </div>
+          </div>
+
+          <div class="ia-sub-section">
+            <div class="ia-sub-title">ACTIONS PRIORITAIRES SUGGÉRÉES</div>
+            <div class="ia-sub-subtitle">Top {{ topActions().length }} à traiter en urgence</div>
+            <div class="ia-actions-list">
+              @for (kpi of topActions(); track kpi.kpiId) {
+                <div class="ia-action-item">
+                  <div class="ia-action-kpi">{{ kpi.kpiNom }}</div>
+                  <span class="ia-action-desc">{{ kpi.immediateAction }}</span>
+                  <span class="ia-priority-badge"
+                        [class.tone-danger]="kpi.immediatePriority === 'Haute'"
+                        [class.tone-warning]="kpi.immediatePriority === 'Moyenne'"
+                        [class.tone-safe]="kpi.immediatePriority === 'Basse'">
+                    {{ kpi.immediatePriority ?? '—' }}
+                  </span>
+                </div>
+              }
+              @if (topActions().length === 0) {
+                <div class="no-data">
+                  Les actions prioritaires seront affichées après l'analyse IA.
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+
+        @if (analysesIa()?.analyseGlobale?.planActions) {
+          <div class="ia-sub-section ia-plan-actions">
+            <div class="ia-sub-title">PLAN D'ACTIONS GLOBAL</div>
+            <div class="ia-plan-text">{{ analysesIa()!.analyseGlobale!.planActions }}</div>
+          </div>
         }
 
         <button class="btn-outline-ia" (click)="goToIA()">
-          Voir l'analyse détaillée →
+          Voir l'analyse IA complète →
         </button>
-
-        <div class="ia-sub-section">
-          <div class="ia-sub-title">CAUSES PROBABLES (IA)</div>
-          <div class="ia-sub-subtitle">Top 3 détectées</div>
-          <ol class="ia-causes-list">
-            @for (kpi of (analysesIa()?.analysesKpis ?? []); track kpi.kpiId; let i = $index) {
-              @if (i < 3 && kpi.issueDetected) {
-                <li>{{ kpi.issueDetected }}</li>
-              }
-            }
-            @if (!(analysesIa()?.analysesKpis?.length)) {
-              <li class="no-data">Aucune cause détectée pour le moment.</li>
-            }
-          </ol>
-        </div>
-
-        <div class="ia-sub-section">
-          <div class="ia-sub-title">ACTIONS SUGGÉRÉES PAR IA</div>
-          <div class="ia-sub-subtitle">Top 3 priorités</div>
-          <div class="ia-actions-list">
-            @for (rec of recommendationCards; track rec.title) {
-              <div class="ia-action-item">
-                <span class="ia-action-title">{{ rec.title }}</span>
-                <span class="ia-priority-badge" [ngClass]="'tone-' + rec.tone">
-                  {{ rec.tone === 'danger' ? 'Haute' : rec.tone === 'warning' ? 'Moyenne' : 'Basse' }}
-                </span>
-              </div>
-            }
-          </div>
-          <button class="link-btn" (click)="goToIA()">Voir toutes les actions →</button>
-        </div>
       </div>
-
     </div>
+
   }
 </div>

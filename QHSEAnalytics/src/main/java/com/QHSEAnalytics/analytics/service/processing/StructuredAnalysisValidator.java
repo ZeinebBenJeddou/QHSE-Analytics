@@ -148,22 +148,19 @@ public class StructuredAnalysisValidator {
                 errors.add(prefix + " must contain either kpiId or kpiName.");
             }
             if (insight.getKpiId() != null && !knownIds.isEmpty() && !knownIds.contains(String.valueOf(insight.getKpiId()))) {
-                errors.add(prefix + " references unknown kpiId=" + insight.getKpiId());
+                log.warn("[AI Validation] {} references unknown kpiId={} — skipping id validation", prefix, insight.getKpiId());
             }
             if (isBlank(insight.getKpiName())) {
                 errors.add(prefix + ".kpiName is mandatory.");
             } else {
                 String normalizedName = TextNormalizer.normalizeForMatching(insight.getKpiName());
                 if (!knownNames.isEmpty() && !knownNames.contains(normalizedName)) {
-                    errors.add(prefix + " references unknown kpiName='" + insight.getKpiName() + "'.");
+                    log.warn("[AI Validation] {} references unknown kpiName='{}' — skipping name validation", prefix, insight.getKpiName());
                 }
                 coveredNames.add(normalizedName);
             }
             if (insight.getKpiId() != null) {
                 coveredIds.add(String.valueOf(insight.getKpiId()));
-            }
-            if (insight.getKpiId() != null && !knownIds.isEmpty() && !knownIds.contains(String.valueOf(insight.getKpiId()))) {
-                errors.add(prefix + " references unknown kpiId=" + insight.getKpiId());
             }
             if (insight.getConfidence() == null) {
                 errors.add(prefix + ".confidence is mandatory.");
@@ -226,6 +223,23 @@ public class StructuredAnalysisValidator {
         }
     }
 
+    private String normalizeIshikawa(String raw) {
+        if (raw == null) return raw;
+        String key = raw.toLowerCase().trim()
+                .replace("é", "e").replace("è", "e").replace("ê", "e")
+                .replace("à", "a").replace("â", "a")
+                .replace("î", "i").replace("ô", "o").replace("û", "u")
+                .replace("ç", "c");
+        return switch (key) {
+            case "homme", "man", "people", "human", "humain" -> "Homme";
+            case "machine", "equipment", "materiel", "matériel" -> "Machine";
+            case "methode", "method", "methods", "methodologie" -> "Méthode";
+            case "milieu", "environment", "environnement", "milieu de travail" -> "Milieu";
+            case "matiere", "material", "materials", "matieres premieres" -> "Matière";
+            default -> raw;
+        };
+    }
+
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
     }
@@ -285,6 +299,17 @@ public class StructuredAnalysisValidator {
                 rec.setTitle(truncate(rec.getTitle(), 200));
                 rec.setRationale(truncate(rec.getRationale(), 1000));
                 rec.setExpectedBenefit(truncate(rec.getExpectedBenefit(), 500));
+            });
+        }
+
+        if (response.getRootCauseAnalysis() != null) {
+            response.getRootCauseAnalysis().forEach(rc -> {
+                if (rc == null || isBlank(rc.getIshikawaCategory())) return;
+                String normalized = normalizeIshikawa(rc.getIshikawaCategory());
+                if (!normalized.equals(rc.getIshikawaCategory())) {
+                    log.warn("[AI Validation] Normalized ishikawaCategory '{}' → '{}'", rc.getIshikawaCategory(), normalized);
+                    rc.setIshikawaCategory(normalized);
+                }
             });
         }
 

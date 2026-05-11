@@ -38,9 +38,7 @@
 
       
 
-    <!-- ══════════════════════════════════════════════════════════════════════
-         SECTION 1 — KPI SUMMARY CARDS
-    ═══════════════════════════════════════════════════════════════════════ -->
+    
     <section class="section">
       <div class="kpi-cards-grid">
 
@@ -120,9 +118,7 @@
       </div>
     </section>
 
-    <!-- ══════════════════════════════════════════════════════════════════════
-         SECTION 2 — PER-CATEGORY CARDS (Q / H / S / E)
-    ═══════════════════════════════════════════════════════════════════════ -->
+    
     <section class="section">
       <div class="section-header">
         <h2 class="section-title">Vue par catégorie QHSE</h2>
@@ -179,9 +175,7 @@
       </div>
     </section>
 
-    <!-- ══════════════════════════════════════════════════════════════════════
-         SECTION 3 — CHARTS  (Bar grouped + Donut + Radar)
-    ═══════════════════════════════════════════════════════════════════════ -->
+    
     <section class="section">
       <div class="section-header">
         <h2 class="section-title">Visualisation comparative</h2>
@@ -190,7 +184,7 @@
 
       <div class="charts-grid">
 
-        <!-- ── Bar grouped chart (2/3 width) ── -->
+       
         <div class="chart-panel chart-panel--bar">
           <div class="chart-panel-header">
             <div class="chart-panel-title">
@@ -216,10 +210,10 @@
           </div>
         </div>
         
-        <!-- ── Right column: Donut + Radar stacked ── -->
+        
         <div class="charts-right-col">
 
-          <!-- Donut distribution -->
+          
           <div class="chart-panel chart-panel--donut">
             <div class="chart-panel-header">
               <div class="chart-panel-title">
@@ -255,7 +249,7 @@
             </div>
           </div>
 
-          <!-- Radar performance — delta N vs N-1 per category -->
+          
            <!--
           <div class="chart-panel chart-panel--radar">
             <div class="chart-panel-header">
@@ -275,11 +269,11 @@
             </div>
           </div>
         -->
-        </div><!-- /charts-right-col -->
-      </div><!-- /charts-grid -->
+        </div>
+      </div>
     </section>
 
-    <!-- ── NEW HEADER FILTERS ── -->
+   
       <div *ngIf="false" class="header-filters">
         
         <div class="filter-group">
@@ -305,16 +299,14 @@
       </div>
     </div>
 
-    <!-- ══════════════════════════════════════════════════════════════════════
-         SECTION 4 — DETAILED TABLE WITH INLINE FILTERS
-    ═══════════════════════════════════════════════════════════════════════ -->
+    
     <section class="section">
       <div class="section-header">
         <h2 class="section-title">Tableau comparatif détaillé</h2>
         <span class="table-count">{{ filteredLignes().length }} / {{ (comparatif()?.lignes ?? []).length }} KPI</span>
       </div>
 
-      <!-- Filters bar -->
+      
       <div class="table-filters">
         <select class="filter-select"
                 [ngModel]="activeCatTab()"
@@ -349,7 +341,7 @@
           <option value="Amélioration">Amélioration</option>
         </select>
 
-        <!-- Active category chip -->
+        
         <div *ngIf="activeCatTab()" class="active-cat-chip"
              [style.--cat-color]="getCatInfo(activeCatTab()).color"
              (click)="setActiveCat('')">
@@ -365,7 +357,7 @@
         </button>
       </div>
 
-      <!-- Table -->
+     
       <div class="table-wrapper">
         <table class="data-table">
           <thead>
@@ -443,7 +435,6 @@
         </table>
       </div>
 
-      <!-- Table legend -->
       <div class="table-legend">
         <div class="legend-items">
          
@@ -457,5 +448,5 @@
       </div>
     </section>
 
-  </ng-container><!-- /!loading && !error -->
+  </ng-container>
 </div>

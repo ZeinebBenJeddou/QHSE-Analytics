@@ -1,30 +1,40 @@
 package com.QHSEAnalytics.analytics.service.processing;
 
+import com.QHSEAnalytics.analytics.service.LlmProviderChain;
+import com.QHSEAnalytics.analytics.service.RagSearchService;
+import com.QHSEAnalytics.analytics.service.TextNormalizer;
 import com.QHSEAnalytics.shared.dto.llm.AiResponse;
 import com.QHSEAnalytics.shared.dto.llm.KpiInsight;
+import com.QHSEAnalytics.shared.dto.response.AiActionPlanItemResponse;
 import com.QHSEAnalytics.shared.dto.response.AiAnalysisStructuredResponse;
 import com.QHSEAnalytics.shared.dto.response.AiConfidenceResponse;
+import com.QHSEAnalytics.shared.dto.response.AiContextSourceResponse;
+import com.QHSEAnalytics.shared.dto.response.AiKpiInsightResponse;
+import com.QHSEAnalytics.shared.dto.response.AiPredictiveAlertResponse;
+import com.QHSEAnalytics.shared.dto.response.AiRecommendationResponse;
+import com.QHSEAnalytics.shared.dto.response.AiRootCauseResponse;
 import com.QHSEAnalytics.shared.dto.response.AiTraceabilityResponse;
 import com.QHSEAnalytics.shared.dto.response.KpiCalculatedDTO;
 import com.QHSEAnalytics.shared.entity.AnalyseGlobale;
 import com.QHSEAnalytics.shared.entity.RagKnowledge;
 import com.QHSEAnalytics.shared.repository.AnalyseGlobaleRepository;
 import com.QHSEAnalytics.shared.repository.KpiRepository;
-import com.QHSEAnalytics.analytics.service.LlmProviderChain;
-import com.QHSEAnalytics.analytics.service.RagSearchService;
-import com.QHSEAnalytics.analytics.service.TextNormalizer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -45,6 +55,9 @@ public class AnalysisAgent {
     private final MeterRegistry meterRegistry;
     private final PromptSanitizer promptSanitizer;
     private final RagSearchService ragSearchService;
+
+    @Value("${app.analysis.batch-size:5}")
+    private int analysisBatchSize = 5;
 
     public String analyze(List<KpiCalculatedDTO> calculatedData) {
         if (calculatedData == null || calculatedData.isEmpty()) {
@@ -106,87 +119,314 @@ public class AnalysisAgent {
         }
 
         List<KpiCalculatedDTO> topKpis = calculatedData.stream()
-                .filter(k -> k.getVariationPercentage() != null)
-                .sorted(Comparator.comparingDouble(k -> -Math.abs(k.getVariationPercentage())))
-                .limit(20)
+                .sorted(Comparator.comparingDouble(k ->
+                        k.getVariationPercentage() == null ? 0.0 : -Math.abs(k.getVariationPercentage())))
                 .collect(Collectors.toList());
 
-        String prompt = structuredAnalysisPromptBuilder.buildPrompt(topKpis);
-        String cacheKeyPrefix = String.format("importSessionId=%s|mode=structured|promptVersion=%s|schemaVersion=%s|providerChainVersion=%s",
+        String cacheKeyPrefix = String.format(
+                "importSessionId=%s|mode=structured|promptVersion=%s|schemaVersion=%s|providerChainVersion=%s",
                 importSessionId == null ? "unknown" : importSessionId,
                 structuredAnalysisPromptBuilder.getPromptVersion(),
-            "1.2",
-            LlmProviderChain.PROVIDER_CHAIN_VERSION);
-        log.info("[AnalysisAgent] analyseStructured: starting with {} KPIs, importSessionId={}, cachePrefix={}, bypassCache={}", topKpis.size(), importSessionId, cacheKeyPrefix, bypassCache);
+                "1.2",
+                LlmProviderChain.PROVIDER_CHAIN_VERSION
+        );
+        int chunkSize = Math.max(1, analysisBatchSize);
+        List<List<KpiCalculatedDTO>> chunks = partition(topKpis, chunkSize);
+        log.info("[AnalysisAgent] analyseStructured: starting with {} KPIs split into {} chunk(s), importSessionId={}, cachePrefix={}, bypassCache={}",
+                topKpis.size(), chunks.size(), importSessionId, cacheKeyPrefix, bypassCache);
 
         long start = System.currentTimeMillis();
-        LlmProviderChain.ProviderResult providerResult = llmProviderChain.generate(prompt, cacheKeyPrefix, bypassCache);
+        List<AiAnalysisStructuredResponse> successfulChunkResponses = new ArrayList<>();
+        List<String> chunkFailureReasons = new ArrayList<>();
+        Set<String> providersUsed = new LinkedHashSet<>();
+        boolean anyRetry = false;
+        boolean anyParseFailure = false;
+        boolean anyValidationFailure = false;
+
+        for (int index = 0; index < chunks.size(); index++) {
+            List<KpiCalculatedDTO> chunk = chunks.get(index);
+            int chunkNumber = index + 1;
+            String chunkCacheKeyPrefix = cacheKeyPrefix + "|chunk=" + chunkNumber;
+            log.info("[AnalysisAgent] analyseStructured: starting chunk {}/{} ({} KPIs)", chunkNumber, chunks.size(), chunk.size());
+            ChunkAnalysisResult chunkResult = analyzeStructuredChunk(
+                    chunk,
+                    importSessionId,
+                    bypassCache,
+                    chunkCacheKeyPrefix,
+                    chunkNumber,
+                    chunks.size()
+            );
+            anyRetry |= chunkResult.retried();
+            anyParseFailure |= chunkResult.failureType() == ChunkFailureType.PARSE;
+            anyValidationFailure |= chunkResult.failureType() == ChunkFailureType.VALIDATION;
+
+            if (chunkResult.response() != null) {
+                successfulChunkResponses.add(chunkResult.response());
+                if (chunkResult.providerUsed() != null && !chunkResult.providerUsed().isBlank()) {
+                    providersUsed.add(chunkResult.providerUsed());
+                }
+            } else if (chunkResult.failureReason() != null && !chunkResult.failureReason().isBlank()) {
+                chunkFailureReasons.add(String.format("chunk %d/%d: %s", chunkNumber, chunks.size(), chunkResult.failureReason()));
+            }
+        }
+
+        long latency = System.currentTimeMillis() - start;
+        if (successfulChunkResponses.isEmpty()) {
+            log.warn("[AnalysisAgent] analyseStructured: all chunks failed, importSessionId={}, total_chunks={}, latency={}ms",
+                    importSessionId, chunks.size(), latency);
+            incrementCounter("ai.request.count", Tags.of("mode", "structured", "status", "failed"));
+            if (anyRetry) {
+                incrementCounter("ai.retry.count", Tags.of("mode", "structured"));
+            }
+            if (anyParseFailure) {
+                incrementCounter("ai.parse.error.count", Tags.of("mode", "structured"));
+            }
+            if (anyValidationFailure) {
+                incrementCounter("ai.validation.error.count", Tags.of("mode", "structured"));
+            }
+            recordLatency("ai.latency.ms", Tags.of("mode", "structured"), latency);
+            String failureReason = chunkFailureReasons.isEmpty()
+                    ? "Aucune réponse du provider IA."
+                    : String.join(" | ", chunkFailureReasons);
+            return buildStructuredFallback("FAILED", failureReason);
+        }
+
+        AiAnalysisStructuredResponse mergedResponse = mergeChunkResponses(successfulChunkResponses);
+        int mergedMissingCount = computeMissingKpiCount(topKpis, mergedResponse.getKpiInsights());
+        int mergedCoverage = topKpis.size() - mergedMissingCount;
+        log.info("[AnalysisAgent] analyseStructured: merged coverage {}/{}", mergedCoverage, topKpis.size());
+
+        enrichStructuredResponse(mergedResponse, formatProviderLabel(providersUsed), importSessionId);
+
+        boolean allChunksSucceeded = successfulChunkResponses.size() == chunks.size();
+        if (allChunksSucceeded && mergedMissingCount == 0) {
+            mergedResponse.setStatus("SUCCESS");
+            incrementCounter("ai.request.count", Tags.of("mode", "structured", "status", "success"));
+            if (anyRetry) {
+                incrementCounter("ai.retry.count", Tags.of("mode", "structured"));
+            }
+            recordLatency("ai.latency.ms", Tags.of("mode", "structured"), latency);
+            return mergedResponse;
+        }
+
+        if (mergedMissingCount > 0) {
+            chunkFailureReasons.add("coverage incomplete after chunk merge: missing " + mergedMissingCount + " KPI(s)");
+        }
+        mergedResponse.setStatus("PARTIAL");
+        mergedResponse.setFallbackReason(String.join(" | ", chunkFailureReasons));
+        incrementCounter("ai.request.count", Tags.of("mode", "structured", "status", "partial"));
+        if (anyRetry) {
+            incrementCounter("ai.retry.count", Tags.of("mode", "structured"));
+        }
+        if (anyParseFailure) {
+            incrementCounter("ai.parse.error.count", Tags.of("mode", "structured"));
+        }
+        if (anyValidationFailure || mergedMissingCount > 0) {
+            incrementCounter("ai.validation.error.count", Tags.of("mode", "structured"));
+        }
+        recordLatency("ai.latency.ms", Tags.of("mode", "structured"), latency);
+        return mergedResponse;
+    }
+
+    private ChunkAnalysisResult analyzeStructuredChunk(List<KpiCalculatedDTO> chunkKpis,
+                                                       Long importSessionId,
+                                                       boolean bypassCache,
+                                                       String chunkCacheKeyPrefix,
+                                                       int chunkNumber,
+                                                       int totalChunks) {
+        String prompt = structuredAnalysisPromptBuilder.buildPrompt(chunkKpis);
+        long start = System.currentTimeMillis();
+        LlmProviderChain.ProviderResult providerResult = llmProviderChain.generate(prompt, chunkCacheKeyPrefix, bypassCache);
         long latency = System.currentTimeMillis() - start;
         String providerUsed = providerResult == null ? "none" : providerResult.provider();
         String responseJson = providerResult == null ? null : providerResult.response();
-        log.info("[AnalysisAgent] analyseStructured: provider response received in {}ms, importSessionId={}, provider={}, cachePrefix={}", latency, importSessionId, providerUsed, cacheKeyPrefix);
+        log.info("[AnalysisAgent] analyseStructured: provider response received in {}ms, importSessionId={}, provider={}, cachePrefix={}",
+                latency, importSessionId, providerUsed, chunkCacheKeyPrefix);
 
         if (responseJson == null || responseJson.isBlank()) {
-            log.warn("[AnalysisAgent] analyseStructured: empty response from provider. reason=empty_response, latency={}ms, provider={}", latency, providerUsed);
-            incrementCounter("ai.request.count", Tags.of("mode", "structured", "status", "failed"));
-            recordLatency("ai.latency.ms", Tags.of("mode", "structured"), latency);
-            return buildStructuredFallback("FAILED", "Aucune réponse du provider IA.");
+            log.warn("[AnalysisAgent] analyseStructured: empty response from provider. reason=empty_response, chunk={}/{}, latency={}ms, provider={}",
+                    chunkNumber, totalChunks, latency, providerUsed);
+            return new ChunkAnalysisResult(null, providerUsed, "Aucune réponse du provider IA.", ChunkFailureType.EMPTY, false);
         }
 
         AiAnalysisStructuredResponse response = parseStructuredResponse(responseJson);
-        if (response != null) {
-            structuredAnalysisValidator.sanitize(response);
-            var errors = structuredAnalysisValidator.validate(response, topKpis);
-            int missingCount = computeMissingKpiCount(topKpis, response.getKpiInsights());
-            log.info("[AnalysisAgent] analyseStructured: coverage total_input_kpis={} total_output_insights={} missing_kpis_count={} importSessionId={}",
-                    topKpis.size(), response.getKpiInsights() == null ? 0 : response.getKpiInsights().size(), missingCount, importSessionId);
-            if (errors.isEmpty()) {
-                enrichStructuredResponse(response, providerUsed, importSessionId);
-                response.setStatus("SUCCESS");
-                incrementCounter("ai.request.count", Tags.of("mode", "structured", "status", "success"));
-                recordLatency("ai.latency.ms", Tags.of("mode", "structured"), latency);
-                return response;
-            }
-
-            log.warn("[AnalysisAgent] analyseStructured: validation failed. reason=validation_errors, error_count={}, errors={}, latency={}ms", errors.size(), errors, latency);
-            String retryPrompt = structuredAnalysisPromptBuilder.buildRetryPrompt(prompt, String.join("; ", errors));
-            log.info("[AnalysisAgent] analyseStructured: retry attempt initiated. retry_count=1");
-            LlmProviderChain.ProviderResult retryResult = llmProviderChain.generate(retryPrompt, cacheKeyPrefix, bypassCache);
-            AiAnalysisStructuredResponse retryResponse = parseStructuredResponse(retryResult == null ? null : retryResult.response());
-            if (retryResponse != null) {
-                structuredAnalysisValidator.sanitize(retryResponse);
-                var retryErrors = structuredAnalysisValidator.validate(retryResponse, topKpis);
-                int retryMissingCount = computeMissingKpiCount(topKpis, retryResponse.getKpiInsights());
-                log.info("[AnalysisAgent] analyseStructured: retry coverage total_input_kpis={} total_output_insights={} missing_kpis_count={} importSessionId={}",
-                        topKpis.size(), retryResponse.getKpiInsights() == null ? 0 : retryResponse.getKpiInsights().size(), retryMissingCount, importSessionId);
-                if (retryErrors.isEmpty()) {
-                    enrichStructuredResponse(retryResponse, retryResult == null ? providerUsed : retryResult.provider(), importSessionId);
-                    retryResponse.setStatus("SUCCESS");
-                    incrementCounter("ai.request.count", Tags.of("mode", "structured", "status", "success"));
-                    incrementCounter("ai.retry.count", Tags.of("mode", "structured"));
-                    recordLatency("ai.latency.ms", Tags.of("mode", "structured"), latency);
-                    return retryResponse;
-                }
-                log.warn("[AnalysisAgent] analyseStructured: retry validation failed. reason=retry_validation_errors, error_count={}, errors={}, retry_count=1, latency={}ms", retryErrors.size(), retryErrors, latency);
-                incrementCounter("ai.request.count", Tags.of("mode", "structured", "status", "partial"));
-                incrementCounter("ai.retry.count", Tags.of("mode", "structured"));
-                incrementCounter("ai.validation.error.count", Tags.of("mode", "structured"));
-                recordLatency("ai.latency.ms", Tags.of("mode", "structured"), latency);
-                return buildStructuredFallback("PARTIAL", "Réponse IA invalide après retry : " + String.join("; ", retryErrors));
-            }
-            log.warn("[AnalysisAgent] analyseStructured: retry parsing failed. reason=retry_parsing_failed, retry_count=1, latency={}ms", latency);
-            incrementCounter("ai.request.count", Tags.of("mode", "structured", "status", "partial"));
-            incrementCounter("ai.retry.count", Tags.of("mode", "structured"));
-            incrementCounter("ai.parse.error.count", Tags.of("mode", "structured"));
-            recordLatency("ai.latency.ms", Tags.of("mode", "structured"), latency);
-            return buildStructuredFallback("PARTIAL", "Impossible de parser la réponse IA après retry.");
+        if (response == null) {
+            log.warn("[AnalysisAgent] analyseStructured: initial parsing failed. reason=initial_parsing_failed, chunk={}/{}, latency={}ms",
+                    chunkNumber, totalChunks, latency);
+            return new ChunkAnalysisResult(null, providerUsed, "Impossible de parser la réponse IA.", ChunkFailureType.PARSE, false);
         }
 
-        log.warn("[AnalysisAgent] analyseStructured: initial parsing failed. reason=initial_parsing_failed, latency={}ms", latency);
-        incrementCounter("ai.request.count", Tags.of("mode", "structured", "status", "failed"));
-        incrementCounter("ai.parse.error.count", Tags.of("mode", "structured"));
-        recordLatency("ai.latency.ms", Tags.of("mode", "structured"), latency);
-        return buildStructuredFallback("FAILED", "Impossible de parser la réponse IA.");
+        structuredAnalysisValidator.sanitize(response);
+        List<String> errors = validateChunkResponse(response, chunkKpis);
+        int missingCount = computeMissingKpiCount(chunkKpis, response.getKpiInsights());
+        log.info("[AnalysisAgent] analyseStructured: coverage total_input_kpis={} total_output_insights={} missing_kpis_count={} importSessionId={} chunk={}/{}",
+                chunkKpis.size(), response.getKpiInsights() == null ? 0 : response.getKpiInsights().size(), missingCount, importSessionId, chunkNumber, totalChunks);
+        if (errors.isEmpty()) {
+            return new ChunkAnalysisResult(response, providerUsed, null, ChunkFailureType.NONE, false);
+        }
+
+        log.warn("[AnalysisAgent] analyseStructured: validation failed. reason=validation_errors, chunk={}/{}, error_count={}, errors={}, latency={}ms",
+                chunkNumber, totalChunks, errors.size(), errors, latency);
+        String retryPrompt = structuredAnalysisPromptBuilder.buildRetryPrompt(prompt, String.join("; ", errors));
+        log.info("[AnalysisAgent] analyseStructured: retry attempt initiated. retry_count=1, chunk={}/{}", chunkNumber, totalChunks);
+        LlmProviderChain.ProviderResult retryResult = llmProviderChain.generate(retryPrompt, chunkCacheKeyPrefix, bypassCache);
+        AiAnalysisStructuredResponse retryResponse = parseStructuredResponse(retryResult == null ? null : retryResult.response());
+        if (retryResponse == null) {
+            log.warn("[AnalysisAgent] analyseStructured: retry parsing failed. reason=retry_parsing_failed, retry_count=1, chunk={}/{}, latency={}ms",
+                    chunkNumber, totalChunks, latency);
+            return new ChunkAnalysisResult(
+                    null,
+                    retryResult == null ? providerUsed : retryResult.provider(),
+                    "Impossible de parser la réponse IA après retry.",
+                    ChunkFailureType.PARSE,
+                    true
+            );
+        }
+
+        structuredAnalysisValidator.sanitize(retryResponse);
+        List<String> retryErrors = validateChunkResponse(retryResponse, chunkKpis);
+        int retryMissingCount = computeMissingKpiCount(chunkKpis, retryResponse.getKpiInsights());
+        log.info("[AnalysisAgent] analyseStructured: retry coverage total_input_kpis={} total_output_insights={} missing_kpis_count={} importSessionId={} chunk={}/{}",
+                chunkKpis.size(), retryResponse.getKpiInsights() == null ? 0 : retryResponse.getKpiInsights().size(), retryMissingCount, importSessionId, chunkNumber, totalChunks);
+        if (retryErrors.isEmpty()) {
+            return new ChunkAnalysisResult(
+                    retryResponse,
+                    retryResult == null ? providerUsed : retryResult.provider(),
+                    null,
+                    ChunkFailureType.NONE,
+                    true
+            );
+        }
+
+        log.warn("[AnalysisAgent] analyseStructured: retry validation failed. reason=retry_validation_errors, chunk={}/{}, error_count={}, errors={}, retry_count=1, latency={}ms",
+                chunkNumber, totalChunks, retryErrors.size(), retryErrors, latency);
+        return new ChunkAnalysisResult(
+                null,
+                retryResult == null ? providerUsed : retryResult.provider(),
+                "Réponse IA invalide après retry : " + String.join("; ", retryErrors),
+                ChunkFailureType.VALIDATION,
+                true
+        );
+    }
+
+    private List<String> validateChunkResponse(AiAnalysisStructuredResponse response, List<KpiCalculatedDTO> chunkKpis) {
+        List<String> errors = new ArrayList<>(structuredAnalysisValidator.validate(response, chunkKpis));
+        int missingCount = computeMissingKpiCount(chunkKpis, response.getKpiInsights());
+        if (missingCount > 0) {
+            log.warn("[AnalysisAgent] Chunk partial coverage: {}/{} KPIs covered — {} missing (accepted, will be PARTIAL in merge)",
+                    chunkKpis.size() - missingCount, chunkKpis.size(), missingCount);
+        }
+        return errors.stream().distinct().toList();
+    }
+
+    private AiAnalysisStructuredResponse mergeChunkResponses(List<AiAnalysisStructuredResponse> chunkResponses) {
+        String mergedSummary = chunkResponses.stream()
+                .map(AiAnalysisStructuredResponse::getGlobalSummary)
+                .filter(summary -> summary != null && !summary.isBlank())
+                .distinct()
+                .collect(Collectors.joining("\n\n"));
+
+        List<AiKpiInsightResponse> mergedInsights = chunkResponses.stream()
+                .flatMap(response -> safeList(response.getKpiInsights()).stream())
+                .distinct()
+                .toList();
+        List<String> mergedProbableCauses = chunkResponses.stream()
+                .flatMap(response -> safeList(response.getProbableCauses()).stream())
+                .distinct()
+                .toList();
+        List<AiRecommendationResponse> mergedRecommendations = chunkResponses.stream()
+                .flatMap(response -> safeList(response.getRecommendations()).stream())
+                .distinct()
+                .toList();
+        List<AiActionPlanItemResponse> mergedActionPlan = chunkResponses.stream()
+                .flatMap(response -> safeList(response.getActionPlan()).stream())
+                .distinct()
+                .toList();
+        List<AiRootCauseResponse> mergedRootCauses = chunkResponses.stream()
+                .flatMap(response -> safeList(response.getRootCauseAnalysis()).stream())
+                .distinct()
+                .toList();
+        List<AiPredictiveAlertResponse> mergedPredictiveAlerts = chunkResponses.stream()
+                .flatMap(response -> safeList(response.getPredictiveAlerts()).stream())
+                .distinct()
+                .toList();
+        List<AiContextSourceResponse> mergedContextSources = chunkResponses.stream()
+                .map(AiAnalysisStructuredResponse::getTraceability)
+                .filter(traceability -> traceability != null)
+                .flatMap(traceability -> safeList(traceability.getContextSourcesUsed()).stream())
+                .distinct()
+                .toList();
+
+        return AiAnalysisStructuredResponse.builder()
+                .globalSummary(mergedSummary)
+                .confidence(mergeConfidence(chunkResponses))
+                .kpiInsights(mergedInsights)
+                .probableCauses(mergedProbableCauses)
+                .recommendations(mergedRecommendations)
+                .actionPlan(mergedActionPlan)
+                .rootCauseAnalysis(mergedRootCauses)
+                .predictiveAlerts(mergedPredictiveAlerts)
+                .traceability(AiTraceabilityResponse.builder()
+                        .contextSourcesUsed(mergedContextSources)
+                        .build())
+                .build();
+    }
+
+    private AiConfidenceResponse mergeConfidence(List<AiAnalysisStructuredResponse> chunkResponses) {
+        double overallSum = 0.0;
+        int overallCount = 0;
+        Map<String, Double> sectionSums = new LinkedHashMap<>();
+        Map<String, Integer> sectionCounts = new LinkedHashMap<>();
+
+        for (AiAnalysisStructuredResponse response : chunkResponses) {
+            AiConfidenceResponse confidence = response.getConfidence();
+            if (confidence == null) {
+                continue;
+            }
+            if (confidence.getOverall() != null) {
+                overallSum += confidence.getOverall();
+                overallCount++;
+            }
+            if (confidence.getSections() != null) {
+                confidence.getSections().forEach((key, value) -> {
+                    if (value == null) {
+                        return;
+                    }
+                    sectionSums.merge(key, value, Double::sum);
+                    sectionCounts.merge(key, 1, Integer::sum);
+                });
+            }
+        }
+
+        Map<String, Double> mergedSections = new LinkedHashMap<>();
+        sectionSums.forEach((key, sum) -> mergedSections.put(key, sum / sectionCounts.get(key)));
+
+        return AiConfidenceResponse.builder()
+                .overall(overallCount == 0 ? 0.0 : overallSum / overallCount)
+                .sections(mergedSections)
+                .build();
+    }
+
+    private String formatProviderLabel(Set<String> providersUsed) {
+        List<String> normalizedProviders = providersUsed.stream()
+                .filter(provider -> provider != null && !provider.isBlank() && !"none".equalsIgnoreCase(provider))
+                .toList();
+        if (normalizedProviders.isEmpty()) {
+            return "fallback";
+        }
+        return String.join(",", normalizedProviders);
+    }
+
+    private <T> List<List<T>> partition(List<T> list, int size) {
+        List<List<T>> chunks = new ArrayList<>();
+        for (int i = 0; i < list.size(); i += size) {
+            chunks.add(list.subList(i, Math.min(i + size, list.size())));
+        }
+        return chunks;
+    }
+
+    private <T> List<T> safeList(List<T> values) {
+        return values == null ? List.of() : values;
     }
 
     private int computeMissingKpiCount(List<KpiCalculatedDTO> availableKpis, List<? extends Object> insights) {
@@ -196,7 +436,7 @@ public class AnalysisAgent {
         Set<String> coveredIds = new HashSet<>();
         Set<String> coveredNames = new HashSet<>();
         insights.forEach(item -> {
-            if (item instanceof com.QHSEAnalytics.shared.dto.response.AiKpiInsightResponse insight) {
+            if (item instanceof AiKpiInsightResponse insight) {
                 if (insight.getKpiId() != null) {
                     coveredIds.add(String.valueOf(insight.getKpiId()));
                 }
@@ -248,7 +488,7 @@ public class AnalysisAgent {
         try {
             String cleaned = rawJson.trim();
             if (cleaned.startsWith("```") || cleaned.startsWith("~~~")) {
-                cleaned = cleaned.replaceAll("^(```|~~~)[^\n]*\\n", "").replaceAll("(```|~~~)$", "").trim();
+                cleaned = cleaned.replaceAll("^(```|~~~)[^\\n]*\\n", "").replaceAll("(```|~~~)$", "").trim();
             }
             int start = cleaned.indexOf('{');
             int end = cleaned.lastIndexOf('}');
@@ -283,9 +523,9 @@ public class AnalysisAgent {
                         .modelName("fallback")
                         .generatedAt(OffsetDateTime.now(ZoneOffset.UTC).toString())
                         .contextSourcesUsed(List.of())
-                    .schemaVersion("1.1")
-                    .promptVersion(structuredAnalysisPromptBuilder.getPromptVersion())
-                    .importSessionId(null)
+                        .schemaVersion("1.1")
+                        .promptVersion(structuredAnalysisPromptBuilder.getPromptVersion())
+                        .importSessionId(null)
                         .build())
                 .status(status)
                 .fallbackReason(fallbackReason)
@@ -332,23 +572,21 @@ public class AnalysisAgent {
 
             AiResponse response = new AiResponse();
 
-            // Valider le score global (doit être dans [0, 100])
             double rawScore = root.path("overallScore").asDouble(0.0);
             response.setOverallScore(Double.isNaN(rawScore) || Double.isInfinite(rawScore)
                     ? 0.0 : Math.max(0.0, Math.min(100.0, rawScore)));
 
             String summary = root.path("summary").asText("Analyse indisponible");
-            // Limiter la taille de la synthèse pour éviter les hallucinations trop longues
             if (summary.length() > 3000) {
                 summary = summary.substring(0, 3000) + "…";
             }
             response.setSummary(summary);
 
-            List<String> recs = new java.util.ArrayList<>();
+            List<String> recs = new ArrayList<>();
             root.path("recommendations").forEach(n -> recs.add(n.asText()));
             response.setRecommendations(recs);
 
-            List<KpiInsight> kpis = new java.util.ArrayList<>();
+            List<KpiInsight> kpis = new ArrayList<>();
             root.path("kpis").forEach(n -> {
                 KpiInsight insight = new KpiInsight();
                 String name = n.path("name").asText();
@@ -361,7 +599,8 @@ public class AnalysisAgent {
                 insight.setName(name);
 
                 double kpiRawScore = n.path("score").isNumber() ? n.path("score").asDouble() : n.path("rating").asDouble(0.0);
-                double score = (Double.isNaN(kpiRawScore) || Double.isInfinite(kpiRawScore)) ? 0.0 : Math.max(0.0, Math.min(100.0, kpiRawScore));
+                double score = (Double.isNaN(kpiRawScore) || Double.isInfinite(kpiRawScore))
+                        ? 0.0 : Math.max(0.0, Math.min(100.0, kpiRawScore));
                 insight.setScore(score);
 
                 String rawInsight = n.path("insight").asText();
@@ -435,7 +674,6 @@ public class AnalysisAgent {
     private String buildPrompt(List<KpiCalculatedDTO> data) {
         StringBuilder prompt = new StringBuilder();
 
-        // RAG Context: vector similarity search on combined KPI names (one embedding call)
         String combinedQuery = data.stream()
                 .map(k -> promptSanitizer.sanitize(k.getKpiName()))
                 .collect(Collectors.joining(", "));
@@ -452,11 +690,10 @@ public class AnalysisAgent {
             prompt.append("\n");
         }
 
-        // RAG Context: Recent Action Plans
         List<AnalyseGlobale> recentAnalyses = analyseGlobaleRepository.findTop10ByOrderByCreatedAtDesc();
         prompt.append("=== HISTORIQUE : PLANS D'ACTIONS RÉCENTS ===\n");
         recentAnalyses.forEach(a -> prompt.append(String.format(
-            "Analyse du %s : %s\n", a.getCreatedAt(), a.getPlanActions()
+                "Analyse du %s : %s\n", a.getCreatedAt(), a.getPlanActions()
         )));
         prompt.append("\n");
 
@@ -507,4 +744,19 @@ public class AnalysisAgent {
         return prompt.toString();
     }
 
+    private enum ChunkFailureType {
+        NONE,
+        EMPTY,
+        PARSE,
+        VALIDATION
+    }
+
+    private record ChunkAnalysisResult(
+            AiAnalysisStructuredResponse response,
+            String providerUsed,
+            String failureReason,
+            ChunkFailureType failureType,
+            boolean retried
+    ) {
+    }
 }

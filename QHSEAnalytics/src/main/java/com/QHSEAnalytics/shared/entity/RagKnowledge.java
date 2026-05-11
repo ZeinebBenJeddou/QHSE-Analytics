@@ -32,6 +32,9 @@ public class RagKnowledge {
     @Column(name = "category")
     private String category;
 
+    @Column(name = "direction", length = 30)
+    private String direction;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

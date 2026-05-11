@@ -1,4 +1,4 @@
-import {
+﻿import {
   Component, inject, OnInit, signal, computed
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -46,14 +46,13 @@ interface SummaryCardVm {
   note: string;
   ratio?: number;
 }
-
 interface InsightCardVm {
   title: string;
   description: string;
   icon: string;
   tone: 'danger' | 'success' | 'warning';
+  badge: string;
 }
-
 @Component({
   selector: 'app-dashboard-analyste',
   standalone: true,
@@ -145,6 +144,56 @@ export class DashboardAnalysteComponent implements OnInit {
     return [...new Set(lignes.map(l => l.categorieCode))];
   });
 
+  recommendationCards = computed((): InsightCardVm[] => {
+    const lignes = this.filteredLignes();
+    const priorityOrder: Record<string, number> = { 'Haute': 3, 'Moyenne': 2, 'Basse': 1 };
+
+    const withActions = [...lignes]
+      .filter(l => l.immediateAction || l.correctiveAction || l.preventiveAction)
+      .sort((a, b) =>
+        ((priorityOrder[b.immediatePriority ?? ''] ?? 0) - (priorityOrder[a.immediatePriority ?? ''] ?? 0)) ||
+        (Math.abs(b.variationRelative) - Math.abs(a.variationRelative))
+      );
+
+    if (!withActions.length) {
+      // Pas encore d'actions IA — retourner tableau vide.
+      // Le HTML gère déjà le cas vide.
+      return [];
+    }
+
+    return withActions.slice(0, 3).map(l => ({
+      title: l.kpiNom,
+      description: l.immediateAction ?? l.correctiveAction ?? l.preventiveAction ?? '',
+      icon: l.immediatePriority === 'Haute' ? 'bolt' : l.immediatePriority === 'Moyenne' ? 'build_circle' : 'shield',
+      tone: (l.immediatePriority === 'Haute' ? 'danger' : l.immediatePriority === 'Moyenne' ? 'warning' : 'success') as 'danger' | 'success' | 'warning',
+      badge: l.immediatePriority === 'Haute' ? 'Priorité haute' : l.immediatePriority === 'Moyenne' ? 'Priorité moyenne' : 'Priorité basse',
+    }));
+  });
+
+  topIssues = computed((): ResultatKpiIaResponse[] => {
+    const kpis = this.analysesIa()?.analysesKpis ?? [];
+    const priorityOrder: Record<string, number> = { CRITIQUE: 3, MODERE: 2, FAIBLE: 1 };
+    return [...kpis]
+      .filter(k => k.niveauVariation === 'CRITIQUE' || k.niveauVariation === 'MODERE')
+      .sort((a, b) =>
+        (priorityOrder[b.niveauVariation ?? 'FAIBLE'] ?? 0) -
+        (priorityOrder[a.niveauVariation ?? 'FAIBLE'] ?? 0)
+      )
+      .slice(0, 6);
+  });
+
+  topActions = computed((): ResultatKpiIaResponse[] => {
+    const kpis = this.analysesIa()?.analysesKpis ?? [];
+    const priorityOrder: Record<string, number> = { Haute: 3, Moyenne: 2, Basse: 1 };
+    return [...kpis]
+      .filter(k => !!k.immediateAction)
+      .sort((a, b) =>
+        (priorityOrder[b.immediatePriority ?? 'Basse'] ?? 0) -
+        (priorityOrder[a.immediatePriority ?? 'Basse'] ?? 0)
+      )
+      .slice(0, 5);
+  });
+
   get dataYearN(): number | null {
     return this.comparatif()?.periodeN ?? this.resume()?.periodeN ?? null;
   }
@@ -197,25 +246,15 @@ export class DashboardAnalysteComponent implements OnInit {
     const avgVariation = lignes.length > 0 ? sumVariation / lignes.length : 0;
     const isAmelioration = avgVariation < 0; // Less incidents is better generally, but this is a rough assumption.
 
-    // Difference from previous period if available, otherwise just mock it as +0
-    // Actually, we can just say 'vs N-1'
-    const noteTotalKpis = `vs N-1`;
-
     return [
       {
         label: 'INDICATEURS SUIVIS',
         value: totalKpis,
         icon: 'assignment',
         color: 'blue',
-        note: noteTotalKpis,
+        note: `${this.dataYearN1 ?? 'N-1'} vs  ${this.dataYearN ?? 'N'}   `,
       },
-      {
-        label: 'TAUX D\'ÉVOLUTION GLOBAL',
-        value: `${isAmelioration ? '-' : '+'}${Math.abs(avgVariation).toFixed(1)}%`,
-        icon: isAmelioration ? 'trending_down' : 'trending_up',
-        color: isAmelioration ? 'green' : 'red',
-        note: isAmelioration ? 'Amélioration' : 'Dégradation',
-      },
+      
       {
         label: 'INDICATEURS EN HAUSSE',
         value: enHausse,
@@ -235,43 +274,7 @@ export class DashboardAnalysteComponent implements OnInit {
         value: critiques,
         icon: 'warning',
         color: 'red',
-        note: 'À traiter en priorité',
-      },
-    ];
-  }
-
-  get insightCards(): InsightCardVm[] {
-    const degraded = this.graphiques()?.topKpisDegrades ?? [];
-    const comparisons = this.comparatif()?.lignes ?? [];
-    const topKpi = degraded[0] ?? comparisons[0];
-    const secondKpi = degraded[1] ?? comparisons[1];
-    const criticalCount = this.comparatif()?.nombreCritiques ?? 0;
-    const incidents = this.aggregateMetric(['incident']).current;
-
-    return [
-      {
-        title: 'Hausse significative des écarts',
-        description: topKpi
-          ? `${topKpi.kpiNom} montre la plus forte dégradation observée sur la période.`
-          : 'Les écarts principaux doivent être surveillés sur la période sélectionnée.',
-        icon: 'warning',
-        tone: 'danger',
-      },
-      {
-        title: 'Amélioration des indicateurs clés',
-        description: criticalCount > 0
-          ? `${criticalCount} KPI(s) restent critiques, mais les tendances globales montrent des actions correctives actives.`
-          : 'Les indicateurs critiques sont sous contrôle sur la période analysée.',
-        icon: 'trending_down',
-        tone: 'success',
-      },
-      {
-        title: 'Tendance à surveiller',
-        description: secondKpi
-          ? `${secondKpi.kpiNom} et les incidents cumulés (${incidents}) doivent rester prioritaires.`
-          : 'Aucun signal supplémentaire prioritaire à ce stade.',
-        icon: 'insights',
-        tone: 'warning',
+        note: critiques > 0 ? `${critiques} à traiter en priorité` : 'Tous les seuils respectés',
       },
     ];
   }
@@ -294,39 +297,6 @@ export class DashboardAnalysteComponent implements OnInit {
     });
 
     return { enHausseCritique, enHausseModeree, enBaisseModeree, enBaisseFaible };
-  }
-
-  get recommendationCards(): InsightCardVm[] {
-    const criticalCount = this.comparatif()?.nombreCritiques ?? 0;
-    const incidents = this.aggregateMetric(['incident', 'accident', 'fréquence', 'gravité']).current;
-    const accidents = this.aggregateMetric(['accident']).current;
-    const audits = this.aggregateMetric(['audit', 'visite', 'vms']).current;
-    return [
-      {
-        title: 'Renforcer les formations sécurité',
-        description: incidents > 0 || accidents > 0
-          ? `${incidents} événements sécurité détectés. Planifier des sessions ciblées sur les procédures critiques et les retours d’expérience terrain.`
-          : 'Conserver le rythme des sensibilisations sur les bonnes pratiques et les procédures.',
-        icon: 'school',
-        tone: incidents > 0 ? 'danger' : 'warning',
-      },
-      {
-        title: 'Auditer les processus opérationnels',
-        description: audits > 0
-          ? `${audits} audits/visites enregistrés. Prioriser les zones où les écarts sont les plus marqués.`
-          : 'Lancer un audit ciblé dès que de nouveaux écarts apparaissent.',
-        icon: 'manage_search',
-        tone: 'danger',
-      },
-      {
-        title: 'Optimiser la charge de travail et les ressources',
-        description: criticalCount > 0 || incidents > 0
-          ? `${criticalCount} KPI(s) critiques. Organiser un point de pilotage court avec les équipes pour suivre les actions correctives.`
-          : 'Maintenir le suivi mensuel avec les responsables de secteur.',
-        icon: 'groups',
-        tone: criticalCount > 0 ? 'warning' : 'success',
-      },
-    ];
   }
 
   ngOnInit() {
@@ -752,26 +722,5 @@ export class DashboardAnalysteComponent implements OnInit {
   goToImport() {
     this.router.navigate(['/analyste/import']);
   }
-
-  private normalizeText(value: string): string {
-    return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  }
-
-  private aggregateMetric(keywords: string[]): { current: number; previous: number } {
-    const lignes = this.comparatif()?.lignes ?? [];
-    const normalizedKeywords = keywords.map(keyword => this.normalizeText(keyword));
-    const matches = lignes.filter(row => {
-      const name = this.normalizeText(row.kpiNom);
-      const category = this.normalizeText(row.categorieLibelle);
-      return normalizedKeywords.some(keyword => name.includes(keyword) || category.includes(keyword));
-    });
-
-    const current = matches.reduce((sum, row) => sum + (Number(row.valeurN) || 0), 0);
-    const previous = matches.reduce((sum, row) => sum + (Number(row.valeurN1) || 0), 0);
-    return {
-      current: Math.round(current),
-      previous: Math.round(previous),
-    };
-  }
-
 }
+

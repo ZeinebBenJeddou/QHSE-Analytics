@@ -53,29 +53,9 @@ export class PieDistributionComponent implements AfterViewInit, OnChanges, OnDes
 
     const totalVal = this.total;
 
-    // Center text plugin
-    const centerTextPlugin: Plugin<'doughnut'> = {
-      id: 'centerText',
-      beforeDraw(chart) {
-        const { ctx, chartArea: { top, bottom, left, right } } = chart;
-        const cx = (left + right) / 2;
-        const cy = (top + bottom) / 2;
-        ctx.save();
-        ctx.font = `800 22px ${MONO}`;
-        ctx.fillStyle = NAVY;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(String(totalVal), cx, cy - 8);
-        ctx.font = `500 11px ${FONT}`;
-        ctx.fillStyle = MUTED;
-        ctx.fillText('KPI', cx, cy + 12);
-        ctx.restore();
-      }
-    };
-
     const config: ChartConfiguration<'doughnut'> = {
       type: 'doughnut',
-      plugins: [centerTextPlugin],
+      plugins: [],
       data: {
         labels: ['Hausse critique', 'Hausse modérée', 'Baisse modérée', 'Baisse faible'],
         datasets: [{
