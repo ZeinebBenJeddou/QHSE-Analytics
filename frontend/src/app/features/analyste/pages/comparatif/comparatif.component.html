@@ -98,23 +98,6 @@
           </div>
         </div>
 
-        <div class="kpi-card kpi-card--avg"
-             [class.positive]="stats.avgVariation < 0"
-             [class.negative]="stats.avgVariation > 0">
-          <div class="kpi-card-icon" [style.background]="stats.avgVariation > 0 ? '#ffebee' : '#e8f8f0'">
-            <mat-icon [style.color]="stats.avgVariation > 0 ? '#ee5d50' : '#05cd99'">show_chart</mat-icon>
-          </div>
-          <div class="kpi-card-body">
-            <div class="kpi-card-label">Variation moyenne</div>
-            <div class="kpi-card-value"
-                 [class.text-green]="stats.avgVariation < 0"
-                 [class.text-red]="stats.avgVariation > 0">
-              {{ variationSign(stats.avgVariation) }}{{ stats.avgVariation | number:'1.1-1' }}%
-            </div>
-            <div class="kpi-card-note">vs période N-1</div>
-          </div>
-        </div>
-
       </div>
     </section>
 
@@ -190,11 +173,6 @@
             <div class="chart-panel-title">
               <mat-icon>bar_chart</mat-icon>
               Valeurs moyennes par catégorie
-            </div>
-            <div class="chart-legend">
-              <span class="legend-dot" style="background:#CBD5E1"></span>{{ dataYearN1 ?? 'N-1' }}
-              &nbsp;&nbsp;
-              <span class="legend-dot" style="background:#1E40AF"></span>{{ dataYearN ?? 'N' }}
             </div>
           </div>
           <div class="chart-body">

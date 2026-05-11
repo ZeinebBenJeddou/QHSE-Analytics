@@ -247,7 +247,7 @@
 
 .kpi-cards-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -834,9 +834,6 @@
 .text-blue  { color: var(--blue); }
 
 
-@media (max-width: 1400px) {
-  .kpi-cards-grid  { grid-template-columns: repeat(3, 1fr); }
-}
 @media (max-width: 1200px) {
   .charts-grid { grid-template-columns: 1fr; }
   .charts-right-col { flex-direction: row; }
