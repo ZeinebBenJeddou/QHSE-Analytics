@@ -23,6 +23,9 @@ import com.QHSEAnalytics.shared.exception.UserAlreadyInactiveException;
 import com.QHSEAnalytics.shared.repository.AnalyseCategorieRepository;
 import com.QHSEAnalytics.shared.repository.AnalyseGlobaleRepository;
 import com.QHSEAnalytics.shared.repository.ImportSessionRepository;
+import com.QHSEAnalytics.shared.repository.KpiAnalysisRepository;
+import com.QHSEAnalytics.shared.repository.KpiImportPreviewRepository;
+import com.QHSEAnalytics.shared.repository.KpiRawDataRepository;
 import com.QHSEAnalytics.shared.repository.ResultatKpiRepository;
 import com.QHSEAnalytics.shared.repository.StagingDonneeRepository;
 import lombok.RequiredArgsConstructor;
@@ -61,6 +64,9 @@ public class AdminUserService {
     private final ImportSessionRepository importSessionRepository;
     private final StagingDonneeRepository stagingDonneeRepository;
     private final ResultatKpiRepository resultatKpiRepository;
+    private final KpiAnalysisRepository kpiAnalysisRepository;
+    private final KpiImportPreviewRepository kpiImportPreviewRepository;
+    private final KpiRawDataRepository kpiRawDataRepository;
     private final AnalyseCategorieRepository analyseCategorieRepository;
     private final AnalyseGlobaleRepository analyseGlobaleRepository;
 
@@ -155,8 +161,11 @@ public class AdminUserService {
         List<ImportSession> sessions = importSessionRepository.findByUserId(id);
         for (ImportSession session : sessions) {
             Long sessionId = session.getId();
+            kpiAnalysisRepository.deleteByImportSessionId(sessionId);
             analyseCategorieRepository.deleteByImportSessionId(sessionId);
             analyseGlobaleRepository.deleteByImportSessionId(sessionId);
+            kpiImportPreviewRepository.deleteByImportSessionId(sessionId);
+            kpiRawDataRepository.deleteByImportSessionId(sessionId);
             resultatKpiRepository.deleteByImportSessionId(sessionId);
             stagingDonneeRepository.deleteByImportSessionId(sessionId);
         }

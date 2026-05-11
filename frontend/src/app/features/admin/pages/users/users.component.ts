@@ -199,14 +199,16 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
 
     ref.afterClosed().subscribe((confirmed) => {
       if (!confirmed) return;
-      this.actionInProgressId = user.id;
-      const action = isPromoting
-        ? this.adminService.promoteToAdmin(user.id)
-        : this.adminService.demoteToAnalyste(user.id);
+      setTimeout(() => {
+        this.actionInProgressId = user.id;
+        const action = isPromoting
+          ? this.adminService.promoteToAdmin(user.id)
+          : this.adminService.demoteToAnalyste(user.id);
 
-      action.subscribe({
-        next:  () => { this.snackBar.open(isPromoting ? 'Promu administrateur.' : 'Rétrogradé en analyste.', 'Fermer', { duration: 3000 }); this.loadPage(this.currentPage); },
-        error: () => { this.snackBar.open('Impossible de modifier le rôle.', 'Fermer', { duration: 3000 }); this.actionInProgressId = null; },
+        action.subscribe({
+          next:  () => { this.snackBar.open(isPromoting ? 'Promu administrateur.' : 'Rétrogradé en analyste.', 'Fermer', { duration: 3000 }); this.loadPage(this.currentPage); },
+          error: () => { this.snackBar.open('Impossible de modifier le rôle.', 'Fermer', { duration: 3000 }); this.actionInProgressId = null; },
+        });
       });
     });
   }
@@ -232,15 +234,17 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
 
     ref.afterClosed().subscribe((confirmed) => {
       if (!confirmed) return;
-      this.actionInProgressId = user.id;
-      this.adminService.deleteUser(user.id).subscribe({
-        next: () => {
-          this.snackBar.open('Utilisateur supprimé.', 'Fermer', { duration: 3000 });
-          const targetPage = this.users.length === 1 && this.currentPage > 0
-            ? this.currentPage - 1 : this.currentPage;
-          this.loadPage(targetPage);
-        },
-        error: () => { this.snackBar.open('Impossible de supprimer l\'utilisateur.', 'Fermer', { duration: 3000 }); this.actionInProgressId = null; },
+      setTimeout(() => {
+        this.actionInProgressId = user.id;
+        this.adminService.deleteUser(user.id).subscribe({
+          next: () => {
+            this.snackBar.open('Utilisateur supprimé.', 'Fermer', { duration: 3000 });
+            const targetPage = this.users.length === 1 && this.currentPage > 0
+              ? this.currentPage - 1 : this.currentPage;
+            this.loadPage(targetPage);
+          },
+          error: () => { this.snackBar.open('Impossible de supprimer l\'utilisateur.', 'Fermer', { duration: 3000 }); this.actionInProgressId = null; },
+        });
       });
     });
   }
