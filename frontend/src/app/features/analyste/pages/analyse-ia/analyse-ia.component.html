@@ -31,11 +31,7 @@
     <!-- ── PAGE HEADER ──────────────────────────────────────────────── -->
     <header class="page-header">
       <div class="page-header-left">
-        <nav class="breadcrumb">
-          <span>Tableau de bord</span>
-          <mat-icon class="bc-sep">chevron_right</mat-icon>
-          <span class="bc-active">Analyses IA</span>
-        </nav>
+        
         <div class="page-title-row">
           <mat-icon class="title-icon">smart_toy</mat-icon>
           <h1 class="page-title">Analyses Intelligence Artificielle</h1>
@@ -49,32 +45,7 @@
       </div>
 
       <div class="page-header-right">
-        <!-- Model / confidence badges -->
-        @if (structured()?.traceability?.modelName) {
-          <span class="model-badge">
-            <mat-icon>memory</mat-icon>
-            {{ modelLabel }}
-          </span>
-        }
-        <span class="provider-badge">
-          <mat-icon>bolt</mat-icon>
-          Propulsé par Groq
-        </span>
-        @if (structured()?.confidence?.overall != null) {
-          <span class="confidence-badge"
-                [class.conf-low]="structured()!.confidence.overall < 60"
-                [class.conf-ok]="structured()!.confidence.overall >= 60">
-            <mat-icon>verified</mat-icon>
-            {{ structured()!.confidence.overall }}% confiance
-          </span>
-        }
-        @if (showLegacyFallback()) {
-          <span class="status-chip"
-                [class.status-partial]="isStructuredPartial()"
-                [class.status-failed]="isStructuredFailed()">
-            {{ structuredStatusLabel() }} · {{ structuredCoverageLabel() }} KPIs
-          </span>
-        }
+       
         <button class="btn-regen"
                 (click)="regenerer()"
                 [disabled]="regenerating()"
@@ -112,13 +83,7 @@
           <div class="stat-label">KPIs modérés</div>
         </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-icon stat-icon-green"><mat-icon>smart_toy</mat-icon></div>
-        <div class="stat-body">
-          <div class="stat-value stat-value-green">{{ heroStats().withAi }}</div>
-          <div class="stat-label">KPIs avec analyse IA</div>
-        </div>
-      </div>
+      
     </div>
 
     <!-- ── HERO: SCORE + SYNTHÈSE ───────────────────────────────────── -->
@@ -190,7 +155,7 @@
     <!-- ══════════════════════════════════════════════════════════════
          ALERTES PRÉDICTIVES — remontées ici car urgentes
     ══════════════════════════════════════════════════════════════════ -->
-    @if (hasAlerts()) {
+    @if (false && hasAlerts()) {
       <section class="section">
         <div class="section-header-row">
           <mat-icon class="s-icon s-icon-alert">radar</mat-icon>
@@ -268,12 +233,12 @@
                   <div class="reco-card">
                     <div class="reco-card-top">
                       <span class="reco-priority" [class]="'prio-' + (rec.urgency || 'medium').toLowerCase()">
-                        {{ rec.urgency || 'Moyenne' }}
+                        {{ formatPriorityLabel(rec.urgency) }}
                       </span>
                     </div>
-                    <p class="reco-title">{{ rec.title || rec.rationale }}</p>
+                    <p class="reco-title">{{ formatDisplayText(rec.title || rec.rationale) }}</p>
                     @if (rec.expectedBenefit) {
-                      <p class="reco-benefit"><mat-icon>trending_up</mat-icon>{{ rec.expectedBenefit }}</p>
+                      <p class="reco-benefit"><mat-icon>trending_up</mat-icon>{{ formatDisplayText(rec.expectedBenefit) }}</p>
                     }
                   </div>
                 }
@@ -418,7 +383,7 @@
                         </span>
                       }
                     </div>
-                    <p class="insight-text">{{ kpi.insight }}</p>
+                    <p class="insight-text">{{ formatDisplayText(kpi.insight) }}</p>
                   </div>
                 }
 
@@ -431,7 +396,7 @@
                       <div class="dc-head"><mat-icon>search</mat-icon> Causes probables</div>
                       <ul class="dc-list">
                         @for (c of kpi.structuredCauses; track $index) {
-                          <li>{{ c }}</li>
+                          <li>{{ formatDisplayText(c) }}</li>
                         }
                       </ul>
                     </div>
@@ -445,19 +410,19 @@
                         @if (kpi.structuredAction) {
                           <div class="dc-action dc-immediate">
                             <div class="dc-action-label"><mat-icon>bolt</mat-icon> Immédiate</div>
-                            <p>{{ kpi.structuredAction }}</p>
+                            <p>{{ formatDisplayText(kpi.structuredAction) }}</p>
                           </div>
                         }
                         @if (kpi.correctiveAction && kpi.correctiveAction !== kpi.structuredAction) {
                           <div class="dc-action dc-corrective">
                             <div class="dc-action-label"><mat-icon>build_circle</mat-icon> Corrective</div>
-                            <p>{{ kpi.correctiveAction }}</p>
+                            <p>{{ formatDisplayText(kpi.correctiveAction) }}</p>
                           </div>
                         }
                         @if (kpi.preventiveAction) {
                           <div class="dc-action dc-preventive">
                             <div class="dc-action-label"><mat-icon>shield</mat-icon> Préventive</div>
-                            <p>{{ kpi.preventiveAction }}</p>
+                            <p>{{ formatDisplayText(kpi.preventiveAction) }}</p>
                           </div>
                         }
                       </div>
@@ -480,7 +445,7 @@
                       <div class="dc-head"><mat-icon>lightbulb</mat-icon> Recommandations</div>
                       <ul class="dc-list">
                         @for (r of kpi.structuredRecos; track $index) {
-                          <li>{{ r }}</li>
+                          <li>{{ formatDisplayText(r) }}</li>
                         }
                       </ul>
                     </div>
@@ -493,13 +458,13 @@
                       @if (kpi.structuredSuccess) {
                         <div class="dc-outcome-row dc-success">
                           <div class="dc-outcome-label">Métrique de succès</div>
-                          <p>{{ kpi.structuredSuccess }}</p>
+                          <p>{{ formatDisplayText(kpi.structuredSuccess) }}</p>
                         </div>
                       }
                       @if (kpi.structuredRisk) {
                         <div class="dc-outcome-row dc-risk-row">
                           <div class="dc-outcome-label">Risque si non traité</div>
-                          <p>{{ kpi.structuredRisk }}</p>
+                          <p>{{ formatDisplayText(kpi.structuredRisk) }}</p>
                         </div>
                       }
                     </div>
@@ -537,11 +502,11 @@
             </div>
             @for (action of structured()!.actionPlan; track $index) {
               <div class="apt-row">
-                <span class="apt-action">{{ action.action }}</span>
-                <span class="apt-priority" [class]="'prio-' + (action.priority || 'medium').toLowerCase()">{{ action.priority || '—' }}</span>
-                <span class="apt-owner">{{ action.ownerRole || '—' }}</span>
-                <span class="apt-due">{{ action.dueHorizon || '—' }}</span>
-                <span class="apt-metric">{{ action.successMetric || '—' }}</span>
+                <span class="apt-action">{{ formatDisplayText(action.action) }}</span>
+                <span class="apt-priority" [class]="'prio-' + (action.priority || 'medium').toLowerCase()">{{ formatPriorityLabel(action.priority) }}</span>
+                <span class="apt-owner">{{ formatDisplayText(action.ownerRole) || '—' }}</span>
+                <span class="apt-due">{{ formatDisplayText(action.dueHorizon) || '—' }}</span>
+                <span class="apt-metric">{{ formatDisplayText(action.successMetric) || '—' }}</span>
               </div>
             }
           </div>
@@ -550,7 +515,7 @@
             @for (action of planActionsList(); track $index) {
               <div class="plan-card">
                 <div class="plan-num">{{ $index + 1 }}</div>
-                <p>{{ action }}</p>
+                <p>{{ formatDisplayText(action) }}</p>
               </div>
             }
           </div>
@@ -559,7 +524,7 @@
     }
 
     <!-- ── KANBAN ────────────────────────────────────────────────────── -->
-    @if (hasKanban()) {
+    @if (false && hasKanban()) {
       <section class="section">
         <div class="section-header-row">
           <mat-icon class="s-icon">view_kanban</mat-icon>
@@ -627,7 +592,7 @@
     <!-- ══════════════════════════════════════════════════════════════
          ANALYSE DES CAUSES RACINES (5 POURQUOI)
     ══════════════════════════════════════════════════════════════════ -->
-    @if (hasRootCauses()) {
+    @if (false && hasRootCauses()) {
       <section class="section">
         <div class="section-header-row">
           <mat-icon class="s-icon">account_tree</mat-icon>
@@ -673,31 +638,7 @@
       </section>
     }
 
-    <!-- ── TRACEABILITY FOOTER ─────────────────────────────────────── -->
-    @if (structured()?.traceability?.modelName) {
-      <div class="trace-footer">
-        <span class="trace-item">
-          <mat-icon>memory</mat-icon>
-          Modèle: <strong>{{ structured()!.traceability.modelName }}</strong>
-        </span>
-        @if (structured()!.traceability.generatedAt) {
-          <span class="trace-item">
-            <mat-icon>schedule</mat-icon>
-            Généré le: <strong>{{ structured()!.traceability.generatedAt | date:'dd/MM/yyyy HH:mm' }}</strong>
-          </span>
-        }
-        @if (structured()!.traceability.schemaVersion || structured()!.schemaVersion) {
-          <span class="trace-item">
-            <mat-icon>rule</mat-icon>
-            Schéma: <strong>{{ structured()!.traceability.schemaVersion || structured()!.schemaVersion }}</strong>
-          </span>
-        }
-        <span class="trace-item">
-          <mat-icon>dataset</mat-icon>
-          Couverture KPI: <strong>{{ structuredCoverageLabel() }}</strong>
-        </span>
-      </div>
-    }
+    
 
   }
 </div>

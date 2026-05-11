@@ -127,9 +127,9 @@ export class AnalyseIAComponent implements OnInit {
     return `${received}/${expected}`;
   });
   structuredStatusLabel = computed(() => {
-    if (this.isStructuredPartial()) return 'PARTIAL';
-    if (this.isStructuredFailed()) return 'FAILED';
-    return 'SUCCESS';
+    if (this.isStructuredPartial()) return 'Partiel';
+    if (this.isStructuredFailed()) return 'Échec';
+    return 'Succès';
   });
 
   // ── Computed : confidence badge ─────────────────────────────────────
@@ -400,6 +400,46 @@ export class AnalyseIAComponent implements OnInit {
 
   getStructuredFallbackMessage(): string {
     return this.structured()?.fallbackReason || 'Affichage des analyses classiques en fallback.';
+  }
+
+  formatPriorityLabel(value: string | null | undefined): string {
+    if (!value) return '—';
+    switch (value.trim().toUpperCase()) {
+      case 'HIGH':
+        return 'Haute';
+      case 'MEDIUM':
+        return 'Moyenne';
+      case 'LOW':
+        return 'Faible';
+      case 'CRITIQUE':
+        return 'Critique';
+      case 'MODERE':
+        return 'Modérée';
+      case 'FAIBLE':
+        return 'Faible';
+      case 'SUCCESS':
+        return 'Succès';
+      case 'FAILED':
+        return 'Échec';
+      case 'PARTIAL':
+        return 'Partiel';
+      default:
+        return this.formatDisplayText(value);
+    }
+  }
+
+  formatDisplayText(value: string | null | undefined): string {
+    if (!value) return '';
+
+    return value
+      .replace(/\bHIGH\b/gi, 'Haute')
+      .replace(/\bMEDIUM\b/gi, 'Moyenne')
+      .replace(/\bLOW\b/gi, 'Faible')
+      .replace(/\bSUCCESS\b/gi, 'Succès')
+      .replace(/\bFAILED\b/gi, 'Échec')
+      .replace(/\bPARTIAL\b/gi, 'Partiel')
+      .replace(/\bNew Performance KPI\b/gi, 'nouvel indicateur de performance')
+      .replace(/\bPerformance KPI\b/gi, 'indicateur de performance');
   }
 
   getRecommendationTitle(rec: { title?: string; rationale?: string; expectedBenefit?: string } | null | undefined): string {
