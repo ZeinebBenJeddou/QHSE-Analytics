@@ -69,7 +69,7 @@ class KpiServiceTest {
                 .build();
     }
 
-    // ── getAllKpis ────────────────────────────────────────────────────────────
+
 
     @Test
     @DisplayName("getAllKpis retourne la liste des KPIs actifs")
@@ -93,7 +93,7 @@ class KpiServiceTest {
         assertThat(result).isEmpty();
     }
 
-    // ── getKpiById ────────────────────────────────────────────────────────────
+
 
     @Test
     @DisplayName("getKpiById retourne le KPI correspondant")
@@ -116,7 +116,7 @@ class KpiServiceTest {
                 .hasMessageContaining("99");
     }
 
-    // ── createKpi ─────────────────────────────────────────────────────────────
+
 
     @Test
     @DisplayName("createKpi crée et retourne le nouveau KPI")
@@ -130,7 +130,8 @@ class KpiServiceTest {
             k.setId(2L);
             return k;
         });
-        when(ragKnowledgeRepository.findByKpiName(any())).thenReturn(Optional.empty());
+        when(ragKnowledgeRepository.findByKpiNameAndChunkType(anyString(), eq("full")))
+                .thenReturn(Optional.empty());
 
         KpiResponse result = kpiService.createKpi(request);
 
@@ -163,7 +164,7 @@ class KpiServiceTest {
                 .isInstanceOf(KpiAlreadyExistsException.class);
     }
 
-    // ── updateKpi ─────────────────────────────────────────────────────────────
+
 
     @Test
     @DisplayName("updateKpi met à jour uniquement les champs fournis")
@@ -189,15 +190,13 @@ class KpiServiceTest {
                 .isInstanceOf(KpiNotFoundException.class);
     }
 
-    // ── deleteKpi ─────────────────────────────────────────────────────────────
+
 
     @Test
     @DisplayName("deleteKpi supprime définitivement si aucune donnée liée")
     void deleteKpi_hardDelete_whenNoLinkedData() {
         when(kpiRepository.findById(1L)).thenReturn(Optional.of(kpiAccidents));
         when(kpiRepository.hasLinkedData(1L)).thenReturn(false);
-        when(ragKnowledgeRepository.findByKpiName(any())).thenReturn(Optional.empty());
-
         KpiDeleteResponse response = kpiService.deleteKpi(1L);
 
         assertThat(response.isDeleted()).isTrue();
@@ -210,8 +209,6 @@ class KpiServiceTest {
         when(kpiRepository.findById(1L)).thenReturn(Optional.of(kpiAccidents));
         when(kpiRepository.hasLinkedData(1L)).thenReturn(true);
         when(kpiRepository.save(any())).thenReturn(kpiAccidents);
-        when(ragKnowledgeRepository.findByKpiName(any())).thenReturn(Optional.empty());
-
         KpiDeleteResponse response = kpiService.deleteKpi(1L);
 
         assertThat(response.isDeleted()).isFalse();
@@ -219,7 +216,7 @@ class KpiServiceTest {
         verify(kpiRepository, never()).deleteById(any());
     }
 
-    // ── helpers ───────────────────────────────────────────────────────────────
+
 
     private CreateKpiRequest buildCreateRequest(String nom, double faible, double modere, double critique) {
         CreateKpiRequest req = new CreateKpiRequest();

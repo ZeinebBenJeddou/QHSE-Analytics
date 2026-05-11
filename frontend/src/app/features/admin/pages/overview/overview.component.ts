@@ -115,7 +115,6 @@ export class AdminOverviewComponent implements OnInit {
     return 'conf-red';
   }
 
-  // ── Graphiques ────────────────────────────────────────────────────────────
 
   get niveauxList(): Array<{ label: string; count: number; pct: number; color: string }> {
     const n = this.graphiques?.repartitionNiveaux ?? {};

@@ -40,7 +40,7 @@ public class MetadataEnrichmentAgent {
             }
         } catch (Exception e) {
             log.error("Failed to enrich metadata using AI: {}", e.getMessage());
-            // Fallback: keep existing or set defaults
+
         }
 
         return data;

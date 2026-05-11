@@ -124,7 +124,7 @@ public class RagKpiKnowledgeLookupService implements KpiKnowledgeLookup {
     }
 
     private Optional<KnowledgeMatch> exactNameFallbackInternal(String kpiName, String categoryCode) {
-        Optional<RagKnowledge> exact = ragKnowledgeRepository.findByKpiNameIgnoreCase(kpiName);
+        Optional<RagKnowledge> exact = ragKnowledgeRepository.findBestByKpiName(kpiName);
         if (exact.isPresent() && categoryMatches(exact.get().getCategory(), categoryCode)) {
             return toKnowledgeMatch(new ScoredKnowledgeRow(
                     exact.get().getId(),

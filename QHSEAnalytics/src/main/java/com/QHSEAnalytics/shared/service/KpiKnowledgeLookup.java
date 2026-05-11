@@ -4,9 +4,7 @@ import com.QHSEAnalytics.shared.enums.Direction;
 
 import java.util.Optional;
 
-/**
- * Shared port for resolving KPI business knowledge without coupling importer to analytics internals.
- */
+
 public interface KpiKnowledgeLookup {
 
     Optional<KnowledgeMatch> findBestMatch(String kpiName, String categoryCode, Double currentValue, Double previousValue);

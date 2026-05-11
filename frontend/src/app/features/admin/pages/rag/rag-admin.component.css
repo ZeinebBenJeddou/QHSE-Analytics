@@ -29,7 +29,6 @@
 
 .rag-page { max-width: 1200px; margin: 0 auto; }
 
-/* HEADER */
 .page-header {
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 24px; gap: 16px; flex-wrap: wrap;
@@ -51,7 +50,6 @@ h1 { margin: 0; font-size: 1.45rem; font-weight: 700; letter-spacing: -0.3px; }
 }
 .back-btn:hover { background: var(--blue-soft) !important; }
 
-/* ERROR */
 .error-banner {
   display: flex; align-items: center; gap: 10px;
   padding: 14px 18px; border-radius: var(--radius-item);
@@ -60,7 +58,6 @@ h1 { margin: 0; font-size: 1.45rem; font-weight: 700; letter-spacing: -0.3px; }
 }
 .error-banner.small { padding: 10px 14px; font-size: 0.8rem; margin: 12px 0 0; }
 
-/* STATS ROW */
 .stats-row {
   display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap;
 }
@@ -76,10 +73,8 @@ h1 { margin: 0; font-size: 1.45rem; font-weight: 700; letter-spacing: -0.3px; }
 .stat-val { font-size: 1.1rem; font-weight: 700; font-family: var(--font-mono); }
 .stat-lbl { font-size: 0.78rem; font-weight: 500; }
 
-/* TOP GRID */
 .top-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
 
-/* CARDS */
 .glass-card {
   background: var(--white) !important;
   border: 1.5px solid var(--border) !important;
@@ -105,7 +100,6 @@ h1 { margin: 0; font-size: 1.45rem; font-weight: 700; letter-spacing: -0.3px; }
 .card-av-icon-wrap.purple { background: var(--purple-soft) !important; }
 .card-av-icon.purple { color: var(--purple) !important; }
 
-/* FORMS */
 .entry-form, .search-form { display: flex; flex-direction: column; gap: 12px; }
 .form-field { width: 100%; }
 .field-icon { color: var(--ink-muted) !important; font-size: 18px !important; width: 18px !important; height: 18px !important; margin-right: 6px !important; }
@@ -131,7 +125,6 @@ h1 { margin: 0; font-size: 1.45rem; font-weight: 700; letter-spacing: -0.3px; }
 
 .json-error { color: var(--red) !important; font-size: 0.75rem !important; }
 
-/* SEARCH RESULTS */
 .search-results { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
 .result-item {
   padding: 12px 14px; border-radius: var(--radius-item);
@@ -140,7 +133,6 @@ h1 { margin: 0; font-size: 1.45rem; font-weight: 700; letter-spacing: -0.3px; }
 .result-name { font-weight: 700; font-size: 0.88rem; margin-bottom: 4px; }
 .result-def { font-size: 0.8rem; color: var(--ink-soft); margin-top: 4px; line-height: 1.5; }
 
-/* CATEGORY CHIPS */
 .cat-chip {
   display: inline-block; font-size: 0.68rem; font-family: var(--font-mono);
   font-weight: 600; padding: 2px 9px; border-radius: 20px; white-space: nowrap;
@@ -150,7 +142,6 @@ h1 { margin: 0; font-size: 1.45rem; font-weight: 700; letter-spacing: -0.3px; }
 .cat-s { background: var(--amber-soft); color: var(--amber); }
 .cat-e { background: rgba(124,58,237,0.10); color: var(--purple); }
 
-/* TABLE */
 .table-wrap { overflow-x: auto; }
 .rag-table {
   width: 100%; background: transparent !important; font-family: var(--font);
@@ -178,7 +169,6 @@ h1 { margin: 0; font-size: 1.45rem; font-weight: 700; letter-spacing: -0.3px; }
 .date-text { font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-muted); }
 .muted { color: var(--ink-muted); font-size: 0.8rem; }
 
-/* EMBEDDING BADGE */
 .embed-badge {
   display: inline-flex; align-items: center; gap: 4px;
   font-size: 0.7rem; font-family: var(--font-mono); font-weight: 600;
@@ -188,14 +178,12 @@ h1 { margin: 0; font-size: 1.45rem; font-weight: 700; letter-spacing: -0.3px; }
 .embed-badge.ok  { background: var(--green-soft); color: var(--green); }
 .embed-badge.warn { background: var(--amber-soft); color: var(--amber); }
 
-/* ROW ACTIONS */
 .row-actions { display: flex; gap: 4px; }
 .action-btn { width: 34px !important; height: 34px !important; border-radius: 8px !important; }
 .action-btn.amber mat-icon { color: var(--amber) !important; font-size: 18px !important; }
 .action-btn.red mat-icon { color: var(--red) !important; font-size: 18px !important; }
 .action-btn:hover { background: var(--surface) !important; }
 
-/* LOADERS / EMPTY */
 .loader-overlay {
   display: flex; align-items: center; justify-content: center;
   gap: 16px; padding: 48px 0; color: var(--ink-muted); font-size: 0.88rem;

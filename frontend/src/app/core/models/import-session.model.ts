@@ -37,30 +37,30 @@ export interface KpiCalculatedDTO {
   tendance: 'HAUSSE' | 'BAISSE' | 'STABLE' | null;
   matchedKpi?: string | null;
   matchedKpiId?: number | null;
-  matchConfidence?: number | null;       // P2.1 — Jaro-Winkler score 0–1
-  // Business Intelligence Enrichment Fields
+  matchConfidence?: number | null;       
+  
   businessClassification?: 'CRITICAL' | 'WARNING' | 'OK';
   isAnomaly?: boolean;
-  // New fields
+ 
   direction?: 'HIGHER_IS_BETTER' | 'LOWER_IS_BETTER' | 'TARGET_IS_BEST';
-  calcConfidence?: number; // 0..100
+  calcConfidence?: number; 
   classificationReason?: string;
   reviewRequired?: boolean;
   dataFlags?: string[];
-  // P3.1 — SPC
+  
   spcMean?: number | null;
   spcStd?: number | null;
   spcUcl?: number | null;
   spcLcl?: number | null;
   spcOutOfControl?: boolean | null;
-  // P2.2 — Risk matrix
+  
   riskProbability?: number | null;
   riskImpact?: number | null;
   riskScore?: number | null;
   riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' | null;
 }
 
-// P4.1 — Column profile
+
 export interface ColumnProfileDTO {
   columnIndex: number;
   detectedHeader: string;
@@ -76,7 +76,6 @@ export interface ColumnProfileDTO {
   semanticConfidence: number; // 0–1
 }
 
-// P2.3 — Category composite score
 export interface CategoryScoreDTO {
   categoryCode: string;
   categoryLibelle: string;
@@ -87,8 +86,8 @@ export interface CategoryScoreDTO {
   modereCount: number;
   critiqueCount: number;
   indetermineCount: number;
-  compositeScore: number;   // 0–100
-  compositeLabel: string;   // Excellent / Bon / Acceptable / À surveiller / Critique
+  compositeScore: number;   
+  compositeLabel: string;   
 }
 
 export interface KpiRawDataDTO {
@@ -104,7 +103,6 @@ export interface KpiRawDataDTO {
   validationMessage?: string;
   methodeExtraction?: string;
   scoreConfiance: number;
-  // Nouveaux champs qualité
   originalKpiName?: string;
   normalizedKpiName?: string;
   rowQualityScore?: number;
@@ -123,7 +121,6 @@ export interface ChartResponseDTO {
   comparisonTable?: unknown[];
 }
 
-// ── Quality Report ────────────────────────────────────────────────────────────
 
 export type IssueSeverity = 'ERROR' | 'WARNING' | 'INFO';
 
@@ -143,13 +140,10 @@ export interface RejectedReasonSummary {
 }
 
 export interface ImportQualityReport {
-  // Metrics qualité unifiées
-  // totalRows = lignes lues dans le fichier, doublons inclus
   totalRows: number;
   validRows: number;
   invalidRows: number;
   warningRows: number;
-  // duplicateRows = occurrences de doublons écartées
   duplicateRows: number;
   outlierRows: number;
   qualityScore: number;
@@ -158,7 +152,6 @@ export interface ImportQualityReport {
   warnings: ImportIssue[];
   infos: ImportIssue[];
   extractionIssues?: ImportIssue[];
-  // New partial import fields
   importMode?: 'STRICT' | 'PARTIAL';
   importedRowsCount?: number;
   rejectedRowsCount?: number;
@@ -169,7 +162,6 @@ export interface ImportQualityReport {
   blockingReason?: string;
 }
 
-// ── Import Processing Response ────────────────────────────────────────────────
 
 export interface ImportProcessingResponse {
   importSessionId?: number;
@@ -180,12 +172,9 @@ export interface ImportProcessingResponse {
   detectedHeaders?: string[];
   charts?: ChartResponseDTO;
   analyseIa?: string;
-  // Risk Intelligence Fields
   risks?: KpiCalculatedDTO[];
   riskScore?: number;
-  // Quality Report
   qualityReport?: ImportQualityReport;
-  // P2.3 — Composite scores
   categoryScores?: CategoryScoreDTO[];
 }
 

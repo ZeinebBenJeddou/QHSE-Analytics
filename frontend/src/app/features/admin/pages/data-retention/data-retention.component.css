@@ -30,7 +30,7 @@
 
 .retention-page { max-width: 1100px; margin: 0 auto; }
 
-/* HEADER */
+
 .page-header {
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 28px; gap: 16px; flex-wrap: wrap;
@@ -61,7 +61,7 @@ h1 { margin: 0; font-size: 1.45rem; font-weight: 700; letter-spacing: -0.3px; }
 .purge-btn:hover { opacity: 0.9; }
 .purge-btn:disabled { opacity: 0.5 !important; }
 
-/* ERROR / LOADER */
+
 .error-banner {
   display: flex; align-items: center; gap: 10px;
   padding: 14px 18px; border-radius: var(--radius-item);
@@ -73,7 +73,7 @@ h1 { margin: 0; font-size: 1.45rem; font-weight: 700; letter-spacing: -0.3px; }
   padding: 80px 0; color: var(--ink-muted); font-size: 0.88rem;
 }
 
-/* SECTION TITLE */
+
 .section-title {
   display: flex; align-items: center; gap: 8px;
   font-size: 0.8rem; font-weight: 700; color: var(--ink-soft);
@@ -82,7 +82,7 @@ h1 { margin: 0; font-size: 1.45rem; font-weight: 700; letter-spacing: -0.3px; }
 }
 .section-title mat-icon { font-size: 16px !important; width: 16px !important; height: 16px !important; }
 
-/* POLICY GRID */
+
 .policy-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -117,7 +117,7 @@ h1 { margin: 0; font-size: 1.45rem; font-weight: 700; letter-spacing: -0.3px; }
 .policy-lbl  { font-size: 0.82rem; font-weight: 600; color: var(--ink); }
 .policy-sub  { font-size: 0.72rem; color: var(--ink-muted); font-family: var(--font-mono); }
 
-/* STATUTS ROW */
+
 .statuts-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
 .statut-chip {
   padding: 4px 12px; border-radius: 20px;
@@ -126,7 +126,6 @@ h1 { margin: 0; font-size: 1.45rem; font-weight: 700; letter-spacing: -0.3px; }
   color: var(--ink-soft); letter-spacing: 0.04em;
 }
 
-/* NO RUN BANNER */
 .no-run-banner {
   display: flex; align-items: center; gap: 10px;
   padding: 14px 18px; border-radius: var(--radius-item);
@@ -134,7 +133,7 @@ h1 { margin: 0; font-size: 1.45rem; font-weight: 700; letter-spacing: -0.3px; }
   color: var(--ink-muted); font-size: 0.86rem; margin-bottom: 8px;
 }
 
-/* RUN GRID */
+
 .run-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -162,7 +161,7 @@ h1 { margin: 0; font-size: 1.45rem; font-weight: 700; letter-spacing: -0.3px; }
 .run-val   { font-size: 1rem; font-weight: 700; font-family: var(--font-mono); color: var(--ink); }
 .run-val-total { color: var(--green); }
 
-/* NOTE */
+
 .note {
   display: flex; align-items: flex-start; gap: 8px;
   margin-top: 28px; color: var(--ink-muted); font-size: 0.78rem;

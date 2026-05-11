@@ -78,7 +78,6 @@ export class RagAdminComponent implements OnInit {
     return this.entries.filter(e => e.hasEmbedding).length;
   }
 
-  // ── CRUD ────────────────────────────────────────────────────────────────
 
   startEdit(entry: RagKnowledgeResponse): void {
     this.editingEntry = entry;
@@ -149,7 +148,6 @@ export class RagAdminComponent implements OnInit {
     });
   }
 
-  // ── SEARCH TEST ─────────────────────────────────────────────────────────
 
   runSearch(): void {
     if (this.searchForm.invalid) return;
@@ -173,7 +171,6 @@ export class RagAdminComponent implements OnInit {
     this.searchForm.reset({ topK: 5, threshold: 0.5 });
   }
 
-  // ── HELPERS ─────────────────────────────────────────────────────────────
 
   private loadEntries(): void {
     this.loading = true;

@@ -1,6 +1,4 @@
--- Migration V3: pgvector extension + embedding column for RAG knowledge base
--- Active when Flyway is re-enabled (spring.flyway.enabled=true) in production.
--- In dev, PgVectorSchemaInitializer handles this idempotently via ApplicationReadyEvent.
+
 
 CREATE EXTENSION IF NOT EXISTS vector;
 

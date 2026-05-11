@@ -46,7 +46,7 @@ export class IaHealthComponent implements OnInit, OnDestroy {
     } else {
       this.refresh();
     }
-    // auto-refresh toutes les 60 secondes
+    
     this.refreshSub = interval(60_000).subscribe(() => this.refresh());
   }
 
@@ -94,7 +94,6 @@ export class IaHealthComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ── Computed helpers ─────────────────────────────────────────────────────
 
   get successRate(): number {
     if (!this.health) return 0;

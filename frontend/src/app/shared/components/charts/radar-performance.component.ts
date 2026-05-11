@@ -20,9 +20,9 @@ Chart.register(...registerables);
   `]
 })
 export class RadarPerformanceComponent implements AfterViewInit, OnChanges, OnDestroy {
-  /** Array of RadarPoint for current period N */
+  
   @Input() data: RadarPoint[] = [];
-  /** Optional array of RadarPoint for N-1 (if available from backend) */
+ 
   @Input() dataN1: RadarPoint[] = [];
 
   @ViewChild('chartCanvas', { static: true }) canvas?: ElementRef<HTMLCanvasElement>;
@@ -53,7 +53,6 @@ export class RadarPerformanceComponent implements AfterViewInit, OnChanges, OnDe
     const datasets: any[] = [];
 
     if (hasN1) {
-      // N-1 dataset (background reference)
       datasets.push({
         label: 'N-1',
         data: this.dataN1.map(d => d.score),
@@ -69,7 +68,6 @@ export class RadarPerformanceComponent implements AfterViewInit, OnChanges, OnDe
       });
     }
 
-    // N dataset (primary)
     datasets.push({
       label: 'N',
       data: this.data.map(d => d.score),

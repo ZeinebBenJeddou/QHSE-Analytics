@@ -71,7 +71,6 @@ export interface MappingTemplateResponse {
   createdAt: string;
 }
 
-// Structured AI Response Interfaces
 export interface AiConfidenceResponse {
   overall: number;
   sections: { [key: string]: number };

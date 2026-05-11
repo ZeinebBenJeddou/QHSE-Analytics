@@ -9,32 +9,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/**
- * QualityReportBuilder
- *
- * Agrège les issues portées par chaque KpiRawDataDTO et produit
- * un ImportQualityReport complet avec score qualité et flag blocking.
- */
+
 @Service
 public class QualityReportBuilder {
 
-    /**
-     * Construit l'ImportQualityReport à partir des lignes nettoyées.
-     *
-     * Semantique des compteurs :
-     *  - totalRows     = lignes lues, doublons inclus
-     *  - duplicateRows  = occurrences de doublons écartées
-     *  - validRows     = lignes uniques conservées sans ERROR
-     *  - invalidRows   = lignes uniques conservées avec ERROR
-     *  - warningRows   = lignes uniques valides avec WARNING
-     *
-     * Score par ligne :
-     *  - invalide ou avec ERROR      → 0
-     *  - valide avec WARNING         → 70
-     *  - valide sans warning         → 100
-     *
-     * blocking = hardBlocking en PARTIAL, hardBlocking || softBlocking en STRICT.
-     */
+
     public ImportQualityReport build(List<KpiRawDataDTO> rawData, boolean allowPartialImport) {
         String importMode = allowPartialImport ? "PARTIAL" : "STRICT";
         List<ImportIssue> allErrors   = new ArrayList<>();
@@ -57,7 +36,7 @@ public class QualityReportBuilder {
                 boolean hasError   = issues.stream().anyMatch(i -> i.getSeverity() == ImportIssue.Severity.ERROR);
                 boolean hasWarning = issues.stream().anyMatch(i -> i.getSeverity() == ImportIssue.Severity.WARNING);
 
-                // Compteurs catégorisés
+
                 long duplicatesInThisRow = issues.stream().filter(i ->
                         ImportIssue.CODE_DUPLICATE_KPI.equals(i.getCode()) ||
                         ImportIssue.CODE_DUPLICATE_CONFLICT.equals(i.getCode())).count();
@@ -68,7 +47,7 @@ public class QualityReportBuilder {
 
                 if (isOutlier)  outlierRows++;
 
-                // Score par ligne
+
                 int rowScore;
                 if (!row.isValid() || hasError) {
                     rowScore = 0;
@@ -79,11 +58,11 @@ public class QualityReportBuilder {
                 } else {
                     rowScore = 100;
                 }
-                // Propager le score dans le DTO (utile pour l'affichage frontend)
+
                 row.setRowQualityScore(rowScore);
                 scoreSum += rowScore;
 
-                // Triage des issues globales
+
                 for (ImportIssue issue : issues) {
                     switch (issue.getSeverity()) {
                         case ERROR   -> allErrors.add(issue);

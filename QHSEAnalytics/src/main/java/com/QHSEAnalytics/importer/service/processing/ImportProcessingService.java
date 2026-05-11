@@ -81,7 +81,7 @@ public class ImportProcessingService {
 
         importProgressService.push(clientId, "VALIDATION", 40, "Contrôle qualité des données…");
 
-        // Si le rapport qualité est bloquant, ne pas persister et retourner une erreur métier claire
+
         if (qualityReport != null && qualityReport.isBlocking()) {
             log.warn("[ImportProcessing] Import bloqué ({}) pour session {}, {} erreur(s)",
                     allowPartial ? "hardBlocking" : "blocking",
@@ -106,7 +106,7 @@ public class ImportProcessingService {
                     .build();
         }
 
-        // --- Filtrage en mode PARTIAL ---
+
         List<com.QHSEAnalytics.shared.dto.request.KpiRawDataDTO> rawToProcess = processingResponse.getRawData();
         List<com.QHSEAnalytics.shared.dto.response.KpiCalculatedDTO> calcToProcess = processingResponse.getCalculatedData();
 
@@ -146,7 +146,7 @@ public class ImportProcessingService {
         ImportSession finalSession;
         if (results.isEmpty()) {
             if (allowPartial && qualityReport != null && qualityReport.isSoftBlocking()) {
-                // Partial import with all rows rejected
+
                 ImportSession erreurSession = advanceStatus(processingSession, ImportStatut.ERREUR);
                 erreurSession.setMessageErreur("Import partiel : aucune ligne valide n'a pu être importée.");
                 importSessionRepository.save(erreurSession);
@@ -165,7 +165,7 @@ public class ImportProcessingService {
             }
 
             finalSession = advanceStatus(calculatedSession, ImportStatut.READY_FOR_AI);
-            // Renseigner le message de session si import partiel
+
             if (allowPartial && qualityReport != null && qualityReport.isSoftBlocking()) {
                 int imported = rawToProcess.size();
                 int rejected = qualityReport.getRejectedRowsCount();
@@ -249,15 +249,15 @@ public class ImportProcessingService {
             log.warn("[ImportProcessing] persistKpiAnalysis called with null/empty aiResponse for import {}", session.getId());
             return;
         }
-        
+
         List<com.QHSEAnalytics.shared.entity.KpiAnalysis> analyses = aiResponse.getKpis().stream()
                 .map(insight -> {
                     String aiNote = firstNonBlank(firstNonBlank(insight.getNoteFinale(), insight.getAiNote()), insight.getInsight());
-                    log.debug("[ImportProcessing] Creating KpiAnalysis: name='{}', aiNote='{}', identificationRisque='{}'", 
-                        insight.getName(), 
+                    log.debug("[ImportProcessing] Creating KpiAnalysis: name='{}', aiNote='{}', identificationRisque='{}'",
+                        insight.getName(),
                         aiNote != null ? aiNote.substring(0, Math.min(40, aiNote.length())) : "null",
                         insight.getIdentificationRisque());
-                    
+
                     return com.QHSEAnalytics.shared.entity.KpiAnalysis.builder()
                         .importSession(session)
                         .kpiName(insight.getName())
@@ -275,7 +275,7 @@ public class ImportProcessingService {
                         .build();
                 })
                 .collect(Collectors.toList());
-        
+
         kpiAnalysisRepository.saveAll(analyses);
         log.info("[ImportProcessing] Persisted {} KpiAnalysis records for import {}", analyses.size(), session.getId());
     }
@@ -326,12 +326,12 @@ public class ImportProcessingService {
     }
 
     private ResultatKpi mapToResultatKpi(KpiCalculatedDTO dto, ImportSession session, User user) {
-        // Try to get matched KPI, or auto-create if not found
+
         Kpi kpi;
         if (dto.getMatchedKpiId() != null) {
             kpi = kpiRepository.findById(dto.getMatchedKpiId()).orElse(null);
         } else {
-            // Auto-create KPI if not matched
+
             kpi = createOrGetKpi(dto);
         }
 
@@ -382,32 +382,29 @@ public class ImportProcessingService {
         }
     }
 
-    /**
-     * Auto-create a KPI if it doesn't exist in the database.
-     * Also creates corresponding RagKnowledge entry for RAG system enrichment.
-     */
+
     private Kpi createOrGetKpi(KpiCalculatedDTO dto) {
         String kpiName = dto.getKpiName();
         if (kpiName == null || kpiName.isBlank()) {
             return null;
         }
 
-        // Check if KPI already exists by name
+
         Optional<Kpi> existing = kpiRepository.findByNom(kpiName);
         if (existing.isPresent()) {
             return existing.get();
         }
 
         try {
-            // Determine category - use categorieCode if available, otherwise default to "AUTO" category
+
             CategorieKpi categorie = null;
             String categorieCode = dto.getCategorieCode();
-            
+
             if (categorieCode != null && !categorieCode.equals("AUTO")) {
                 categorie = categorieKpiRepository.findByCode(categorieCode).orElse(null);
             }
-            
-            // Fallback to a default category if not found
+
+
             if (categorie == null) {
                 categorie = categorieKpiRepository.findByCode("Q").orElse(null);
             }
@@ -417,7 +414,7 @@ public class ImportProcessingService {
                 return null;
             }
 
-            // Create new Kpi
+
             Kpi newKpi = Kpi.builder()
                     .nom(kpiName)
                     .definition("KPI auto-créé à partir d'un import. Catégorie détectée: " + dto.getCategorie())
@@ -427,15 +424,15 @@ public class ImportProcessingService {
                     .seuilModere(dto.getSeuilModere() != null ? dto.getSeuilModere() : 25.0)
                     .seuilCritique(dto.getSeuilCritique() != null ? dto.getSeuilCritique() : 50.0)
                     .direction(parseDirection(dto.getDirection()))
-                    .ordre(999) // Auto-created KPIs get high order number
+                    .ordre(999)
                     .isActive(true)
                     .build();
 
             Kpi savedKpi = kpiRepository.save(newKpi);
-            log.info("[KPI Creation] Auto-created KPI: name='{}', category='{}', id={}", 
+            log.info("[KPI Creation] Auto-created KPI: name='{}', category='{}', id={}",
                 kpiName, categorie.getCode(), savedKpi.getId());
 
-            // Create corresponding RagKnowledge entry for RAG system
+
             createRagKnowledgeForKpi(savedKpi, categorie);
 
             return savedKpi;
@@ -445,18 +442,17 @@ public class ImportProcessingService {
         }
     }
 
-    /**
-     * Create or update RagKnowledge entry for a newly created KPI.
-     */
+
     private void createRagKnowledgeForKpi(Kpi kpi, CategorieKpi categorie) {
         try {
-            // Check if RagKnowledge already exists
-            if (ragKnowledgeRepository.findByKpiName(kpi.getNom()).isPresent()) {
+
+            if (ragKnowledgeRepository.findByKpiNameAndChunkType(kpi.getNom(), "full").isPresent()) {
                 return;
             }
 
             RagKnowledge ragKnowledge = RagKnowledge.builder()
                     .kpiName(kpi.getNom())
+                    .chunkType("full")
                     .definition(kpi.getDefinition())
                     .category(categorie.getCode())
                     .thresholds(buildThresholdJson(kpi))
@@ -466,13 +462,11 @@ public class ImportProcessingService {
             log.info("[RAG Knowledge] Created RAG knowledge for KPI: {}", kpi.getNom());
         } catch (Exception ex) {
             log.error("[RAG Knowledge] Error creating RAG knowledge for KPI '{}': {}", kpi.getNom(), ex.getMessage());
-            // Don't fail the import if RAG creation fails
+
         }
     }
 
-    /**
-     * Build a JSON string representing KPI thresholds.
-     */
+
     private String buildThresholdJson(Kpi kpi) {
         return String.format(Locale.US,
             "{\"faible\":%f, \"modere\":%f, \"critique\":%f}",
@@ -482,9 +476,7 @@ public class ImportProcessingService {
         );
     }
 
-    /**
-     * Parse UniteKpi from string representation.
-     */
+
     private UniteKpi parseUnite(String unite) {
         if (unite == null || unite.isBlank()) {
             return UniteKpi.NOMBRE;

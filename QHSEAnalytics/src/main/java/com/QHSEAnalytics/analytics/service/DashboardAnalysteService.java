@@ -86,15 +86,15 @@ public class DashboardAnalysteService {
         ImportSession session = loadOwnedCompletedSession(userId, importId);
         List<ResultatKpi> resultats = resultatKpiRepository.findByImportSessionIdWithKpi(importId);
 
-        // Build a lookup map of Gemini AI analysis by KPI name
+
         List<KpiAnalysis> analyses = kpiAnalysisRepository
                 .findByImportSessionIdOrderByIdAsc(importId);
         log.info("[Dashboard] Found {} KpiAnalysis records for import {}", analyses.size(), importId);
         for (KpiAnalysis a : analyses) {
-            log.debug("[Dashboard] KpiAnalysis: kpiName='{}', aiNote='{}', noteFinale='{}'", 
+            log.debug("[Dashboard] KpiAnalysis: kpiName='{}', aiNote='{}', noteFinale='{}'",
                 a.getKpiName(), a.getAiNote(), a.getNoteFinale());
         }
-        
+
         Map<String, KpiAnalysis> analysisMap = analyses
                 .stream()
                 .filter(a -> normalizeKey(a.getKpiName()) != null)
@@ -111,7 +111,7 @@ public class DashboardAnalysteService {
             .map(r -> {
                 String normalizedKpiName = normalizeKey(safeKpiNom(r));
                 KpiAnalysis analysis = findAnalysisForKpi(normalizedKpiName, analysisMap);
-                log.debug("[Dashboard] KPI '{}' (normalized='{}') -> analysis found: {}", 
+                log.debug("[Dashboard] KPI '{}' (normalized='{}') -> analysis found: {}",
                     safeKpiNom(r), normalizedKpiName, analysis != null);
                 return toLigneComparatif(r, analysis);
             })

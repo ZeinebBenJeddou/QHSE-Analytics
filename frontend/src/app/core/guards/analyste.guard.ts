@@ -10,13 +10,11 @@ export const analysteGuard: CanActivateFn = (): boolean => {
     if (tokenService.isAnalyste()) {
       return true;
     }
-    // Admin can view analyste pages for oversight
     if (tokenService.isAdmin()) {
       return true;
     }
   }
 
-  // Not authenticated as analyst → go to login
   router.navigate(['/auth/login']);
   return false;
 };

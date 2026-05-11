@@ -8,7 +8,6 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const tokenService = inject(TokenService);
   const router = inject(Router);
 
-  // Send the HttpOnly access_token cookie automatically on every request.
   const authReq = req.clone({ withCredentials: true });
 
   return next(authReq).pipe(

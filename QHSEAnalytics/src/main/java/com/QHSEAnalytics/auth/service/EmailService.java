@@ -25,7 +25,7 @@ public class EmailService {
     @Value("${app.frontend.url}")
     private String frontendUrl;
 
-    // vérification compte
+
     @Async
     public void sendVerificationEmail(String to, String nom, String token) {
         String link = frontendUrl + "/auth/verify?token=" + token;
@@ -40,7 +40,7 @@ public class EmailService {
         sendEmail(to, subject, body);
     }
 
-    // réinitialisation mot de passe
+
     @Async
     public void sendPasswordResetEmail(String to, String nom, String token) {
         String link = frontendUrl + "/auth/reset-password?token=" + token;
@@ -55,7 +55,7 @@ public class EmailService {
         sendEmail(to, subject, body);
     }
 
-    // code OTP
+
     @Async
     public void sendOtpEmail(String to, String nom, String code) {
         String subject = "Votre code de connexion QHSE Analytics";
@@ -82,7 +82,7 @@ public class EmailService {
       }
     }
 
-    // envoi générique
+
     private void sendEmail(String to, String subject, String htmlBody) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -98,7 +98,7 @@ public class EmailService {
         }
     }
 
-    // templates HTML
+
     private String buildHtml(String greeting, String message, String btnText, String btnLink, String footer) {
         return """
                 <!DOCTYPE html>

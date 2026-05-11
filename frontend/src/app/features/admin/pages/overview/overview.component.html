@@ -157,10 +157,8 @@
 
   @if (graphiques) {
 
-    <!-- CHARTS ROW: donut + horizontal bars -->
     <div class="charts-row">
 
-      <!-- Donut: répartition niveaux -->
       <mat-card class="glass-card">
         <mat-card-header>
           <div mat-card-avatar class="card-av-icon-wrap">
@@ -191,7 +189,6 @@
         </mat-card-content>
       </mat-card>
 
-      <!-- Horizontal bars: KPIs critiques par catégorie -->
       <mat-card class="glass-card">
         <mat-card-header>
           <div mat-card-avatar class="card-av-icon-wrap danger">
@@ -217,7 +214,6 @@
 
     </div>
 
-    <!-- Évolution par catégorie: grouped vertical bars -->
     <mat-card class="glass-card">
       <mat-card-header>
         <div mat-card-avatar class="card-av-icon-wrap">
@@ -280,7 +276,6 @@
             @for (a of analystes; track a.userId) {
 
               @if (a.dernierImportId) {
-                <!-- Analyste avec import -->
                 <li class="user-row">
                   <div class="user-avatar-sm" [class.avatar-alert]="a.statut === 'ALERTE'">
                     {{ a.prenom[0] }}{{ a.nom[0] }}
@@ -323,7 +318,6 @@
                   </div>
                 </li>
               } @else {
-                <!-- Analyste sans import -->
                 <li class="user-row user-row-inactive">
                   <div class="user-avatar-sm avatar-inactive">
                     {{ a.prenom[0] }}{{ a.nom[0] }}

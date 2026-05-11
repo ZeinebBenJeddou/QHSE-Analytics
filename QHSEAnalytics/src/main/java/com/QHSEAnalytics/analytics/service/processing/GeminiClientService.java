@@ -1,4 +1,4 @@
-// java
+
 package com.QHSEAnalytics.analytics.service.processing;
 
 import com.QHSEAnalytics.shared.dto.llm.AiResponse;
@@ -98,7 +98,7 @@ public class GeminiClientService {
                     log.warn("Gemini API 429 (attempt {}/{}). Cooling down for {}s.", attempt, maxRetries, waitSeconds);
                     return null;
                 }
-                // non-429 client error -> log and abort
+
                 log.error("Gemini API client error: {} - {}", e.getStatusCode(), e.getStatusText());
                 return null;
             } catch (Exception e) {
@@ -147,7 +147,7 @@ public class GeminiClientService {
     }
 
     private long extractRetryDelaySeconds(HttpClientErrorException e) {
-        // 1) Retry-After header (seconds)
+
         if (e.getResponseHeaders() != null) {
             String ra = e.getResponseHeaders().getFirst("Retry-After");
             if (StringUtils.hasText(ra)) {
@@ -158,7 +158,7 @@ public class GeminiClientService {
             }
         }
 
-        // 2) Parse JSON body for error.details[*].retryDelay or error.retryDelay
+
         String body = e.getResponseBodyAsString();
         if (StringUtils.hasText(body)) {
             try {

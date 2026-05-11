@@ -112,7 +112,7 @@ public class StructuredAnalysisValidator {
     }
 
     private void validateTraceability(AiTraceabilityResponse trace, List<String> errors) {
-        // modelName and generatedAt are injected by enrichStructuredResponse after validation — not validated here
+
         if (trace.getContextSourcesUsed() == null) {
             trace.setContextSourcesUsed(new ArrayList<>());
         }
@@ -244,16 +244,12 @@ public class StructuredAnalysisValidator {
         return value == null || value.isBlank();
     }
 
-    /**
-     * Clamps numeric fields to valid ranges and truncates text fields in-place.
-     * Called BEFORE validate() so out-of-range values are fixed rather than triggering a retry.
-     */
     public void sanitize(AiAnalysisStructuredResponse response) {
         if (response == null) return;
 
         response.setGlobalSummary(truncate(response.getGlobalSummary(), 3000));
 
-        // Initialize null required fields to prevent null-check failures in validate()
+
         if (response.getProbableCauses() == null) response.setProbableCauses(new ArrayList<>());
         if (response.getRecommendations() == null) response.setRecommendations(new ArrayList<>());
         if (response.getActionPlan() == null) response.setActionPlan(new ArrayList<>());

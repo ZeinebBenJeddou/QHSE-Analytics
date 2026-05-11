@@ -29,17 +29,12 @@ public class KpiProcessingOrchestratorService {
     private final MetadataEnrichmentAgent metadataEnrichmentAgent;
     private final QualityReportBuilder    qualityReportBuilder;
 
-    /**
-     * Traitement complet (import confirmé) :
-     * extraction → nettoyage → calcul → enrichissement → IA → qualityReport.
-     *
-     * Si qualityReport.blocking = true, l'appelant doit refuser la persistence.
-     */
+
     public ImportProcessingResponse process(MultipartFile file, Map<String, Integer> mapping, boolean allowPartialImport) {
         ExtractionAgent.ExtractionResult result = extractionAgent.extract(file, mapping);
         List<KpiRawDataDTO> rawData = cleaningAgent.clean(result.getRows());
 
-        // Rapport qualité construit avant le reste du pipeline
+
         ImportQualityReport qualityReport = qualityReportBuilder.build(rawData, allowPartialImport);
         qualityReport.setExtractionIssues(result.getExtractionIssues() == null ? List.of() : List.copyOf(result.getExtractionIssues()));
 
@@ -92,10 +87,7 @@ public class KpiProcessingOrchestratorService {
                 .build();
     }
 
-    /**
-     * Prévisualisation rapide (sans IA globale, sans persistence) :
-     * extraction → nettoyage → calcul → métadonnées → qualityReport.
-     */
+
     public ImportProcessingResponse preview(MultipartFile file, Map<String, Integer> mapping) {
         ExtractionAgent.ExtractionResult result = extractionAgent.extract(file, mapping);
         List<KpiRawDataDTO> rawData = cleaningAgent.clean(result.getRows());

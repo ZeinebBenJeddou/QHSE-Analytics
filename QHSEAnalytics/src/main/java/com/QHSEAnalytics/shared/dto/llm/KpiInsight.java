@@ -26,22 +26,22 @@ public class KpiInsight {
     @JsonProperty("aiNote")
     private String aiNote;
 
-    // Additional enrichment fields (French + English variants)
+
     @JsonProperty("identificationRisque")
     private String identificationRisque;
-    
+
     @JsonProperty("riskJustification")
     private String riskJustification;
 
     @JsonProperty("problemeDetecte")
     private String problemeDetecte;
-    
+
     @JsonProperty("issueDetected")
     private String issueDetected;
 
     @JsonProperty("actionsPreventives")
     private String actionsPreventives;
-    
+
     @JsonProperty("preventiveAction")
     private String preventiveAction;
 

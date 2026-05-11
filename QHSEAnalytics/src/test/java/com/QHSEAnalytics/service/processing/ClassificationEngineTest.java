@@ -35,8 +35,7 @@ class ClassificationEngineTest {
                 .categorieKpi(CategorieKpi.builder().code("S").libelle("Sécurité").build())
                 .seuilFaible(1.0).seuilModere(5.0).seuilCritique(10.0)
                 .build();
-        // ComparativeCalculator infers LOWER_IS_BETTER from the name "incidents".
-        // Reduction 20→10 (magnitude 10) >> seuilFaible*1.5 (1.5) → EXCELLENT is correct.
+
         ComparativeCalculator.ComparativeResult comp = compCalc.compute(k, 20d, 10d);
         ClassificationEngine.ClassificationResult res = engine.classify(k, comp, null);
         assertEquals("EXCELLENT", res.getClassification());
@@ -88,7 +87,7 @@ class ClassificationEngineTest {
         ComparativeCalculator.ComparativeResult comp = compCalc.compute(k, 95d, 102d);
         ClassificationEngine.ClassificationResult res = engine.classify(k, comp, null);
 
-        // Degradation from 95 to 102 (moving away from target 100) should be classified
+
         assertEquals("FAIBLE", res.getClassification());
         assertFalse(res.isReviewRequired());
     }

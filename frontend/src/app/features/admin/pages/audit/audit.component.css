@@ -102,7 +102,6 @@ h1 { margin: 0; font-size: 1.45rem; font-weight: 700; color: var(--ink); letter-
 }
 .empty-state mat-icon { font-size: 36px !important; width: 36px !important; height: 36px !important; opacity: 0.35; }
 
-/* Table */
 .table-wrap { overflow-x: auto; }
 .audit-table {
   width: 100%;
@@ -136,7 +135,6 @@ h1 { margin: 0; font-size: 1.45rem; font-weight: 700; color: var(--ink); letter-
   max-width: 260px; display: block; cursor: default;
 }
 
-/* Action chips */
 .action-chip {
   display: inline-block; font-size: 0.68rem; font-family: var(--font-mono);
   font-weight: 600; padding: 3px 10px; border-radius: 20px; white-space: nowrap;
@@ -148,7 +146,6 @@ h1 { margin: 0; font-size: 1.45rem; font-weight: 700; color: var(--ink); letter-
 .chip-promote  { background: var(--purple-soft); color: var(--purple); }
 .chip-demote   { background: var(--amber-soft);  color: var(--amber); }
 
-/* Pagination */
 .pagination {
   display: flex; align-items: center; justify-content: center;
   gap: 4px; padding: 16px 0 4px; border-top: 1px solid var(--border);

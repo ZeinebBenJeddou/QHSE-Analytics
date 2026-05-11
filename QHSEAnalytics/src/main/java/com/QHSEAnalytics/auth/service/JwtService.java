@@ -24,7 +24,7 @@ public class JwtService {
     @Value("${app.jwt.access-token-expiration}")
     private long accessTokenExpiration;
 
-    // génération
+
     public String generateAccessToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", userDetails.getAuthorities().iterator().next().getAuthority());
@@ -41,7 +41,7 @@ public class JwtService {
                 .compact();
     }
 
-    // extraction
+
     public String extractEmail(String token) {
         return extractClaim(token, Claims::getSubject);
     }
@@ -58,7 +58,7 @@ public class JwtService {
                 .getPayload();
     }
 
-    // validation
+
     public boolean isTokenValid(String token, UserDetails userDetails) {
         try {
             final String email = extractEmail(token);
@@ -73,7 +73,7 @@ public class JwtService {
         return extractClaim(token, Claims::getExpiration).before(new Date());
     }
 
-    // key
+
     private SecretKey getSigningKey() {
         byte[] keyBytes = Decoders.BASE64.decode(
                 java.util.Base64.getEncoder().encodeToString(secretKey.getBytes())

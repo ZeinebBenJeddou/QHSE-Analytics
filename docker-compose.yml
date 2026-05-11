@@ -1,8 +1,8 @@
 services:
 
-  # ── Base de données PostgreSQL ──────────────────────────
+  #PostgreSQL
   postgres:
-    image: postgres:15-alpine
+    image: pgvector/pgvector:pg16
     container_name: qhse_postgres
     restart: unless-stopped
     environment:
@@ -22,7 +22,7 @@ services:
       retries: 5
       start_period: 10s
 
-  # ── Backend Spring Boot ─────────────────────────────────
+  #Backend
   backend:
     build:
       context: ./QHSEAnalytics
@@ -45,14 +45,18 @@ services:
       # Admin
       ADMIN_EMAIL: ${ADMIN_EMAIL}
       ADMIN_DEFAULT_PASSWORD: ${ADMIN_DEFAULT_PASSWORD}
-      # Groq IA (plusieurs clés séparées par virgule)
+      # Groq 
       GROQ_API_KEYS: ${GROQ_API_KEYS}
-      # Gemini IA (fallback)
+      # Gemini (fallback)
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      # Frontend URL (pour les liens dans les emails)
+      # Frontend URL 
       APP_FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost}
     ports:
       - "8081:8080"
+    volumes:
+      - backend_storage:/app/storage/imports
+      - backend_logs:/app/logs
     networks:
       - qhse_network
     healthcheck:
@@ -63,7 +67,7 @@ services:
       retries: 5
       start_period: 60s
 
-  # ── Frontend Angular + Nginx ────────────────────────────
+  #Frontend
   frontend:
     build:
       context: ./frontend
@@ -83,12 +87,16 @@ services:
       timeout: 5s
       retries: 3
 
-# ── Volumes persistants ─────────────────────────────────
+#Volumes
 volumes:
   postgres_data:
     driver: local
+  backend_storage:
+    driver: local
+  backend_logs:
+    driver: local
 
-# ── Réseau interne ──────────────────────────────────────
+#Réseau interne 
 networks:
   qhse_network:
     driver: bridge

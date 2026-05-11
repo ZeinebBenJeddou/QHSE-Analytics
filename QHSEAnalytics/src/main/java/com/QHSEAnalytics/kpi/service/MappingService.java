@@ -28,16 +28,12 @@ public class MappingService {
     private final MappingConfigRepository mappingConfigRepository;
     private final KpiRepository kpiRepository;
 
-    // ── Read ─────────────────────────────────────────────────────────────────
 
-    /**
-     * Returns all mapping templates owned by the given user, grouped as response objects.
-     */
     public List<MappingTemplateResponse> getTemplates(Long userId) {
         List<MappingConfig> configs = mappingConfigRepository
                 .findByUserIdOrderByTemplateNameAscCreatedAtDesc(userId);
 
-        // Group by (id of first item in template, templateName) – use templateName as key for grouping
+
         Map<String, List<MappingConfig>> grouped = configs.stream()
                 .collect(Collectors.groupingBy(MappingConfig::getTemplateName, LinkedHashMap::new, Collectors.toList()));
 
@@ -46,14 +42,10 @@ public class MappingService {
                 .toList();
     }
 
-    // ── Write ─────────────────────────────────────────────────────────────────
 
-    /**
-     * Creates or replaces a named template for the user.
-     */
     @Transactional
     public MappingTemplateResponse saveTemplate(Long userId, MappingTemplateRequest request) {
-        // Delete existing rows for this template name (idempotent save)
+
         mappingConfigRepository.deleteByUserIdAndTemplateName(userId, request.getTemplateName().trim());
 
         List<MappingConfig> toSave = new ArrayList<>();
@@ -77,7 +69,7 @@ public class MappingService {
         return toTemplateResponse(request.getTemplateName(), saved);
     }
 
-    // ── Delete ─────────────────────────────────────────────────────────────────
+
 
     @Transactional
     public void deleteTemplate(Long id, Long userId) {
@@ -89,12 +81,7 @@ public class MappingService {
         log.info("Template '{}' supprimé pour userId={}", config.getTemplateName(), userId);
     }
 
-    // ── Mapping ─────────────────────────────────────────────────────────────────
 
-    /**
-     * Returns the KPI match for a given Excel column label from a user's saved template.
-     * Used by the manual import flow.
-     */
     public Map<String, Kpi> resolveMapping(Long userId, String templateName) {
         List<MappingConfig> configs = mappingConfigRepository
                 .findByUserIdAndTemplateName(userId, templateName);
@@ -107,10 +94,10 @@ public class MappingService {
         return result;
     }
 
-    // ── Helpers ─────────────────────────────────────────────────────────────────
+
 
     private MappingTemplateResponse toTemplateResponse(String name, List<MappingConfig> configs) {
-        // Use the ID of the first record as the template ID (client-facing)
+
         Long templateId = configs.isEmpty() ? null : configs.get(0).getId();
         return MappingTemplateResponse.builder()
                 .id(templateId)

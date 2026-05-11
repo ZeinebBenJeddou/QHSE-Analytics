@@ -5,11 +5,7 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
-/**
- * Stores a snapshot of every KPI row from the "Aperçu des données" table
- * so that the raw import data is preserved independently of the processed
- * ResultatKpi records.
- */
+
 @Entity
 @Table(name = "kpi_import_preview")
 @Getter
@@ -45,7 +41,7 @@ public class KpiImportPreview {
     @Column(name = "value_n1")
     private Double valueN1;
 
-    /** Human-readable status label e.g. "Bon", "À surveiller", "Critique" */
+
     @Column(name = "status", length = 50)
     private String status;
 

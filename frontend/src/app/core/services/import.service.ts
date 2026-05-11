@@ -50,22 +50,18 @@ export class ImportService {
     return this.http.post<ColumnProfileDTO[]>(`${this.manualBase}/profile`, form);
   }
 
-  /** Confirm strict (default) — no partial import */
   confirmStrict(file: File, yearN: number, yearNMinus1: number, mapping: Record<string, number>, clientId?: string): Observable<ImportProcessingResponse> {
     return this.processManualImport(file, yearN, yearNMinus1, mapping, false, clientId);
   }
 
-  /** Confirm partial — import only valid rows */
   confirmPartial(file: File, yearN: number, yearNMinus1: number, mapping: Record<string, number>, clientId?: string): Observable<ImportProcessingResponse> {
     return this.processManualImport(file, yearN, yearNMinus1, mapping, true, clientId);
   }
 
-  /** Cancel an import session */
   annuler(sessionId: number): Observable<{ message: string }> {
     return this.http.delete<{ message: string }>(`${this.importBase}/${sessionId}`);
   }
 
-  /** Get import history summary (analyste dashboard) */
   getHistoriqueAnalyste(): Observable<HistoriqueAnalysteResponse> {
     return this.http.get<HistoriqueAnalysteResponse>(`${environment.apiUrl}/api/dashboard/analyste/historique`);
   }

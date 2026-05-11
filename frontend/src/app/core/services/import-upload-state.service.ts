@@ -18,7 +18,7 @@ export class ImportUploadStateService {
   readonly upload$ = this.uploadSubject.asObservable();
   readonly response$ = this.responseSubject.asObservable();
 
-  // Synchronous snapshot access — safe to use from ngOnInit / resolvers
+ 
   getUpload(): ImportUploadState | null { return this.uploadSubject.getValue(); }
   getResponse(): ImportProcessingResponse | null { return this.responseSubject.getValue(); }
 

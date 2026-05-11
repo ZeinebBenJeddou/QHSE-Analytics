@@ -34,7 +34,7 @@ public class LlmProviderChain {
     private final MeterRegistry meterRegistry;
     private final CacheManager cacheManager;
 
-    // Pool partagé — évite de créer un thread à chaque appel LLM
+
     private final ExecutorService sharedExecutor = Executors.newCachedThreadPool(r -> {
         Thread t = new Thread(r, "llm-chain-worker");
         t.setDaemon(true);

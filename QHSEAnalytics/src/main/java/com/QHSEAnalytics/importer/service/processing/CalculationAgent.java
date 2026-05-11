@@ -48,7 +48,7 @@ public class CalculationAgent {
                 .toList();
     }
 
-    /** P2.3 — Composite scores aggregated by category from already-calculated rows. */
+
     public List<CategoryScoreDTO> computeCategoryScores(List<KpiCalculatedDTO> calculated) {
         Map<String, List<KpiCalculatedDTO>> byCode = calculated.stream()
                 .filter(k -> k.getCategorieCode() != null)
@@ -70,7 +70,7 @@ public class CalculationAgent {
             int critique = count(items, "CRITIQUE");
             int total = items.size();
 
-            // Weighted score — each level contributes proportionally
+
             double score = total == 0 ? 0 :
                 (excellent * 100.0 + faible * 80.0 + indetermine * 50.0
                 + modere * 40.0 + preEscalade * 20.0 + critique * 0.0) / total;
@@ -98,7 +98,7 @@ public class CalculationAgent {
         }).sorted(Comparator.comparingDouble(CategoryScoreDTO::getCompositeScore)).toList();
     }
 
-    // ── Private helpers ──────────────────────────────────────────────────────
+
 
     private Map<String, Kpi> buildKpiLookup(List<Kpi> activeKpis) {
         Map<String, Kpi> lookup = new HashMap<>();
@@ -172,7 +172,7 @@ public class CalculationAgent {
                 ? getBooleanTendance(valN1, valN)
                 : (variationPercentage != null ? computeTendance(variationPercentage).name() : "STABLE");
 
-        // P3.1 — SPC
+
         Double spcMean = null, spcStd = null, spcUcl = null, spcLcl = null;
         Boolean spcOutOfControl = null;
         if (!isBoolean && historicalSeries.size() >= 5) {
@@ -183,7 +183,7 @@ public class CalculationAgent {
             spcOutOfControl = valN != null && (valN > spcUcl || valN < spcLcl);
         }
 
-        // P2.2 — Risk matrix
+
         int[] risk = computeRisk(classification, tendance, categorieCode, comp != null ? comp.getDirection() : null);
 
         KpiCalculatedDTO.KpiCalculatedDTOBuilder builder = KpiCalculatedDTO.builder()
@@ -232,7 +232,7 @@ public class CalculationAgent {
         return builder.build();
     }
 
-    // ── P2.1 Jaro-Winkler matching ────────────────────────────────────────
+
 
     private record MatchResult(Kpi kpi, Double confidence) {}
 
@@ -240,10 +240,10 @@ public class CalculationAgent {
         if (row.getKpiName() == null || row.getKpiName().isBlank()) return new MatchResult(null, null);
         String normalized = normalize(row.getKpiName());
 
-        // 1. Exact match
+
         if (byName.containsKey(normalized)) return new MatchResult(byName.get(normalized), null);
 
-        // 2. Substring containment fallback
+
         for (Map.Entry<String, Kpi> entry : byName.entrySet()) {
             String key = entry.getKey();
             if (normalized.contains(key) || key.contains(normalized)) {
@@ -251,7 +251,7 @@ public class CalculationAgent {
             }
         }
 
-        // 3. Jaro-Winkler fuzzy match
+
         Kpi best = null;
         double bestScore = 0.0;
         for (Map.Entry<String, Kpi> entry : byName.entrySet()) {
@@ -300,7 +300,7 @@ public class CalculationAgent {
                 + (matches - t / 2.0) / matches) / 3.0;
     }
 
-    // ── P3.1 SPC helpers ─────────────────────────────────────────────────
+
 
     private double mean(List<Double> data) {
         return data.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
@@ -314,9 +314,9 @@ public class CalculationAgent {
         return Math.sqrt(variance);
     }
 
-    // ── P2.2 Risk matrix helpers ──────────────────────────────────────────
 
-    /** Returns [probability 1-5, impact 1-5]. */
+
+
     private int[] computeRisk(String classification, String tendance, String categoryCode, Direction direction) {
         int probability = switch (classification) {
             case "CRITIQUE"     -> 5;
@@ -324,18 +324,18 @@ public class CalculationAgent {
             case "MODERE"       -> 3;
             case "FAIBLE"       -> 2;
             case "EXCELLENT"    -> 1;
-            default             -> 2; // INDETERMINE
+            default             -> 2;
         };
         if (isWorseningTrend(tendance, direction)) probability = Math.min(5, probability + 1);
 
         int impact = switch (categoryCode != null ? categoryCode : "") {
-            case "S"  -> 5; // Sécurité — impact humain max
-            case "E"  -> 4; // Environnement
-            case "Q"  -> 3; // Qualité
-            case "H"  -> 3; // Hygiène
+            case "S"  -> 5;
+            case "E"  -> 4;
+            case "Q"  -> 3;
+            case "H"  -> 3;
             default   -> 2;
         };
-        // Increase impact for critique/pre-escalade regardless of category
+
         if ("CRITIQUE".equals(classification))     impact = Math.min(5, impact + 1);
         if ("PRE_ESCALADE".equals(classification)) impact = Math.min(5, impact + 1);
 
@@ -370,7 +370,7 @@ public class CalculationAgent {
         return "Faible";
     }
 
-    // ── General helpers ───────────────────────────────────────────────────
+
 
     private int count(List<KpiCalculatedDTO> items, String level) {
         return (int) items.stream()

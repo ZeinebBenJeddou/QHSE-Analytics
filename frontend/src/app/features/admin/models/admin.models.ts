@@ -185,7 +185,6 @@ export interface AuditPageResponse {
   size: number;
 }
 
-// ── RAG Knowledge Base ──────────────────────────────────────────────────────
 
 export interface RagKnowledgeResponse {
   id: number;
@@ -218,7 +217,6 @@ export interface RagSearchTestResultItem {
   definition: string | null;
 }
 
-// ── Data Retention ─────────────────────────────────────────────────────────
 
 export interface DataRetentionPolicyResponse {
   rawRetentionDays: number;
@@ -232,7 +230,6 @@ export interface DataRetentionPolicyResponse {
   lastPreviewRowsDeleted: number | null;
 }
 
-// ── AI Config ───────────────────────────────────────────────────────────────
 
 export interface AiConfigResponse {
   key: string;
@@ -245,7 +242,6 @@ export interface AiConfigUpdateRequest {
   value: string;
 }
 
-// ── IA Health ───────────────────────────────────────────────────────────────
 
 export interface ProviderStatusResponse {
   name: string;

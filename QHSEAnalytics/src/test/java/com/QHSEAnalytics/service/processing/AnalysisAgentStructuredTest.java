@@ -123,7 +123,7 @@ class AnalysisAgentStructuredTest {
                     "recommendations": [{"title": "Rec 1", "rationale": "Rationale", "expectedBenefit": "Benefit", "urgency": "HIGH"}],
                     "actionPlan": [{"action": "Action 1", "priority": "HIGH", "ownerRole": "Owner", "dueHorizon": "Q1", "successMetric": "Metric", "riskIfNotDone": "Risk"}],
                     "traceability": {"modelName": "test", "generatedAt": "2023-01-01T00:00:00Z", "contextSourcesUsed": [{"sourceName": "source", "relevanceScore": 80}]},
-                    "kpiInsights": [{"kpiName": "Test KPI", "confidence": 75.0, "insight": "Insight", "probableCauses": [], "recommendations": [], "actionImmediate": "Action", "urgency": "HIGH", "ownerRole": "Owner", "dueHorizon": "Q1", "successMetric": "Metric", "riskIfNotDone": "Risk"}]
+                    "kpiInsights": [{"kpiName": "Test KPI", "confidence": 75.0, "insight": "Insight detaille sur la variation observee avec impact operationnel concret.", "probableCauses": [], "recommendations": [], "actionImmediate": "Action immediate detaillee a lancer avec responsable et delai clairs.", "urgency": "HIGH", "ownerRole": "Owner", "dueHorizon": "Q1", "successMetric": "Metric", "riskIfNotDone": "Risk"}]
                 }
                 """;
 
@@ -155,7 +155,7 @@ class AnalysisAgentStructuredTest {
                     "recommendations": [],
                     "actionPlan": [],
                     "traceability": {"modelName": "test", "generatedAt": "2023-01-01T00:00:00Z", "contextSourcesUsed": []},
-                    "kpiInsights": []
+                    "kpiInsights": [{"kpiName": "Test KPI", "confidence": 75.0, "insight": "Insight detaille mais volontairement invalide pour declencher le retry metier.", "probableCauses": [], "recommendations": [], "actionImmediate": "Action immediate detaillee pour eviter un classement generique du resultat.", "urgency": "HIGH", "ownerRole": "Owner", "dueHorizon": "Q1", "successMetric": "Metric", "riskIfNotDone": "Risk"}]
                 }
                 """;
 
@@ -167,7 +167,7 @@ class AnalysisAgentStructuredTest {
                     "recommendations": [{"title": "Rec 1", "rationale": "Rationale", "expectedBenefit": "Benefit", "urgency": "HIGH"}],
                     "actionPlan": [{"action": "Action 1", "priority": "HIGH", "ownerRole": "Owner", "dueHorizon": "Q1", "successMetric": "Metric", "riskIfNotDone": "Risk"}],
                     "traceability": {"modelName": "test", "generatedAt": "2023-01-01T00:00:00Z", "contextSourcesUsed": [{"sourceName": "source", "relevanceScore": 80}]},
-                    "kpiInsights": [{"kpiName": "Test KPI", "confidence": 75.0, "insight": "Insight", "probableCauses": [], "recommendations": [], "actionImmediate": "Action", "urgency": "HIGH", "ownerRole": "Owner", "dueHorizon": "Q1", "successMetric": "Metric", "riskIfNotDone": "Risk"}]
+                    "kpiInsights": [{"kpiName": "Test KPI", "confidence": 75.0, "insight": "Insight detaille apres retry avec cause probable et consequence metier explicites.", "probableCauses": [], "recommendations": [], "actionImmediate": "Action immediate detaillee apres retry avec etapes concretes a suivre.", "urgency": "HIGH", "ownerRole": "Owner", "dueHorizon": "Q1", "successMetric": "Metric", "riskIfNotDone": "Risk"}]
                 }
                 """;
 
@@ -200,7 +200,7 @@ class AnalysisAgentStructuredTest {
                     "recommendations": [],
                     "actionPlan": [],
                     "traceability": {"modelName": "test", "generatedAt": "2023-01-01T00:00:00Z", "contextSourcesUsed": []},
-                    "kpiInsights": []
+                    "kpiInsights": [{"kpiName": "Test KPI", "confidence": 75.0, "insight": "Insight detaille mais conserve un contenu invalide pour le validateur metier.", "probableCauses": [], "recommendations": [], "actionImmediate": "Action immediate detaillee afin de passer le filtre de genericite du service.", "urgency": "HIGH", "ownerRole": "Owner", "dueHorizon": "Q1", "successMetric": "Metric", "riskIfNotDone": "Risk"}]
                 }
                 """;
 
@@ -233,7 +233,7 @@ class AnalysisAgentStructuredTest {
                     "recommendations": [{"title": "Rec 1", "rationale": "Rationale", "expectedBenefit": "Benefit", "urgency": "HIGH"}],
                     "actionPlan": [{"action": "Action 1", "priority": "HIGH", "ownerRole": "Owner", "dueHorizon": "Q1", "successMetric": "Metric", "riskIfNotDone": "Risk"}],
                     "traceability": {"modelName": "fake-llm", "generatedAt": "2024-01-01T00:00:00Z", "contextSourcesUsed": [{"sourceName": "source", "relevanceScore": 80}]},
-                    "kpiInsights": [{"kpiId": 42, "kpiName": "Test KPI", "confidence": 75.0, "insight": "Insight", "probableCauses": [], "recommendations": [], "actionImmediate": "Action", "urgency": "HIGH", "ownerRole": "Owner", "dueHorizon": "Q1", "successMetric": "Metric", "riskIfNotDone": "Risk"}]
+                    "kpiInsights": [{"kpiId": 42, "kpiName": "Test KPI", "confidence": 75.0, "insight": "Insight detaille qui doit etre conserve mais avec une traceabilite ecrasee par le serveur.", "probableCauses": [], "recommendations": [], "actionImmediate": "Action immediate detaillee qui satisfait les controles de richesse du contenu.", "urgency": "HIGH", "ownerRole": "Owner", "dueHorizon": "Q1", "successMetric": "Metric", "riskIfNotDone": "Risk"}]
                 }
                 """;
 
@@ -291,7 +291,7 @@ class AnalysisAgentStructuredTest {
     }
 
     @Test
-    void analyzeStructured_shouldRetryOnlyIncompleteChunk() {
+    void analyzeStructured_shouldReturnPartialWhenChunkCoverageIsIncomplete() {
         var kpiData = IntStream.rangeClosed(1, 10)
                 .mapToObj(index -> KpiCalculatedDTO.builder()
                         .kpiName("KPI " + index)
@@ -304,26 +304,21 @@ class AnalysisAgentStructuredTest {
             List<KpiCalculatedDTO> chunk = invocation.getArgument(0);
             return "prompt-" + chunk.get(0).getKpiName();
         });
-        when(structuredAnalysisPromptBuilder.buildRetryPrompt(eq("prompt-KPI 1"), anyString()))
-                .thenReturn("retry-KPI 1");
         when(llmProviderChain.generate(eq("prompt-KPI 1"), contains("chunk=1"), eq(false)))
                 .thenReturn(new LlmProviderChain.ProviderResult(buildStructuredJsonRange(1, 4, "Summary 1 partial"), "groq"));
-        when(llmProviderChain.generate(eq("retry-KPI 1"), contains("chunk=1"), eq(false)))
-                .thenReturn(new LlmProviderChain.ProviderResult(buildStructuredJsonRange(1, 5, "Summary 1 retry"), "groq"));
         when(llmProviderChain.generate(eq("prompt-KPI 6"), contains("chunk=2"), eq(false)))
                 .thenReturn(new LlmProviderChain.ProviderResult(buildStructuredJsonRange(6, 10, "Summary 2"), "groq"));
         when(structuredAnalysisValidator.validate(any(), any())).thenReturn(List.of());
 
         var result = analysisAgent.analyzeStructured(kpiData, 322L);
 
-        assertThat(result.getStatus()).isEqualTo("SUCCESS");
-        assertThat(result.getKpiInsights()).hasSize(10);
-        verify(structuredAnalysisPromptBuilder, times(1)).buildRetryPrompt(eq("prompt-KPI 1"), anyString());
-        verify(llmProviderChain).generate(eq("retry-KPI 1"), contains("chunk=1"), eq(false));
+        assertThat(result.getStatus()).isEqualTo("PARTIAL");
+        assertThat(result.getFallbackReason()).contains("coverage incomplete after chunk merge: missing 1 KPI(s)");
+        assertThat(result.getKpiInsights()).hasSize(9);
     }
 
     @Test
-    void analyzeStructured_shouldReturnPartialWhenChunkRemainsIncompleteAfterRetry() {
+    void analyzeStructured_shouldReturnPartialWhenChunkCoverageRemainsIncomplete() {
         var kpiData = IntStream.rangeClosed(1, 10)
                 .mapToObj(index -> KpiCalculatedDTO.builder()
                         .kpiName("KPI " + index)
@@ -336,12 +331,8 @@ class AnalysisAgentStructuredTest {
             List<KpiCalculatedDTO> chunk = invocation.getArgument(0);
             return "prompt-" + chunk.get(0).getKpiName();
         });
-        when(structuredAnalysisPromptBuilder.buildRetryPrompt(eq("prompt-KPI 1"), anyString()))
-                .thenReturn("retry-KPI 1");
         when(llmProviderChain.generate(eq("prompt-KPI 1"), contains("chunk=1"), eq(false)))
                 .thenReturn(new LlmProviderChain.ProviderResult(buildStructuredJsonRange(1, 4, "Summary 1 partial"), "groq"));
-        when(llmProviderChain.generate(eq("retry-KPI 1"), contains("chunk=1"), eq(false)))
-                .thenReturn(new LlmProviderChain.ProviderResult(buildStructuredJsonRange(1, 4, "Summary 1 still partial"), "groq"));
         when(llmProviderChain.generate(eq("prompt-KPI 6"), contains("chunk=2"), eq(false)))
                 .thenReturn(new LlmProviderChain.ProviderResult(buildStructuredJsonRange(6, 10, "Summary 2"), "groq"));
         when(structuredAnalysisValidator.validate(any(), any())).thenReturn(List.of());
@@ -349,8 +340,8 @@ class AnalysisAgentStructuredTest {
         var result = analysisAgent.analyzeStructured(kpiData, 323L);
 
         assertThat(result.getStatus()).isEqualTo("PARTIAL");
-        assertThat(result.getFallbackReason()).contains("chunk 1/2");
-        assertThat(result.getKpiInsights()).hasSize(5);
+        assertThat(result.getFallbackReason()).contains("coverage incomplete after chunk merge: missing 1 KPI(s)");
+        assertThat(result.getKpiInsights()).hasSize(9);
     }
 
     private String buildStructuredJsonRange(int startIndex, int endIndex, String summary) {
@@ -360,7 +351,7 @@ class AnalysisAgentStructuredTest {
                 insights.append(",");
             }
             insights.append(String.format("""
-                {"kpiId": %d, "kpiName": "KPI %d", "confidence": 75.0, "insight": "Insight %d", "probableCauses": ["Cause %d"], "recommendations": ["Rec %d"], "actionImmediate": "Action %d", "urgency": "HIGH", "ownerRole": "Owner", "dueHorizon": "Q1", "successMetric": "Metric", "riskIfNotDone": "Risk"}
+                {"kpiId": %d, "kpiName": "KPI %d", "confidence": 75.0, "insight": "Insight %d detaille avec impact operationnel concret et causes plausibles explicites.", "probableCauses": ["Cause %d"], "recommendations": ["Rec %d"], "actionImmediate": "Action %d detaillee a executer avec suivi, delai et responsable identifies.", "urgency": "HIGH", "ownerRole": "Owner", "dueHorizon": "Q1", "successMetric": "Metric", "riskIfNotDone": "Risk"}
                 """, index, index, index, index, index, index).trim());
         }
 

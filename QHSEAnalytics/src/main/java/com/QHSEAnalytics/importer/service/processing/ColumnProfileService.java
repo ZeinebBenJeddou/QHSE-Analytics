@@ -21,7 +21,7 @@ public class ColumnProfileService {
 
     private static final int MAX_SAMPLE = 5;
 
-    // Same synonym sets as ExtractionAgent for semantic inference
+
     private static final Set<String> KPI_NAME_SYNONYMS = Set.of(
             "kpi", "indicateur", "indicateur qhse", "libelle",
             "nom indicateur", "metric", "nom kpi", "designation");
@@ -52,7 +52,7 @@ public class ColumnProfileService {
             DataFormatter formatter = new DataFormatter(Locale.ROOT);
             FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
 
-            // Detect header row (first non-blank row)
+
             int headerRowIndex = 0;
             for (int i = 0; i <= Math.min(10, sheet.getLastRowNum()); i++) {
                 Row r = sheet.getRow(i);
@@ -72,12 +72,12 @@ public class ColumnProfileService {
                 String header = cellStr(headerRow.getCell(col), formatter, evaluator);
                 if (header == null || header.isBlank()) continue;
 
-                // Gather all cell values for this column (skip header row)
+
                 List<String> allValues = new ArrayList<>();
                 for (int row = headerRowIndex + 1; row <= sheet.getLastRowNum(); row++) {
                     Row dataRow = sheet.getRow(row);
                     String val = cellStr(dataRow == null ? null : dataRow.getCell(col), formatter, evaluator);
-                    allValues.add(val); // may be null
+                    allValues.add(val);
                 }
 
                 int totalRows = allValues.size();
@@ -87,10 +87,10 @@ public class ColumnProfileService {
                         .toList();
                 long uniqueCount = nonNull.stream().map(String::trim).distinct().count();
 
-                // Type inference
+
                 String inferredType = inferType(nonNull);
 
-                // Numeric stats
+
                 Double numMin = null, numMax = null, numMean = null;
                 if ("NUMERIC".equals(inferredType)) {
                     List<Double> nums = nonNull.stream()
@@ -105,12 +105,12 @@ public class ColumnProfileService {
                     }
                 }
 
-                // Sample values (up to MAX_SAMPLE)
+
                 List<String> samples = nonNull.stream()
                         .limit(MAX_SAMPLE)
                         .toList();
 
-                // Semantic inference from header name
+
                 String normalizedHeader = normalize(header);
                 String[] semanticAndConf = inferSemantic(normalizedHeader);
 
@@ -138,11 +138,11 @@ public class ColumnProfileService {
         }
     }
 
-    // ── Private helpers ──────────────────────────────────────────────────────
+
 
     private Sheet selectSheet(Workbook wb) {
         if (wb.getNumberOfSheets() == 0) return null;
-        // Prefer sheet named "données", "data", "kpi", "qhse"; else first sheet
+
         for (int i = 0; i < wb.getNumberOfSheets(); i++) {
             String name = normalize(wb.getSheetName(i));
             if (name.contains("donn") || name.contains("data") || name.contains("kpi") || name.contains("qhse")) {

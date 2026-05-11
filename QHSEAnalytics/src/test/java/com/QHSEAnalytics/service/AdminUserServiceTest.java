@@ -16,6 +16,8 @@ import com.QHSEAnalytics.shared.repository.AnalyseCategorieRepository;
 import com.QHSEAnalytics.shared.repository.AnalyseGlobaleRepository;
 import com.QHSEAnalytics.shared.repository.ImportSessionRepository;
 import com.QHSEAnalytics.shared.repository.KpiAnalysisRepository;
+import com.QHSEAnalytics.shared.repository.KpiImportPreviewRepository;
+import com.QHSEAnalytics.shared.repository.KpiRawDataRepository;
 import com.QHSEAnalytics.shared.repository.ResultatKpiRepository;
 import com.QHSEAnalytics.shared.repository.StagingDonneeRepository;
 import org.junit.jupiter.api.Test;
@@ -42,6 +44,8 @@ class AdminUserServiceTest {
         StagingDonneeRepository stagingDonneeRepository = Mockito.mock(StagingDonneeRepository.class);
         ResultatKpiRepository resultatKpiRepository = Mockito.mock(ResultatKpiRepository.class);
         KpiAnalysisRepository kpiAnalysisRepository = Mockito.mock(KpiAnalysisRepository.class);
+        KpiImportPreviewRepository kpiImportPreviewRepository = Mockito.mock(KpiImportPreviewRepository.class);
+        KpiRawDataRepository kpiRawDataRepository = Mockito.mock(KpiRawDataRepository.class);
         AnalyseCategorieRepository analyseCategorieRepository = Mockito.mock(AnalyseCategorieRepository.class);
         AnalyseGlobaleRepository analyseGlobaleRepository = Mockito.mock(AnalyseGlobaleRepository.class);
 
@@ -57,6 +61,8 @@ class AdminUserServiceTest {
                 stagingDonneeRepository,
                 resultatKpiRepository,
                 kpiAnalysisRepository,
+                kpiImportPreviewRepository,
+                kpiRawDataRepository,
                 analyseCategorieRepository,
                 analyseGlobaleRepository
         );
@@ -94,6 +100,8 @@ class AdminUserServiceTest {
                 kpiAnalysisRepository,
                 analyseCategorieRepository,
                 analyseGlobaleRepository,
+                kpiImportPreviewRepository,
+                kpiRawDataRepository,
                 resultatKpiRepository,
                 stagingDonneeRepository
         );
@@ -101,6 +109,8 @@ class AdminUserServiceTest {
         inOrder.verify(kpiAnalysisRepository).deleteByImportSessionId(12L);
         inOrder.verify(analyseCategorieRepository).deleteByImportSessionId(12L);
         inOrder.verify(analyseGlobaleRepository).deleteByImportSessionId(12L);
+        inOrder.verify(kpiImportPreviewRepository).deleteByImportSessionId(12L);
+        inOrder.verify(kpiRawDataRepository).deleteByImportSessionId(12L);
         inOrder.verify(resultatKpiRepository).deleteByImportSessionId(12L);
         inOrder.verify(stagingDonneeRepository).deleteByImportSessionId(12L);
         inOrder.verify(importSessionRepository).deleteByUserId(5L);

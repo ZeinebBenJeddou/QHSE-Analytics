@@ -45,7 +45,7 @@ class InMemoryRateLimiterTest {
         for (int i = 0; i < 3; i++) {
             rateLimiter.allowRequest("1.1.1.1", "/api/auth/login");
         }
-        // 1.1.1.1 est saturée mais 2.2.2.2 ne l'est pas
+
         assertThat(rateLimiter.allowRequest("1.1.1.1", "/api/auth/login")).isFalse();
         assertThat(rateLimiter.allowRequest("2.2.2.2", "/api/auth/login")).isTrue();
     }

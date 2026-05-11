@@ -173,7 +173,6 @@ export class AdminService {
     return this.http.get<HistoriqueAnalysteResponse>(`${this.dashboardBase}/historique`);
   }
 
-  // ── RAG Knowledge Base ────────────────────────────────────────────────────
 
   getRagEntries(): Observable<RagKnowledgeResponse[]> {
     return this.http.get<RagKnowledgeResponse[]>(`${this.adminBase}/rag`);
@@ -195,7 +194,6 @@ export class AdminService {
     return this.http.post<RagSearchTestResultItem[]>(`${this.adminBase}/rag/search`, request);
   }
 
-  // ── Data Retention ───────────────────────────────────────────────────────
 
   getDataRetention(): Observable<DataRetentionPolicyResponse> {
     return this.http.get<DataRetentionPolicyResponse>(`${this.adminBase}/data-retention`);
@@ -211,7 +209,6 @@ export class AdminService {
     );
   }
 
-  // ── AI Config ─────────────────────────────────────────────────────────────
 
   getAiConfigs(): Observable<AiConfigResponse[]> {
     return this.http.get<AiConfigResponse[]>(`${this.adminBase}/ia/config`);
@@ -221,7 +218,6 @@ export class AdminService {
     return this.http.put<AiConfigResponse>(`${this.adminBase}/ia/config/${key}`, request);
   }
 
-  // ── IA Health ─────────────────────────────────────────────────────────────
 
   getIaHealth(): Observable<IaHealthResponse> {
     return this.http.get<IaHealthResponse>(`${this.adminBase}/ia/health`);

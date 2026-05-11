@@ -27,11 +27,11 @@ public class LigneComparatifResponse {
     private String status;
     private String commentaire;
 
-    // Legacy per-KPI AI note (from AnalysisAgent)
+
     private String analyseIa;
 
-    // ── Gemini deep analysis fields ──────────────────────────────────────
-    private String riskLevel;          // Faible | Modéré | Élevé
+
+    private String riskLevel;
     private String riskJustification;
     private String identificationRisque;
     private Boolean objectiveReached;
@@ -46,8 +46,8 @@ public class LigneComparatifResponse {
     private String immediatePriority;
     private String prioriteAction;
     private Boolean requires8d;
-    private String eightDDetails;      // JSON string with D1–D8
+    private String eightDDetails;
     private String methode8D;
-    private String aiNote;             // Final business note in French
+    private String aiNote;
     private String noteFinale;
 }

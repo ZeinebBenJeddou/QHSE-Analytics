@@ -48,12 +48,13 @@ public class RagAdminService {
     @Transactional
     public RagKnowledgeResponse create(RagKnowledgeRequest request) {
         String kpiName = request.getKpiName().trim();
-        if (repository.findByKpiName(kpiName).isPresent()) {
+        if (repository.findByKpiNameAndChunkType(kpiName, "full").isPresent()) {
             throw new DataIntegrityViolationException("Une entrée RAG avec ce nom existe déjà : " + kpiName);
         }
 
         RagKnowledge entity = RagKnowledge.builder()
                 .kpiName(kpiName)
+                .chunkType("full")
                 .definition(request.getDefinition())
                 .thresholds(request.getThresholds())
                 .category(request.getCategory())
@@ -73,8 +74,10 @@ public class RagAdminService {
 
         String newName = request.getKpiName().trim();
         if (!newName.equals(entity.getKpiName())) {
-            repository.findByKpiName(newName).ifPresent(existing -> {
-                throw new DataIntegrityViolationException("Une entrée RAG avec ce nom existe déjà : " + newName);
+            repository.findByKpiNameAndChunkType(newName, "full").ifPresent(existing -> {
+                if (!existing.getId().equals(id)) {
+                    throw new DataIntegrityViolationException("Une entrée RAG avec ce nom existe déjà : " + newName);
+                }
             });
         }
 

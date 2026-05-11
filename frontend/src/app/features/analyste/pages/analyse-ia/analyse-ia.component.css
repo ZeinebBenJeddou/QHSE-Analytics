@@ -1,8 +1,4 @@
-/* ══════════════════════════════════════════════════════════════════════════
-   analyse-ia.component.css — Page "Analyses IA" — QHSE Analytics SaaS
-══════════════════════════════════════════════════════════════════════════ */
 
-/* ── Design tokens ──────────────────────────────────────────────────────── */
 :host {
   --navy:       #0F172A;
   --navy-soft:  #475569;
@@ -38,7 +34,6 @@
   font-family: 'Inter', system-ui, sans-serif;
 }
 
-/* ── Page shell ─────────────────────────────────────────────────────────── */
 .ia-page {
   padding: 0 0 56px;
   background: var(--surface);
@@ -47,7 +42,6 @@
   color: var(--navy);
 }
 
-/* ── Loader ─────────────────────────────────────────────────────────────── */
 .loader-overlay {
   display: flex;
   flex-direction: column;
@@ -58,7 +52,6 @@
 }
 .loader-text { color: var(--ink-muted); font-size: 14px; }
 
-/* ── Empty / Error ──────────────────────────────────────────────────────── */
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -87,9 +80,7 @@
 .empty-state h2 { margin: 0; font-size: 22px; font-weight: 800; color: var(--navy); }
 .empty-state p  { font-size: 14px; max-width: 440px; margin: 0; line-height: 1.6; }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   PAGE HEADER
-═══════════════════════════════════════════════════════════════════════════ */
+
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -106,7 +97,6 @@
   flex-wrap: wrap;
 }
 
-/* Breadcrumb */
 .breadcrumb {
   display: flex;
   align-items: center;
@@ -122,7 +112,6 @@
 }
 .bc-active { color: var(--navy); font-weight: 600; }
 
-/* Title row */
 .page-title-row {
   display: flex;
   align-items: center;
@@ -158,7 +147,6 @@
   color: var(--ink-light);
 }
 
-/* Model badge */
 .model-badge {
   display: inline-flex;
   align-items: center;
@@ -177,7 +165,6 @@
   height: 15px !important;
 }
 
-/* Confidence badge — indigo shield */
 .confidence-badge {
   display: inline-flex;
   align-items: center;
@@ -198,7 +185,6 @@
   height: 14px !important;
 }
 
-/* Status chip */
 .status-chip {
   display: inline-flex;
   align-items: center;
@@ -213,7 +199,6 @@
 .status-chip.status-partial { background: var(--orange-bg); color: var(--orange); }
 .status-chip.status-failed  { background: var(--red-bg);    color: var(--red); }
 
-/* Regen button — indigo */
 .btn-regen {
   display: inline-flex;
   align-items: center;
@@ -240,9 +225,7 @@
   height: 16px !important;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   STATS STRIP
-═══════════════════════════════════════════════════════════════════════════ */
+
 .stats-strip {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -297,9 +280,7 @@
 .stat-value-orange { color: var(--orange) !important; }
 .stat-value-green  { color: var(--green) !important; }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   SECTION SHELL
-═══════════════════════════════════════════════════════════════════════════ */
+
 .section { margin-bottom: 40px; }
 
 .section-header-row {
@@ -341,9 +322,7 @@
   color: var(--navy-soft);
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   HERO — SCORE RING + SYNTHÈSE
-═══════════════════════════════════════════════════════════════════════════ */
+
 .hero-grid {
   display: grid;
   grid-template-columns: 160px 1fr;
@@ -355,7 +334,6 @@
   padding: 32px;
 }
 
-/* Score ring */
 .score-ring-wrap {
   position: relative;
   width: 140px;
@@ -385,7 +363,6 @@
   margin-top: 3px;
 }
 
-/* Score tints by range */
 .score-good   .score-value { color: #059669; }
 .score-medium .score-value { color: #D97706; }
 .score-low    .score-value { color: #DC2626; }
@@ -393,7 +370,6 @@
 .score-medium svg circle:last-child { stroke: #F59E0B; }
 .score-low    svg circle:last-child { stroke: #EF4444; }
 
-/* Provider badge */
 .provider-badge {
   display: inline-flex;
   align-items: center;
@@ -412,7 +388,6 @@
   height: 13px !important;
 }
 
-/* Hero summary */
 .hero-summary { min-width: 0; }
 .hero-summary-header {
   display: flex;
@@ -444,7 +419,6 @@
   font-style: normal;
 }
 
-/* Category mini cards */
 .cat-mini-row {
   display: flex;
   gap: 10px;
@@ -491,9 +465,6 @@
   flex-shrink: 0;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   CAUSES + RECOMMANDATIONS (2 colonnes)
-═══════════════════════════════════════════════════════════════════════════ */
 .causes-reco-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -527,7 +498,6 @@
   color: var(--blue);
 }
 
-/* Causes list */
 .causes-list {
   margin: 0;
   padding: 0;
@@ -561,7 +531,6 @@
   line-height: 1.6;
 }
 
-/* Recommendations */
 .recos-list {
   display: flex;
   flex-direction: column;
@@ -605,7 +574,6 @@
   height: 14px !important;
 }
 
-/* Priority colors */
 .prio-high, .prio-haute, .prio-critique {
   background: var(--red-bg);
   color: var(--red);
@@ -619,12 +587,8 @@
   color: var(--green);
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   TOUS LES INDICATEURS — SECTION PRINCIPALE
-═══════════════════════════════════════════════════════════════════════════ */
 .kpis-main-section { }
 
-/* ── Filter bar ─────────────────────────────────────────────────────────── */
 .kpi-filter-bar {
   display: flex;
   align-items: center;
@@ -644,7 +608,6 @@
   flex-wrap: wrap;
 }
 
-/* Category tabs — underline style */
 .kpi-cat-tabs { display: flex; gap: 0; flex-wrap: wrap; border-bottom: 2px solid var(--border); }
 .kct-btn {
   display: inline-flex;
@@ -695,7 +658,6 @@
 }
 .kct-count.has-critique { background: var(--red-bg); color: var(--red); }
 
-/* Niveau segment buttons — connected discrete segment group */
 .niveau-chips {
   display: inline-flex;
   border: 1.5px solid var(--border);
@@ -725,7 +687,6 @@
 .nv-modere.active   { background: var(--orange); color: #fff; }
 .nv-critique.active { background: var(--red);    color: #fff; }
 
-/* Search input */
 .kpi-search {
   display: flex;
   align-items: center;
@@ -753,7 +714,6 @@
 }
 .kpi-search input::placeholder { color: var(--ink-muted); }
 
-/* KPI empty msg */
 .kpi-empty-msg {
   display: flex;
   align-items: center;
@@ -771,9 +731,7 @@
   opacity: .4;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   KPI LIST & ITEMS
-═══════════════════════════════════════════════════════════════════════════ */
+
 .kpi-list {
   display: flex;
   flex-direction: column;
@@ -793,7 +751,6 @@
 .kpi-item.kpi-modere     { border-left-color: var(--orange); }
 .kpi-item.kpi-expanded   { border-left-color: var(--blue); }
 
-/* KPI header row */
 .kpi-header {
   display: flex;
   align-items: center;
@@ -818,7 +775,6 @@
   flex-shrink: 0;
 }
 
-/* Niveau badge */
 .kpi-niveau {
   display: inline-flex;
   align-items: center;
@@ -835,7 +791,6 @@
 .niveau-faible   { background: var(--green-bg);  color: var(--green); }
 .niveau-default  { background: var(--surface);   color: var(--ink-muted); }
 
-/* Category dot */
 .kpi-cat-dot {
   display: inline-flex;
   align-items: center;
@@ -851,7 +806,6 @@
   height: 15px !important;
 }
 
-/* Name block */
 .kpi-name-block {
   display: flex;
   flex-direction: column;
@@ -871,7 +825,6 @@
   font-weight: 500;
 }
 
-/* Values N-1 → N */
 .kpi-values {
   display: flex;
   align-items: center;
@@ -894,7 +847,6 @@
   color: var(--navy);
 }
 
-/* Variation chip */
 .kpi-var-chip {
   display: inline-flex;
   align-items: center;
@@ -916,7 +868,6 @@
 .icon-green  { color: var(--green)    !important; }
 .icon-blue   { color: var(--ink-muted) !important; }
 
-/* AI tag */
 .ai-tag {
   display: inline-flex;
   align-items: center;
@@ -934,7 +885,6 @@
   height: 13px !important;
 }
 
-/* Expand chevron */
 .expand-chevron {
   font-size: 22px !important;
   width: 22px !important;
@@ -945,9 +895,7 @@
 }
 .expand-chevron.open { transform: rotate(180deg); }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   KPI DETAIL — EXPANDED PANEL
-═══════════════════════════════════════════════════════════════════════════ */
+
 .kpi-detail {
   padding: 0 18px 22px;
   border-top: 1px solid var(--border);
@@ -959,7 +907,6 @@
   to   { opacity: 1; transform: none; }
 }
 
-/* Insight box */
 .insight-box {
   margin: 14px 0 16px;
   padding: 14px 18px;
@@ -990,7 +937,6 @@
   color: var(--navy-soft);
 }
 
-/* Detail grid */
 .detail-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -1034,7 +980,6 @@
 }
 .dc-list li { margin-bottom: 2px; }
 
-/* Actions stack */
 .dc-actions-stack {
   display: flex;
   flex-direction: column;
@@ -1071,7 +1016,6 @@
   line-height: 1.55;
 }
 
-/* Outcome */
 .dc-outcome-row {
   margin-bottom: 8px;
 }
@@ -1093,9 +1037,6 @@
   line-height: 1.55;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   PLAN D'ACTION TABLE
-═══════════════════════════════════════════════════════════════════════════ */
 .ap-table {
   background: var(--white);
   border-radius: var(--radius-lg);
@@ -1137,7 +1078,6 @@
 .apt-owner, .apt-due { font-size: 12px; }
 .apt-metric { font-size: 12px; color: var(--green); font-weight: 600; }
 
-/* Legacy plan cards */
 .plan-cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -1174,9 +1114,7 @@
   color: var(--navy-soft);
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   KANBAN BOARD
-═══════════════════════════════════════════════════════════════════════════ */
+
 .kanban-board {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1363,9 +1301,7 @@
   opacity: .4;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   ALERTES PRÉDICTIVES
-═══════════════════════════════════════════════════════════════════════════ */
+
 .critical-count-badge {
   display: inline-flex;
   align-items: center;
@@ -1467,9 +1403,7 @@
   line-height: 1.65;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   CAUSES RACINES — 5 POURQUOI
-═══════════════════════════════════════════════════════════════════════════ */
+
 .root-causes-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
@@ -1592,9 +1526,7 @@
   line-height: 1.55;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   TRACEABILITY FOOTER
-═══════════════════════════════════════════════════════════════════════════ */
+
 .trace-footer {
   display: flex;
   flex-wrap: wrap;
@@ -1621,9 +1553,6 @@
 }
 .trace-item strong { color: var(--navy-soft); }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   RESPONSIVE
-═══════════════════════════════════════════════════════════════════════════ */
 @media (max-width: 1280px) {
   .stats-strip { grid-template-columns: repeat(2, 1fr); }
   .hero-grid   { grid-template-columns: 140px 1fr; }

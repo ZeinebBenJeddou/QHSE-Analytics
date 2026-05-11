@@ -292,11 +292,13 @@ public class KpiService {
 
     private void syncRagKnowledge(Kpi kpi) {
         try {
-            if (ragKnowledgeRepository.findByKpiName(kpi.getNom()).isPresent()) {
-                return; // Already exists
+            // Check existence on the "full" chunk specifically to avoid matching correlation/benchmark chunks
+            if (ragKnowledgeRepository.findByKpiNameAndChunkType(kpi.getNom(), "full").isPresent()) {
+                return;
             }
             RagKnowledge rag = RagKnowledge.builder()
                     .kpiName(kpi.getNom())
+                    .chunkType("full")
                     .definition(kpi.getDefinition())
                     .category(kpi.getCategorieKpi().getCode())
                     .thresholds(buildThresholdJson(kpi))
@@ -310,18 +312,24 @@ public class KpiService {
 
     private void updateRagKnowledge(String oldName, Kpi kpi) {
         try {
-            Optional<RagKnowledge> existingOpt = ragKnowledgeRepository.findByKpiName(oldName);
-            if (existingOpt.isPresent()) {
-                RagKnowledge existing = existingOpt.get();
-                existing.setKpiName(kpi.getNom());
-                existing.setDefinition(kpi.getDefinition());
-                existing.setCategory(kpi.getCategorieKpi().getCode());
-                existing.setThresholds(buildThresholdJson(kpi));
-                ragKnowledgeRepository.save(existing);
-                log.info("RAG knowledge synchronisé (mis à jour) pour KPI: {} (ancien nom: {})", kpi.getNom(), oldName);
-            } else {
-                syncRagKnowledge(kpi); // Create if it doesn't exist
+            List<RagKnowledge> allChunks = ragKnowledgeRepository.findAllByKpiName(oldName);
+            if (allChunks.isEmpty()) {
+                syncRagKnowledge(kpi);
+                return;
             }
+            String newThresholds = buildThresholdJson(kpi);
+            for (RagKnowledge chunk : allChunks) {
+                chunk.setKpiName(kpi.getNom());
+                chunk.setCategory(kpi.getCategorieKpi().getCode());
+                // Only update definition and thresholds on the "full" chunk to preserve specialized chunks
+                if ("full".equals(chunk.getChunkType()) || chunk.getChunkType() == null) {
+                    chunk.setDefinition(kpi.getDefinition());
+                    chunk.setThresholds(newThresholds);
+                }
+            }
+            ragKnowledgeRepository.saveAll(allChunks);
+            log.info("RAG knowledge mis à jour ({} chunks) pour KPI: {} (ancien nom: {})",
+                allChunks.size(), kpi.getNom(), oldName);
         } catch (Exception ex) {
             log.error("Erreur lors de la mise à jour RAG pour KPI {}", kpi.getNom(), ex);
         }
@@ -329,10 +337,8 @@ public class KpiService {
 
     private void deleteRagKnowledge(String kpiName) {
         try {
-            ragKnowledgeRepository.findByKpiName(kpiName).ifPresent(rag -> {
-                ragKnowledgeRepository.delete(rag);
-                log.info("RAG knowledge supprimé pour KPI: {}", kpiName);
-            });
+            ragKnowledgeRepository.deleteAllByKpiName(kpiName);
+            log.info("RAG knowledge supprimé (tous chunks) pour KPI: {}", kpiName);
         } catch (Exception ex) {
             log.error("Erreur lors de la suppression RAG pour KPI {}", kpiName, ex);
         }
@@ -347,8 +353,9 @@ public class KpiService {
         if (!embeddingService.isConfigured()) return;
         CompletableFuture.runAsync(() -> {
             try {
-                ragKnowledgeRepository.findByKpiName(kpiName).ifPresent(rag -> {
-                    String text = kpiName + ". " + rag.getDefinition()
+                List<RagKnowledge> chunks = ragKnowledgeRepository.findAllByKpiName(kpiName);
+                for (RagKnowledge rag : chunks) {
+                    String text = kpiName + ". " + (rag.getDefinition() != null ? rag.getDefinition() : "")
                             + (rag.getCategory() != null ? " Catégorie: " + rag.getCategory() + "." : "");
                     float[] vector = embeddingService.embed(text);
                     if (vector != null) {
@@ -356,9 +363,9 @@ public class KpiService {
                             "UPDATE rag_knowledge SET embedding = ?::vector WHERE id = ?",
                             EmbeddingService.toVectorLiteral(vector), rag.getId()
                         );
-                        log.debug("[Embed] RAG entry embedded for KPI: {}", kpiName);
+                        log.debug("[Embed] RAG chunk embedded for KPI: {} chunkType={}", kpiName, rag.getChunkType());
                     }
-                });
+                }
             } catch (Exception ex) {
                 log.warn("[Embed] Failed to embed RAG entry for KPI '{}': {}", kpiName, ex.getMessage());
             }

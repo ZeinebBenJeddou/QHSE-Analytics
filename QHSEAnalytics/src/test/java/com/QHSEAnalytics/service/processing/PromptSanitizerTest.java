@@ -45,7 +45,7 @@ class PromptSanitizerTest {
     void sanitize_longText_truncated() {
         String longText = "A".repeat(300);
         String result = sanitizer.sanitize(longText);
-        assertThat(result.length()).isLessThanOrEqualTo(202); // 200 + "…"
+        assertThat(result.length()).isLessThanOrEqualTo(202);
     }
 
     @Test

@@ -37,7 +37,7 @@ public class GroqPromptBuilder {
             int periodeN,
             String ragContext
     ) {
-                // Ensure KPI name is short to avoid token bloat
+
                 String safeName = safe(kpiNom);
                 if (safeName.length() > 100) {
                         safeName = safeName.substring(0, 100);
@@ -63,10 +63,10 @@ public class GroqPromptBuilder {
                 sb.append("  \"noteFinale\": \"text\"\n");
                 sb.append("}\n\n");
 
-                // RAG context injected here when available (enriched definition, benchmarks, causes, norms)
+
                 if (ragContext != null && !ragContext.isBlank()) {
                     sb.append("=== CONTEXTE QHSE (base de connaissances) ===\n");
-                    // Limit RAG context size to avoid token bloat
+
                     String trimmedRag = ragContext.length() > 1200 ? ragContext.substring(0, 1200) + "…" : ragContext;
                     sb.append(trimmedRag).append("\n\n");
                 }

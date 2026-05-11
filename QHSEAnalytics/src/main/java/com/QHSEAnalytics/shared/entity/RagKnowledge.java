@@ -19,8 +19,11 @@ public class RagKnowledge {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "kpi_name", nullable = false, unique = true)
+    @Column(name = "kpi_name", nullable = false)
     private String kpiName;
+
+    @Column(name = "chunk_type", length = 50)
+    private String chunkType;
 
     @Column(name = "definition", columnDefinition = "TEXT")
     private String definition;

@@ -27,12 +27,10 @@
   font-family: var(--font);
 }
 
-/* ── Shell ── */
 .shell-container {
   height: 100vh;
 }
 
-/* ── Sidenav ── */
 .sidenav {
   width: var(--sidenav-w);
   background: var(--white);
@@ -42,7 +40,6 @@
   box-shadow: var(--shadow-nav);
 }
 
-/* ── Brand ── */
 .brand {
   display: flex;
   align-items: center;
@@ -96,7 +93,6 @@
   letter-spacing: 0.02em;
 }
 
-/* ── Nav ── */
 .nav-section {
   flex: 1;
   overflow-y: auto;
@@ -190,7 +186,6 @@
   line-height: 1.5;
 }
 
-/* ── Footer ── */
 .sidenav-footer {
   padding: 10px;
   border-top: 1.5px solid var(--border);
@@ -213,7 +208,6 @@
   font-size: 18px !important;
 }
 
-/* ── Toolbar ── */
 .toolbar {
   background: var(--white) !important;
   color: var(--ink) !important;
@@ -294,7 +288,6 @@
   box-shadow: 0 3px 14px rgba(30,111,217,0.38);
 }
 
-/* ── Content ── */
 .main-content {
   background: var(--surface) !important;
   display: flex;
@@ -322,7 +315,6 @@
 }
 .content-area::-webkit-scrollbar-thumb:hover { background: var(--ink-muted); }
 
-/* ── Responsive ── */
 @media (max-width: 768px) {
   .content-area { padding: 16px; }
 }

@@ -40,11 +40,7 @@ public class ImportProcessingController {
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
 
-    /**
-     * SSE stream de progression.
-     * Le frontend ouvre cette connexion AVANT de soumettre le fichier,
-     * en passant le même clientId dans le multipart du POST.
-     */
+
     @GetMapping(value = "/progress", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter progressStream(@RequestParam("clientId") String clientId) {
         return importProgressService.register(clientId);

@@ -22,16 +22,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * Orchestrates line-by-line KPI enrichment:
- * <ol>
- *   <li>Save / overwrite {@link KpiImportPreview} rows from the provided data.</li>
- *   <li>For each row, check the RAG knowledge base; inject context if found,
- *       or ask Gemini to generate definition + thresholds and save them.</li>
- *   <li>Call Gemini with a structured prompt and parse the JSON response.</li>
- *   <li>Persist the result into {@link KpiAnalysis}.</li>
- * </ol>
- */
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -48,11 +39,7 @@ public class KpiEnrichmentService {
     private final ObjectMapper objectMapper;
     private final RagSearchService ragSearchService;
 
-    // ───────────────────────────── Public API ──────────────────────────────
 
-    /**
-     * Save preview rows for an import session (idempotent – deletes previous rows first).
-     */
     @Transactional
     public void savePreviewRows(Long importSessionId, List<KpiPreviewInput> inputs) {
         ImportSession session = loadSession(importSessionId);
@@ -77,10 +64,7 @@ public class KpiEnrichmentService {
         log.info("[KpiEnrichment] Saved {} preview rows for session {}", rows.size(), importSessionId);
     }
 
-    /**
-     * Run line-by-line Gemini AI analysis for all preview rows of an import session.
-     * Already-analysed KPIs (by name) are skipped unless {@code force=true}.
-     */
+
     @Transactional
     public List<KpiEnrichedResponse> analyseAll(Long importSessionId, boolean force) {
         List<KpiImportPreview> previews = previewRepository
@@ -106,9 +90,7 @@ public class KpiEnrichmentService {
         return results;
     }
 
-    /**
-     * Return the enriched view (preview + analysis) for all KPIs of an import session.
-     */
+
     @Transactional(readOnly = true)
     public List<KpiEnrichedResponse> getEnrichedView(Long importSessionId) {
         List<KpiImportPreview> previews = previewRepository
@@ -124,7 +106,6 @@ public class KpiEnrichmentService {
                 .collect(Collectors.toList());
     }
 
-    // ────────────────────────────── Private ────────────────────────────────
 
         @Cacheable(
             value = "kpiAnalysis",
@@ -133,7 +114,7 @@ public class KpiEnrichmentService {
             condition = "!#force"
         )
         public KpiEnrichedResponse analyseOne(KpiImportPreview preview, Long importSessionId, boolean force) {
-        // Skip if already analysed
+
         if (!force) {
             Optional<KpiAnalysis> existing = analysisRepository
                     .findByImportSessionIdAndKpiName(importSessionId, preview.getKpiName());
@@ -143,22 +124,22 @@ public class KpiEnrichmentService {
             }
         }
 
-        // 1. RAG lookup
+
         String ragContext = buildRagContext(preview);
 
-        // 2. Build prompt via centralized prompt builder (token safe)
+
         String prompt = buildGeminiPrompt(preview, ragContext);
 
-        // 3. Call the LLM provider chain
+
         String rawJson = llmProviderChain.generate(prompt);
 
-        // 4. Parse response
+
         KpiAnalysisResult result = parseAnalysisResult(rawJson, preview.getKpiName());
 
-        // 5. Persist
+
         KpiAnalysis analysis = saveAnalysis(preview.getImportSession(), preview.getKpiName(), result);
 
-        // 6. Update RAG if no definition existed
+
         updateRagIfNeeded(preview, result);
 
         return toEnrichedResponse(preview, analysis);
@@ -166,7 +147,7 @@ public class KpiEnrichmentService {
 
     @Cacheable(value = "ragKnowledge", key = "#kpiName.toLowerCase().trim()", unless = "#result == null")
     public RagKnowledge findRagKnowledge(String kpiName) {
-        return ragKnowledgeRepository.findByKpiName(kpiName).orElse(null);
+        return ragKnowledgeRepository.findBestByKpiName(kpiName).orElse(null);
     }
 
     private String buildRagContext(KpiImportPreview preview) {
@@ -228,10 +209,10 @@ public class KpiEnrichmentService {
             KpiAnalysisResult result = new KpiAnalysisResult();
             result.setKpiName(kpiName);
 
-            // Prefer French field names, fall back to legacy English ones
+
             String rawRiskLevel = textOrNull(root, "risqueIa") != null ? textOrNull(root, "risqueIa") : textOrNull(root, "riskLevel");
             result.setRiskLevel(sanitizeRiskLevel(rawRiskLevel));
-            // risk justification: identificationRisque or short note
+
             String identification = truncateField(textOrNull(root, "identificationRisque"), 1000);
             String noteIa = truncateField(textOrNull(root, "noteIa"), 1000);
             result.setRiskJustification(identification != null ? identification : (noteIa != null ? noteIa : truncateField(textOrNull(root, "riskJustification"), 1000)));
@@ -258,7 +239,7 @@ public class KpiEnrichmentService {
 
             result.setRequires8d(root.path("methode8D").isObject() || root.path("requires8d").asBoolean(false));
 
-            // methode8D may be an object with D1..D8
+
             JsonNode methode8D = root.path("methode8D");
             if (methode8D.isMissingNode() || methode8D.isNull()) {
                 methode8D = root.path("eightDDetails");
@@ -269,7 +250,7 @@ public class KpiEnrichmentService {
                 result.setMethode8D(methode8DJson);
             }
 
-            // noteFinale preferred for final note, fallback to aiNote
+
             String noteFinale = truncateField(textOrNull(root, "noteFinale"), 1000);
             result.setAiNote(noteFinale != null ? noteFinale : truncateField(textOrNull(root, "aiNote"), 1000));
             result.setNoteFinale(noteFinale);
@@ -299,10 +280,6 @@ public class KpiEnrichmentService {
         return cleaned;
     }
 
-    /**
-     * Development helper: analyse a single preview by id and return raw AI response + parsed result.
-     * NOTE: For debugging only; annotate or restrict access in production as needed.
-     */
     public Map<String, Object> debugAnalyseOne(Long previewId, boolean force) {
         KpiImportPreview preview = previewRepository.findById(previewId).orElse(null);
         if (preview == null) {
@@ -356,7 +333,7 @@ public class KpiEnrichmentService {
             return existing;
         }
 
-        // Upsert while preserving previously enriched fields when the new AI response is partial.
+
         KpiAnalysis analysis = existing != null
                 ? existing
                 : KpiAnalysis.builder().importSession(session).kpiName(kpiName).build();
@@ -413,29 +390,26 @@ public class KpiEnrichmentService {
         return normalized.isBlank() ? null : normalized;
     }
 
-    /**
-     * If the KPI does not yet have a RAG entry and Gemini suggested a definition or thresholds,
-     * save them so future analyses benefit from the enriched context.
-     */
     private void updateRagIfNeeded(KpiImportPreview preview, KpiAnalysisResult result) {
-        // We only create RAG entries when the KPI does not yet exist in the knowledge base
-        if (ragKnowledgeRepository.findByKpiName(preview.getKpiName()).isPresent()) {
+
+        if (ragKnowledgeRepository.findByKpiNameAndChunkType(preview.getKpiName(), "full").isPresent()) {
             return;
         }
 
-        // Nothing to save if Gemini returned only the fallback
+
         if ("Analyse IA indisponible.".equals(result.getRiskJustification())) {
             return;
         }
 
         try {
-            // Re-read suggested values from the AI note or set reasonable defaults
+
             String suggestedDef = preview.getDefinition() != null && !preview.getDefinition().isBlank()
                     ? preview.getDefinition()
                     : "KPI généré automatiquement via analyse IA pour la catégorie " + nullSafe(preview.getCategory());
 
             RagKnowledge knowledge = RagKnowledge.builder()
                     .kpiName(preview.getKpiName())
+                    .chunkType("full")
                     .definition(suggestedDef)
                     .category(preview.getCategory())
                     .createdAt(LocalDateTime.now())
@@ -448,7 +422,7 @@ public class KpiEnrichmentService {
         }
     }
 
-    // ─────────────────────── Mapping helpers ──────────────────────────────
+
 
     private KpiEnrichedResponse toEnrichedResponse(KpiImportPreview preview, KpiAnalysis analysis) {
         KpiEnrichedResponse.KpiEnrichedResponseBuilder b = KpiEnrichedResponse.builder()
@@ -536,7 +510,7 @@ public class KpiEnrichmentService {
         return "Modéré";
     }
 
-    // ─────────────────── Inner input DTO ──────────────────────────────────
+
 
     @lombok.Data
     @lombok.NoArgsConstructor

@@ -54,7 +54,7 @@ class CalculationAgentIntegrationTest {
         List<KpiCalculatedDTO> out = agent.calculate(List.of(row));
         assertEquals(1, out.size());
         KpiCalculatedDTO dto = out.get(0);
-        assertEquals("EMERGING_RISK", dto.getStatus());
+        assertEquals("Risque émergent", dto.getStatus());
         assertEquals("MODERE", dto.getClassification());
         assertTrue(dto.getReviewRequired());
         assertEquals("HIGHER_IS_BETTER", dto.getDirection());

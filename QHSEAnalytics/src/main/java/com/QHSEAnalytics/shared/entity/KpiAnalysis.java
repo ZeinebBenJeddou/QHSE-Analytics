@@ -5,11 +5,7 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
-/**
- * Stores the full Gemini AI analysis result for a single KPI line,
- * including risk assessment, issue detection, action plans, and the
- * optional 8D problem-solving output.
- */
+
 @Entity
 @Table(name = "kpi_analysis")
 @Getter
@@ -30,7 +26,7 @@ public class KpiAnalysis {
     @Column(name = "kpi_name", nullable = false, length = 200)
     private String kpiName;
 
-    /** Faible / Modéré / Élevé */
+
     @Column(name = "risk_level", length = 20)
     private String riskLevel;
 
@@ -46,7 +42,7 @@ public class KpiAnalysis {
     @Column(name = "improvement_detected")
     private Boolean improvementDetected;
 
-    /** Anomaly / Degradation / Instability flags */
+
     @Column(name = "issue_detected", columnDefinition = "TEXT")
     private String issueDetected;
 
@@ -78,14 +74,14 @@ public class KpiAnalysis {
     @Builder.Default
     private boolean requires8d = false;
 
-    /** JSON string containing the 8 steps D1-D8 when requires_8d = true */
+
     @Column(name = "eight_d_details", columnDefinition = "TEXT")
     private String eightDDetails;
 
     @Column(name = "methode_8d", columnDefinition = "TEXT")
     private String methode8D;
 
-    /** Clear business explanation – "Final Note IA" */
+
     @Column(name = "ai_note", columnDefinition = "TEXT")
     private String aiNote;
 

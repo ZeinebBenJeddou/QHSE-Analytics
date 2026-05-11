@@ -330,7 +330,6 @@ h1 {
   white-space: nowrap;
 }
 
-/* Category-specific badge colors */
 .cat-badge.cat-q { background: #dbeafe; color: #1d4ed8; }
 .cat-badge.cat-h { background: #dcfce7; color: #166534; }
 .cat-badge.cat-s { background: #ffedd5; color: #c2410c; }
@@ -505,7 +504,6 @@ h1 {
 .conf-red   { background: var(--red-soft); color: var(--red); }
 .conf-na    { background: var(--surface); color: var(--ink-muted); }
 
-/* User meta (period + date) */
 .user-meta {
   display: flex;
   align-items: center;
@@ -533,7 +531,6 @@ h1 {
   font-family: var(--font-mono);
 }
 
-/* Action buttons */
 .user-actions {
   display: flex;
   align-items: center;
@@ -557,7 +554,6 @@ h1 {
 .recalc-btn mat-icon { font-size: 16px !important; width: 16px !important; height: 16px !important; }
 .recalc-btn[disabled] { opacity: 0.4 !important; }
 
-/* Inactive analyste (no import) */
 .user-row-inactive {
   opacity: 0.6;
 }
@@ -587,14 +583,12 @@ h1 {
   height: 13px !important;
 }
 
-/* ── CHARTS ROW ─────────────────────────────────────────────────────────── */
 .charts-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
 }
 
-/* Donut */
 .donut-wrap {
   display: flex;
   align-items: center;
@@ -676,7 +670,6 @@ h1 {
   text-align: right;
 }
 
-/* Horizontal bars */
 .hbars-wrap {
   display: flex;
   flex-direction: column;
@@ -720,7 +713,6 @@ h1 {
   text-align: right;
 }
 
-/* Evolution chart */
 .evo-chart-wrapper {
   display: flex;
   flex-direction: column;
@@ -802,7 +794,6 @@ h1 {
 .dot-n1 { background: var(--blue-soft); border: 1.5px solid var(--blue); }
 .dot-n  { background: var(--blue); }
 
-/* ── RESPONSIVE ─────────────────────────────────────────────────────────── */
 @media (max-width: 1024px) {
   .summary-grid { grid-template-columns: repeat(2, 1fr); }
   .charts-row   { grid-template-columns: 1fr; }

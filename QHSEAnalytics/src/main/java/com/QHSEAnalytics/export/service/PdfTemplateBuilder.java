@@ -50,7 +50,7 @@ public class PdfTemplateBuilder {
                 }
                 .page-break { page-break-after: always; }
 
-                /* ── Cover / Header ── */
+
                 .cover {
                   background: #0F172A;
                   color: white;
@@ -93,7 +93,7 @@ public class PdfTemplateBuilder {
                   margin-top: -5px;
                 }
 
-                /* ── Section titles ── */
+
                 .section-title {
                   font-size: 15px;
                   font-weight: 800;
@@ -103,7 +103,7 @@ public class PdfTemplateBuilder {
                   margin: 28px 0 14px;
                 }
 
-                /* ── Cards ── */
+
                 .card {
                   border: 1px solid #E2E8F0;
                   border-radius: 8px;
@@ -118,7 +118,7 @@ public class PdfTemplateBuilder {
                   margin-bottom: 8px;
                 }
 
-                /* ── Level badges ── */
+
                 .badge-critique {
                   background: #FEF2F2; color: #DC2626;
                   padding: 2px 9px; border-radius: 999px;
@@ -153,7 +153,7 @@ public class PdfTemplateBuilder {
                   font-size: 10px; font-weight: 700;
                 }
 
-                /* ── Tables ── */
+
                 table {
                   width: 100%;
                   border-collapse: collapse;
@@ -179,7 +179,7 @@ public class PdfTemplateBuilder {
                   color: #1E3A8A;
                 }
 
-                /* ── AI block ── */
+
                 .analyse-ia {
                   background: #EEF2FF;
                   border-left: 4px solid #6366F1;
@@ -198,7 +198,7 @@ public class PdfTemplateBuilder {
                   margin-bottom: 5px;
                 }
 
-                /* ── Action plan blocks ── */
+
                 .plan-critique {
                   background: #FEF2F2;
                   border-left: 4px solid #EF4444;
@@ -224,7 +224,7 @@ public class PdfTemplateBuilder {
                 }
                 .plan-surveillance strong { color: #059669; }
 
-                /* ── Action boxes ── */
+
                 .action-box {
                   border-left: 3px solid #6366F1;
                   padding-left: 8px;
@@ -233,7 +233,7 @@ public class PdfTemplateBuilder {
                   color: #334155;
                 }
 
-                /* ── Footer ── */
+
                 .footer {
                   text-align: center;
                   font-size: 9px;
@@ -243,7 +243,7 @@ public class PdfTemplateBuilder {
                   border-top: 1px solid #E2E8F0;
                 }
 
-                /* ── 8D table ── */
+
                 .eightd-table {
                   width: 100%;
                   margin-top: 10px;
@@ -718,9 +718,7 @@ public class PdfTemplateBuilder {
     private String renderEightDTable(String json) {
         if (json == null || json.isBlank()) return "";
         try {
-            // Very simple JSON parsing for D1-D8 since we can't easily include Jackson here
-            // or we use a Map if we pass it already parsed. 
-            // For now, I'll assume it's a simple JSON string and do basic cleaning.
+
             String clean = json.replace("{", "").replace("}", "").replace("\"", "");
             String[] pairs = clean.split(",");
             Map<String, String> steps = new LinkedHashMap<>();
@@ -734,7 +732,7 @@ public class PdfTemplateBuilder {
             StringBuilder sb = new StringBuilder("<table class=\"eightd-table\">");
             String[] dSteps = {"D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8"};
             String[] dLabels = {"Equipe", "Problème", "Confinement", "Cause Racine", "Correctives", "Validation", "Prévention", "Clôture"};
-            
+
             for (int i = 0; i < dSteps.length; i++) {
                 String d = dSteps[i];
                 String val = steps.getOrDefault(d, "N/A");

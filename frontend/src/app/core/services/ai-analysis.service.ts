@@ -14,37 +14,30 @@ export class AiAnalysisService {
   private iaBase = `${environment.apiUrl}/api/ia`;
   private mappingBase = `${environment.apiUrl}/api/mapping`;
 
-  /** Get or trigger complete AI analysis for an import session */
   getAnalyseComplete(importSessionId: number): Observable<AnalyseCompleteResponse> {
     return this.http.get<AnalyseCompleteResponse>(`${this.iaBase}/${importSessionId}`);
   }
 
-  /** Run or regenerate AI analysis for the import session */
   runAi(importSessionId: number): Observable<AnalyseCompleteResponse> {
     return this.http.post<AnalyseCompleteResponse>(`${this.iaBase}/${importSessionId}`, {});
   }
 
-  /** Regenerate all AI analyses */
   regenerer(importSessionId: number): Observable<AnalyseCompleteResponse> {
     return this.http.post<AnalyseCompleteResponse>(`${this.iaBase}/${importSessionId}/regenerer`, {});
   }
 
-  /** Get structured AI analysis for an import session */
   getStructuredAnalysis(importSessionId: number): Observable<AiAnalysisStructuredResponse> {
     return this.http.get<AiAnalysisStructuredResponse>(`${this.iaBase}/${importSessionId}/structured`);
   }
 
-  /** Save a column-mapping template */
   saveMappingTemplate(req: MappingTemplateRequest): Observable<MappingTemplateResponse> {
     return this.http.post<MappingTemplateResponse>(`${this.mappingBase}/templates`, req);
   }
 
-  /** Load all mapping templates for the current user */
   getMappingTemplates(): Observable<MappingTemplateResponse[]> {
     return this.http.get<MappingTemplateResponse[]>(`${this.mappingBase}/templates`);
   }
 
-  /** Delete a mapping template */
   deleteMappingTemplate(id: number): Observable<void> {
     return this.http.delete<void>(`${this.mappingBase}/templates/${id}`);
   }

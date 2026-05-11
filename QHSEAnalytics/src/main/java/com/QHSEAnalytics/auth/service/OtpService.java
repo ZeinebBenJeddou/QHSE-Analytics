@@ -24,10 +24,10 @@ public class OtpService {
 
     private final SecureRandom random = new SecureRandom();
 
-    // génère et envoie OTP
+
     @Transactional
     public void generateAndSendOtp(User user) {
-        // invalider  anciens OTP
+
         otpCodeRepository.invalidateAllForUser(user);
 
         String code = String.format("%06d", random.nextInt(1_000_000));
@@ -42,7 +42,7 @@ public class OtpService {
         emailService.sendOtpEmail(user.getEmail(), user.getPrenom(), code);
     }
 
-    // vérifie OTP
+
     @Transactional
     public boolean verifyOtp(User user, String code) {
         return otpCodeRepository

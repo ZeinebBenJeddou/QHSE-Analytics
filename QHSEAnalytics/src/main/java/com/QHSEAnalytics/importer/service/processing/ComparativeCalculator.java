@@ -19,14 +19,14 @@ public class ComparativeCalculator {
     @Builder
     public static class ComparativeResult {
         private double absoluteGap;
-        private Double relativePercentage; // may be null when N1==0
+        private Double relativePercentage;
         private Direction direction;
         private Double previousValue;
         private Double currentValue;
-        private int calcConfidence; // 0..100
+        private int calcConfidence;
         private boolean reviewRequired;
         private List<DataFlag> dataFlags;
-        private String specialCase; // STABLE, EMERGING_RISK, STRONG_IMPROVEMENT
+        private String specialCase;
     }
 
     public ComparativeResult compute(Kpi kpi, Double valN1, Double valN) {
@@ -54,7 +54,7 @@ public class ComparativeCalculator {
                 special = "EMERGING_RISK";
                 flags.add(DataFlag.LOW_BASE);
             }
-            // relative undefined when base is zero
+
         } else {
             if (valN != null) {
                 rel = ((valN - valN1) / Math.abs(valN1)) * 100.0;
@@ -68,14 +68,14 @@ public class ComparativeCalculator {
             flags.add(DataFlag.OUTLIER);
         }
 
-        // Deterministic confidence heuristic (documented weights):
-        // base 60, +20 for KPI metadata, -25 missing context, -20 low base, -10 outlier
+
+
         int confidence = 60;
-        if (kpi != null) confidence += 20; // KPI metadata presence
+        if (kpi != null) confidence += 20;
         if (flags.contains(DataFlag.MISSING_CONTEXT)) confidence -= 25;
         if (flags.contains(DataFlag.LOW_BASE)) confidence -= 20;
         if (flags.contains(DataFlag.OUTLIER)) confidence -= 10;
-        if (valN1 != null && Math.abs(valN1) > 0 && Math.abs(valN1) < 1e-9) confidence -= 10; // extremely small base
+        if (valN1 != null && Math.abs(valN1) > 0 && Math.abs(valN1) < 1e-9) confidence -= 10;
         confidence = Math.max(0, Math.min(100, confidence));
 
         boolean review = confidence < 60 || flags.contains(DataFlag.MISSING_CONTEXT);

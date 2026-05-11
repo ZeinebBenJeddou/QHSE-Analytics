@@ -33,14 +33,14 @@ public class ImportSessionModeConstraintUpdater {
                     "WHERE conrelid = 'import_sessions'::regclass AND contype = 'c'"
             );
 
-            // Normalize legacy rows before tightening constraint to MANUAL-only.
+
             jdbcTemplate.execute(
                     "UPDATE import_sessions " +
                     "SET mode = 'MANUAL' " +
                     "WHERE mode IS NULL OR mode <> 'MANUAL'"
             );
 
-            // Always replace any existing check constraint on `mode` with the current allowed set.
+
 
             for (Map<String, Object> constraint : constraints) {
                 String definition = (String) constraint.get("definition");

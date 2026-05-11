@@ -43,7 +43,7 @@ public class EmbeddingService {
     private static final String PROVIDER_KEY = "gemini-embedding";
     private static final int    MAX_RETRIES     = 3;
     private static final long   INITIAL_BACKOFF = 1_000L;
-    // Gemini text-embedding-004 supports up to ~2048 tokens; 6000 chars ≈ safe upper bound
+
     private static final int    MAX_TEXT_CHARS  = 6_000;
 
     public EmbeddingService(ObjectMapper objectMapper, ProviderCooldownManager cooldownManager) {
@@ -110,11 +110,7 @@ public class EmbeddingService {
         return apiKey != null && !apiKey.isBlank();
     }
 
-    /**
-     * Returns a 768-dim embedding vector for the given text.
-     * Cached per text (key = full text, TTL governed by the "embeddings" Caffeine cache).
-     * Returns null if the API is unavailable or not configured.
-     */
+
     @Cacheable(value = "embeddings", unless = "#result == null")
     public float[] embed(String text) {
         if (!isConfigured() || text == null || text.isBlank()) {
@@ -125,7 +121,7 @@ public class EmbeddingService {
             return null;
         }
 
-        // Truncate to safe length for the API
+
         String truncated = text.length() > MAX_TEXT_CHARS ? text.substring(0, MAX_TEXT_CHARS) : text;
 
         long backoff = INITIAL_BACKOFF;
@@ -158,12 +154,12 @@ public class EmbeddingService {
     }
 
     private float[] callApi(String text) throws Exception {
-        // URI.create avoids any re-encoding of the colon in ":embedContent"
+
         URI uri = URI.create(baseUrl + embeddingModel + ":embedContent?key=" + apiKey);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        // outputDimensionality=768 keeps vectors compatible with the vector(768) pgvector column
+
         String body = String.format(
             "{\"model\":\"models/%s\",\"content\":{\"parts\":[{\"text\":%s}]},\"outputDimensionality\":768}",
             embeddingModel,

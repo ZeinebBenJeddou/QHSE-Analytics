@@ -1,6 +1,5 @@
 <div class="ia-page">
 
-  <!-- ── LOADER ─────────────────────────────────────────────────────── -->
   @if (loading()) {
     <div class="loader-overlay">
       <mat-spinner [diameter]="48" color="primary"></mat-spinner>
@@ -8,7 +7,6 @@
     </div>
   }
 
-  <!-- ── ERROR / EMPTY ──────────────────────────────────────────────── -->
   @if (!loading() && error()) {
     <div class="empty-state">
       <div class="empty-icon-wrap">
@@ -23,12 +21,9 @@
     </div>
   }
 
-  <!-- ══════════════════════════════════════════════════════════════════
-       MAIN CONTENT
-  ══════════════════════════════════════════════════════════════════════ -->
+  
   @if (!loading() && !error() && (analyse() || structured())) {
 
-    <!-- ── PAGE HEADER ──────────────────────────────────────────────── -->
     <header class="page-header">
       <div class="page-header-left">
         
@@ -60,7 +55,6 @@
       </div>
     </header>
 
-    <!-- ── STATS STRIP ──────────────────────────────────────────────── -->
     <div class="stats-strip">
       <div class="stat-card">
         <div class="stat-icon stat-icon-blue"><mat-icon>bar_chart</mat-icon></div>
@@ -86,12 +80,10 @@
       
     </div>
 
-    <!-- ── HERO: SCORE + SYNTHÈSE ───────────────────────────────────── -->
     @if (globalSummaryText()) {
       <section class="section">
         <div class="hero-grid">
 
-          <!-- Score ring -->
           <div class="score-ring-wrap"
                [class.score-good]="globalScore() >= 80"
                [class.score-medium]="globalScore() >= 50 && globalScore() < 80"
@@ -112,7 +104,6 @@
             </div>
           </div>
 
-          <!-- Summary -->
           <div class="hero-summary">
             <div class="hero-summary-header">
               <mat-icon class="hero-icon">analytics</mat-icon>
@@ -120,7 +111,6 @@
             </div>
             <p class="synthese-text">{{ globalSummaryText() }}</p>
 
-            <!-- Category mini cards -->
             <div class="cat-mini-row">
               @for (stat of catStats(); track stat.code) {
                 @if (stat.total > 0) {
@@ -152,9 +142,7 @@
       </section>
     }
 
-    <!-- ══════════════════════════════════════════════════════════════
-         ALERTES PRÉDICTIVES — remontées ici car urgentes
-    ══════════════════════════════════════════════════════════════════ -->
+   
     @if (false && hasAlerts()) {
       <section class="section">
         <div class="section-header-row">
@@ -196,12 +184,10 @@
       </section>
     }
 
-    <!-- ── CAUSES + RECOMMENDATIONS ────────────────────────────────── -->
     @if (probableCausesList().length || structured()?.recommendations?.length) {
       <section class="section">
         <div class="causes-reco-grid">
 
-          <!-- Causes -->
           @if (probableCausesList().length) {
             <div class="causes-panel">
               <div class="panel-head">
@@ -220,7 +206,6 @@
             </div>
           }
 
-          <!-- Recommendations -->
           @if (structured()?.recommendations?.length) {
             <div class="recos-panel">
               <div class="panel-head">
@@ -250,9 +235,7 @@
       </section>
     }
 
-    <!-- ══════════════════════════════════════════════════════════════
-         TOUS LES INDICATEURS — section principale
-    ══════════════════════════════════════════════════════════════════ -->
+    
     <section class="section kpis-main-section">
       <div class="section-header-row">
         <div class="section-header-left">
@@ -262,10 +245,8 @@
         </div>
       </div>
 
-      <!-- Filter bar -->
       <div class="kpi-filter-bar">
         <div class="kpi-filter-left">
-          <!-- Category tabs -->
           <div class="kpi-cat-tabs">
             <button class="kct-btn" [class.active]="!catFilter()" (click)="setCatFilter('')">
               Tous
@@ -289,14 +270,12 @@
           </div>
         </div>
         <div class="kpi-filter-right">
-          <!-- Niveau chips -->
           <div class="niveau-chips">
             <button class="nv-chip" [class.active]="!niveauKpiFilter()" (click)="setNiveauFilter('')">Tous</button>
             <button class="nv-chip nv-faible" [class.active]="niveauKpiFilter() === 'FAIBLE'" (click)="setNiveauFilter('FAIBLE')">Faible</button>
             <button class="nv-chip nv-modere" [class.active]="niveauKpiFilter() === 'MODERE'" (click)="setNiveauFilter('MODERE')">Modéré</button>
             <button class="nv-chip nv-critique" [class.active]="niveauKpiFilter() === 'CRITIQUE'" (click)="setNiveauFilter('CRITIQUE')">Critique</button>
           </div>
-          <!-- Search -->
           <div class="kpi-search">
             <mat-icon>search</mat-icon>
             <input placeholder="Rechercher un indicateur…"
@@ -306,7 +285,6 @@
         </div>
       </div>
 
-      <!-- KPI list -->
       @if (filteredKpis().length === 0) {
         <div class="kpi-empty-msg">
           <mat-icon>inbox</mat-icon>
@@ -321,21 +299,17 @@
                [class.kpi-modere]="kpi.niveauVariation === 'MODERE'"
                [class.kpi-expanded]="isExpanded(kpi.id)">
 
-            <!-- KPI header row -->
             <div class="kpi-header" (click)="toggleKpi(kpi.id)">
               <div class="kpi-left">
-                <!-- Niveau badge -->
                 <span class="kpi-niveau" [class]="getNiveauClass(kpi.niveauVariation)">
                   {{ kpi.niveauVariation ?? '—' }}
                 </span>
-                <!-- Category dot -->
                 <span class="kpi-cat-dot"
                       [style.background]="getCatInfo(kpi.categorieCode).bgLight"
                       [style.color]="getCatInfo(kpi.categorieCode).color"
                       [matTooltip]="kpi.categorieLibelle || kpi.categorieCode">
                   <mat-icon>{{ getCatInfo(kpi.categorieCode).icon }}</mat-icon>
                 </span>
-                <!-- Name + unit -->
                 <div class="kpi-name-block">
                   <span class="kpi-name">{{ kpi.kpiNom }}</span>
                   @if (kpi.kpiUnite) {
@@ -345,7 +319,6 @@
               </div>
 
               <div class="kpi-right">
-                <!-- Values N-1 → N -->
                 @if (kpi.valeurN1 !== 0 || kpi.valeurN !== 0) {
                   <div class="kpi-values">
                     <span class="val-n1">{{ kpi.valeurN1 | number:'1.0-2' }}</span>
@@ -357,7 +330,6 @@
                     {{ formatVariation(kpi.variationRelative) }}
                   </span>
                 }
-                <!-- AI available -->
                 @if (kpi.insight) {
                   <span class="ai-tag" matTooltip="Analyse IA disponible">
                     <mat-icon>smart_toy</mat-icon> IA
@@ -367,11 +339,9 @@
               </div>
             </div>
 
-            <!-- KPI detail (expanded) -->
             @if (isExpanded(kpi.id)) {
               <div class="kpi-detail">
 
-                <!-- AI Insight -->
                 @if (kpi.insight) {
                   <div class="insight-box">
                     <div class="insight-box-header">
@@ -382,10 +352,8 @@
                   </div>
                 }
 
-                <!-- Detail cards grid -->
                 <div class="detail-grid">
 
-                  <!-- Causes -->
                   @if (kpi.structuredCauses.length) {
                     <div class="detail-card dc-causes">
                       <div class="dc-head"><mat-icon>search</mat-icon> Causes probables</div>
@@ -397,7 +365,6 @@
                     </div>
                   }
 
-                  <!-- Actions -->
                   @if (kpi.structuredAction || kpi.correctiveAction || kpi.preventiveAction) {
                     <div class="detail-card dc-actions">
                       <div class="dc-head"><mat-icon>build</mat-icon> Plan d'actions</div>
@@ -424,7 +391,6 @@
                     </div>
                   }
 
-                  <!-- Recommendations -->
                   @if (kpi.structuredRecos.length) {
                     <div class="detail-card dc-recos">
                       <div class="dc-head"><mat-icon>lightbulb</mat-icon> Recommandations</div>
@@ -436,7 +402,6 @@
                     </div>
                   }
 
-                  <!-- Outcome -->
                   @if (kpi.structuredSuccess || kpi.structuredRisk) {
                     <div class="detail-card dc-outcome">
                       <div class="dc-head"><mat-icon>flag</mat-icon> Objectifs & Risques</div>
@@ -463,9 +428,7 @@
       </div>
     </section>
 
-    <!-- ══════════════════════════════════════════════════════════════
-         PLAN D'ACTION + KANBAN
-    ══════════════════════════════════════════════════════════════════ -->
+    
     @if (structured()?.actionPlan?.length || planActionsList().length) {
       <section class="section">
         <div class="section-header-row">
@@ -508,7 +471,7 @@
       </section>
     }
 
-    <!-- ── KANBAN ────────────────────────────────────────────────────── -->
+    
     @if (false && hasKanban()) {
       <section class="section">
         <div class="section-header-row">
@@ -574,9 +537,7 @@
       </section>
     }
 
-    <!-- ══════════════════════════════════════════════════════════════
-         ANALYSE DES CAUSES RACINES (5 POURQUOI)
-    ══════════════════════════════════════════════════════════════════ -->
+    
     @if (false && hasRootCauses()) {
       <section class="section">
         <div class="section-header-row">

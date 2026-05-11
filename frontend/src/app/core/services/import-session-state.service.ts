@@ -32,10 +32,7 @@ export class ImportSessionStateService {
   getActiveImportId(): number | null { return this.importIdSubject.getValue(); }
   getDashboardData(): ImportDashboardData { return this.dataSubject.getValue(); }
 
-  /**
-   * Set the active import. Clears cached data automatically when the ID changes,
-   * so stale data from a previous import is never served.
-   */
+ 
   setActiveImport(id: number | null): void {
     if (this.importIdSubject.getValue() !== id) {
       this.importIdSubject.next(id);
@@ -43,7 +40,6 @@ export class ImportSessionStateService {
     }
   }
 
-  /** Merge a partial update into the current data snapshot. */
   patch(data: Partial<ImportDashboardData>): void {
     this.dataSubject.next({ ...this.dataSubject.getValue(), ...data });
   }

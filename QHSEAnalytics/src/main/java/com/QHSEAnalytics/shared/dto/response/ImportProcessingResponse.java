@@ -18,15 +18,15 @@ public class ImportProcessingResponse {
     private List<String> detectedHeaders;
     private ChartResponseDTO charts;
     private String analyseIa;
-    private AiResponse aiResponse;  // Full LLM response with per-KPI insights
+    private AiResponse aiResponse;
 
-    // Risk Intelligence Fields
-    private List<KpiCalculatedDTO> risks;  // Critical/anomalous KPIs
-    private Integer riskScore;  // Count of CRITICAL KPIs
 
-    // Quality Report — rapport détaillé d'import (preview + import confirmé)
+    private List<KpiCalculatedDTO> risks;
+    private Integer riskScore;
+
+
     private ImportQualityReport qualityReport;
 
-    // P2.3 — Composite scores per QHSE category
+
     private java.util.List<CategoryScoreDTO> categoryScores;
 }

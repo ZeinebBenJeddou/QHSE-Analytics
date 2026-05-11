@@ -15,7 +15,7 @@ public class CategoryScoreDTO {
     private int    modereCount;
     private int    critiqueCount;
     private int    indetermineCount;
-    // Weighted score: EXCELLENT=100, FAIBLE=80, INDETERMINE=50, MODERE=40, PRE_ESCALADE=20, CRITIQUE=0
-    private double compositeScore;   // 0–100
-    private String compositeLabel;   // Excellent / Bon / Acceptable / À surveiller / Critique
+
+    private double compositeScore;
+    private String compositeLabel;
 }

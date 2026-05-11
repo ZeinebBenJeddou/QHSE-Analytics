@@ -85,20 +85,23 @@ public class StructuredAnalysisPromptBuilder {
         prompt.append("You have the following targeted context sources and KPI results.\n");
         prompt.append("Use the provided sources to answer. Do not use any external knowledge.\n\n");
 
-        // Vector RAG: one combined embedding call → top-8 enriched definitions
+
         String combinedQuery = orderedKpis.stream()
                 .map(k -> safeText(k.getKpiName()))
                 .collect(Collectors.joining(", "));
-        List<RagKnowledge> ragResults = ragSearchService.findRelevant(combinedQuery, 8, null, 0.65);
+        List<RagKnowledge> ragResults = ragSearchService.findRelevant(combinedQuery, 15, null, 0.60);
         if (!ragResults.isEmpty()) {
             prompt.append("=== BASE DE CONNAISSANCES QHSE (RAG vectoriel) ===\n");
             prompt.append("sourceId: rag_knowledge | sourceName: QHSE enriched definitions | relevanceScore: 0.95\n");
+            int ragCharsUsed = 0;
+            final int RAG_CHAR_CAP = 5000;
             for (RagKnowledge r : ragResults) {
-                prompt.append("• ").append(r.getKpiName()).append(": ").append(r.getDefinition());
-                if (r.getThresholds() != null) {
-                    prompt.append(" | Seuils: ").append(r.getThresholds());
-                }
-                prompt.append("\n");
+                String chunkLabel = r.getChunkType() != null ? " [" + r.getChunkType() + "]" : "";
+                String entry = "• " + r.getKpiName() + chunkLabel + ": " + r.getDefinition()
+                    + (r.getThresholds() != null ? " | Seuils: " + r.getThresholds() : "") + "\n";
+                if (ragCharsUsed + entry.length() > RAG_CHAR_CAP) break;
+                prompt.append(entry);
+                ragCharsUsed += entry.length();
             }
             prompt.append("\n");
         }

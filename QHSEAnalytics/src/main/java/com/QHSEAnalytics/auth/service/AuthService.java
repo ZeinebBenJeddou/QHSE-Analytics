@@ -51,7 +51,7 @@ public class AuthService {
     @Value("${app.password-reset.expiration-hours}")
     private int passwordResetExpirationHours;
 
-    // REGISTER
+
     @Transactional
     public MessageResponse register(RegisterRequest request) {
 
@@ -78,7 +78,7 @@ public class AuthService {
         return new MessageResponse("Inscription réussie. Vérifiez votre email pour activer votre compte.");
     }
 
-    // VERIFY ACCOUNT
+
     @Transactional
     public MessageResponse verifyAccount(String token) {
 
@@ -100,7 +100,7 @@ public class AuthService {
         return new MessageResponse("Compte vérifié avec succès.");
     }
 
-    // RESEND VERIFICATION
+
     @Transactional
     public MessageResponse resendVerification(String email) {
 
@@ -126,7 +126,7 @@ public class AuthService {
         return new MessageResponse("Lien renvoyé.");
     }
 
-    // ADMIN VERIFY
+
     @Transactional
     public MessageResponse adminVerifyUser(Long userId) {
 
@@ -145,7 +145,7 @@ public class AuthService {
         return new MessageResponse("Compte vérifié par admin.");
     }
 
-    // LOGIN
+
     @Transactional
     public MessageResponse login(LoginRequest request) {
 
@@ -173,7 +173,7 @@ public class AuthService {
         return new MessageResponse("OTP envoyé.");
     }
 
-    // VERIFY OTP
+
     @Transactional
     public AuthResponse verifyOtpAndLogin(VerifyOtpRequest request) {
 
@@ -199,7 +199,7 @@ public class AuthService {
                 .build();
     }
 
-    // RESEND OTP
+
     @Transactional
     public MessageResponse resendOtp(String email) {
 
@@ -215,7 +215,7 @@ public class AuthService {
         return new MessageResponse("OTP renvoyé.");
     }
 
-    // REFRESH TOKEN
+
     @Transactional
     public AuthResponse refreshToken(String tokenValue) {
 
@@ -234,7 +234,7 @@ public class AuthService {
                 .build();
     }
 
-    // FORGOT PASSWORD
+
     @Transactional
     public MessageResponse forgotPassword(ForgotPasswordRequest request) {
 
@@ -246,7 +246,7 @@ public class AuthService {
         return new MessageResponse("Si email existe, lien envoyé.");
     }
 
-    // RESET PASSWORD
+
     @Transactional
     public MessageResponse resetPassword(ResetPasswordRequest request) {
 
@@ -274,7 +274,7 @@ public class AuthService {
         return new MessageResponse("Mot de passe réinitialisé.");
     }
 
-    // LOGOUT
+
     @Transactional
     public MessageResponse logout(String email) {
 
@@ -284,7 +284,7 @@ public class AuthService {
         return new MessageResponse("Déconnexion réussie.");
     }
 
-    // HELPERS
+
 
     private void sendVerificationToken(User user) {
         EmailToken token = EmailToken.builder()

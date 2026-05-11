@@ -46,7 +46,7 @@ class StructuredAnalysisValidatorTest {
         var response = AiAnalysisStructuredResponse.builder()
                 .globalSummary("Test summary")
                 .confidence(AiConfidenceResponse.builder()
-                        .overall(150.0) // Invalid: > 100
+                        .overall(150.0)
                         .sections(java.util.Map.of())
                         .build())
                 .probableCauses(List.of())
@@ -100,17 +100,17 @@ class StructuredAnalysisValidatorTest {
                                 .build()))
                         .build())
                 .kpiInsights(List.of(AiKpiInsightResponse.builder()
-                        .kpiName("") // Invalid: blank
+                        .kpiName("")
                         .confidence(50.0)
-                        .insight("") // Invalid: blank
-                        .probableCauses(null) // Invalid: null
-                        .recommendations(null) // Invalid: null
-                        .actionImmediate("") // Invalid: blank
-                        .urgency("") // Invalid: blank
-                        .ownerRole("") // Invalid: blank
-                        .dueHorizon("") // Invalid: blank
-                        .successMetric("") // Invalid: blank
-                        .riskIfNotDone("") // Invalid: blank
+                        .insight("")
+                        .probableCauses(null)
+                        .recommendations(null)
+                        .actionImmediate("")
+                        .urgency("")
+                        .ownerRole("")
+                        .dueHorizon("")
+                        .successMetric("")
+                        .riskIfNotDone("")
                         .build()))
                 .status("SUCCESS")
                 .build();

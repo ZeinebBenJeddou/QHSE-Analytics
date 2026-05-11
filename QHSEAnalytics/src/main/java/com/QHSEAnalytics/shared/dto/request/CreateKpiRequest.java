@@ -38,15 +38,9 @@ public class CreateKpiRequest {
     @Positive(message = "L'ordre doit être positif")
     private Integer ordre;
 
-    /**
-     * Optional: explicit direction for the KPI (HIGHER_IS_BETTER, LOWER_IS_BETTER, TARGET_IS_BEST).
-     * If not provided, direction will be inferred from KPI name and category.
-     */
+
     private Direction direction;
 
-    /**
-     * Optional: explicit target value for TARGET_IS_BEST KPIs.
-     * If direction=TARGET_IS_BEST and this is null, classification will flag reviewRequired.
-     */
+
     private Double targetValue;
 }

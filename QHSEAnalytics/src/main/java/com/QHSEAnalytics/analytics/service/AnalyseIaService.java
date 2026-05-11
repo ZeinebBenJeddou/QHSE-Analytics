@@ -94,7 +94,7 @@ public class AnalyseIaService {
                 globalSummary = "IA indisponible";
             }
 
-            // Build a map: normalized KPI name -> best available text (insight || noteFinale || aiNote)
+
             Map<String, String> insightsByKpiName = response.getKpis().stream()
                     .filter(kpi -> kpi.getName() != null && !kpi.getName().isBlank())
                     .collect(Collectors.toMap(
@@ -110,7 +110,7 @@ public class AnalyseIaService {
                         : TextNormalizer.normalizeForSearch(resultat.getKpi().getNom());
                 String analyseIa = key == null ? null : insightsByKpiName.get(key);
 
-                // Fallback: fuzzy match if exact match not found
+
                 if ((analyseIa == null || analyseIa.isBlank()) && key != null) {
                     for (Map.Entry<String, String> entry : insightsByKpiName.entrySet()) {
                         String mapKey = entry.getKey();
@@ -121,7 +121,7 @@ public class AnalyseIaService {
                     }
                 }
 
-                // Fallback: generate minimal text so the KPI is never left empty
+
                 if (analyseIa == null || analyseIa.isBlank()) {
                     double variation = resultat.getVariationRelative() == null ? 0.0 : resultat.getVariationRelative();
                     String niveau = resultat.getNiveauVariation() == null ? "FAIBLE" : resultat.getNiveauVariation().name();
@@ -144,7 +144,7 @@ public class AnalyseIaService {
                     response.getRecommendations() == null ? List.of() : response.getRecommendations()));
             analyseGlobaleRepository.save(analyseGlobale);
 
-            // ── Generate per-category analysis from the KPI insights ──────────────────
+
             User user = loadUser(userId);
             Map<String, List<ResultatKpi>> byCategorie = resultats.stream()
                     .filter(r -> r.getKpi().getCategorieKpi() != null)
@@ -179,7 +179,7 @@ public class AnalyseIaService {
                             kpiInsight != null ? kpiInsight : "—"));
                 }
 
-                // Append global recommendations relevant to this category
+
                 if (response.getRecommendations() != null && !response.getRecommendations().isEmpty()) {
                     catContenu.append("\nRecommandations globales :\n");
                     response.getRecommendations().forEach(rec -> catContenu.append("  → ").append(rec).append("\n"));
@@ -328,12 +328,12 @@ public class AnalyseIaService {
         }
 
         try {
-            // Clear all previous AI analysis data so we start from a clean slate
+
             analyseCategorieRepository.deleteByImportSessionId(importSessionId);
             analyseGlobaleRepository.deleteByImportSessionId(importSessionId);
             llmProviderChain.clearKpiAnalysisCache();
 
-            // Clear analyseIa text on all KPI results so no stale partial data persists
+
             List<ResultatKpi> resultats = resultatKpiRepository.findByImportSessionIdOrderByCreatedAtDesc(importSessionId);
             for (ResultatKpi r : resultats) {
                 r.setAnalyseIa(null);
@@ -439,7 +439,7 @@ public class AnalyseIaService {
                 .build();
     }
 
-    /** Returns the first non-blank string among the candidates, or "" if all are blank/null. */
+
     private String firstNonBlankText(String... candidates) {
         for (String c : candidates) {
             if (c != null && !c.isBlank()) return c.trim();

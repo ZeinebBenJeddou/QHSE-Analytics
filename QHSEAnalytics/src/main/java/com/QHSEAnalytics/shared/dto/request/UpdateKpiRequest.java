@@ -27,13 +27,8 @@ public class UpdateKpiRequest {
     @Positive(message = "L'ordre doit être positif")
     private Integer ordre;
 
-    /**
-     * Optional: explicit direction for the KPI (HIGHER_IS_BETTER, LOWER_IS_BETTER, TARGET_IS_BEST).
-     */
+
     private Direction direction;
 
-    /**
-     * Optional: explicit target value for TARGET_IS_BEST KPIs.
-     */
     private Double targetValue;
 }

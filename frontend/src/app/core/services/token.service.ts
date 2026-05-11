@@ -8,9 +8,7 @@ export class TokenService {
   private readonly activeKey = 'auth_active';
   private readonly pendingEmailKey = 'pending_email';
 
-  // The JWT is now stored in an HttpOnly cookie managed by the browser.
-  // JS cannot read it — only the server can set/clear it via Set-Cookie headers.
-
+  
   setToken(_token: string): void {
     sessionStorage.setItem(this.activeKey, 'true');
   }

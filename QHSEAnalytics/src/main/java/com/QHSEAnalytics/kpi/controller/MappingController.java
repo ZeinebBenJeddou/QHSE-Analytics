@@ -15,14 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * Agent 2 – Mapping Agent REST Controller.
- *
- * Endpoints:
- *   POST   /api/mapping/templates           – save / replace a template
- *   GET    /api/mapping/templates           – list templates for current user
- *   DELETE /api/mapping/templates/{id}      – delete a template
- */
+
 @RestController
 @RequestMapping("/api/mapping")
 @RequiredArgsConstructor

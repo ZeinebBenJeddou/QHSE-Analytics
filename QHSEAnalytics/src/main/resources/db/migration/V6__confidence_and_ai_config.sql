@@ -1,4 +1,4 @@
--- Feature 3: persist AI confidence score per analyse
+
 ALTER TABLE analyse_globales ADD COLUMN IF NOT EXISTS overall_confidence INTEGER;
 
 -- Feature 5: runtime LLM configuration

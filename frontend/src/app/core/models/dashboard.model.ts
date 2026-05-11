@@ -35,10 +35,8 @@ export interface LigneComparatifResponse {
   status?: string;
   commentaire?: string;
 
-  // Legacy AI note (Groq primary, Gemini fallback in the backend)
   analyseIa?: string;
 
-  // ── Deep AI Analysis ─────────────────────────────────────────────────
   riskLevel?: 'Faible' | 'Modéré' | 'Élevé';
   riskJustification?: string;
   identificationRisque?: string;
@@ -54,9 +52,9 @@ export interface LigneComparatifResponse {
   immediatePriority?: 'Haute' | 'Moyenne' | 'Basse';
   prioriteAction?: 'Haute' | 'Moyenne' | 'Basse';
   requires8d?: boolean;
-  eightDDetails?: string;   // JSON string with D1–D8
-  methode8D?: string;       // JSON string with D1–D8
-  aiNote?: string;          // Final business note in French
+  eightDDetails?: string;   
+  methode8D?: string;       
+  aiNote?: string;          
   noteFinale?: string;
 }
 

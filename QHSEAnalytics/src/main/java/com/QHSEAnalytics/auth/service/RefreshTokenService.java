@@ -19,15 +19,15 @@ public class RefreshTokenService {
     private final RefreshTokenRepository refreshTokenRepository;
 
     @Value("${app.jwt.refresh-token-expiration}")
-    private long refreshTokenExpiration;           // 1h
+    private long refreshTokenExpiration;
 
     @Value("${app.jwt.refresh-token-remember-expiration}")
-    private long refreshTokenRememberExpiration;   // 7j
+    private long refreshTokenRememberExpiration;
 
-    // crée refresh token
+
     @Transactional
     public RefreshToken createRefreshToken(User user, boolean rememberMe) {
-        // révoquer anciens tokens
+
         refreshTokenRepository.revokeAllForUser(user);
 
         long expMs = rememberMe ? refreshTokenRememberExpiration : refreshTokenExpiration;
@@ -40,7 +40,7 @@ public class RefreshTokenService {
         return refreshTokenRepository.save(token);
     }
 
-    // valide & retourne refresh token
+
     @Transactional(readOnly = true)
     public RefreshToken validateRefreshToken(String token) {
         return refreshTokenRepository
@@ -49,7 +49,7 @@ public class RefreshTokenService {
                 .orElseThrow(() -> new RefreshTokenInvalidException("Refresh token invalide ou expiré"));
     }
 
-    // révoque tt tokens d'un user
+
     @Transactional
     public void revokeAllForUser(User user) {
         refreshTokenRepository.revokeAllForUser(user);

@@ -109,7 +109,6 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
     return Array.from({ length: this.totalPages }, (_, i) => i);
   }
 
-  // ── CREATE ──────────────────────────────────────────────
   submitCreateUser(): void {
     if (this.createUserForm.invalid) return;
     this.creating     = true;
@@ -130,7 +129,6 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ── EDIT ────────────────────────────────────────────────
   startEdit(user: UserResponse): void {
     this.editingUser = user;
     this.editUserForm.setValue({ nom: user.nom, prenom: user.prenom, email: user.email });
@@ -163,7 +161,6 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ── ACTIONS ─────────────────────────────────────────────
   verifyUser(user: UserResponse): void {
     this.actionInProgressId = user.id;
     this.adminService.verifyUser(user.id).subscribe({

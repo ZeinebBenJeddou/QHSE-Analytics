@@ -38,7 +38,7 @@ class ComparativeCalculatorTest {
         ComparativeCalculator.ComparativeResult r = calc.compute(null, 10d, 15d);
         assertNull(r.getSpecialCase());
         assertEquals(5.0, r.getAbsoluteGap(), 1e-6);
-        assertEquals(60, r.getCalcConfidence()); // base confidence is now 60
+        assertEquals(60, r.getCalcConfidence());
     }
 
     @Test

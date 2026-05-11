@@ -12,10 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
-/**
- * Development-only endpoints for KPI enrichment debugging.
- * Loaded only when 'dev' profile is active.
- */
+
 @RestController
 @RequestMapping("/api/kpi/enrichment")
 @Profile("dev")

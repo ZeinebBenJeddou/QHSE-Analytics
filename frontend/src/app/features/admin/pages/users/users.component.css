@@ -400,7 +400,6 @@ h1 {
   gap: 20px;
 }
 
-/* Search bar */
 .search-bar {
   padding: 4px 0 8px;
 }
@@ -412,7 +411,6 @@ h1 {
   border-radius: var(--radius-item) !important;
 }
 
-/* Edit card */
 .edit-card {
   border-color: var(--amber) !important;
   box-shadow: 0 0 0 1px rgba(217,119,6,0.15), 0 4px 20px rgba(217,119,6,0.08) !important;

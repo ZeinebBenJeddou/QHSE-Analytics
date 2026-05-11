@@ -7,25 +7,24 @@ import lombok.Data;
 @Builder
 public class ImportIssue {
 
-    /** Index de ligne dans le fichier (null si l'issue concerne le fichier entier). */
+
     private Integer rowIndex;
 
-    /** Nom de la colonne concernée (null si non applicable). */
     private String column;
 
-    /** Code machine de l'issue. */
+
     private String code;
 
-    /** Gravité : ERROR, WARNING ou INFO. */
+
     private Severity severity;
 
-    /** Message lisible par l'utilisateur. */
+
     private String message;
 
-    /** Valeur brute d'origine avant correction (null si non applicable). */
+
     private String originalValue;
 
-    /** Valeur après correction automatique (null si aucune correction). */
+
     private String cleanedValue;
 
     public enum Severity {
@@ -34,9 +33,7 @@ public class ImportIssue {
         INFO
     }
 
-    // ---------------------------------------------------------------
-    // Codes d'issues reconnus par le pipeline
-    // ---------------------------------------------------------------
+
     public static final String CODE_EMPTY_FILE              = "EMPTY_FILE";
     public static final String CODE_INVALID_FILE_TYPE       = "INVALID_FILE_TYPE";
     public static final String CODE_MISSING_REQUIRED_COLUMN = "MISSING_REQUIRED_COLUMN";

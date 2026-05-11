@@ -31,10 +31,10 @@ public class ImportDataRetentionService {
             ImportStatut.ERREUR
     );
 
-    /** Safety guard: refuse purge if more than this many import sessions would be deleted in one execution. */
+
     private static final int MAX_PURGE_SESSIONS_PER_RUN = 10000;
 
-    /** Safety guard: refuse purge if more than this many rows would be deleted in one execution. */
+
     private static final long MAX_ROWS_DELETE_PER_RUN = 50000;
 
     private final ImportRetentionProperties retentionProperties;
@@ -59,7 +59,7 @@ public class ImportDataRetentionService {
         scanned.addAll(rawImportIds);
         scanned.addAll(previewImportIds);
 
-        // Safety guard: refuse if excessive number of sessions would be purged
+
         if (scanned.size() > MAX_PURGE_SESSIONS_PER_RUN) {
             log.warn("Purge guard triggered (sessions): {} sessions exceed max({}). Aborting to prevent accidental mass deletion.",
                     scanned.size(), MAX_PURGE_SESSIONS_PER_RUN);
@@ -72,7 +72,7 @@ public class ImportDataRetentionService {
             return;
         }
 
-        // Estimate total rows to delete (safety guard for row count)
+
         long estimatedRawRows = !rawImportIds.isEmpty() ? kpiRawDataRepository.countByImportSessionIdIn(rawImportIds) : 0;
         long estimatedPreviewRows = !previewImportIds.isEmpty() ? kpiImportPreviewRepository.countByImportSessionIdIn(previewImportIds) : 0;
         long totalRowsEstimate = estimatedRawRows + estimatedPreviewRows;

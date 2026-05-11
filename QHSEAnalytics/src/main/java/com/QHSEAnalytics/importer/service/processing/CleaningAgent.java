@@ -8,15 +8,7 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * CleaningAgent: sanitisation, dédoublonnage tracé et détection outliers.
- *
- * Règles de dédoublonnage :
- *  - Doublon exact (même KPI normalisé + mêmes valeurs N/N-1) → garder une ligne + INFO DUPLICATE_KPI
- *  - Doublon avec valeurs différentes → garder la première + WARNING DUPLICATE_CONFLICT
- *
- * Les outliers (variation > 500 %) sont conservés mais signalés via WARNING OUTLIER_VARIATION.
- */
+
 @Service
 @Slf4j
 public class CleaningAgent {
@@ -39,19 +31,18 @@ public class CleaningAgent {
         return cleaned;
     }
 
-    // ── Sanitisation d'une ligne ─────────────────────────────────────────────
+
     private KpiRawDataDTO sanitizeRow(KpiRawDataDTO row) {
-        // Normaliser les champs texte
+
         row.setKpiName(trimAndNormalize(row.getKpiName()));
         row.setCategorie(trimAndNormalize(row.getCategorie()));
         row.setUnite(trimAndNormalize(row.getUnite()));
 
-        // Recalculer la clé de normalisation après trim (au cas où ExtractionAgent ne l'a pas fait)
         if (row.getNormalizedKpiName() == null && row.getKpiName() != null) {
             row.setNormalizedKpiName(ExtractionAgent.normalizeForMatching(row.getKpiName()));
         }
 
-        // Détection outlier sur les lignes valides
+
         if (row.isValid() && row.getValeurN1() != null && row.getValeurN() != null) {
             double v1 = row.getValeurN1();
             double v  = row.getValeurN();
@@ -63,7 +54,7 @@ public class CleaningAgent {
                             row.getKpiName(), variation);
                     log.warn("CleaningAgent: outlier détecté — {}", msg);
 
-                    // Ajouter issue WARNING (ne rend pas la ligne invalide)
+
                     List<ImportIssue> issues = new ArrayList<>(
                             row.getIssues() == null ? List.of() : row.getIssues());
                     issues.add(ImportIssue.builder()
@@ -75,7 +66,7 @@ public class CleaningAgent {
                             .build());
                     row.setIssues(issues);
 
-                    // Mettre à jour le message de validation affichable
+
                     row.setValidationMessage(msg);
                 }
             }
@@ -83,9 +74,9 @@ public class CleaningAgent {
         return row;
     }
 
-    // ── Dédoublonnage tracé ──────────────────────────────────────────────────
+
     private List<KpiRawDataDTO> deduplicateWithIssues(List<KpiRawDataDTO> rows) {
-        // clé : normalizedKpiName (ou "UNKNOWN_<rowIndex>" si null)
+
         Map<String, KpiRawDataDTO> seen = new LinkedHashMap<>();
         List<KpiRawDataDTO> result = new ArrayList<>();
 
@@ -102,7 +93,7 @@ public class CleaningAgent {
             boolean exactDuplicate = isExactDuplicate(existing, row);
 
             if (exactDuplicate) {
-                // Doublon exact → INFO sur la ligne conservée
+
                 log.info("CleaningAgent: doublon exact ignoré pour '{}' (ligne {})",
                         row.getKpiName(), row.getRowIndex());
                 addIssueToRow(existing,
@@ -116,7 +107,7 @@ public class CleaningAgent {
                                         row.getKpiName(), row.getRowIndex(), existing.getRowIndex()))
                                 .build());
             } else {
-                // Doublon avec valeurs différentes → WARNING sur la ligne conservée
+
                 log.warn("CleaningAgent: doublon conflictuel pour '{}' (lignes {} et {})",
                         row.getKpiName(), existing.getRowIndex(), row.getRowIndex());
                 addIssueToRow(existing,
@@ -130,12 +121,12 @@ public class CleaningAgent {
                                         row.getKpiName(), existing.getRowIndex(), row.getRowIndex()))
                                 .build());
             }
-            // Dans les deux cas on ne conserve que la première occurrence
+
         }
         return result;
     }
 
-    // ── Helpers ──────────────────────────────────────────────────────────────
+
     private String buildDedupeKey(KpiRawDataDTO row) {
         String norm = row.getNormalizedKpiName();
         if (norm == null || norm.isBlank()) {
@@ -149,7 +140,7 @@ public class CleaningAgent {
                 && Objects.equals(a.getValeurN1(), b.getValeurN1());
     }
 
-    /** Ajoute une issue à un DTO dont la liste peut être immutable (issue de @Singular). */
+
     private void addIssueToRow(KpiRawDataDTO row, ImportIssue issue) {
         List<ImportIssue> mutable = new ArrayList<>(
                 row.getIssues() == null ? List.of() : row.getIssues());

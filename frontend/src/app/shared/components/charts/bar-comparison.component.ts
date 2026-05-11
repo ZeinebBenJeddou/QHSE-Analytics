@@ -39,8 +39,8 @@ export class BarComparisonComponent implements AfterViewInit, OnChanges, OnDestr
     const ctx = this.canvas.nativeElement.getContext('2d');
     if (!ctx) return;
 
-    const COLOR_N1 = '#CBD5E1';   // gris clair N-1
-    const COLOR_N  = '#1E40AF';   // bleu marine N
+    const COLOR_N1 = '#CBD5E1';   
+    const COLOR_N  = '#1E40AF';   
 
     const NAVY   = '#0F172A';
     const MUTED  = '#94A3B8';
@@ -49,7 +49,7 @@ export class BarComparisonComponent implements AfterViewInit, OnChanges, OnDestr
     const FONT   = "'Inter', system-ui, sans-serif";
     const MONO   = "'DM Mono', monospace";
 
-    // Plugin: delta label above each group
+   
     const deltaPlugin: Plugin<'bar'> = {
       id: 'deltaLabels',
       afterDatasetsDraw(chart) {
@@ -152,7 +152,7 @@ export class BarComparisonComponent implements AfterViewInit, OnChanges, OnDestr
     };
 
     this.chart = new Chart(ctx, config);
-    // Pass data to delta plugin
+   
     (this.chart as any).__deltaData = this.data;
   }
 }

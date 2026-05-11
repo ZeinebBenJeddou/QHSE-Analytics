@@ -1,11 +1,4 @@
--- ============================================================
--- QHSE Analytics — V1 : Schéma initial complet
--- Crée toutes les tables si elles n'existent pas (idempotent).
--- En développement le schéma était géré par Hibernate ddl-auto=update ;
--- cette migration le formalise pour Flyway + ddl-auto=validate.
--- ============================================================
 
--- ─── Auth ────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS users (
     id          BIGSERIAL    PRIMARY KEY,
@@ -47,7 +40,7 @@ CREATE TABLE IF NOT EXISTS email_tokens (
     created_at TIMESTAMP    NOT NULL
 );
 
--- ─── KPI catalogue ───────────────────────────────────────────
+
 
 CREATE TABLE IF NOT EXISTS categorie_kpi (
     id          BIGSERIAL    PRIMARY KEY,
@@ -74,7 +67,7 @@ CREATE TABLE IF NOT EXISTS kpi (
     CONSTRAINT uk_kpi_nom_categorie UNIQUE (nom, categorie_id)
 );
 
--- ─── Import pipeline ─────────────────────────────────────────
+
 
 CREATE TABLE IF NOT EXISTS import_sessions (
     id                  BIGSERIAL    PRIMARY KEY,
@@ -167,7 +160,7 @@ CREATE TABLE IF NOT EXISTS mapping_config (
     CONSTRAINT uk_mapping_config UNIQUE (user_id, template_name, excel_column)
 );
 
--- ─── AI analysis ─────────────────────────────────────────────
+
 
 CREATE TABLE IF NOT EXISTS kpi_analysis (
     id                    BIGSERIAL    PRIMARY KEY,
@@ -214,7 +207,7 @@ CREATE TABLE IF NOT EXISTS analyse_categories (
     created_at        TIMESTAMP    NOT NULL
 );
 
--- ─── RAG knowledge base ──────────────────────────────────────
+
 
 CREATE TABLE IF NOT EXISTS rag_knowledge (
     id         BIGSERIAL    PRIMARY KEY,

@@ -22,10 +22,10 @@ public class ExtractionAgent {
 
     private final ExcelFileValidator excelFileValidator;
 
-    // ── Constantes méthodes ──────────────────────────────────────────────────
+
     public static final String EXTRACTION_METHOD_CUSTOM   = "CUSTOM";
 
-    // ── Constantes mapping ───────────────────────────────────────────────────
+
     public static final String MAPPING_KPI_NAME        = "kpiName";
     public static final String MAPPING_CATEGORY        = "category";
     public static final String MAPPING_UNIT            = "unit";
@@ -39,7 +39,7 @@ public class ExtractionAgent {
 
     private static final double LOW_CONFIDENCE_THRESHOLD = 0.4;
 
-    // Synonymes de colonnes (normalisés sans accents, minuscules)
+
     private static final Set<String> KPI_SYNONYMS = Set.of(
             "kpi","indicateur","indicateur qhse","libelle",
             "nom indicateur","metric","nom kpi","designation");
@@ -54,13 +54,13 @@ public class ExtractionAgent {
     private static final Set<String> UNIT_SYNONYMS = Set.of(
             "unite","unit","mesure","unites");
 
-    // Détection de valeurs ambiguës : texte mélangé après un nombre
+
     private static final Pattern AMBIGUOUS_PATTERN = Pattern.compile(
             "^-?\\d[\\d\\s.,]*[a-zA-ZÀ-ÿ%°/]+.*$");
-    // Fraction/ratio
+
     private static final Pattern FRACTION_PATTERN = Pattern.compile("^\\d+/\\d+$");
 
-    // ── Point d'entrée public ─────────────────────────────────────────────────
+
     public ExtractionResult extract(MultipartFile file, Map<String, Integer> mapping) {
         excelFileValidator.validate(file);
         try (InputStream inputStream = file.getInputStream();
@@ -81,7 +81,7 @@ public class ExtractionAgent {
             int headerRowIndex = determineHeaderRow(sheet, normalizedMapping, evaluator, formatter, method);
             MappingResult mappingResult = buildEffectiveMapping(
                     sheet, normalizedMapping, headerRowIndex, evaluator, formatter, method);
-            
+
             if (mappingResult.hasMissingCritical) {
                 throw new ImportValidationException("Colonnes obligatoires (KPI, Valeur N, Valeur N-1) introuvables et fichier trop petit pour appliquer les index par défaut.");
             }
@@ -113,7 +113,7 @@ public class ExtractionAgent {
         }
     }
 
-    // ── Sélection de la feuille ──────────────────────────────────────────────
+
     private Optional<Sheet> selectDataSheet(Workbook workbook, DataFormatter formatter, FormulaEvaluator evaluator) {
         if (workbook == null) return Optional.empty();
         Optional<Sheet> templateSheet = HeaderDetectionUtil.findDataSheetForTemplate(workbook, formatter, evaluator);
@@ -127,7 +127,7 @@ public class ExtractionAgent {
         return Optional.ofNullable(workbook.getNumberOfSheets() > 0 ? workbook.getSheetAt(0) : null);
     }
 
-    // ── Méthode d'extraction ─────────────────────────────────────────────────
+
     private ExtractionMethod determineExtractionMethod() {
         return ExtractionMethod.CUSTOM;
     }
@@ -144,7 +144,7 @@ public class ExtractionAgent {
                 && mapping.get(MAPPING_VALUE_N1_INDEX) >= 0;
     }
 
-    // ── Normalisation du mapping ─────────────────────────────────────────────
+
     private Map<String, Integer> normalizeMapping(Map<String, Integer> mapping) {
         Map<String, Integer> normalized = new HashMap<>();
         if (mapping == null) return normalized;
@@ -160,7 +160,7 @@ public class ExtractionAgent {
         return mapping.containsKey(primary) ? mapping.get(primary) : mapping.get(fallback);
     }
 
-    // ── Détection header ─────────────────────────────────────────────────────
+
     private int determineHeaderRow(Sheet sheet, Map<String, Integer> mapping,
                                    FormulaEvaluator evaluator, DataFormatter formatter, ExtractionMethod method) {
         if (method == ExtractionMethod.CUSTOM) {
@@ -217,7 +217,7 @@ public class ExtractionAgent {
             Optional<HeaderDetectionUtil.HeaderDetectionResult> result =
                     HeaderDetectionUtil.detectHeaderRow(sheet, formatter, evaluator);
             if (result.isEmpty()) result = HeaderDetectionUtil.buildFallbackHeader(sheet, formatter, evaluator);
-            
+
             if (result.isPresent()) {
                 HeaderDetectionUtil.HeaderDetectionResult r = result.get();
                 if (effective.get(MAPPING_KPI_NAME_INDEX) == null || effective.get(MAPPING_KPI_NAME_INDEX) < 0) effective.put(MAPPING_KPI_NAME_INDEX,  r.getKpiColumnIndex());
@@ -280,7 +280,7 @@ public class ExtractionAgent {
 
         int bestIndex = -1;
         double bestScore = -1.0;
-        
+
         for (Map.Entry<Integer, String> entry : headers.entrySet()) {
             int col = entry.getKey();
             String header = entry.getValue();
@@ -299,7 +299,7 @@ public class ExtractionAgent {
                 }
             }
         }
-        
+
         if (bestIndex >= 0) {
             effective.put(mappingKey, bestIndex);
             if (bestScore < 1.0 && (mappingKey.equals(MAPPING_KPI_NAME_INDEX) || mappingKey.equals(MAPPING_VALUE_N_INDEX) || mappingKey.equals(MAPPING_VALUE_N1_INDEX))) {
@@ -336,7 +336,7 @@ public class ExtractionAgent {
         return sheet.getFirstRowNum();
     }
 
-    // ── Extraction des lignes ────────────────────────────────────────────────
+
     private List<KpiRawDataDTO> extractRows(Sheet sheet, Map<String, Integer> mapping,
                                              int headerRowIndex, FormulaEvaluator evaluator,
                                              DataFormatter formatter, ExtractionMethod method) {
@@ -358,11 +358,11 @@ public class ExtractionAgent {
             List<ImportIssue> issues = new ArrayList<>();
             int displayRow = rowIndex + 1;
 
-            // ── Parsing numérique robuste ────────────────────────────────────
+
             ParseResult prN1 = parseNumberRobust(n1Raw, displayRow, "Valeur N-1", issues);
             ParseResult prN  = parseNumberRobust(nRaw,  displayRow, "Valeur N",   issues);
 
-            // ── Validation du nom KPI ────────────────────────────────────────
+
             boolean valid = true;
             String validationMessage = null;
 
@@ -401,7 +401,7 @@ public class ExtractionAgent {
 
             if (!valid) log.warn("ExtractionAgent ligne {} invalide : {}", displayRow, validationMessage);
 
-            // ── Score de confiance ────────────────────────────────────────────
+
             String cleanedKpiName = safeTrim(kpiName);
             double confidence = KpiMatchingUtil.computeConfidence(cleanedKpiName);
             if (valid && confidence < LOW_CONFIDENCE_THRESHOLD) {
@@ -438,10 +438,7 @@ public class ExtractionAgent {
         return rows;
     }
 
-    // ── Parsing numérique robuste ─────────────────────────────────────────────
-    /**
-     * Résultat d'un parsing : valeur parsée + flag indiquant si une issue a déjà été ajoutée.
-     */
+
     private static class ParseResult {
         final Double  value;
         final boolean issueAdded;
@@ -455,11 +452,11 @@ public class ExtractionAgent {
         String trimmed = raw.trim();
         String lower   = trimmed.toLowerCase(Locale.ROOT);
 
-        // Booléens textuels
+
         if (Set.of("oui","true","vrai","yes","acquis").contains(lower)) return new ParseResult(1.0, false);
         if (Set.of("non","false","faux","no","perdu").contains(lower))   return new ParseResult(0.0, false);
 
-        // Fraction ambiguë "10/20"
+
         if (FRACTION_PATTERN.matcher(trimmed).matches()) {
             issues.add(ImportIssue.builder()
                     .rowIndex(rowIndex).column(column)
@@ -470,12 +467,12 @@ public class ExtractionAgent {
             return new ParseResult(null, true);
         }
 
-        // Pourcentage : "12%"
+
         if (trimmed.endsWith("%")) {
             String withoutPct = trimmed.substring(0, trimmed.length() - 1).trim();
             Double parsed = tryParseDouble(withoutPct);
             if (parsed != null) {
-                // Auto-correction : on conserve la valeur numérique du pourcentage
+
                 if (!withoutPct.equals(trimmed)) {
                     issues.add(ImportIssue.builder()
                             .rowIndex(rowIndex).column(column)
@@ -488,9 +485,9 @@ public class ExtractionAgent {
             }
         }
 
-        // Texte mélangé ambigu "12 accidents"
+
         if (AMBIGUOUS_PATTERN.matcher(trimmed).matches()) {
-            // Tenter de récupérer la partie numérique de tête
+
             String numericPart = trimmed.replaceAll("[^0-9.,\\-].*$", "").trim();
             Double parsed = tryParseDouble(numericPart);
             if (parsed != null) {
@@ -511,13 +508,13 @@ public class ExtractionAgent {
             return new ParseResult(null, true);
         }
 
-        // Parsing standard : espaces insécables, virgule → point, espaces séparateurs milliers
+
         String cleaned = trimmed
                 .replace("\u00A0", "")
                 .replace(" ", "")
                 .replace(',', '.');
 
-        // Supprimer les points multiples sauf le dernier
+
         int lastDot = cleaned.lastIndexOf('.');
         if (lastDot >= 0) {
             String intPart = cleaned.substring(0, lastDot).replace(".", "");
@@ -530,7 +527,7 @@ public class ExtractionAgent {
 
         Double result = tryParseDouble(cleaned);
         if (result != null) {
-            // Signaler si une correction s'est produite (valeur brute ≠ valeur nettoyée)
+
             if (!cleaned.equals(trimmed)) {
                 issues.add(ImportIssue.builder()
                         .rowIndex(rowIndex).column(column)
@@ -556,7 +553,7 @@ public class ExtractionAgent {
         catch (NumberFormatException e) { return null; }
     }
 
-    // ── Normalisation pour matching dédoublonnage ────────────────────────────
+
     public static String normalizeForMatching(String value) {
         if (value == null) return "";
         String s = Normalizer.normalize(value, Normalizer.Form.NFD);
@@ -567,7 +564,7 @@ public class ExtractionAgent {
         return s;
     }
 
-    // ── Utilitaires ──────────────────────────────────────────────────────────
+
     private boolean isRowCompletelyEmpty(String kpiName, String categorie, String unite, String n1Raw, String nRaw) {
         return (kpiName == null || kpiName.isBlank())
                 && (categorie == null || categorie.isBlank())
@@ -594,7 +591,7 @@ public class ExtractionAgent {
         return value == null ? null : value.trim();
     }
 
-    // ── Classes internes ─────────────────────────────────────────────────────
+
     public static final class ExtractionResult {
         private final List<KpiRawDataDTO> rows;
         private final String extractionMethod;

@@ -1,6 +1,9 @@
 target/
-.md
-.git/
+*.log
+logs/
+storage/
+.git
 .gitignore
+README.md
+*.md
 .mvn/wrapper/maven-wrapper.jar
-**/.log

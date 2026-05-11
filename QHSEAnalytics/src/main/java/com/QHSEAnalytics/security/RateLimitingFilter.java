@@ -14,14 +14,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.Set;
 
-/**
- * Filtre de rate limiting sur les endpoints d'authentification sensibles.
- * Retourne HTTP 429 quand le seuil est dépassé.
- *
- * X-Forwarded-For n'est utilisé que si app.rate-limit.trust-proxy=true
- * (à activer uniquement derrière un reverse proxy de confiance — nginx, traefik…).
- * Par défaut : RemoteAddr direct pour éviter l'usurpation d'IP.
- */
+
 @Component
 @RequiredArgsConstructor
 @Slf4j

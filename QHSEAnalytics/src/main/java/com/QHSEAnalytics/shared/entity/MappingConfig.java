@@ -22,24 +22,24 @@ public class MappingConfig {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Logical group name for this mapping set */
+
     @Column(name = "template_name", nullable = false, length = 120)
     private String templateName;
 
-    /** The raw column header found in the Excel/CSV file */
+
     @Column(name = "excel_column", nullable = false, length = 255)
     private String excelColumn;
 
-    /** The KPI this column maps to (nullable – not every column maps to a KPI) */
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "kpi_id")
     private Kpi kpi;
 
-    /** Optional category code hint */
+
     @Column(name = "categorie_code", length = 50)
     private String categorieCode;
 
-    /** Owner of this mapping */
+
     @Column(name = "user_id", nullable = false)
     private Long userId;
 

@@ -18,7 +18,7 @@ public class ClassificationEngine {
 
     @Data
     public static class ClassificationResult {
-        private String classification; // EXCELLENT, FAIBLE, MODERE, PRE_ESCALADE, CRITIQUE, INDETERMINE
+        private String classification;
         private String reason;
         private boolean reviewRequired;
     }
@@ -71,7 +71,7 @@ public class ClassificationEngine {
             double critique = safe(kpi.getSeuilCritique());
 
             if (!hasDegradation) {
-                // EXCELLENT : amélioration dépassant 1.5× le seuil faible (hors TARGET_IS_BEST)
+
                 double improvementMagnitude = computeImprovementMagnitude(kpi, comp);
                 if (improvementMagnitude >= faible * 1.5 && faible > 0
                         && resolveDirection(kpi, comp) != Direction.TARGET_IS_BEST) {
@@ -92,7 +92,7 @@ public class ClassificationEngine {
                 r.setReviewRequired(true);
                 return r;
             }
-            // PRE_ESCALADE : dégradation avancée (score 72–84) approchant le seuil critique
+
             if (degradationScore >= 72 || (critique > 0 && degradationMagnitude >= critique * 0.75 && degradationMagnitude < critique)) {
                 r.setClassification(PRE_ESCALADE);
                 r.setReason(withTargetFallbackNote("Dégradation pré-critique — surveillance immédiate requise", forceReviewForTargetFallback));
@@ -124,7 +124,7 @@ public class ClassificationEngine {
             double p95 = percentile(historyDegradations, 95);
             double p75 = percentile(historyDegradations, 75);
             double p25 = percentile(historyDegradations, 25);
-            // EXCELLENT : amélioration nettement en dessous de p25 (comportement historique)
+
             if (!hasDegradation && p25 > 0 && degradationMagnitude == 0
                     && resolveDirection(kpi, comp) != Direction.TARGET_IS_BEST) {
                 double improvementMag = computeImprovementMagnitude(kpi, comp);
@@ -180,7 +180,7 @@ public class ClassificationEngine {
                 r.setReviewRequired(comp.isReviewRequired() || forceReviewForTargetFallback);
                 return r;
             }
-            // EXCELLENT : amélioration nettement meilleure que la médiane historique
+
             if (!hasDegradation && resolveDirection(kpi, comp) != Direction.TARGET_IS_BEST) {
                 double improvementZ = robustZScore(historyDegradations, computeImprovementMagnitude(kpi, comp));
                 if (improvementZ >= 2.0) {
@@ -249,7 +249,7 @@ public class ClassificationEngine {
             return new DegradationContext(Math.max(0d, gap), false);
         }
 
-        // TARGET_IS_BEST: requires explicit targetValue; fallback triggers review requirement
+
         if (kpi == null || kpi.getTargetValue() == null) {
             return new DegradationContext(Math.abs(gap), true);
         }

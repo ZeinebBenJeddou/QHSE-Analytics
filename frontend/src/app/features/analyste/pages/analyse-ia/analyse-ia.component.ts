@@ -20,11 +20,7 @@ import { AiAnalysisStructuredResponse, AiKpiInsightResponse, AnalyseCompleteResp
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../../environments/environment';
 
-/* ══════════════════════════════════════════════════════════════════════
-   DTOs — miroir exact du backend
-══════════════════════════════════════════════════════════════════════ */
 
-/* ── Enriched KPI ───────────────────────────────────────────────────── */
 interface EnrichedKpi extends ResultatKpiIaResponse {
   insight?: string;
   insightConfidence?: number;
@@ -38,7 +34,6 @@ interface EnrichedKpi extends ResultatKpiIaResponse {
   urgency?: string;
 }
 
-/* ── Kanban item ────────────────────────────────────────────────────── */
 interface KanbanItem {
   id: string;
   action: string;
@@ -49,7 +44,6 @@ interface KanbanItem {
   kpiRef?: string;
 }
 
-/* ── Category metadata ─────────────────────────────────────────────── */
 interface CategorieInfo {
   code: string;
   libelle: string;
@@ -86,7 +80,6 @@ export class AnalyseIAComponent implements OnInit {
   private http             = inject(HttpClient);
   private readonly dashboardAnalysteBase = `${environment.apiUrl}/api/dashboard/analyste`;
   private readonly dashboardAdminBase    = `${environment.apiUrl}/api/dashboard/admin`;
-  // ── State ────────────────────────────────────────────────────────────
   importId        = signal<number | null>(null);
   loading         = signal(true);
   regenerating    = signal(false);
@@ -95,25 +88,20 @@ export class AnalyseIAComponent implements OnInit {
   analyse         = signal<AnalyseCompleteResponse | null>(null);
   structured      = signal<AiAnalysisStructuredResponse | null>(null);
 
-  // ── UI state ─────────────────────────────────────────────────────────
   activeCatCode   = signal('Q');
   expandedKpiId   = signal<number | null>(null);
 
-  // ── Filter state ─────────────────────────────────────────────────────
   searchKpi       = signal('');
   niveauKpiFilter = signal('');
   catFilter       = signal('');
 
-  // ── Constants ─────────────────────────────────────────────────────────
   readonly CATEGORIES = CATEGORIES;
 
-  // ── Computed : résumé plan actions (split par \n) ────────────────────
   planActionsList = computed(() => {
     const pa = this.analyse()?.analyseGlobale?.planActions ?? '';
     return pa.split('\n').map(s => s.trim()).filter(s => s.length > 0);
   });
 
-  // ── Computed : structured analysis status ───────────────────────────
   isStructuredSuccess = computed(() => this.structured()?.status === 'SUCCESS');
   isStructuredPartial = computed(() => this.structured()?.status === 'PARTIAL');
   isStructuredFailed = computed(() => this.structured()?.status === 'FAILED');
@@ -132,7 +120,6 @@ export class AnalyseIAComponent implements OnInit {
     return 'Succès';
   });
 
-  // ── Computed : confidence badge ─────────────────────────────────────
   showConfidenceBadge = computed(() => {
     const conf = this.structured()?.confidence?.overall ?? 100;
     return conf < 60 || this.isStructuredPartial() || this.isStructuredFailed();
@@ -140,19 +127,16 @@ export class AnalyseIAComponent implements OnInit {
 
   structuredConfidence = computed(() => this.structured()?.confidence?.overall ?? 0);
 
-  // ── Computed : catégorie active ──────────────────────────────────────
   activeCatAnalyse = computed(() => {
     const code = this.activeCatCode();
     return this.analyse()?.analysesCategories.find(c => c.categorieCode === code) ?? null;
   });
 
-  // ── Computed : KPIs de la catégorie active ───────────────────────────
   activeKpis = computed(() => {
     const code = this.activeCatCode();
     return (this.analyse()?.analysesKpis ?? []).filter(k => k.categorieCode === code);
   });
 
-  // ── Computed : score global simulé à partir des niveaux ──────────────
   globalScore = computed(() => {
     const kpis = this.analyse()?.analysesKpis ?? [];
     if (!kpis.length) return 0;
@@ -165,7 +149,6 @@ export class AnalyseIAComponent implements OnInit {
     return Math.round(pts / kpis.length);
   });
 
-  // ── Computed : stats par catégorie ───────────────────────────────────
   catStats = computed(() => {
     const kpis = this.analyse()?.analysesKpis ?? [];
     return CATEGORIES.map(cat => {
@@ -179,12 +162,10 @@ export class AnalyseIAComponent implements OnInit {
     });
   });
 
-  // ── Computed : KPIs critiques (tous) ─────────────────────────────────
   kpisCritiques = computed(() =>
     (this.analyse()?.analysesKpis ?? []).filter(k => k.niveauVariation === 'CRITIQUE')
   );
 
-  // ── Computed : score label ────────────────────────────────────────────
   scoreLabel = computed(() => {
     const s = this.globalScore();
     if (s >= 80) return 'Excellent';
@@ -201,15 +182,12 @@ export class AnalyseIAComponent implements OnInit {
     return '#ee5d50';
   });
 
-  // dash-array for SVG ring (circumference ≈ 339)
   scoreRingDash = computed(() => {
     const pct = this.globalScore() / 100;
     return `${Math.round(pct * 339)} 339`;
   });
 
-  // ── Lifecycle ─────────────────────────────────────────────────────────
   ngOnInit() {
-    // importId peut venir de la route (:id) ou être déduit via /resume
     const routeId = this.route.snapshot.paramMap.get('id');
     if (routeId) {
       this.importId.set(+routeId);
@@ -246,7 +224,6 @@ export class AnalyseIAComponent implements OnInit {
     this.loadKanbanState();
     this.sessionState.setActiveImport(importId);
 
-    // Resolve legacy source: cache hit avoids the HTTP round-trip entirely
     const cached = this.sessionState.getDashboardData();
     const legacySource$ = (cached.analysesIa != null)
       ? of(cached.analysesIa)
@@ -299,14 +276,12 @@ export class AnalyseIAComponent implements OnInit {
         next: data => {
           this.analyse.set(data);
           this.snackBar.open('Analyse IA régénérée avec succès', 'Fermer', { duration: 4000 });
-          // Reload structured after regeneration
           this.loadAnalyse(id);
         },
         error: () => this.snackBar.open('Erreur lors de la régénération', 'Fermer', { duration: 4000 })
       });
   }
 
-  // ── UI helpers ────────────────────────────────────────────────────────
   setActiveCat(code: string) { this.activeCatCode.set(code); }
 
   toggleKpi(id: number) {
@@ -350,7 +325,6 @@ export class AnalyseIAComponent implements OnInit {
     return 'var-neutral';
   }
 
-  // Extrait les lignes de méthode 8D depuis analyseIa
   parse8D(analyseIa: string | null): string[] {
     if (!analyseIa) return [];
     const idx = analyseIa.toLowerCase().indexOf('8d');
@@ -358,15 +332,12 @@ export class AnalyseIAComponent implements OnInit {
     return analyseIa.substring(idx).split(/\n|\./).map(s => s.trim()).filter(s => s.length > 4).slice(0, 8);
   }
 
-  // Extrait les recommandations inline du texte analyseIa
   extractRecos(analyseIa: string | null): string[] {
     if (!analyseIa) return [];
     const lines = analyseIa.split(/\n/).map(s => s.trim()).filter(s => s.length > 10);
-    // Lignes qui ressemblent à des actions (commencent par verbe ou tiret)
     return lines.filter(l => /^[-•–*]|^[A-ZÉÈÀÂ]/.test(l)).slice(0, 5);
   }
 
-  // Score ring pour mini rings catégories
   miniRingDash(cat: { critique: number; modere: number; faible: number; total: number }): string {
     if (!cat.total) return '0 339';
     const score = Math.round(
@@ -454,7 +425,6 @@ export class AnalyseIAComponent implements OnInit {
     return rec?.expectedBenefit?.trim() || '';
   }
 
-  // ── P3.3 — Kanban action board ────────────────────────────────────────
   readonly KANBAN_COLS = ['todo', 'in_progress', 'done'] as const;
   readonly KANBAN_LABELS: Record<string, string> = { todo: 'À Faire', in_progress: 'En Cours', done: 'Terminé' };
   readonly KANBAN_ICONS:  Record<string, string> = { todo: 'assignment', in_progress: 'pending_actions', done: 'task_alt' };
@@ -500,17 +470,16 @@ export class AnalyseIAComponent implements OnInit {
   }
 
   private saveKanbanState(): void {
-    try { localStorage.setItem(this.kanbanStorageKey(), JSON.stringify(this.kanbanState())); } catch { /* quota */ }
+    try { localStorage.setItem(this.kanbanStorageKey(), JSON.stringify(this.kanbanState())); } catch {  }
   }
 
   private loadKanbanState(): void {
     try {
       const raw = localStorage.getItem(this.kanbanStorageKey());
       if (raw) this.kanbanState.set(JSON.parse(raw));
-    } catch { /* parse error */ }
+    } catch { }
   }
 
-  // ── P1.2 — Root cause analysis helpers ────────────────────────────────
   hasRootCauses = computed(() => (this.structured()?.rootCauseAnalysis ?? []).length > 0);
 
   ishikawaClass(category: string): string {
@@ -524,7 +493,6 @@ export class AnalyseIAComponent implements OnInit {
     return map[category] ?? 'ishi-default';
   }
 
-  // ── P1.3 — Predictive alerts helpers ──────────────────────────────────
   hasAlerts = computed(() => (this.structured()?.predictiveAlerts ?? []).length > 0);
   criticalAlertsCount = computed(() =>
     (this.structured()?.predictiveAlerts ?? []).filter(a => a.severity === 'HIGH').length
@@ -548,7 +516,6 @@ export class AnalyseIAComponent implements OnInit {
     return 'info';
   }
 
-  // ── Enriched KPIs (merge legacy + structured) ────────────────────────
   enrichedKpis = computed((): EnrichedKpi[] => {
     const legacy   = this.analyse()?.analysesKpis ?? [];
     const insights = this.structured()?.kpiInsights ?? [];
@@ -579,7 +546,6 @@ export class AnalyseIAComponent implements OnInit {
       });
     }
 
-    // Structured-only fallback (no legacy data)
     return insights.map((ins, i): EnrichedKpi => ({
       id: i, kpiId: ins.kpiId ?? i, kpiNom: ins.kpiName, kpiUnite: '',
       categorieCode: '', categorieLibelle: '',
@@ -642,7 +608,6 @@ export class AnalyseIAComponent implements OnInit {
     return this.planActionsList().slice(0, 5);
   }
 
-  // ── Filter setters ───────────────────────────────────────────────────
   setCatFilter(code: string)   { this.catFilter.set(code); }
   setNiveauFilter(n: string)   { this.niveauKpiFilter.set(n); }
   setSearch(v: string)         { this.searchKpi.set(v); }

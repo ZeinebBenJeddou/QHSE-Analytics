@@ -27,7 +27,6 @@
 
   <div class="page-grid">
 
-    <!-- CRÉER -->
     <mat-card class="glass-card">
       <mat-card-header>
         <div mat-card-avatar class="card-av-icon-wrap">
@@ -66,7 +65,6 @@
       </mat-card-content>
     </mat-card>
 
-    <!-- ÉDITER (affiché seulement quand editingUser != null) -->
     @if (editingUser) {
       <mat-card class="glass-card edit-card">
         <mat-card-header>
@@ -112,7 +110,6 @@
       </mat-card>
     }
 
-    <!-- LISTE -->
     <mat-card class="glass-card">
       <mat-card-header>
         <div mat-card-avatar class="card-av-icon-wrap">
@@ -127,7 +124,6 @@
 
       <mat-card-content>
 
-        <!-- RECHERCHE -->
         <div class="search-bar">
           <mat-form-field appearance="outline" class="search-field">
             <mat-label>Rechercher</mat-label>

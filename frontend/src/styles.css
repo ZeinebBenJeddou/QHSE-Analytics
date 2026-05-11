@@ -4,7 +4,6 @@
 :root {
   color-scheme: light;
 
-  /* ── Design System QHSE ────────────────────────── */
   --qhse-primary:        #1E40AF;
   --qhse-indigo:         #6366F1;
   --qhse-sidebar:        #0F172A;
@@ -17,7 +16,6 @@
   --qhse-text-primary:   #0F172A;
   --qhse-text-secondary: #64748B;
 
-  /* ── Legacy aliases (keep for backward compat) ── */
   --qhse-blue-900: #0c2f5e;
   --qhse-blue-800: #123c77;
   --qhse-blue-700: #1a56aa;
@@ -44,7 +42,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Force le chargement immédiat de la font avant le premier rendu */
 .material-icons {
   font-family: 'Material Icons', serif;
   font-weight: normal;
@@ -67,7 +64,6 @@ a { color: inherit; }
 * { box-sizing: border-box; }
 button, input, textarea, select { font: inherit; }
 
-/* ─── Snackbar severity styles ─────────────────────────────── */
 .snack-error .mat-mdc-snack-bar-container,
 .mat-mdc-snack-bar-container.snack-error {
   --mdc-snackbar-container-color: #7f1d1d;

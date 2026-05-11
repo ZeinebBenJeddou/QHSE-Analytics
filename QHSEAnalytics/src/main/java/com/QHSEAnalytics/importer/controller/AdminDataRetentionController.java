@@ -30,7 +30,7 @@ public class AdminDataRetentionController {
                 .purgeCron(retentionProperties.getPurgeCron())
                 .terminalStatuses(retentionService.terminalStatusesForPurge());
 
-        // Null-safe population of summary fields
+
         if (summary != null) {
             builder.lastExecutedAt(summary.getExecutedAt())
                    .lastDurationMs(summary.getDurationMs())
