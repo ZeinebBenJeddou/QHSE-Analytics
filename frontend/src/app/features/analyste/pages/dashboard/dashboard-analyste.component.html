@@ -21,7 +21,7 @@
   }
 
   @if (!loading() && !error()) {
-    <!-- Page header -->
+  
     <div class="page-header">
       <div class="header-left">
         <div>
@@ -46,7 +46,7 @@
       </div>
     }
 
-    <!-- KPI summary cards -->
+   
     <div class="kpi-cards-row">
       @for (card of summaryCards; track card.label) {
         <div class="kpi-card"
@@ -71,7 +71,7 @@
       }
     </div>
 
-    <!-- LIGNE 1 : bar chart + donut côte à côte -->
+   
     <div class="charts-grid">
       <div class="panel chart-line-panel">
         <div class="panel-header">
@@ -115,7 +115,7 @@
       </div>
     </div>
 
-    <!-- LIGNE 2 : tableau pleine largeur -->
+   
     <div class="comparatif-full">
       <div class="panel comparatif-panel">
         <div class="panel-header">
@@ -325,7 +325,7 @@
       </div>
     </div>
 
-    <!-- LIGNE 3 : Synthèse IA centrée -->
+   
     <div class="synthese-full">
       <div class="panel synthese-ia-panel">
         <div class="panel-header">

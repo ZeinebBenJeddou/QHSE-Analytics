@@ -5,7 +5,6 @@
     mode="side"
     class="sidenav"
   >
-    <!-- BRAND -->
     <div class="brand">
       <div class="brand-logo">
         
@@ -17,10 +16,8 @@
       <div class="brand-divider"></div>
     </div>
 
-    <!-- SCROLL AREA -->
     <div class="nav-scroll-area">
 
-      <!-- Dashboard -->
       <nav class="nav-section">
         <mat-nav-list class="nav-list">
           @for (item of dashItems; track item.route) {
@@ -43,7 +40,6 @@
         </mat-nav-list>
       </nav>
 
-      <!-- Données -->
       <nav class="nav-section">
         <p class="nav-label">Données</p>
         <mat-nav-list class="nav-list">
@@ -67,7 +63,6 @@
         </mat-nav-list>
       </nav>
 
-      <!-- Analyse -->
       <nav class="nav-section">
         <p class="nav-label">Analyse</p>
         <mat-nav-list class="nav-list">
@@ -91,7 +86,6 @@
         </mat-nav-list>
       </nav>
 
-      <!-- Rapports -->
       <nav class="nav-section">
         <p class="nav-label">Rapports</p>
         <mat-nav-list class="nav-list">
@@ -115,9 +109,8 @@
         </mat-nav-list>
       </nav>
 
-    </div><!-- /nav-scroll-area -->
+    </div>
 
-    <!-- FOOTER -->
     <div class="sidenav-footer">
       <a mat-list-item class="nav-item logout-btn" (click)="logout()">
         <mat-icon matListItemIcon class="logout-icon">logout</mat-icon>
@@ -126,7 +119,6 @@
     </div>
   </mat-sidenav>
 
-  <!-- MAIN CONTENT -->
   <mat-sidenav-content class="main-content">
     <mat-toolbar class="toolbar">
       <button mat-icon-button class="menu-btn" (click)="toggleSidenav()" matTooltip="Menu">

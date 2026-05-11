@@ -32,7 +32,7 @@
 
 /* PAGE */
 .import-page {
-  max-width: 1180px;
+  max-width: 1680px;
   margin: 0 auto;
   font-family: var(--font);
 }
@@ -327,7 +327,7 @@ h1 {
 .column-list {
   display: grid;
   gap: 8px;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
 }
 .column-item {
   display: flex;
@@ -373,7 +373,7 @@ h1 {
 .mapping-grid {
   display: grid;
   gap: 14px;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
 }
 .mapping-grid ::ng-deep .mat-mdc-text-field-wrapper {
   background: var(--surface) !important;
@@ -606,19 +606,19 @@ h1 {
 .comment-text {
   font-size: 0.78rem;
   color: var(--ink-soft);
-  max-width: 180px;
   display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.45;
+  max-width: 220px;
 }
 .definition-cell {
-  max-width: 200px;
   font-size: 0.78rem;
   color: var(--ink-mid);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.45;
+  max-width: 280px;
 }
 
 /* RESULT CARD */
@@ -716,7 +716,15 @@ h1 {
 
 .meta-cell { display:flex; flex-direction:column; gap:6px; align-items:flex-start; }
 .review-badge { background: #FFF4E6; color: var(--orange); padding: 4px 8px; border-radius: 10px; font-weight:700; font-size:0.72rem; }
-.reason { font-size:0.78rem; color:var(--ink-mid); max-width:180px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.reason {
+  font-size: 0.78rem;
+  color: var(--ink-mid);
+  display: block;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.45;
+  max-width: 220px;
+}
 .confidence-bar { width:100px; height:8px; border-radius:6px; }
 .data-flags { font-size:0.9rem; color:var(--orange); }
 
@@ -908,7 +916,7 @@ h1 {
 /* Stats grid */
 .quality-stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
   gap: 10px;
   margin-bottom: 22px;
 }
@@ -1018,7 +1026,7 @@ h1 {
   border: 1px solid var(--border);
   border-radius: var(--radius-item);
   padding: 14px 16px;
-  min-width: 180px;
+  min-width: 260px;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -1165,8 +1173,8 @@ h1 {
   border: 1px solid var(--border);
   border-radius: var(--radius-item);
   padding: 10px 12px;
-  min-width: 140px;
-  max-width: 170px;
+  min-width: 220px;
+  max-width: 280px;
   display: flex;
   flex-direction: column;
   gap: 5px;

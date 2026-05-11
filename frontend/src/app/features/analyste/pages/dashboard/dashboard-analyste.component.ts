@@ -106,7 +106,6 @@ export class DashboardAnalysteComponent implements OnInit {
 
   private filtersKey = 'analyste.dashboard.filters';
 
-  /** Track which KPI rows are expanded to show full AI analysis */
   expandedRows = signal<Set<number>>(new Set());
 
   tableColumns = ['expand', 'kpiNom', 'categorieLibelle', 'valeurN1', 'valeurN', 'variationAbsolue', 'variationRelative', 'niveauVariation', 'tendance'];
@@ -157,8 +156,7 @@ export class DashboardAnalysteComponent implements OnInit {
       );
 
     if (!withActions.length) {
-      // Pas encore d'actions IA — retourner tableau vide.
-      // Le HTML gère déjà le cas vide.
+      
       return [];
     }
 
@@ -277,8 +275,7 @@ export class DashboardAnalysteComponent implements OnInit {
     }
 
     const avgVariation = lignes.length > 0 ? sumVariation / lignes.length : 0;
-    const isAmelioration = avgVariation < 0; // Less incidents is better generally, but this is a rough assumption.
-
+    const isAmelioration = avgVariation < 0; 
     return [
       {
         label: 'INDICATEURS SUIVIS',
@@ -389,7 +386,7 @@ export class DashboardAnalysteComponent implements OnInit {
     });
   }
 
-  // Persist filters locally so the analyst keeps their context
+
   private loadSavedFilters(): void {
     try {
       const raw = localStorage.getItem(this.filtersKey);
@@ -400,7 +397,7 @@ export class DashboardAnalysteComponent implements OnInit {
       if (obj.niveau) this.niveauFilter.set(obj.niveau);
       if (obj.risk) this.riskFilter.set(obj.risk);
     } catch {
-      // ignore
+      
     }
   }
 
@@ -468,7 +465,7 @@ export class DashboardAnalysteComponent implements OnInit {
   onPeriodChangeN(val: string): void {
     const n = Number(val) || null;
     this.selectedYearN.set(n);
-    // reload data for selected import to reflect period change if relevant
+    
     const id = this.importId();
     if (id) this.loadDashboardData(id, { includeComparatif: true });
   }
@@ -570,7 +567,7 @@ export class DashboardAnalysteComponent implements OnInit {
     this.comparatif.set({ ...comparatif, lignes: mergedLignes });
   }
 
-  // ─────────────────── Row expand / collapse ────────────────────────────
+  
 
   toggleRow(kpiId: number): void {
     const current = new Set(this.expandedRows());
@@ -586,7 +583,6 @@ export class DashboardAnalysteComponent implements OnInit {
     return this.expandedRows().has(kpiId);
   }
 
-  // ─────────────────── 8D parsing ───────────────────────────────────────
 
   parse8D(json: string | undefined): Record<string, string> | null {
     if (!json) return null;
@@ -617,7 +613,7 @@ export class DashboardAnalysteComponent implements OnInit {
     }));
   }
 
-  // ─────────────────── Helpers ──────────────────────────────────────────
+  
 
   private extractErrorMessage(err: any, fallback: string): string {
     if (!err) return fallback;
@@ -721,11 +717,7 @@ export class DashboardAnalysteComponent implements OnInit {
     this.router.navigate(['/analyste/ia', id]);
   }
 
-  /**
-    * Triggers the line-by-line Groq analysis for all KPIs in the current session,
-    * with Gemini used as fallback.
-   * This generates risk levels, corrective actions, and 8D plans.
-   */
+ 
   runFullAnalysis() {
     const id = this.importId();
     if (!id) return;
@@ -737,7 +729,7 @@ export class DashboardAnalysteComponent implements OnInit {
     this.enrichmentService.analyseAll(id, true).subscribe({
       next: (results) => {
         this.snackBar.open(`${results.length} indicateurs analysés avec succès.`, 'OK', { duration: 4000 });
-        // Refresh the comparison data and IA analysis to show the new fields
+        
         this.loadSelectedImport(id);
       },
       error: (err) => {

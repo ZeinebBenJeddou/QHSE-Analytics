@@ -127,8 +127,6 @@ export class ImportComponent implements OnInit, AfterViewInit, OnDestroy {
   ngOnInit() {}
 
   ngAfterViewInit() {
-    // Subscribe reactively so any downstream saveResponse() auto-refreshes the view.
-    // AfterViewInit ensures @ViewChild refs are ready before buildCharts() is called.
     this.uploadState.response$.pipe(takeUntil(this.destroy$)).subscribe(saved => {
       if (saved) {
         this.result.set(saved);
