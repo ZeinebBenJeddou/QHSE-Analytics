@@ -377,11 +377,6 @@
                     <div class="insight-box-header">
                       <mat-icon>smart_toy</mat-icon>
                       <span>Analyse IA</span>
-                      @if (kpi.insightConfidence != null) {
-                        <span class="conf-mini" [class.conf-low]="kpi.insightConfidence < 60">
-                          {{ kpi.insightConfidence }}% confiance
-                        </span>
-                      }
                     </div>
                     <p class="insight-text">{{ formatDisplayText(kpi.insight) }}</p>
                   </div>
@@ -426,16 +421,6 @@
                           </div>
                         }
                       </div>
-                      @if (kpi.structuredOwner || kpi.structuredDue) {
-                        <div class="dc-meta">
-                          @if (kpi.structuredOwner) {
-                            <span class="dc-meta-chip"><mat-icon>person</mat-icon>{{ kpi.structuredOwner }}</span>
-                          }
-                          @if (kpi.structuredDue) {
-                            <span class="dc-meta-chip"><mat-icon>schedule</mat-icon>{{ kpi.structuredDue }}</span>
-                          }
-                        </div>
-                      }
                     </div>
                   }
 

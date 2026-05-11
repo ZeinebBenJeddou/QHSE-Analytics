@@ -983,15 +983,6 @@
   width: 16px !important;
   height: 16px !important;
 }
-.conf-mini {
-  margin-left: auto;
-  font-size: 10px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--blue-bg);
-  color: var(--blue);
-}
-.conf-mini.conf-low { background: var(--red-bg); color: var(--red); }
 .insight-text {
   margin: 0;
   font-size: 13px;
@@ -1078,30 +1069,6 @@
   font-size: 13px;
   color: var(--navy-soft);
   line-height: 1.55;
-}
-
-.dc-meta {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.dc-meta-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 9px;
-  border-radius: var(--radius-sm);
-  background: var(--white);
-  border: 1px solid var(--border);
-  font-size: 11px;
-  color: var(--navy-soft);
-  font-weight: 600;
-}
-.dc-meta-chip mat-icon {
-  font-size: 12px !important;
-  width: 12px !important;
-  height: 12px !important;
-  color: var(--ink-muted);
 }
 
 /* Outcome */
