@@ -222,12 +222,18 @@
               </div>
             </div>
             <div class="chart-body--donut">
-              <app-pie-distribution
-                [enHausseCritique]="donutChartData.enHausseCritique"
-                [enHausseModeree]="donutChartData.enHausseModeree"
-                [enBaisseModeree]="donutChartData.enBaisseModeree"
-                [enBaisseFaible]="donutChartData.enBaisseFaible"
-              ></app-pie-distribution>
+              <div class="donut-center-wrap">
+                <app-pie-distribution
+                  [enHausseCritique]="donutChartData.enHausseCritique"
+                  [enHausseModeree]="donutChartData.enHausseModeree"
+                  [enBaisseModeree]="donutChartData.enBaisseModeree"
+                  [enBaisseFaible]="donutChartData.enBaisseFaible"
+                ></app-pie-distribution>
+                <div class="donut-center-label">
+                  <div class="donut-total">{{ stats.total }}</div>
+                  <div class="donut-total-label">KPIs</div>
+                </div>
+              </div>
             </div>
             <div class="donut-legend">
               <div class="donut-legend-item">

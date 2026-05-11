@@ -1,6 +1,5 @@
 <div class="export-page">
 
-  <!-- ── PAGE HEADER ──────────────────────────────────────────────────── -->
   <header class="page-header">
     <div class="page-header-left">
       <nav class="breadcrumb">
@@ -22,10 +21,7 @@
 
   <div class="export-layout">
 
-    <!-- ── LEFT COLUMN ─────────────────────────────────────────────────── -->
     <div class="export-left">
-
-      <!-- Import selector -->
       <div class="config-card">
         <div class="config-card-head">
           <mat-icon class="cc-icon cc-icon-primary">folder_open</mat-icon>
@@ -35,82 +31,46 @@
           </div>
         </div>
 
-        @if (loadingImports()) {
+        <ng-container *ngIf="loadingImports()">
           <div class="import-loader">
             <mat-spinner [diameter]="20"></mat-spinner>
             <span>Chargement des imports…</span>
           </div>
-        } @else if (imports().length === 0) {
+        </ng-container>
+
+        <ng-container *ngIf="!loadingImports() && imports().length === 0">
           <div class="import-empty">
             <mat-icon>info_outline</mat-icon>
             Aucun import traité disponible.
           </div>
-        } @else {
+        </ng-container>
+
+        <ng-container *ngIf="!loadingImports() && imports().length > 0">
           <div class="import-list">
-            @for (imp of imports(); track imp.importId) {
-              <button class="import-item"
-                      [class.selected]="selectedImportId() === imp.importId"
-                      (click)="selectedImportId.set(imp.importId)">
-                <div class="import-item-left">
-                  <div class="import-period">{{ periodLabel(imp) }}</div>
-                  <div class="import-file">{{ imp.nomFichier }}</div>
-                </div>
-                <div class="import-item-right">
-                  <span class="statut-dot" [class]="'dot-' + statutClass(imp.statut)"></span>
-                  @if (imp.nombreKpisCritiques > 0) {
-                    <span class="import-crit-count">
-                      <mat-icon>warning</mat-icon>{{ imp.nombreKpisCritiques }}
-                    </span>
-                  }
-                  @if (selectedImportId() === imp.importId) {
-                    <mat-icon class="import-check">check_circle</mat-icon>
-                  }
-                </div>
-              </button>
-            }
-          </div>
-        }
-      </div>
-
-      <!-- Sections checklist -->
-      <div class="config-card">
-        <div class="config-card-head">
-          <mat-icon class="cc-icon cc-icon-indigo">checklist</mat-icon>
-          <div>
-            <div class="cc-title">Contenu du rapport</div>
-            <div class="cc-subtitle">{{ checkedCount() }}/{{ sections.length }} sections incluses</div>
-          </div>
-          <div class="cc-head-actions">
-            <button class="link-btn" (click)="toggleAll(true)">Tout</button>
-            <span class="sep">·</span>
-            <button class="link-btn" (click)="toggleAll(false)">Aucun</button>
-          </div>
-        </div>
-
-        <div class="sections-list">
-          @for (section of sections; track section.id) {
-            <label class="section-row" [class.checked]="section.checked">
-              <input type="checkbox" [(ngModel)]="section.checked" class="sr-only" />
-              <span class="section-checkbox" [class.active]="section.checked">
-                <mat-icon>{{ section.checked ? 'check' : '' }}</mat-icon>
-              </span>
-              <mat-icon class="section-icon">{{ section.icon }}</mat-icon>
-              <div class="section-info">
-                <span class="section-label">{{ section.label }}</span>
-                <span class="section-desc">{{ section.description }}</span>
+            <button
+              *ngFor="let imp of imports()"
+              class="import-item"
+              [class.selected]="selectedImportId() === imp.importId"
+              (click)="selectedImportId.set(imp.importId)">
+              <div class="import-item-left">
+                <div class="import-period">{{ periodLabel(imp) }}</div>
+                <div class="import-file">{{ imp.nomFichier }}</div>
               </div>
-            </label>
-          }
-        </div>
+              <div class="import-item-right">
+                <span class="statut-dot" [class]="'dot-' + statutClass(imp.statut)"></span>
+                <span *ngIf="imp.nombreKpisCritiques > 0" class="import-crit-count">
+                  <mat-icon>warning</mat-icon>{{ imp.nombreKpisCritiques }}
+                </span>
+                <mat-icon *ngIf="selectedImportId() === imp.importId" class="import-check">check_circle</mat-icon>
+              </div>
+            </button>
+          </div>
+        </ng-container>
       </div>
-
     </div>
 
-    <!-- ── RIGHT COLUMN ────────────────────────────────────────────────── -->
     <div class="export-right">
-
-      <!-- Preview card -->
-      @if (selectedImport(); as imp) {
+      <ng-container *ngIf="selectedImport() as imp">
         <div class="preview-card">
           <div class="preview-header">
             <div class="preview-doc-icon">
@@ -139,47 +99,34 @@
               <span class="pd-label">Période</span>
               <span class="pd-value">{{ imp.periodeN1 }} → {{ imp.periodeN }}</span>
             </div>
-            @if (imp.nombreKpisCritiques > 0) {
-              <div class="preview-detail-row">
-                <mat-icon class="pd-icon-red">warning</mat-icon>
-                <span class="pd-label">KPIs critiques</span>
-                <span class="pd-value pd-value-red">{{ imp.nombreKpisCritiques }}</span>
-              </div>
-            }
-          </div>
-
-          <div class="preview-sections-pills">
-            @for (s of sections; track s.id) {
-              <span class="section-pill" [class.pill-active]="s.checked">
-                <mat-icon>{{ s.icon }}</mat-icon>
-                {{ s.label }}
-              </span>
-            }
+            <div *ngIf="imp.nombreKpisCritiques > 0" class="preview-detail-row">
+              <mat-icon class="pd-icon-red">warning</mat-icon>
+              <span class="pd-label">KPIs critiques</span>
+              <span class="pd-value pd-value-red">{{ imp.nombreKpisCritiques }}</span>
+            </div>
           </div>
         </div>
-      }
+      </ng-container>
 
-      <!-- Generate button -->
-      <button class="btn-generate"
-              [disabled]="generating() || !selectedImportId() || checkedCount() === 0"
-              (click)="generate()">
-        @if (generating()) {
+      <button
+        class="btn-generate"
+        [disabled]="generating() || !selectedImportId() || !selectedImport() || !canExportPdf(selectedImport()!.statut)"
+        (click)="generate()">
+        <ng-container *ngIf="generating(); else generateLabel">
           <mat-spinner [diameter]="18" class="gen-spinner"></mat-spinner>
           <span>Génération en cours…</span>
-        } @else {
+        </ng-container>
+        <ng-template #generateLabel>
           <mat-icon>download</mat-icon>
           <span>Générer et télécharger le PDF</span>
-        }
+        </ng-template>
       </button>
 
-      @if (!selectedImportId()) {
+      <ng-container *ngIf="!selectedImportId()">
         <p class="generate-hint">Sélectionnez un import pour continuer.</p>
-      } @else if (checkedCount() === 0) {
-        <p class="generate-hint generate-hint-warn">Sélectionnez au moins une section.</p>
-      }
+      </ng-container>
 
-      <!-- Success card -->
-      @if (lastGenerated(); as result) {
+      <ng-container *ngIf="lastGenerated() as result">
         <div class="success-card">
           <div class="success-icon-wrap">
             <mat-icon>check_circle</mat-icon>
@@ -205,8 +152,7 @@
             </p>
           </div>
         </div>
-      }
-
+      </ng-container>
     </div>
   </div>
 </div>

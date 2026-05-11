@@ -120,7 +120,7 @@
                   <mat-icon>psychology</mat-icon>
                 </button>
                 <button mat-icon-button type="button" matTooltip="Exporter PDF"
-                        [disabled]="downloadingImportId() === row.importId"
+                        [disabled]="downloadingImportId() === row.importId || !canExportPdf(row.statut)"
                         (click)="exportPdf(row)">
                   <mat-icon>picture_as_pdf</mat-icon>
                 </button>

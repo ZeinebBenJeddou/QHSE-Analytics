@@ -66,14 +66,22 @@ export class HistoriqueComponent implements OnInit {
   }
 
   exportPdf(item: HistoriqueItemResponse) {
+    if (!this.canExportPdf(item.statut)) {
+      this.snackBar.open('Le PDF est disponible uniquement pour les imports prêts pour l\'IA ou traités.', 'OK', { duration: 4000 });
+      return;
+    }
+
     this.downloadingImportId.set(item.importId);
     this.importService.exportAnalyste(item.importId).subscribe({
       next: (blob) => {
         this.downloadBlob(blob, `rapport-import-${item.importId}.pdf`);
         this.snackBar.open('Export PDF lancé.', 'OK', { duration: 3000 });
       },
-      error: () => {
-        this.snackBar.open('Erreur lors de l’export PDF.', 'OK', { duration: 3000 });
+      error: (error) => {
+        const message = error?.status === 404
+          ? 'Aucune analyse IA disponible pour cet import. Export PDF impossible pour le moment.'
+          : 'Erreur lors de l\'export PDF.';
+        this.snackBar.open(message, 'OK', { duration: 4000 });
       },
       complete: () => this.downloadingImportId.set(null),
     });
@@ -114,14 +122,18 @@ export class HistoriqueComponent implements OnInit {
 
   statutLabel(statut: string): string {
     const map: Record<string, string> = {
-      TRAITE:         'Traité',
-      READY_FOR_AI:   'Prêt pour l\'IA',
-      CALCULATED:     'Calculé',
-      IMPORTED:       'Importé',
-      EN_TRAITEMENT:  'En traitement',
-      ERREUR:         'Erreur',
-      ANNULE:         'Annulé',
+      TRAITE: 'Traité',
+      READY_FOR_AI: 'Prêt pour l\'IA',
+      CALCULATED: 'Calculé',
+      IMPORTED: 'Importé',
+      EN_TRAITEMENT: 'En traitement',
+      ERREUR: 'Erreur',
+      ANNULE: 'Annulé',
     };
     return map[statut] ?? statut;
+  }
+
+  canExportPdf(statut: string): boolean {
+    return statut === 'READY_FOR_AI' || statut === 'TRAITE';
   }
 }

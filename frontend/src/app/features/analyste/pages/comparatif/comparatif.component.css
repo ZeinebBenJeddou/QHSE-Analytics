@@ -489,7 +489,51 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 180px;
+  height: 200px;
+  padding: 8px 0;
+}
+
+.donut-center-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: min(100%, 190px);
+  height: 190px;
+  flex: 0 0 190px;
+}
+
+.donut-center-wrap app-pie-distribution {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.donut-center-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.donut-total {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #0D1B3E;
+  line-height: 1;
+  font-family: 'DM Mono', monospace;
+}
+
+.donut-total-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #4A5568;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 3px;
 }
 
 .donut-legend {

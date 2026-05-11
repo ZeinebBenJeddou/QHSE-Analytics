@@ -1,6 +1,4 @@
-/* ══════════════════════════════════════════════════════════════════════════
-   export-pdf.component.css — QHSE Analytics
-══════════════════════════════════════════════════════════════════════════ */
+
 
 :host {
   --primary:   #1E40AF;
@@ -28,7 +26,6 @@
   color: var(--navy);
 }
 
-/* ── Page header ──────────────────────────────────────────────────────── */
 .page-header {
   margin-bottom: 32px;
 }
@@ -81,7 +78,6 @@
   color: var(--light);
 }
 
-/* ── Layout ───────────────────────────────────────────────────────────── */
 .export-layout {
   display: grid;
   grid-template-columns: 380px 1fr;
@@ -89,7 +85,6 @@
   align-items: flex-start;
 }
 
-/* ── Config card ──────────────────────────────────────────────────────── */
 .config-card {
   background: var(--white);
   border-radius: var(--radius);
@@ -142,7 +137,6 @@
 .link-btn:hover { text-decoration: underline; }
 .sep { color: var(--border); }
 
-/* ── Import list ──────────────────────────────────────────────────────── */
 .import-loader, .import-empty {
   display: flex;
   align-items: center;
@@ -222,7 +216,6 @@
   color: var(--primary) !important;
 }
 
-/* ── Sections checklist ───────────────────────────────────────────────── */
 .sections-list { display: flex; flex-direction: column; gap: 4px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
 
@@ -275,7 +268,6 @@
 .section-label { display: block; font-size: 13px; font-weight: 600; color: var(--navy); }
 .section-desc  { display: block; font-size: 11px; color: var(--muted); margin-top: 1px; }
 
-/* ── Preview card ─────────────────────────────────────────────────────── */
 .preview-card {
   background: var(--white);
   border-radius: var(--radius);
@@ -379,7 +371,6 @@
   color: #4338CA;
 }
 
-/* ── Generate button ──────────────────────────────────────────────────── */
 .btn-generate {
   display: flex;
   align-items: center;
@@ -418,7 +409,6 @@
 }
 .generate-hint-warn { color: var(--orange); font-weight: 600; }
 
-/* ── Success card ─────────────────────────────────────────────────────── */
 .success-card {
   display: flex;
   gap: 16px;
@@ -479,7 +469,6 @@
 }
 .success-note { margin: 0; font-size: 12px; color: #047857; line-height: 1.5; }
 
-/* ── Responsive ───────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
   .export-layout { grid-template-columns: 1fr; }
 }
