@@ -81,6 +81,7 @@ export class DashboardAnalysteComponent implements OnInit {
   importId = signal<number | null>(null);
   exporting = signal(false);
   isAnalysing = signal(false);
+  private analysisAutoTriggered = false;
   loading = signal(true);
   error = signal('');
 
@@ -170,28 +171,60 @@ export class DashboardAnalysteComponent implements OnInit {
     }));
   });
 
-  topIssues = computed((): ResultatKpiIaResponse[] => {
-    const kpis = this.analysesIa()?.analysesKpis ?? [];
+  hasAiData = computed(() =>
+    (this.comparatif()?.lignes ?? []).some(k =>
+      k.aiNote || k.riskJustification || k.issueDetected ||
+      k.immediateAction || k.correctiveAction || k.riskLevel
+    )
+  );
+
+  topIssues = computed((): LigneComparatifResponse[] => {
+    const lignes = this.comparatif()?.lignes ?? [];
     const priorityOrder: Record<string, number> = { CRITIQUE: 3, MODERE: 2, FAIBLE: 1 };
-    return [...kpis]
+
+    const critical = [...lignes]
       .filter(k => k.niveauVariation === 'CRITIQUE' || k.niveauVariation === 'MODERE')
       .sort((a, b) =>
         (priorityOrder[b.niveauVariation ?? 'FAIBLE'] ?? 0) -
         (priorityOrder[a.niveauVariation ?? 'FAIBLE'] ?? 0)
       )
       .slice(0, 6);
+
+    if (critical.length > 0) return critical;
+
+    return [...lignes]
+      .filter(k => k.riskJustification || k.aiNote || k.riskLevel || k.issueDetected)
+      .sort((a, b) => Math.abs(b.variationRelative ?? 0) - Math.abs(a.variationRelative ?? 0))
+      .slice(0, 6);
   });
 
-  topActions = computed((): ResultatKpiIaResponse[] => {
-    const kpis = this.analysesIa()?.analysesKpis ?? [];
-    const priorityOrder: Record<string, number> = { Haute: 3, Moyenne: 2, Basse: 1 };
-    return [...kpis]
-      .filter(k => !!k.immediateAction)
-      .sort((a, b) =>
-        (priorityOrder[b.immediatePriority ?? 'Basse'] ?? 0) -
-        (priorityOrder[a.immediatePriority ?? 'Basse'] ?? 0)
-      )
+  topActions = computed((): LigneComparatifResponse[] => {
+    const levelOrder: Record<string, number> = {
+      Haute: 5, CRITIQUE: 4, Moyenne: 3, MODERE: 2, Basse: 1, FAIBLE: 0
+    };
+    return [...this.comparatif()?.lignes ?? []]
+      .filter(k => !!(k.immediateAction || k.correctiveAction || k.preventiveAction || k.riskJustification))
+      .sort((a, b) => {
+        const pa = levelOrder[a.immediatePriority ?? a.niveauVariation ?? 'Basse'] ?? 0;
+        const pb = levelOrder[b.immediatePriority ?? b.niveauVariation ?? 'Basse'] ?? 0;
+        return pb - pa;
+      })
       .slice(0, 5);
+  });
+
+  dynamicSynthese = computed((): string | null => {
+    const global = this.analysesIa()?.analyseGlobale?.synthese;
+    if (global) return global;
+
+    const withAi = [...this.comparatif()?.lignes ?? []]
+      .filter(k => k.aiNote || k.riskJustification || k.issueDetected)
+      .slice(0, 3);
+
+    if (!withAi.length) return null;
+
+    return withAi
+      .map(k => `• ${k.kpiNom} : ${k.aiNote ?? k.riskJustification ?? k.issueDetected}`)
+      .join('\n');
   });
 
   get dataYearN(): number | null {
@@ -338,6 +371,7 @@ export class DashboardAnalysteComponent implements OnInit {
     this.graphiques.set(null);
     this.analysesIa.set(null);
     this.expandedRows.set(new Set());
+    this.analysisAutoTriggered = false;
     this.sessionState.setActiveImport(importId);
 
     this.dashboardService.getComparatif(importId).subscribe({
@@ -492,10 +526,17 @@ export class DashboardAnalysteComponent implements OnInit {
         finalize(check)
       )
       .subscribe({ next: r => {
-        if (r) {
+        if (r && (r.analysesKpis?.length ?? 0) > 0) {
           this.analysesIa.set(r);
           this.sessionState.patch({ analysesIa: r });
           this.applyAnalysesToComparatif();
+          this.analysisAutoTriggered = false;
+        } else if (!this.analysisAutoTriggered && !this.isAnalysing()) {
+          const id = this.importId();
+          if (id && (this.comparatif()?.lignes?.length ?? 0) > 0) {
+            this.analysisAutoTriggered = true;
+            this.runFullAnalysis();
+          }
         }
       } });
   }
@@ -689,6 +730,7 @@ export class DashboardAnalysteComponent implements OnInit {
     const id = this.importId();
     if (!id) return;
 
+    this.analysisAutoTriggered = false;
     this.isAnalysing.set(true);
     this.snackBar.open('Analyse IA approfondie en cours (ligne par ligne)...', 'Fermer', { duration: 5000 });
 

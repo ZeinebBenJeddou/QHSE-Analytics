@@ -77,14 +77,6 @@
         <div class="panel-header">
           <div class="panel-title">ÉVOLUTION PAR CATÉGORIE</div>
         </div>
-        <div class="chart-legend">
-          <span class="legend-item legend-n1">
-            <span class="legend-dot"></span>{{ dataYearN1 ?? 'N-1' }}
-          </span>
-          <span class="legend-item legend-n">
-            <span class="legend-dot"></span>{{ dataYearN ?? 'N' }}
-          </span>
-        </div>
         @if (graphiques()?.barresGroupees?.length) {
           <div class="chart-canvas-wrap">
             <app-bar-comparison
@@ -344,13 +336,17 @@
           <span class="ai-badge">IA</span>
         </div>
 
-        @if (analysesIa()?.analyseGlobale?.synthese) {
-          <div class="ia-synthese-text">{{ analysesIa()!.analyseGlobale!.synthese }}</div>
+        @if (dynamicSynthese()) {
+          <div class="ia-synthese-text">{{ dynamicSynthese() }}</div>
+        } @else if (isAnalysing()) {
+          <div class="ia-synthese-text no-data">
+            Analyse IA en cours — détection des risques et génération des recommandations...
+          </div>
         } @else {
           <div class="ia-synthese-text no-data">
-            L'analyse IA sera disponible après le traitement de l'import.
-            @if (importId() && !isAnalysing()) {
-              <button class="link-btn" (click)="runFullAnalysis()">Lancer l'analyse →</button>
+            Aucune analyse disponible pour cet import.
+            @if (importId()) {
+              <button class="link-btn" (click)="runFullAnalysis()">Relancer l'analyse →</button>
             }
           </div>
         }
@@ -361,22 +357,31 @@
             <div class="ia-sub-subtitle">Par ordre de sévérité</div>
             <div class="ia-kpi-issues-list">
               @for (kpi of topIssues(); track kpi.kpiId) {
-                <div class="ia-kpi-issue-item" [class.issue-critique]="kpi.niveauVariation === 'CRITIQUE'"
-                                               [class.issue-modere]="kpi.niveauVariation === 'MODERE'">
+                <div class="ia-kpi-issue-item"
+                     [class.issue-critique]="kpi.niveauVariation === 'CRITIQUE'"
+                     [class.issue-modere]="kpi.niveauVariation === 'MODERE'"
+                     [class.issue-faible]="kpi.niveauVariation === 'FAIBLE' || !kpi.niveauVariation">
                   <div class="issue-kpi-header">
                     <span class="issue-kpi-name">{{ kpi.kpiNom }}</span>
-                    <span class="issue-kpi-badge" [class.badge-critique]="kpi.niveauVariation === 'CRITIQUE'"
-                                                  [class.badge-modere]="kpi.niveauVariation === 'MODERE'">
-                      {{ kpi.niveauVariation === 'CRITIQUE' ? 'Critique' : 'Modéré' }}
+                    <span class="issue-kpi-badge"
+                          [class.badge-critique]="kpi.niveauVariation === 'CRITIQUE'"
+                          [class.badge-modere]="kpi.niveauVariation === 'MODERE'"
+                          [class.badge-faible]="kpi.niveauVariation === 'FAIBLE' || !kpi.niveauVariation">
+                      {{ kpi.niveauVariation === 'CRITIQUE' ? 'Critique'
+                         : kpi.niveauVariation === 'MODERE' ? 'Modéré'
+                         : 'Faible' }}
                     </span>
                   </div>
-                  @if (kpi.issueDetected) {
-                    <div class="issue-kpi-desc">{{ kpi.issueDetected }}</div>
+                  @if (kpi.issueDetected || kpi.riskJustification) {
+                    <div class="issue-kpi-desc">{{ kpi.issueDetected ?? kpi.riskJustification }}</div>
                   }
                 </div>
               }
-              @if (topIssues().length === 0) {
-                <div class="no-data">Aucun indicateur critique détecté.</div>
+              @if (topIssues().length === 0 && !hasAiData()) {
+                <div class="no-data">Les indicateurs critiques apparaîtront après l'analyse IA.</div>
+              }
+              @if (topIssues().length === 0 && hasAiData()) {
+                <div class="no-data">Aucun indicateur à risque détecté pour cet import.</div>
               }
             </div>
           </div>
@@ -387,19 +392,24 @@
             <div class="ia-actions-list">
               @for (kpi of topActions(); track kpi.kpiId) {
                 <div class="ia-action-item">
-                  <div class="ia-action-kpi">{{ kpi.kpiNom }}</div>
-                  <span class="ia-action-desc">{{ kpi.immediateAction }}</span>
-                  <span class="ia-priority-badge"
-                        [class.tone-danger]="kpi.immediatePriority === 'Haute'"
-                        [class.tone-warning]="kpi.immediatePriority === 'Moyenne'"
-                        [class.tone-safe]="kpi.immediatePriority === 'Basse'">
-                    {{ kpi.immediatePriority ?? '—' }}
+                  <div class="ia-action-header">
+                    <div class="ia-action-kpi">{{ kpi.kpiNom }}</div>
+                    <span class="ia-priority-badge"
+                          [class.tone-danger]="kpi.immediatePriority === 'Haute' || kpi.niveauVariation === 'CRITIQUE'"
+                          [class.tone-warning]="kpi.immediatePriority === 'Moyenne' || kpi.niveauVariation === 'MODERE'"
+                          [class.tone-safe]="kpi.immediatePriority === 'Basse' || kpi.niveauVariation === 'FAIBLE'">
+                      {{ kpi.immediatePriority ?? kpi.niveauVariation ?? '—' }}
+                    </span>
+                  </div>
+                  <span class="ia-action-desc">
+                    {{ kpi.immediateAction ?? kpi.correctiveAction ?? kpi.preventiveAction ?? kpi.riskJustification }}
                   </span>
                 </div>
               }
               @if (topActions().length === 0) {
                 <div class="no-data">
-                  Les actions prioritaires seront affichées après l'analyse IA.
+                  @if (hasAiData()) { Aucune action corrective identifiée. }
+                  @else { Les actions apparaîtront après l'analyse IA. }
                 </div>
               }
             </div>

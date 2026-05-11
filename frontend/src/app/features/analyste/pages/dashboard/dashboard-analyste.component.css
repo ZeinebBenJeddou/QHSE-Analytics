@@ -339,13 +339,10 @@ h1 {
 /* ── LIGNE 3 : synthèse IA centrée ──────────────────────────────── */
 .synthese-full {
   margin-top: 14px;
-  display: flex;
-  justify-content: center;
 }
 
 .synthese-full .synthese-ia-panel {
   width: 100%;
-  max-width: 960px;
 }
 
 /* ── Chart panels ────────────────────────────────────────────────── */
@@ -991,6 +988,23 @@ h1 {
 }
 .badge-critique { background: #ffebee; color: #c62828; }
 .badge-modere   { background: #fff3e0; color: #e65100; }
+.ia-action-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+
+.ia-kpi-issue-item.issue-faible {
+  border-left-color: var(--success);
+  background: #f0fdf4;
+}
+
+.issue-kpi-badge.badge-faible {
+  background: var(--success-soft);
+  color: var(--success);
+}
 
 .ia-actions-list { display: flex; flex-direction: column; gap: 8px; }
 
