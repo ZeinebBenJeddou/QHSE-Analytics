@@ -1,6 +1,5 @@
 <div class="import-page">
 
-  <!-- HEADER -->
   <div class="header-row">
     <div class="header-left">
       <div class="header-icon-wrap">
@@ -17,7 +16,6 @@
     </button>
   </div>
 
-  <!-- STEPPER -->
   <div class="stepper-card">
     <div class="step active">
       <span class="step-number">1</span>
@@ -42,7 +40,6 @@
     </div>
   </div>
 
-  <!-- MAIN PANEL -->
   <div class="panel">
 
     <div class="panel-inline-header">
@@ -56,7 +53,6 @@
     </div>
     <div class="panel-divider"></div>
 
-    <!-- File summary -->
     <div class="summary-strip" *ngIf="uploadStateData()">
       <div class="summary-chip">
         <mat-icon>insert_drive_file</mat-icon>
@@ -77,7 +73,6 @@
       </div>
     </div>
 
-    <!-- Instructions -->
     <div class="instructions-box" style="margin-top: 16px;">
       <mat-icon>info_outline</mat-icon>
       <div class="instructions-content">
@@ -90,7 +85,6 @@
       </div>
     </div>
 
-    <!-- Detected columns -->
     <div *ngIf="uploadStateData()" style="margin-top: 20px;">
       <p class="section-label">Structure du fichier détectée</p>
       <div class="column-list">
@@ -101,7 +95,6 @@
       </div>
     </div>
 
-    <!-- P4.1 — Column profiles -->
     <div class="profile-section" *ngIf="columnProfiles().length > 0 || profilingLoading()" style="margin-top: 20px;">
       <p class="section-label">
         <mat-icon style="font-size:16px;vertical-align:middle;">analytics</mat-icon>
@@ -135,7 +128,6 @@
       </div>
     </div>
 
-    <!-- Mapping selects -->
     <div class="mapping-grid" style="margin-top: 20px;">
       <mat-form-field appearance="outline">
         <mat-label>Nom du KPI</mat-label>
@@ -165,7 +157,6 @@
       </mat-form-field>
     </div>
 
-    <!-- Mapping Confidence Warning -->
     <div class="warning-banner" *ngIf="hasLowConfidenceMapping" style="margin-top: 16px; margin-bottom: 0;">
       <mat-icon>warning</mat-icon>
       <div>
@@ -174,13 +165,11 @@
       </div>
     </div>
 
-    <!-- Error -->
     <div class="error-banner" *ngIf="errorMsg()" style="margin-top: 16px;">
       <mat-icon>error_outline</mat-icon>
       <span>{{ errorMsg() }}</span>
     </div>
 
-    <!-- Actions -->
     <div class="actions-row" style="margin-top: 20px;">
       <button mat-stroked-button class="back-btn" (click)="goBack()">
         <mat-icon>arrow_back</mat-icon>
@@ -221,7 +210,6 @@
       </div>
     </div>
 
-    <!-- ── PROCESSING PROGRESS ──────────────────────────────────────────── -->
     <div class="progress-section" *ngIf="processing() && progressStage()">
       <div class="progress-header">
         <div class="progress-label">
@@ -239,10 +227,8 @@
       <p class="progress-message-text">{{ progressMessage() }}</p>
     </div>
 
-    <!-- ── QUALITY REPORT ───────────────────────────────────────────────── -->
     <div class="quality-report-section" *ngIf="qualityReport">
 
-      <!-- Blocking banner -->
       <div class="blocking-banner" *ngIf="qualityReport.blocking">
         <mat-icon>block</mat-icon>
         <div>
@@ -260,7 +246,6 @@
         </div>
       </div>
 
-      <!-- Warning-only banner -->
       <div class="warning-banner" *ngIf="!qualityReport.blocking && (qualityReport.warnings.length || qualityReport.infos.length)">
         <mat-icon>warning_amber</mat-icon>
         <div>
@@ -269,7 +254,6 @@
         </div>
       </div>
 
-      <!-- Score + stats -->
       <div class="quality-header">
         <div class="quality-title-row">
           <mat-icon>verified</mat-icon>
@@ -361,7 +345,6 @@
         </div>
       </div>
 
-      <!-- Issues table -->
       <div class="issues-table-wrap" *ngIf="allIssues.length > 0">
         <p class="section-label">Détail des anomalies ({{ allIssues.length }})</p>
         <div class="table-scroll">
@@ -404,13 +387,11 @@
       </div>
     </div>
 
-    <!-- Preview table -->
     <div class="preview-table" *ngIf="previewResponse()?.calculatedData?.length">
       <h3>Aperçu des données et enrichissement IA</h3>
       <div class="table-scroll">
         <table mat-table [dataSource]="previewResponse()?.calculatedData ?? []" class="kpi-table">
 
-          <!-- Row status indicator -->
           <ng-container matColumnDef="rowStatus">
             <th mat-header-cell *matHeaderCellDef></th>
             <td mat-cell *matCellDef="let row">
@@ -543,7 +524,6 @@
 
   </div>
 
-  <!-- RESULT CARD -->
   <mat-card class="panel result-card" *ngIf="result()">
     <mat-card-header>
       <mat-card-title>Importation Finalisée</mat-card-title>
@@ -557,18 +537,14 @@
       <div class="results-table-container">
         <table mat-table [dataSource]="result()?.calculatedData ?? []" class="kpi-table results-table">
 
-          <!-- P3.3 Sparkline column -->
           <ng-container matColumnDef="spark">
             <th mat-header-cell *matHeaderCellDef></th>
             <td mat-cell *matCellDef="let row">
               <svg width="34" height="26" viewBox="0 0 34 26" class="spark-svg">
-                <!-- N-1 bar (gray) -->
                 <rect x="2" [attr.y]="26 - sparkN1Height(row)" width="12" [attr.height]="sparkN1Height(row)"
                       fill="#CBD5E0" rx="2" [matTooltip]="'N-1: ' + (row.valeurN1 | number:'1.0-2')"/>
-                <!-- N bar (colored) -->
                 <rect x="18" [attr.y]="26 - sparkNHeight(row)" width="12" [attr.height]="sparkNHeight(row)"
                       [attr.fill]="sparkNColor(row)" rx="2" [matTooltip]="'N: ' + (row.valeurN | number:'1.0-2')"/>
-                <!-- SPC out-of-control indicator -->
                 <circle *ngIf="row.spcOutOfControl" cx="30" cy="4" r="3" fill="#E53E3E" matTooltip="Hors contrôle SPC"/>
               </svg>
             </td>
@@ -619,7 +595,6 @@
             </td>
           </ng-container>
 
-          <!-- P2.2 Risk column -->
           <ng-container matColumnDef="risk">
             <th mat-header-cell *matHeaderCellDef>Risque</th>
             <td mat-cell *matCellDef="let row">
@@ -646,7 +621,6 @@
         </table>
       </div>
 
-      <!-- P2.3 — Category scores -->
       <div class="cat-scores-section" *ngIf="categoryScores().length > 0">
         <p class="section-label" style="margin-top:20px;">
           <mat-icon style="font-size:16px;vertical-align:middle;">bar_chart</mat-icon>
@@ -674,7 +648,6 @@
         </div>
       </div>
 
-      <!-- P2.2 — Risk matrix 5×5 -->
       <div class="risk-matrix-section" *ngIf="riskKpis().length > 0">
         <p class="section-label" style="margin-top:20px;">
           <mat-icon style="font-size:16px;vertical-align:middle;">grid_on</mat-icon>
@@ -682,7 +655,6 @@
         </p>
         <div class="risk-matrix-wrap">
           <div class="risk-matrix-grid">
-            <!-- Y-axis label -->
             <div class="risk-y-label">Impact ↑</div>
             <div class="risk-matrix-body">
               <div class="risk-matrix-row" *ngFor="let imp of riskRows">

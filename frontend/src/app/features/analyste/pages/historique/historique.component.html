@@ -81,7 +81,7 @@
             <th mat-header-cell *matHeaderCellDef>Statut</th>
             <td mat-cell *matCellDef="let row">
               <span class="status-chip" [ngClass]="statutColor(row.statut)">
-                {{ row.statut }}
+                {{ statutLabel(row.statut) }}
               </span>
               @if (row.messageErreur) {
                 <div class="status-error" [matTooltip]="row.messageErreur">

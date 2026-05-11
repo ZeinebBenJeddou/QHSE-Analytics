@@ -111,4 +111,17 @@ export class HistoriqueComponent implements OnInit {
     };
     return map[statut] ?? 'default';
   }
+
+  statutLabel(statut: string): string {
+    const map: Record<string, string> = {
+      TRAITE:         'Traité',
+      READY_FOR_AI:   'Prêt pour l\'IA',
+      CALCULATED:     'Calculé',
+      IMPORTED:       'Importé',
+      EN_TRAITEMENT:  'En traitement',
+      ERREUR:         'Erreur',
+      ANNULE:         'Annulé',
+    };
+    return map[statut] ?? statut;
+  }
 }

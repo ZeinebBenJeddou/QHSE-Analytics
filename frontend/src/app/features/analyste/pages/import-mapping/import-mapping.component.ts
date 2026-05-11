@@ -67,13 +67,13 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
   previewResponse = signal<ImportProcessingResponse | null>(null);
   result = signal<ImportProcessingResponse | null>(null);
 
-  // P4.1 — Column profiles
+  
   columnProfiles = signal<ColumnProfileDTO[]>([]);
   profilingLoading = signal(false);
 
   private eventSource: EventSource | null = null;
 
-  // P4.2 — Mapping memory helpers
+  
   private mappingKey(headers: string[]): string {
     return `qhse-col-mapping-${btoa(encodeURIComponent(headers.join('|'))).slice(0, 40)}`;
   }
@@ -82,7 +82,7 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
     try {
       const payload = { kpiColumn: this.kpiColumn(), valueNColumn: this.valueNColumn(), valueNMinus1Column: this.valueNMinus1Column() };
       localStorage.setItem(this.mappingKey(headers), JSON.stringify(payload));
-    } catch { /* ignore quota errors */ }
+    } catch {  }
   }
 
   private restoreMapping(headers: string[]): void {
@@ -93,16 +93,15 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
       if (saved.kpiColumn !== undefined && saved.kpiColumn !== null) this.kpiColumn.set(saved.kpiColumn);
       if (saved.valueNColumn !== undefined && saved.valueNColumn !== null) this.valueNColumn.set(saved.valueNColumn);
       if (saved.valueNMinus1Column !== undefined && saved.valueNMinus1Column !== null) this.valueNMinus1Column.set(saved.valueNMinus1Column);
-    } catch { /* ignore parse errors */ }
+    } catch {  }
   }
 
   readonly previewColumns = ['rowStatus', 'kpiName', 'categorie', 'unite', 'definition', 'valeurN', 'valeurN1', 'status', 'commentaire', 'variation', 'absoluteGap', 'meta'];
   readonly resultColumns  = ['spark', 'kpiName', 'categorie', 'unite', 'valeurN', 'valeurN1', 'variation', 'absoluteGap', 'status', 'risk', 'meta'];
   readonly issueColumns   = ['severity', 'row', 'column', 'message'];
 
-  // P2.2 — Risk matrix
-  readonly riskRows    = [5, 4, 3, 2, 1]; // impact descending (y axis)
-  readonly riskColumns = [1, 2, 3, 4, 5]; // probability ascending (x axis)
+  readonly riskRows    = [5, 4, 3, 2, 1]; 
+  readonly riskColumns = [1, 2, 3, 4, 5]; 
 
   riskKpis = computed(() =>
     (this.result()?.calculatedData ?? []).filter(k => k.riskProbability != null && k.riskImpact != null)
@@ -129,7 +128,7 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
     return 'risk-tag low';
   }
 
-  // P3.3 — Sparklines: normalized bar heights for N-1 and N within the result dataset
+  
   private sparkMax = computed((): number => {
     const vals = (this.result()?.calculatedData ?? [])
       .flatMap(k => [Math.abs(k.valeurN ?? 0), Math.abs(k.valeurN1 ?? 0)]);
@@ -163,9 +162,9 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
     const state = this.uploadState.getUpload();
     if (!state) { this.router.navigate(['/analyste/import']); return; }
     this.uploadStateData.set(state);
-    // P4.2 — restore saved mapping for this header set
+    
     this.restoreMapping(state.headers);
-    // P4.1 — load column profiles in background
+    
     this.loadColumnProfiles(state.file);
   }
 
@@ -246,7 +245,7 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
       const response = await firstValueFrom(this.importService.previewImport(state.file, state.yearN, state.yearNMinus1, mapping));
       this.previewResponse.set(response);
       this.uploadState.saveResponse(response);
-      this.saveMapping(state.headers); // P4.2
+      this.saveMapping(state.headers); 
       if (response.qualityReport?.hardBlocking) {
         this.snackBar.open('Erreur structurelle bloquante.', 'OK', { duration: 7000 });
       } else if (response.qualityReport?.softBlocking) {
@@ -328,7 +327,7 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
     }
   }
 
-  // ── Quality Report helpers ──────────────────────────────────────────────
+  
 
   get qualityReport(): ImportQualityReport | undefined {
     return this.previewResponse()?.qualityReport;
@@ -425,7 +424,7 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
       .join('\n');
   }
 
-  // ── P4.1 — Column profile helpers ──────────────────────────────────────
+  
 
   profileForColumn(colIndex: number): ColumnProfileDTO | undefined {
     return this.columnProfiles().find(p => p.columnIndex === colIndex);
@@ -446,7 +445,7 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
     return `${Math.round((p.nullCount / p.totalRows) * 100)}%`;
   }
 
-  // ── Helpers existants ───────────────────────────────────────────────────
+  
 
   get isProcessingStep(): boolean { return this.processing(); }
 
