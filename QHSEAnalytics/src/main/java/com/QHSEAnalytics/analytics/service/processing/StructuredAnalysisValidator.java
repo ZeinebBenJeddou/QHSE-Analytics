@@ -285,11 +285,28 @@ public class StructuredAnalysisValidator {
                 }
                 if (insight.getProbableCauses() == null) insight.setProbableCauses(new ArrayList<>());
                 if (insight.getRecommendations() == null) insight.setRecommendations(new ArrayList<>());
-                insight.setInsight(truncate(insight.getInsight(), 2000));
-                insight.setActionImmediate(truncate(insight.getActionImmediate(), 500));
+                insight.setInsight(truncate(insight.getInsight(), 3000));
+                insight.setActionImmediate(truncate(insight.getActionImmediate(), 800));
                 insight.setSuccessMetric(truncate(insight.getSuccessMetric(), 500));
                 insight.setRiskIfNotDone(truncate(insight.getRiskIfNotDone(), 500));
-                insight.setNote(truncate(insight.getNote(), 500));
+                insight.setNote(truncate(insight.getNote(), 800));
+
+                String kpiName = isBlank(insight.getKpiName()) ? "cet indicateur" : insight.getKpiName().trim();
+                if (isBlank(insight.getInsight()) || insight.getInsight().length() < 20) {
+                    insight.setInsight("Variation de " + kpiName + " nécessite une analyse approfondie.");
+                }
+                if (isBlank(insight.getActionImmediate()) || insight.getActionImmediate().length() < 15) {
+                    insight.setActionImmediate("Planifier une revue de cet indicateur avec le responsable concerné.");
+                }
+                if (isBlank(insight.getUrgency())) {
+                    insight.setUrgency("MEDIUM");
+                }
+                if (isBlank(insight.getOwnerRole())) {
+                    insight.setOwnerRole("Responsable QHSE");
+                }
+                if (isBlank(insight.getDueHorizon())) {
+                    insight.setDueHorizon("1 mois");
+                }
             });
         }
 

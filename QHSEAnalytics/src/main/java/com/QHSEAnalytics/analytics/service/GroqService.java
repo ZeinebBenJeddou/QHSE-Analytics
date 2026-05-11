@@ -32,6 +32,7 @@ public class GroqService {
 
     public static final String FALLBACK_MESSAGE = "Analyse IA temporairement indisponible.";
     private static final String PROVIDER_NAME = "groq";
+    private static final int MAX_TOKENS = 2800;
 
     private final ObjectMapper objectMapper;
     private final GroqPromptBuilder groqPromptBuilder;
@@ -52,7 +53,7 @@ public class GroqService {
     private double temperatureText;
 
     public String generate(String prompt) {
-        String response = appelerJson(prompt, 1200);
+        String response = appelerJson(prompt, MAX_TOKENS);
         if (response == null || response.isBlank() || FALLBACK_MESSAGE.equals(response)) {
             throw new ProviderUnavailableException(PROVIDER_NAME, "No Groq model/key combination succeeded");
         }
@@ -198,19 +199,19 @@ public class GroqService {
     }
 
     public String analyserKpi(String prompt) {
-        return appeler(prompt, 400);
+        return appeler(prompt, 700);
     }
 
     public String analyserCategorie(String prompt) {
-        return appeler(prompt, 600);
+        return appeler(prompt, 900);
     }
 
     public String genererSynthese(String prompt) {
-        return appeler(prompt, 800);
+        return appeler(prompt, 1200);
     }
 
     public String genererPlanActions(String prompt) {
-        return appeler(prompt, 1000);
+        return appeler(prompt, 1400);
     }
 
     public String analyserKpi(

@@ -46,6 +46,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class AnalysisAgent {
 
+    private static final int MAX_VALIDATION_RETRY_ATTEMPTS = 2;
+
     private final LlmProviderChain llmProviderChain;
     private final KpiRepository kpiRepository;
     private final AnalyseGlobaleRepository analyseGlobaleRepository;
@@ -148,7 +150,7 @@ public class AnalysisAgent {
             int chunkNumber = index + 1;
             String chunkCacheKeyPrefix = cacheKeyPrefix + "|chunk=" + chunkNumber;
             log.info("[AnalysisAgent] analyseStructured: starting chunk {}/{} ({} KPIs)", chunkNumber, chunks.size(), chunk.size());
-            ChunkAnalysisResult chunkResult = analyzeStructuredChunk(
+            ChunkAnalysisResult chunkResult = analyzeStructuredChunkWithRetries(
                     chunk,
                     importSessionId,
                     bypassCache,
@@ -307,6 +309,116 @@ public class AnalysisAgent {
                 ChunkFailureType.VALIDATION,
                 true
         );
+    }
+
+    private ChunkAnalysisResult analyzeStructuredChunkWithRetries(List<KpiCalculatedDTO> chunkKpis,
+                                                                  Long importSessionId,
+                                                                  boolean bypassCache,
+                                                                  String chunkCacheKeyPrefix,
+                                                                  int chunkNumber,
+                                                                  int totalChunks) {
+        String basePrompt = structuredAnalysisPromptBuilder.buildPrompt(chunkKpis);
+        String retryPromptBase = basePrompt;
+        String currentPrompt = basePrompt;
+        String providerUsed = "none";
+        boolean retried = false;
+        boolean genericRetryTriggered = false;
+        int validationRetryCount = 0;
+        int attemptNumber = 0;
+
+        while (true) {
+            attemptNumber++;
+            long start = System.currentTimeMillis();
+            LlmProviderChain.ProviderResult providerResult = llmProviderChain.generate(currentPrompt, chunkCacheKeyPrefix, bypassCache);
+            long latency = System.currentTimeMillis() - start;
+            providerUsed = providerResult == null ? providerUsed : providerResult.provider();
+            String responseJson = providerResult == null ? null : providerResult.response();
+            log.info("[AnalysisAgent] analyseStructured: provider response received in {}ms, importSessionId={}, provider={}, cachePrefix={}, attempt={}",
+                    latency, importSessionId, providerUsed, chunkCacheKeyPrefix, attemptNumber);
+
+            if (responseJson == null || responseJson.isBlank()) {
+                log.warn("[AnalysisAgent] analyseStructured: empty response from provider. reason=empty_response, chunk={}/{}, latency={}ms, provider={}, attempt={}",
+                        chunkNumber, totalChunks, latency, providerUsed, attemptNumber);
+                return new ChunkAnalysisResult(null, providerUsed, "Aucune réponse du provider IA.", ChunkFailureType.EMPTY, retried);
+            }
+
+            AiAnalysisStructuredResponse response = parseStructuredResponse(responseJson);
+            if (response == null) {
+                String failureReason = attemptNumber == 1
+                        ? "Impossible de parser la réponse IA."
+                        : "Impossible de parser la réponse IA après retry.";
+                log.warn("[AnalysisAgent] analyseStructured: parsing failed. reason={}, chunk={}/{}, attempt={}, latency={}ms",
+                        attemptNumber == 1 ? "initial_parsing_failed" : "retry_parsing_failed",
+                        chunkNumber, totalChunks, attemptNumber, latency);
+                return new ChunkAnalysisResult(null, providerUsed, failureReason, ChunkFailureType.PARSE, retried);
+            }
+
+            boolean genericResponse = isGenericResponse(response);
+            structuredAnalysisValidator.sanitize(response);
+            if (genericResponse) {
+                if (!genericRetryTriggered) {
+                    log.warn("AI returned generic/empty response, triggering retry");
+                    retryPromptBase = basePrompt + StructuredAnalysisPromptBuilder.GENERIC_RETRY_SUFFIX;
+                    currentPrompt = retryPromptBase;
+                    genericRetryTriggered = true;
+                    retried = true;
+                    continue;
+                }
+
+                log.warn("[AnalysisAgent] analyseStructured: generic response persisted after retry. chunk={}/{}, attempt={}, latency={}ms",
+                        chunkNumber, totalChunks, attemptNumber, latency);
+                return new ChunkAnalysisResult(
+                        null,
+                        providerUsed,
+                        "Réponse IA générique après retry.",
+                        ChunkFailureType.VALIDATION,
+                        retried
+                );
+            }
+
+            List<String> errors = validateChunkResponse(response, chunkKpis);
+            int missingCount = computeMissingKpiCount(chunkKpis, response.getKpiInsights());
+            log.info("[AnalysisAgent] analyseStructured: coverage total_input_kpis={} total_output_insights={} missing_kpis_count={} importSessionId={} chunk={}/{} attempt={}",
+                    chunkKpis.size(), response.getKpiInsights() == null ? 0 : response.getKpiInsights().size(), missingCount, importSessionId, chunkNumber, totalChunks, attemptNumber);
+            if (errors.isEmpty()) {
+                return new ChunkAnalysisResult(response, providerUsed, null, ChunkFailureType.NONE, retried);
+            }
+
+            log.warn("[AnalysisAgent] analyseStructured: validation failed. reason=validation_errors, chunk={}/{}, error_count={}, errors={}, latency={}ms, attempt={}",
+                    chunkNumber, totalChunks, errors.size(), errors, latency, attemptNumber);
+            if (validationRetryCount >= MAX_VALIDATION_RETRY_ATTEMPTS) {
+                log.warn("[AnalysisAgent] analyseStructured: retry validation failed. reason=retry_validation_errors, chunk={}/{}, error_count={}, errors={}, retry_count={}, latency={}ms",
+                        chunkNumber, totalChunks, errors.size(), errors, validationRetryCount, latency);
+                return new ChunkAnalysisResult(
+                        null,
+                        providerUsed,
+                        "Réponse IA invalide après retry : " + String.join("; ", errors),
+                        ChunkFailureType.VALIDATION,
+                        retried
+                );
+            }
+
+            validationRetryCount++;
+            retried = true;
+            currentPrompt = structuredAnalysisPromptBuilder.buildRetryPrompt(retryPromptBase, String.join("; ", errors));
+            log.info("[AnalysisAgent] analyseStructured: retry attempt initiated. retry_count={}, chunk={}/{}", validationRetryCount, chunkNumber, totalChunks);
+        }
+    }
+
+    private boolean isGenericResponse(AiAnalysisStructuredResponse response) {
+        if (response == null || response.getKpiInsights() == null || response.getKpiInsights().isEmpty()) {
+            return true;
+        }
+        long blankCount = response.getKpiInsights().stream()
+                .filter(kpiInsight -> kpiInsight == null
+                        || kpiInsight.getActionImmediate() == null
+                        || kpiInsight.getActionImmediate().isBlank()
+                        || kpiInsight.getActionImmediate().length() < 15
+                        || kpiInsight.getInsight() == null
+                        || kpiInsight.getInsight().isBlank()
+                        || kpiInsight.getInsight().length() < 20)
+                .count();
+        return blankCount > response.getKpiInsights().size() / 2;
     }
 
     private List<String> validateChunkResponse(AiAnalysisStructuredResponse response, List<KpiCalculatedDTO> chunkKpis) {

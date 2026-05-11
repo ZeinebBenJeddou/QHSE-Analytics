@@ -15,6 +15,55 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class StructuredAnalysisPromptBuilder {
 
+    public static final String GENERIC_RETRY_SUFFIX =
+            "\n\nATTENTION : ta réponse précédente contenait des champs vides ou génériques. " +
+            "Cette fois, chaque champ DOIT contenir une analyse réelle et détaillée. " +
+            "Les valeurs 'N/A', vides ou inférieures à 20 mots sont refusées. " +
+            "Sois précis, concret et spécifique à chaque KPI.";
+
+    private static final String SYSTEM_PROMPT =
+            "Tu es un expert QHSE senior maîtrisant ISO 9001, ISO 14001 et ISO 45001. " +
+            "Tu analyses des indicateurs de performance QHSE et tu fournis des diagnostics " +
+            "précis, des causes probables documentées et des plans d'action concrets et actionnables. " +
+            "RÈGLES ABSOLUES :\n" +
+            "1. Réponds UNIQUEMENT avec du JSON valide — aucun texte avant ou après.\n" +
+            "2. Chaque champ texte doit contenir une analyse réelle et spécifique au KPI fourni " +
+            "   (minimum 20 mots). Les valeurs génériques comme 'N/A', 'À analyser', " +
+            "   'Non disponible' ou les champs vides sont INTERDITS.\n" +
+            "3. actionImmediate doit décrire une action concrète avec un verbe d'action " +
+            "   (ex : 'Organiser une réunion de revue...', 'Mettre en place un suivi...').\n" +
+            "4. insight doit expliquer pourquoi cette variation est significative dans un " +
+            "   contexte QHSE réel.\n" +
+            "5. Tu dois produire exactement un objet kpiInsights pour chaque KPI fourni.\n" +
+            "6. Réponds en français.\n";
+
+    private static final String FEW_SHOT_EXAMPLE =
+            "\n\nEXEMPLE DE RÉPONSE ATTENDUE POUR UN KPI (respecte ce niveau de détail) :\n" +
+            "{\n" +
+            "  \"kpiId\": 42,\n" +
+            "  \"kpiName\": \"Taux de Fréquence des Accidents (TF1)\",\n" +
+            "  \"confidence\": 87,\n" +
+            "  \"insight\": \"Le TF1 a augmenté de 28% entre N-1 et N, passant de 2.5 à 3.2. " +
+            "Cette hausse dépasse le seuil critique ISO 45001 et indique une dégradation " +
+            "significative des conditions de sécurité, probablement liée à une augmentation " +
+            "de la cadence de production ou à un déficit de formation.\",\n" +
+            "  \"probableCauses\": [\n" +
+            "    \"Augmentation de la cadence de production sans adaptation des mesures de sécurité\",\n" +
+            "    \"Déficit de formation sécurité pour les nouveaux opérateurs\",\n" +
+            "    \"Sous-déclaration des presqu'accidents réduisant les actions préventives\"\n" +
+            "  ],\n" +
+            "  \"actionImmediate\": \"Suspendre les postes à risque identifiés et organiser " +
+            "une revue sécurité d'urgence avec les responsables de ligne dans les 48h.\",\n" +
+            "  \"urgency\": \"HIGH\",\n" +
+            "  \"ownerRole\": \"Responsable HSE\",\n" +
+            "  \"dueHorizon\": \"48h\",\n" +
+            "  \"successMetric\": \"TF1 revient sous 2.5 dans les 3 prochains mois\",\n" +
+            "  \"riskIfNotDone\": \"Risque d'accident grave, pénalités réglementaires DREAL\",\n" +
+            "  \"note\": \"Indicateur sous surveillance prioritaire — nécessite un reporting " +
+            "hebdomadaire à la direction.\"\n" +
+            "}\n" +
+            "DONNÉES RÉELLES À ANALYSER (produis le même niveau de détail pour chaque KPI) :\n";
+
     private final RagSearchService ragSearchService;
     private final PromptSanitizer promptSanitizer;
 
@@ -29,12 +78,8 @@ public class StructuredAnalysisPromptBuilder {
 
         StringBuilder prompt = new StringBuilder();
         prompt.append("SYSTEM:\n");
-        prompt.append("You are a senior QHSE data analyst AI expert with deep knowledge of ISO 9001, ISO 14001, ISO 45001 and regulatory compliance.\n");
-        prompt.append("Your task is to produce a strictly formatted JSON analysis for the current import data.\n");
-        prompt.append("You MUST not invent numbers, dates, or indicators. Use only data provided below.\n");
-        prompt.append("Cite the KPI references that support each conclusion.\n");
-        prompt.append(String.format("You MUST produce exactly one kpiInsights entry for each provided KPI. Expected KPI insights: %d.\n", orderedKpis.size()));
-        prompt.append("ALL output must be valid JSON only, without markdown, code fences, or explanatory text.\n\n");
+        prompt.append(SYSTEM_PROMPT);
+        prompt.append(String.format("Nombre exact d'objets kpiInsights attendus : %d.\n\n", orderedKpis.size()));
 
         prompt.append("USER:\n");
         prompt.append("You have the following targeted context sources and KPI results.\n");
@@ -58,23 +103,11 @@ public class StructuredAnalysisPromptBuilder {
             prompt.append("\n");
         }
 
-        prompt.append("=== KPI CONTEXT & RAG SOURCES ===\n");
-        for (KpiCalculatedDTO kpi : orderedKpis) {
-            prompt.append(String.format("sourceId: kpi_def_%s | sourceName: KPI definition for %s | relevanceScore: 0.85\n",
-                safeId(kpi.getMatchedKpiId(), kpi.getKpiName()), safeText(kpi.getKpiName())));
-            prompt.append(String.format("KPI: %s | Categorie: %s | Definition: %s | Seuils: Faible<%s, Modere<%s, Critique<%s | N-1=%s | N=%s | Variation=%s%% | Classification=%s\n",
-                    safeText(kpi.getKpiName()), safeText(kpi.getCategorie()), safeText(kpi.getDefinition()),
-                    safeNumber(kpi.getSeuilFaible()), safeNumber(kpi.getSeuilModere()), safeNumber(kpi.getSeuilCritique()),
-                    safeNumber(kpi.getValeurN1()), safeNumber(kpi.getValeurN()), safeNumber(kpi.getVariationPercentage()),
-                    safeText(kpi.getClassification())));
-            prompt.append("\n");
-        }
-
         prompt.append("=== INSTRUCTIONS DE SORTIE ===\n");
         prompt.append("Return a single JSON object with the following structure exactly.\n");
         prompt.append("Do not include extra fields outside the defined schema.\n");
         prompt.append("Do not use markdown or backticks.\n");
-        prompt.append("If a field cannot be determined from the provided data, return an empty string or an empty array, but do not fabricate a value.\n");
+        prompt.append("If a field cannot be determined with certainty from the provided data, provide a prudent QHSE analysis grounded in the KPI values and explain the uncertainty without leaving the field empty.\n");
         prompt.append("Do not omit any provided KPI: every KPI must appear in kpiInsights, even if the insight is a concise justification based on the provided data.\n");
         prompt.append("Cite the KPI names or ids that justify each recommendation, cause, and action.\n");
         prompt.append("Confidence values should be numeric percentages between 0 and 100.\n\n");
@@ -157,6 +190,18 @@ public class StructuredAnalysisPromptBuilder {
         prompt.append("    ]\n");
         prompt.append("  }\n");
         prompt.append("}\n\n");
+        prompt.append(FEW_SHOT_EXAMPLE);
+        prompt.append("=== KPI CONTEXT & RAG SOURCES ===\n");
+        for (KpiCalculatedDTO kpi : orderedKpis) {
+            prompt.append(String.format("sourceId: kpi_def_%s | sourceName: KPI definition for %s | relevanceScore: 0.85\n",
+                    safeId(kpi.getMatchedKpiId(), kpi.getKpiName()), safeText(kpi.getKpiName())));
+            prompt.append(String.format("KPI: %s | Categorie: %s | Definition: %s | Seuils: Faible<%s, Modere<%s, Critique<%s | N-1=%s | N=%s | Variation=%s%% | Classification=%s\n",
+                    safeText(kpi.getKpiName()), safeText(kpi.getCategorie()), safeText(kpi.getDefinition()),
+                    safeNumber(kpi.getSeuilFaible()), safeNumber(kpi.getSeuilModere()), safeNumber(kpi.getSeuilCritique()),
+                    safeNumber(kpi.getValeurN1()), safeNumber(kpi.getValeurN()), safeNumber(kpi.getVariationPercentage()),
+                    safeText(kpi.getClassification())));
+            prompt.append("\n");
+        }
 
         prompt.append("Make sure the output is valid JSON.\n");
         prompt.append("If you cannot provide a structured section, return an empty array/object for it instead of text.\n");
@@ -184,15 +229,15 @@ public class StructuredAnalysisPromptBuilder {
 
     public String buildRetryPrompt(String originalPrompt, String validationErrors) {
         StringBuilder retryPrompt = new StringBuilder(originalPrompt);
-        retryPrompt.append("\n\nPREVIOUS RESPONSE WAS INVALID.\n");
-        retryPrompt.append("Validation errors: ").append(safeText(validationErrors)).append(".\n");
-        retryPrompt.append("Please regenerate the JSON with the exact same schema and fix the errors above.\n");
-        retryPrompt.append("Respond only with valid JSON.\n");
+        retryPrompt.append("\n\nATTENTION : ta réponse précédente était invalide.\n");
+        retryPrompt.append("Erreurs de validation : ").append(safeText(validationErrors)).append(".\n");
+        retryPrompt.append("Régénère le JSON avec exactement le même schéma et corrige toutes les erreurs ci-dessus.\n");
+        retryPrompt.append("Réponds uniquement avec du JSON valide.\n");
         return retryPrompt.toString();
     }
 
     public String getPromptVersion() {
-        return "structured-qhse-v5";
+        return "structured-qhse-v7";
     }
 
     private String safeText(String value) {
