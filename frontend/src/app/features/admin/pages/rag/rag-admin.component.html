@@ -23,23 +23,7 @@
     </div>
   }
 
-  <div class="stats-row">
-    <div class="stat-chip">
-      <mat-icon>library_books</mat-icon>
-      <span class="stat-val">{{ entries.length }}</span>
-      <span class="stat-lbl">Entrées totales</span>
-    </div>
-    <div class="stat-chip green">
-      <mat-icon>memory</mat-icon>
-      <span class="stat-val">{{ totalWithEmbedding }}</span>
-      <span class="stat-lbl">Avec embedding</span>
-    </div>
-    <div class="stat-chip amber">
-      <mat-icon>warning_amber</mat-icon>
-      <span class="stat-val">{{ entries.length - totalWithEmbedding }}</span>
-      <span class="stat-lbl">Sans embedding</span>
-    </div>
-  </div>
+  
 
   <div class="top-grid">
 
@@ -186,8 +170,11 @@
       </div>
       <mat-card-title>
         Entrées
-        <span class="count-badge">{{ entries.length }}</span>
+        <span class="count-badge">
+          {{ filterQuery ? filteredEntries.length + ' / ' + entries.length : entries.length }}
+        </span>
       </mat-card-title>
+
       <mat-card-subtitle>Toutes les définitions stockées dans la base vectorielle</mat-card-subtitle>
     </mat-card-header>
     <mat-card-content>
@@ -199,6 +186,24 @@
         </div>
       }
 
+      @if (!loading && entries.length) {
+        <div class="filter-bar">
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Rechercher</mat-label>
+            <mat-icon matPrefix class="field-icon">search</mat-icon>
+            <input matInput
+              [value]="filterQuery"
+              (input)="onFilterChange($any($event.target).value)"
+              placeholder="Nom KPI, catégorie ou définition…" />
+            @if (filterQuery) {
+              <button matSuffix mat-icon-button (click)="clearFilter()" matTooltip="Effacer">
+                <mat-icon>close</mat-icon>
+              </button>
+            }
+          </mat-form-field>
+        </div>
+      }
+
       @if (!loading && !entries.length) {
         <div class="empty-state">
           <mat-icon>library_add</mat-icon>
@@ -206,9 +211,16 @@
         </div>
       }
 
-      @if (!loading && entries.length) {
+      @if (!loading && entries.length && !filteredEntries.length) {
+        <div class="empty-state">
+          <mat-icon>search_off</mat-icon>
+          <span>Aucun résultat pour "{{ filterQuery }}".</span>
+        </div>
+      }
+
+      @if (!loading && filteredEntries.length) {
         <div class="table-wrap">
-          <table mat-table [dataSource]="entries" class="rag-table">
+          <table mat-table [dataSource]="pagedEntries" class="rag-table">
 
             <ng-container matColumnDef="kpiName">
               <th mat-header-cell *matHeaderCellDef>Nom KPI</th>
@@ -281,6 +293,29 @@
             <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="rag-row"></tr>
           </table>
         </div>
+
+        @if (totalPages > 1) {
+          <div class="pagination">
+            <button mat-icon-button class="page-btn" [disabled]="currentPage === 0" (click)="goToPage(0)" matTooltip="Première page">
+              <mat-icon>first_page</mat-icon>
+            </button>
+            <button mat-icon-button class="page-btn" [disabled]="currentPage === 0" (click)="goToPage(currentPage - 1)" matTooltip="Page précédente">
+              <mat-icon>chevron_left</mat-icon>
+            </button>
+            @for (p of pages; track p) {
+              <button mat-icon-button class="page-btn page-num" [class.active]="p === currentPage" (click)="goToPage(p)">
+                {{ p + 1 }}
+              </button>
+            }
+            <button mat-icon-button class="page-btn" [disabled]="currentPage === totalPages - 1" (click)="goToPage(currentPage + 1)" matTooltip="Page suivante">
+              <mat-icon>chevron_right</mat-icon>
+            </button>
+            <button mat-icon-button class="page-btn" [disabled]="currentPage === totalPages - 1" (click)="goToPage(totalPages - 1)" matTooltip="Dernière page">
+              <mat-icon>last_page</mat-icon>
+            </button>
+            <span class="page-info">Page {{ currentPage + 1 }} / {{ totalPages }}</span>
+          </div>
+        }
       }
 
     </mat-card-content>

@@ -43,6 +43,48 @@ export class RagAdminComponent implements OnInit {
   searching = false;
   error    = '';
 
+  filterQuery = '';
+  currentPage = 0;
+  readonly pageSize = 15;
+
+  get filteredEntries(): RagKnowledgeResponse[] {
+    const q = this.filterQuery.trim().toLowerCase();
+    if (!q) return this.entries;
+    return this.entries.filter(e =>
+      e.kpiName.toLowerCase().includes(q) ||
+      (e.category ? this.categoryLabel(e.category).toLowerCase().includes(q) : false) ||
+      (e.definition ? e.definition.toLowerCase().includes(q) : false),
+    );
+  }
+
+  get totalPages(): number {
+    return Math.ceil(this.filteredEntries.length / this.pageSize);
+  }
+
+  get pages(): number[] {
+    return Array.from({ length: this.totalPages }, (_, i) => i);
+  }
+
+  get pagedEntries(): RagKnowledgeResponse[] {
+    const start = this.currentPage * this.pageSize;
+    return this.filteredEntries.slice(start, start + this.pageSize);
+  }
+
+  onFilterChange(val: string): void {
+    this.filterQuery = val;
+    this.currentPage = 0;
+  }
+
+  clearFilter(): void {
+    this.filterQuery = '';
+    this.currentPage = 0;
+  }
+
+  goToPage(page: number): void {
+    if (page < 0 || page >= this.totalPages || this.loading) return;
+    this.currentPage = page;
+  }
+
   editingEntry: RagKnowledgeResponse | null = null;
 
   searchResults: RagSearchTestResultItem[] | null = null;
@@ -175,7 +217,7 @@ export class RagAdminComponent implements OnInit {
   private loadEntries(): void {
     this.loading = true;
     this.adminService.getRagEntries().subscribe({
-      next:     (r) => { this.entries = r; },
+      next:     (r) => { this.entries = r; this.currentPage = 0; },
       error:    () => { this.error = 'Impossible de charger la base RAG.'; },
       complete: () => { this.loading = false; },
     });

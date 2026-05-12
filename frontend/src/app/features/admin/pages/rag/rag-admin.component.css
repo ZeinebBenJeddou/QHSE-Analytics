@@ -202,6 +202,53 @@ h1 { margin: 0; font-size: 1.45rem; font-weight: 700; letter-spacing: -0.3px; }
   background: var(--blue-soft); color: var(--blue); margin-left: 6px;
 }
 
+.filter-bar {
+  margin-bottom: 12px;
+}
+
+.filter-field {
+  width: 100%;
+  max-width: 420px;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 16px 0 4px;
+  flex-wrap: wrap;
+}
+
+.page-btn {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 8px !important;
+  color: var(--ink-mid) !important;
+  transition: background 0.15s, color 0.15s;
+}
+
+.page-btn:hover:not([disabled]) {
+  background: var(--blue-soft) !important;
+  color: var(--blue) !important;
+}
+
+.page-btn[disabled] { opacity: 0.3 !important; pointer-events: none; }
+
+.page-num { font-size: 0.82rem !important; font-weight: 500; }
+
+.page-num.active {
+  background: var(--blue) !important;
+  color: #fff !important;
+}
+
+.page-info {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  margin-left: 8px;
+  white-space: nowrap;
+}
+
 @media (max-width: 900px) {
   .top-grid { grid-template-columns: 1fr; }
 }
