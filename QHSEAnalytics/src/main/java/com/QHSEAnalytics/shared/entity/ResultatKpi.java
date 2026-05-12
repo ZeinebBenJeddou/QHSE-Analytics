@@ -34,22 +34,22 @@ public class ResultatKpi {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(nullable = false)
+    @Column(name = "periode_n1", nullable = false)
     private Integer periodeN1;
 
-    @Column(nullable = false)
+    @Column(name = "periode_n", nullable = false)
     private Integer periodeN;
 
-    @Column(nullable = false)
+    @Column(name = "valeur_n1", nullable = false)
     private Double valeurN1;
 
-    @Column(nullable = false)
+    @Column(name = "valeur_n", nullable = false)
     private Double valeurN;
 
-    @Column(nullable = false)
+    @Column(name = "variation_absolue", nullable = false)
     private Double variationAbsolue;
 
-    @Column(nullable = false)
+    @Column(name = "variation_relative", nullable = false)
     private Double variationRelative;
 
     @Enumerated(EnumType.STRING)
@@ -60,14 +60,14 @@ public class ResultatKpi {
     @Column(nullable = false, length = 20)
     private Tendance tendance;
 
-    @Column(nullable = false)
+    @Column(name = "confidence_score", nullable = false)
     private Double confidenceScore;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private QualityStatus qualityStatus;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "analyse_ia", columnDefinition = "TEXT")
     private String analyseIa;
 
     @Column(length = 50)
@@ -76,7 +76,7 @@ public class ResultatKpi {
     @Column(columnDefinition = "TEXT")
     private String commentaire;
 
-    @Column(nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @PrePersist

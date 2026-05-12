@@ -27,24 +27,26 @@ public class StagingDonnee {
     @JoinColumn(name = "kpi_id", nullable = false)
     private Kpi kpi;
 
-    @Column(length = 255)
+    @Column(name = "valeur_brute_n1", length = 255)
     private String valeurBruteN1;
 
-    @Column(length = 255)
+    @Column(name = "valeur_brute_n", length = 255)
     private String valeurBruteN;
 
+    @Column(name = "valeur_n1")
     private Double valeurN1;
 
+    @Column(name = "valeur_n")
     private Double valeurN;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(name = "statut_nettoyage", nullable = false, length = 20)
     private StatutNettoyage statutNettoyage;
 
-    @Column(length = 500)
+    @Column(name = "note_nettoyage", length = 500)
     private String noteNettoyage;
 
-    @Column(nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @PrePersist

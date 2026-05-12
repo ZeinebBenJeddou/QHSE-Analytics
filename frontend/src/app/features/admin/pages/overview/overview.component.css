@@ -489,21 +489,6 @@ h1 {
   flex-shrink: 0;
 }
 
-.confidence-badge {
-  padding: 2px 8px;
-  border-radius: 20px;
-  font-size: 0.68rem;
-  font-weight: 700;
-  font-family: var(--font-mono);
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-.conf-green { background: var(--green-soft); color: var(--green); }
-.conf-amber { background: var(--orange-soft); color: var(--orange); }
-.conf-red   { background: var(--red-soft); color: var(--red); }
-.conf-na    { background: var(--surface); color: var(--ink-muted); }
-
 .user-meta {
   display: flex;
   align-items: center;
@@ -546,13 +531,6 @@ h1 {
   flex-shrink: 0;
 }
 .view-ia-btn mat-icon { font-size: 16px !important; width: 16px !important; height: 16px !important; }
-
-.recalc-btn {
-  width: 28px !important; height: 28px !important;
-  color: var(--ink-muted) !important; flex-shrink: 0;
-}
-.recalc-btn mat-icon { font-size: 16px !important; width: 16px !important; height: 16px !important; }
-.recalc-btn[disabled] { opacity: 0.4 !important; }
 
 .user-row-inactive {
   opacity: 0.6;

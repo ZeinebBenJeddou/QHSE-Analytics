@@ -67,6 +67,7 @@ export const routes: Routes = [
       { path: 'data-retention', component: DataRetentionComponent, resolve: { policy: dataRetentionResolver } },
       { path: 'users', component: AdminUsersComponent, resolve: { users: adminUsersResolver } },
       { path: 'kpis', component: AdminKpisComponent, resolve: { kpis: adminKpisResolver } },
+      { path: 'analyses/:userId/:id', component: AnalyseIAComponent },
       { path: 'profile', component: AdminProfileComponent, resolve: { profile: adminProfileResolver } },
     ],
   },

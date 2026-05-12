@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
+import { AnalyseCompleteResponse } from '../models/analyse-ia.model';
 import {
   AdminAnalysteItemResponse,
   AdminGraphiquesDataResponse,
@@ -11,7 +12,6 @@ import {
   AdminStatsResponse,
   AiConfigResponse,
   AiConfigUpdateRequest,
-  AnalyseCompleteResponse,
   AuditPageResponse,
   ChangePasswordRequest,
   CategorieKpiResponse,

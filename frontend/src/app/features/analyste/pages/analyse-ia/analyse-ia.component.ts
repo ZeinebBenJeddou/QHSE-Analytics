@@ -14,11 +14,11 @@ import { MatButtonModule } from '@angular/material/button';
 
 import { DashboardService } from '../../../../core/services/dashboard.service';
 import { AiAnalysisService } from '../../../../core/services/ai-analysis.service';
+import { AdminService } from '../../../../core/services/admin.service';
 import { ImportSessionStateService } from '../../../../core/services/import-session-state.service';
+import { TokenService } from '../../../../core/services/token.service';
 import { ResumeAnalysteResponse } from '../../../../core/models/dashboard.model';
 import { AiAnalysisStructuredResponse, AiKpiInsightResponse, AnalyseCompleteResponse, ResultatKpiIaResponse } from '../../../../core/models/analyse-ia.model';
-import { HttpClient } from '@angular/common/http';
-import { environment } from '../../../../../environments/environment';
 
 
 interface EnrichedKpi extends ResultatKpiIaResponse {
@@ -74,12 +74,11 @@ export class AnalyseIAComponent implements OnInit {
 
   private dashboardService = inject(DashboardService);
   private aiAnalysisService = inject(AiAnalysisService);
+  private adminService     = inject(AdminService);
   private sessionState     = inject(ImportSessionStateService);
+  private tokenService     = inject(TokenService);
   private snackBar         = inject(MatSnackBar);
   private route            = inject(ActivatedRoute);
-  private http             = inject(HttpClient);
-  private readonly dashboardAnalysteBase = `${environment.apiUrl}/api/dashboard/analyste`;
-  private readonly dashboardAdminBase    = `${environment.apiUrl}/api/dashboard/admin`;
   importId        = signal<number | null>(null);
   loading         = signal(true);
   regenerating    = signal(false);
@@ -94,6 +93,8 @@ export class AnalyseIAComponent implements OnInit {
   searchKpi       = signal('');
   niveauKpiFilter = signal('');
   catFilter       = signal('');
+  isAdminContext  = signal(false);
+  targetUserId    = signal<number | null>(null);
 
   readonly CATEGORIES = CATEGORIES;
 
@@ -188,11 +189,25 @@ export class AnalyseIAComponent implements OnInit {
   });
 
   ngOnInit() {
+    const adminContext = this.tokenService.isAdmin()
+      && this.route.snapshot.pathFromRoot.some(snapshot => snapshot.routeConfig?.path === 'admin');
+    this.isAdminContext.set(adminContext);
+
     const routeId = this.route.snapshot.paramMap.get('id');
+    const routeUserId = this.route.snapshot.paramMap.get('userId');
+    if (routeUserId) {
+      this.targetUserId.set(+routeUserId);
+    }
+
     if (routeId) {
       this.importId.set(+routeId);
       this.loadAnalyse(+routeId);
     } else {
+      if (adminContext) {
+        this.loading.set(false);
+        this.error.set('Aucun import sélectionné.');
+        return;
+      }
       this.loadResume();
     }
   }
@@ -225,18 +240,31 @@ export class AnalyseIAComponent implements OnInit {
     this.sessionState.setActiveImport(importId);
 
     const cached = this.sessionState.getDashboardData();
-    const legacySource$ = (cached.analysesIa != null)
-      ? of(cached.analysesIa)
-      : this.http.get<AnalyseCompleteResponse>(`${this.dashboardAnalysteBase}/analyses/${importId}`).pipe(
-          catchError(() =>
-            this.http.get<AnalyseCompleteResponse>(`${this.dashboardAdminBase}/analyses/${importId}`).pipe(
-              catchError(() =>
-                this.aiAnalysisService.getAnalyseComplete(importId).pipe(
-                  catchError(() => of(null))
+    const adminUserId = this.targetUserId();
+    const legacySource$ = this.isAdminContext()
+      ? (
+          adminUserId != null
+            ? this.adminService.getAnalyses(adminUserId, importId).pipe(
+                catchError(() =>
+                  this.aiAnalysisService.getAnalyseComplete(importId).pipe(
+                    catchError(() => of(null))
+                  )
                 )
               )
-            )
-          )
+            : this.aiAnalysisService.getAnalyseComplete(importId).pipe(
+                catchError(() => of(null))
+              )
+        )
+      : (
+          cached.analysesIa != null
+            ? of(cached.analysesIa)
+            : this.dashboardService.getAnalysesIa(importId).pipe(
+                catchError(() =>
+                  this.aiAnalysisService.getAnalyseComplete(importId).pipe(
+                    catchError(() => of(null))
+                  )
+                )
+              )
         );
 
     forkJoin({
@@ -270,7 +298,12 @@ export class AnalyseIAComponent implements OnInit {
     if (!id || this.regenerating()) return;
 
     this.regenerating.set(true);
-    this.aiAnalysisService.regenerer(id)
+    const adminUserId = this.targetUserId();
+    const regenerate$ = this.isAdminContext() && adminUserId != null
+      ? this.adminService.recalculateAnalyse(adminUserId, id)
+      : this.aiAnalysisService.regenerer(id);
+
+    regenerate$
       .pipe(finalize(() => this.regenerating.set(false)))
       .subscribe({
         next: data => {

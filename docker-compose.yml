@@ -3,7 +3,6 @@ services:
   #PostgreSQL
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: qhse_postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: qhse_db
@@ -27,7 +26,6 @@ services:
     build:
       context: ./QHSEAnalytics
       dockerfile: Dockerfile
-    container_name: qhse_backend
     restart: unless-stopped
     depends_on:
       postgres:
@@ -61,7 +59,7 @@ services:
       - qhse_network
     healthcheck:
       test: ["CMD-SHELL",
-             "wget -qO- http://localhost:8080/actuator/health || exit 1"]
+             "wget -qO- http://127.0.0.1:8080/actuator/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -72,7 +70,6 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: qhse_frontend
     restart: unless-stopped
     depends_on:
       backend:
@@ -82,7 +79,7 @@ services:
     networks:
       - qhse_network
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost/health || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3

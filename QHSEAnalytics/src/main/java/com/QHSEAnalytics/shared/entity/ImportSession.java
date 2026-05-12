@@ -47,10 +47,10 @@ public class ImportSession {
     @Column(name = "file_checksum", length = 64)
     private String fileChecksum;
 
-    @Column(nullable = false)
+    @Column(name = "periode_n1", nullable = false)
     private Integer periodeN1;
 
-    @Column(nullable = false)
+    @Column(name = "periode_n", nullable = false)
     private Integer periodeN;
 
     @Enumerated(EnumType.STRING)

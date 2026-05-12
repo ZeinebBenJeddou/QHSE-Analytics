@@ -87,7 +87,7 @@
     </div>
   }
 
-  <mat-card class="glass-card actions-card">
+ <!-- <mat-card class="glass-card actions-card">
     <mat-card-header>
       <div mat-card-avatar class="card-av-icon-wrap">
         <mat-icon class="card-av-icon">apps</mat-icon>
@@ -107,53 +107,7 @@
         </button>
       </div>
     </mat-card-content>
-  </mat-card>
-
-  @if (repartition) {
-    <mat-card class="glass-card">
-      <mat-card-header>
-        <div mat-card-avatar class="card-av-icon-wrap">
-          <mat-icon class="card-av-icon">pie_chart</mat-icon>
-        </div>
-        <mat-card-title>Répartition des catégories</mat-card-title>
-        <mat-card-subtitle>Niveaux par catégorie de KPI</mat-card-subtitle>
-      </mat-card-header>
-      <mat-card-content>
-        <div class="table-container">
-          <table class="kpi-table">
-            <thead>
-              <tr>
-                <th>Catégorie</th>
-                <th class="num-cell">Faibles</th>
-                <th class="num-cell">Modérés</th>
-                <th class="num-cell">Critiques</th>
-                <th class="num-cell">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (item of repartition.categories; track item.categorieCode) {
-                <tr class="kpi-row">
-                  <td class="kpi-name-cell">
-                    <span class="cat-badge">{{ item.categorieLibelle }}</span>
-                  </td>
-                  <td class="num-cell">
-                    <span class="niveau-chip chip-faible">{{ item.nombreFaibles }}</span>
-                  </td>
-                  <td class="num-cell">
-                    <span class="niveau-chip chip-modere">{{ item.nombreModeres }}</span>
-                  </td>
-                  <td class="num-cell">
-                    <span class="niveau-chip chip-critique">{{ item.nombreCritiques }}</span>
-                  </td>
-                  <td class="num-cell total-cell">{{ item.total }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      </mat-card-content>
-    </mat-card>
-  }
+  </mat-card>-->
 
   @if (graphiques) {
 
@@ -254,6 +208,54 @@
 
   }
 
+  @if (repartition) {
+    <mat-card class="glass-card">
+      <mat-card-header>
+        <div mat-card-avatar class="card-av-icon-wrap">
+          <mat-icon class="card-av-icon">pie_chart</mat-icon>
+        </div>
+        <mat-card-title>Répartition des catégories</mat-card-title>
+        <mat-card-subtitle>Niveaux par catégorie de KPI</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="table-container">
+          <table class="kpi-table">
+            <thead>
+              <tr>
+                <th>Catégorie</th>
+                <th class="num-cell">Faibles</th>
+                <th class="num-cell">Modérés</th>
+                <th class="num-cell">Critiques</th>
+                <th class="num-cell">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of repartition.categories; track item.categorieCode) {
+                <tr class="kpi-row">
+                  <td class="kpi-name-cell">
+                    <span class="cat-badge">{{ item.categorieLibelle }}</span>
+                  </td>
+                  <td class="num-cell">
+                    <span class="niveau-chip chip-faible">{{ item.nombreFaibles }}</span>
+                  </td>
+                  <td class="num-cell">
+                    <span class="niveau-chip chip-modere">{{ item.nombreModeres }}</span>
+                  </td>
+                  <td class="num-cell">
+                    <span class="niveau-chip chip-critique">{{ item.nombreCritiques }}</span>
+                  </td>
+                  <td class="num-cell total-cell">{{ item.total }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  
+
   <div class="list-grid">
 
     <mat-card class="glass-card">
@@ -292,12 +294,6 @@
                       }
                     </div>
                   </div>
-                  @if (a.confidenceScore !== null && a.confidenceScore !== undefined) {
-                    <span class="confidence-badge" [class]="confidenceClass(a.confidenceScore)"
-                          [matTooltip]="'Confiance IA : ' + a.confidenceScore + '%'">
-                      {{ a.confidenceScore }}%
-                    </span>
-                  }
                   <span class="statut-chip"
                         [class.chip-critique]="a.statut === 'ALERTE'"
                         [class.chip-faible]="a.statut === 'OK'">
@@ -305,15 +301,9 @@
                   </span>
                   <div class="user-actions">
                     <button mat-icon-button class="view-ia-btn"
-                            [routerLink]="['/analyste/ia', a.dernierImportId]"
-                            [matTooltip]="'Voir l\'analyse IA'">
-                      <mat-icon>analytics</mat-icon>
-                    </button>
-                    <button mat-icon-button class="recalc-btn"
-                            [disabled]="recalculating[a.userId]"
-                            [matTooltip]="'Régénérer l\'analyse IA'"
-                            (click)="recalculate(a)">
-                      <mat-icon>{{ recalculating[a.userId] ? 'hourglass_empty' : 'refresh' }}</mat-icon>
+                            [routerLink]="['/admin/analyses', a.userId, a.dernierImportId]"
+                            [matTooltip]="'Consulter l\'analyse IA'">
+                      <mat-icon>visibility</mat-icon>
                     </button>
                   </div>
                 </li>

@@ -6,8 +6,19 @@ WORKDIR /app
 COPY pom.xml ./
 COPY src/ src/
 
-RUN --mount=type=cache,target=/root/.m2 \
-    mvn -B -DskipTests package
+RUN --mount=type=cache,target=/root/.m2,sharing=locked \
+    /bin/sh -ec '\
+      for attempt in 1 2 3; do \
+        mvn -B -DskipTests \
+          -Dmaven.wagon.http.retryHandler.count=5 \
+          -Dmaven.wagon.http.retryHandler.requestSentEnabled=true \
+          -Dmaven.wagon.rto=600000 \
+          -Dmaven.wagon.http.connectionTimeout=60000 \
+          package && exit 0; \
+        echo "Maven build failed on attempt ${attempt}, retrying..." >&2; \
+        sleep $((attempt * 15)); \
+      done; \
+      exit 1'
 
 FROM eclipse-temurin:17-jre-alpine AS production
 WORKDIR /app
@@ -15,7 +26,8 @@ WORKDIR /app
 RUN addgroup -S qhse && adduser -S qhse -G qhse
 
 COPY --from=builder /app/target/*.jar app.jar
-RUN chown qhse:qhse app.jar
+RUN mkdir -p /app/storage/imports /app/logs && \
+    chown -R qhse:qhse app.jar /app/storage /app/logs
 
 USER qhse
 EXPOSE 8080

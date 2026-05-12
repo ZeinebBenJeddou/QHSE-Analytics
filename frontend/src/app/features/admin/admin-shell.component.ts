@@ -41,7 +41,7 @@ export class AdminShellComponent {
     { label: 'Overview',      icon: 'bar_chart',        route: '/admin/overview', badge: null },
     { label: 'Historique',    icon: 'history',          route: '/admin/historique', badge: null },
     { label: 'Utilisateurs',  icon: 'group',            route: '/admin/users',    badge: null },
-    { label: 'KPIs',          icon: 'speed',            route: '/admin/kpis',     badge: null },
+    //{ label: 'KPIs',          icon: 'speed',            route: '/admin/kpis',     badge: null },
     { label: 'Audit',         icon: 'policy',           route: '/admin/audit',     badge: null },
     { label: 'Base RAG',      icon: 'hub',              route: '/admin/rag',       badge: null },
     { label: 'Santé IA',      icon: 'monitor_heart',    route: '/admin/ia-health', badge: null },
@@ -53,6 +53,10 @@ export class AdminShellComponent {
     this.router.events
       .pipe(filter(e => e instanceof NavigationEnd))
       .subscribe(() => {
+        if (this.router.url.startsWith('/admin/analyses/')) {
+          this.activeLabel = 'Analyse IA';
+          return;
+        }
         const match = this.navItems.find(i =>
           this.router.isActive(i.route, {
             paths: 'subset', queryParams: 'ignored',
