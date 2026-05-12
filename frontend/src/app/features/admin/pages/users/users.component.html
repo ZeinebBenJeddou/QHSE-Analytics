@@ -58,7 +58,7 @@
             <button mat-flat-button class="primary-btn" type="submit"
               [disabled]="creating || createUserForm.invalid">
               <mat-icon>{{ creating ? 'hourglass_empty' : 'add' }}</mat-icon>
-              {{ creating ? 'Création…' : 'Créer l\'analyste' }}
+              {{ creating ? 'Création...' : 'Créer l\'analyste' }}
             </button>
           </div>
         </form>
@@ -72,7 +72,7 @@
             <mat-icon class="card-av-icon amber">edit</mat-icon>
           </div>
           <mat-card-title>Modifier l'utilisateur</mat-card-title>
-          <mat-card-subtitle>{{ editingUser.prenom }} {{ editingUser.nom }} — {{ editingUser.email }}</mat-card-subtitle>
+          <mat-card-subtitle>{{ editingUser.prenom }} {{ editingUser.nom }} - {{ editingUser.email }}</mat-card-subtitle>
         </mat-card-header>
         <mat-card-content>
           <form [formGroup]="editUserForm" (ngSubmit)="submitEditUser()" class="form-grid">
@@ -102,7 +102,7 @@
               <button mat-flat-button class="amber-btn" type="submit"
                 [disabled]="saving || editUserForm.invalid">
                 <mat-icon>{{ saving ? 'hourglass_empty' : 'save' }}</mat-icon>
-                {{ saving ? 'Enregistrement…' : 'Enregistrer' }}
+                {{ saving ? 'Enregistrement...' : 'Enregistrer' }}
               </button>
             </div>
           </form>
@@ -131,7 +131,7 @@
             <input matInput
               [value]="searchQuery"
               (input)="onSearchChange($any($event.target).value)"
-              placeholder="Nom, prénom ou email…" />
+              placeholder="Nom, prénom ou email..." />
             @if (searchQuery) {
               <button matSuffix mat-icon-button (click)="clearSearch()" matTooltip="Effacer">
                 <mat-icon>close</mat-icon>
@@ -143,7 +143,7 @@
         @if (loading) {
           <div class="loader-overlay">
             <mat-progress-spinner diameter="36" mode="indeterminate"></mat-progress-spinner>
-            <span>Chargement des utilisateurs…</span>
+            <span>Chargement des utilisateurs...</span>
           </div>
         }
 
@@ -156,79 +156,79 @@
 
         @if (!loading && users.length) {
           <div class="user-list">
-          @for (user of users; track user.id) {
-          <div class="user-row">
+            @for (user of users; track user.id) {
+              <div class="user-row">
 
-            <div class="user-avatar" [class.inactive]="!user.active">
-              {{ user.prenom.charAt(0) + user.nom.charAt(0) }}
-            </div>
+                <div class="user-avatar" [class.inactive]="!user.active">
+                  {{ user.prenom.charAt(0) + user.nom.charAt(0) }}
+                </div>
 
-            <div class="user-info">
-              <span class="user-name">{{ user.prenom }} {{ user.nom }}</span>
-              <span class="user-email">{{ user.email }}</span>
-            </div>
+                <div class="user-info">
+                  <span class="user-name">{{ user.prenom }} {{ user.nom }}</span>
+                  <span class="user-email">{{ user.email }}</span>
+                </div>
 
-            <div class="user-badges">
-              <span class="badge" [ngClass]="user.role === 'ADMIN' ? 'role-admin' : 'role-analyst'">
-                {{ user.role === 'ADMIN' ? 'Admin' : 'Analyste' }}
-              </span>
-              <span class="badge" [ngClass]="user.verified ? 'verified' : 'unverified'">
-                {{ user.verified ? 'Vérifié' : 'Non vérifié' }}
-              </span>
-              <span class="badge" [ngClass]="user.active ? 'active' : 'inactive'">
-                {{ user.active ? 'Actif' : 'Inactif' }}
-              </span>
-            </div>
+                <div class="user-badges">
+                  <span class="badge" [ngClass]="user.role === 'ADMIN' ? 'role-admin' : 'role-analyst'">
+                    {{ user.role === 'ADMIN' ? 'Admin' : 'Analyste' }}
+                  </span>
+                  <span class="badge" [ngClass]="user.verified ? 'verified' : 'unverified'">
+                    {{ user.verified ? 'Vérifié' : 'Non vérifié' }}
+                  </span>
+                  <span class="badge" [ngClass]="user.active ? 'active' : 'inactive'">
+                    {{ user.active ? 'Actif' : 'Inactif' }}
+                  </span>
+                </div>
 
-            <div class="user-actions">
+                <div class="user-actions">
 
-              <button mat-icon-button class="row-icon-btn green"
-                matTooltip="Vérifier le compte"
-                (click)="verifyUser(user)"
-                [disabled]="actionInProgressId === user.id || user.verified">
-                <mat-icon>verified_user</mat-icon>
-              </button>
+                  <button mat-icon-button class="row-icon-btn green"
+                    [matTooltip]="areUserActionsDisabled(user) ? userActionsDisabledReason(user) : 'Vérifier le compte'"
+                    (click)="verifyUser(user)"
+                    [disabled]="actionInProgressId === user.id || user.verified || areUserActionsDisabled(user)">
+                    <mat-icon>verified_user</mat-icon>
+                  </button>
 
-              <button mat-icon-button class="row-icon-btn amber"
-                matTooltip="Modifier les informations"
-                (click)="startEdit(user)"
-                [disabled]="actionInProgressId === user.id">
-                <mat-icon>edit</mat-icon>
-              </button>
+                  <button mat-icon-button class="row-icon-btn amber"
+                    [matTooltip]="areUserActionsDisabled(user) ? userActionsDisabledReason(user) : 'Modifier les informations'"
+                    (click)="startEdit(user)"
+                    [disabled]="actionInProgressId === user.id || areUserActionsDisabled(user)">
+                    <mat-icon>edit</mat-icon>
+                  </button>
 
-              <button mat-icon-button class="row-icon-btn"
-                [matTooltip]="user.active ? 'Désactiver' : 'Activer'"
-                [class.amber]="user.active"
-                [class.green]="!user.active"
-                (click)="toggleActivation(user)"
-                [disabled]="actionInProgressId === user.id">
-                <mat-icon>{{ user.active ? 'block' : 'check_circle' }}</mat-icon>
-              </button>
+                  <button mat-icon-button class="row-icon-btn"
+                    [matTooltip]="areUserActionsDisabled(user) ? userActionsDisabledReason(user) : (user.active ? 'Désactiver' : 'Activer')"
+                    [class.amber]="user.active"
+                    [class.green]="!user.active"
+                    (click)="toggleActivation(user)"
+                    [disabled]="actionInProgressId === user.id || areUserActionsDisabled(user)">
+                    <mat-icon>{{ user.active ? 'block' : 'check_circle' }}</mat-icon>
+                  </button>
 
-              <button mat-icon-button class="row-icon-btn purple"
-                [matTooltip]="user.role === 'ADMIN' ? 'Rétrograder en analyste' : 'Promouvoir en admin'"
-                (click)="toggleAdmin(user)"
-                [disabled]="actionInProgressId === user.id || user.isSystemAdmin">
-                <mat-icon>{{ user.role === 'ADMIN' ? 'arrow_downward' : 'arrow_upward' }}</mat-icon>
-              </button>
+                  <button mat-icon-button class="row-icon-btn purple"
+                    [matTooltip]="areUserActionsDisabled(user) ? userActionsDisabledReason(user) : 'Promouvoir en admin'"
+                    (click)="toggleAdmin(user)"
+                    [disabled]="actionInProgressId === user.id || areUserActionsDisabled(user)">
+                    <mat-icon>{{ user.role === 'ADMIN' ? 'arrow_downward' : 'arrow_upward' }}</mat-icon>
+                  </button>
 
-              <button mat-icon-button class="row-icon-btn"
-                matTooltip="Réinitialiser le mot de passe"
-                (click)="resetUserPassword(user)"
-                [disabled]="actionInProgressId === user.id">
-                <mat-icon>lock_reset</mat-icon>
-              </button>
+                  <button mat-icon-button class="row-icon-btn"
+                    [matTooltip]="areUserActionsDisabled(user) ? userActionsDisabledReason(user) : 'Réinitialiser le mot de passe'"
+                    (click)="resetUserPassword(user)"
+                    [disabled]="actionInProgressId === user.id || areUserActionsDisabled(user)">
+                    <mat-icon>lock_reset</mat-icon>
+                  </button>
 
-              <button mat-icon-button class="row-icon-btn red"
-                [matTooltip]="user.isSystemAdmin ? 'Administrateur initial — suppression impossible' : 'Supprimer l\'utilisateur'"
-                (click)="deleteUser(user)"
-                [disabled]="actionInProgressId === user.id || user.isSystemAdmin">
-                <mat-icon>delete_outline</mat-icon>
-              </button>
+                  <button mat-icon-button class="row-icon-btn red"
+                    [matTooltip]="areUserActionsDisabled(user) ? userActionsDisabledReason(user) : 'Supprimer cet utilisateur'"
+                    (click)="deleteUser(user)"
+                    [disabled]="actionInProgressId === user.id || areUserActionsDisabled(user)">
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
 
-            </div>
-          </div>
-          }
+                </div>
+              </div>
+            }
           </div>
         }
 

@@ -109,6 +109,17 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
     return Array.from({ length: this.totalPages }, (_, i) => i);
   }
 
+  areUserActionsDisabled(user: UserResponse): boolean {
+    return user.isSystemAdmin;
+  }
+
+  userActionsDisabledReason(user: UserResponse): string {
+    if (user.isSystemAdmin) {
+      return 'Administrateur initial - actions désactivées';
+    }
+    return 'Utilisateur administrateur - actions désactivées';
+  }
+
   submitCreateUser(): void {
     if (this.createUserForm.invalid) return;
     this.creating     = true;
@@ -130,6 +141,7 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
   }
 
   startEdit(user: UserResponse): void {
+    if (this.areUserActionsDisabled(user)) return;
     this.editingUser = user;
     this.editUserForm.setValue({ nom: user.nom, prenom: user.prenom, email: user.email });
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -162,6 +174,7 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
   }
 
   verifyUser(user: UserResponse): void {
+    if (this.areUserActionsDisabled(user)) return;
     this.actionInProgressId = user.id;
     this.adminService.verifyUser(user.id).subscribe({
       next:     () => { this.snackBar.open('Compte vérifié.', 'Fermer', { duration: 3000 }); this.loadPage(this.currentPage); },
@@ -170,6 +183,7 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
   }
 
   toggleActivation(user: UserResponse): void {
+    if (this.areUserActionsDisabled(user)) return;
     this.actionInProgressId = user.id;
     const action = user.active
       ? this.adminService.deactivateUser(user.id)
@@ -182,6 +196,7 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
   }
 
   toggleAdmin(user: UserResponse): void {
+    if (this.areUserActionsDisabled(user)) return;
     const isPromoting = user.role !== 'ADMIN';
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
@@ -211,6 +226,7 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
   }
 
   resetUserPassword(user: UserResponse): void {
+    if (this.areUserActionsDisabled(user)) return;
     this.actionInProgressId = user.id;
     this.adminService.resetUserPassword(user.id).subscribe({
       next:     () => { this.snackBar.open('Email de réinitialisation envoyé.', 'Fermer', { duration: 3000 }); },
@@ -220,6 +236,7 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
   }
 
   deleteUser(user: UserResponse): void {
+    if (this.areUserActionsDisabled(user)) return;
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
         title: 'Supprimer l\'utilisateur',
