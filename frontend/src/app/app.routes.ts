@@ -17,6 +17,7 @@ import { adminKpisResolver } from './features/admin/pages/kpis/kpis.resolver';
 import { AdminProfileComponent } from './features/admin/pages/profile/profile.component';
 import { adminProfileResolver } from './features/admin/pages/profile/profile.resolver';
 import { AdminHistoriqueComponent } from './features/admin/pages/historique/historique-admin.component';
+import { adminHistoriqueResolver } from './features/admin/pages/historique/historique-admin.resolver';
 import { AdminAuditComponent } from './features/admin/pages/audit/audit.component';
 import { adminAuditResolver } from './features/admin/pages/audit/audit.resolver';
 import { RagAdminComponent } from './features/admin/pages/rag/rag-admin.component';
@@ -59,7 +60,7 @@ export const routes: Routes = [
     children: [
       { path: '', redirectTo: 'overview', pathMatch: 'full' },
       { path: 'overview', component: AdminOverviewComponent, resolve: { data: adminOverviewResolver } },
-      { path: 'historique', component: AdminHistoriqueComponent },
+      { path: 'historique', component: AdminHistoriqueComponent, resolve: { historique: adminHistoriqueResolver } },
       { path: 'audit', component: AdminAuditComponent, resolve: { audit: adminAuditResolver } },
       { path: 'rag', component: RagAdminComponent, resolve: { entries: ragAdminResolver } },
       { path: 'ia-health', component: IaHealthComponent, resolve: { health: iaHealthResolver } },

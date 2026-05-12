@@ -6,7 +6,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { AdminService } from '../../../../core/services/admin.service';
 import { HistoriqueItemResponse } from '../../../../core/models/import-session.model';
  
@@ -29,6 +29,7 @@ import { HistoriqueItemResponse } from '../../../../core/models/import-session.m
 export class AdminHistoriqueComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly route        = inject(ActivatedRoute);
+  private readonly router       = inject(Router);
  
   items         = signal<HistoriqueItemResponse[]>([]);
   loading       = signal(false);
@@ -37,7 +38,7 @@ export class AdminHistoriqueComponent implements OnInit {
   totalTraites  = signal(0);
   totalErreurs  = signal(0);
  
-  displayedColumns = ['analyste', 'nomFichier', 'periodes', 'dateImport', 'statut', 'critiques'];
+  displayedColumns = ['analyste', 'nomFichier', 'periodes', 'dateImport', 'statut', 'critiques', 'actions'];
  
   ngOnInit(): void {
     
@@ -76,7 +77,8 @@ export class AdminHistoriqueComponent implements OnInit {
         return 'success';
       case 'ERREUR':
         return 'error';
-      case 'EN_COURS':
+      case 'EN_ATTENTE':
+      case 'EN_TRAITEMENT':
         return 'warn';
       case 'ANNULE':
         return 'muted';
@@ -92,9 +94,34 @@ export class AdminHistoriqueComponent implements OnInit {
       READY_FOR_AI:  'Prêt IA',
       CALCULATED:    'Calculé',
       ERREUR:        'Erreur',
-      EN_COURS:      'En cours',
+      EN_ATTENTE:    'En attente',
+      EN_TRAITEMENT: 'En traitement',
       ANNULE:        'Annulé',
     };
     return labels[statut] ?? statut;
+  }
+
+  canViewAnalysis(item: HistoriqueItemResponse): boolean {
+    return !!item.utilisateurId && (item.statut === 'READY_FOR_AI' || item.statut === 'TRAITE');
+  }
+
+  analysisAvailabilityLabel(item: HistoriqueItemResponse): string {
+    if (this.canViewAnalysis(item)) {
+      return 'Analyse disponible';
+    }
+    if (item.statut === 'CALCULATED') {
+      return 'Analyse IA non générée';
+    }
+    if (item.statut === 'ERREUR') {
+      return 'Import en erreur';
+    }
+    return 'Analyse indisponible';
+  }
+
+  viewAnalysis(item: HistoriqueItemResponse): void {
+    if (!this.canViewAnalysis(item) || !item.utilisateurId) {
+      return;
+    }
+    this.router.navigate(['/admin/analyses', item.utilisateurId, item.importId]);
   }
 }

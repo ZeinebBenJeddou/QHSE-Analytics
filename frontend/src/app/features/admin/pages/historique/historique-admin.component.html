@@ -7,8 +7,8 @@
         <mat-icon class="header-icon">history</mat-icon>
       </div>
       <div>
-        <h1>Historique des analyses</h1>
-        <p class="subtitle">Imports et statuts de traitement du système</p>
+        <h1>Historique des analyses des analystes</h1>
+        <p class="subtitle">Tous les imports analystes et l'accès aux analyses IA disponibles</p>
       </div>
     </div>
     <div>
@@ -31,7 +31,7 @@
           </div>
           <div class="stat-text">
             <span class="stat-value">{{ totalImports() }}</span>
-            <span class="stat-label">Imports totaux</span>
+            <span class="stat-label">Sessions totales</span>
           </div>
         </div>
       </mat-card>
@@ -43,7 +43,7 @@
           </div>
           <div class="stat-text">
             <span class="stat-value">{{ totalTraites() }}</span>
-            <span class="stat-label">Analyses traitées</span>
+            <span class="stat-label">Analyses disponibles</span>
           </div>
         </div>
       </mat-card>
@@ -68,8 +68,8 @@
         <div mat-card-avatar class="card-av-icon-wrap">
           <mat-icon class="card-av-icon">table_rows</mat-icon>
         </div>
-        <mat-card-title>Détail des imports</mat-card-title>
-        <mat-card-subtitle>Tous les imports enregistrés sur le système</mat-card-subtitle>
+        <mat-card-title>Détail des analyses par analyste</mat-card-title>
+        <mat-card-subtitle>Historique global des imports analystes et consultation des analyses IA</mat-card-subtitle>
       </mat-card-header>
  
       <mat-card-content>
@@ -131,6 +131,13 @@
                 <span class="status-chip" [ngClass]="statutClass(item.statut)">
                   {{ statutLabel(item.statut) }}
                 </span>
+                <div class="status-subtext">
+                  {{ analysisAvailabilityLabel(item) }}
+                </div>
+                <div *ngIf="item.messageErreur" class="status-error" [matTooltip]="item.messageErreur">
+                  <mat-icon>warning_amber</mat-icon>
+                  {{ item.messageErreur }}
+                </div>
               </td>
             </ng-container>
  
@@ -142,6 +149,22 @@
                   [ngClass]="item.nombreKpisCritiques > 0 ? 'has-critiques' : 'none'">
                   {{ item.nombreKpisCritiques }}
                 </span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <td mat-cell *matCellDef="let item">
+                <div class="actions-cell">
+                  <button mat-icon-button
+                          type="button"
+                          class="view-analysis-btn"
+                          [disabled]="!canViewAnalysis(item)"
+                          [matTooltip]="canViewAnalysis(item) ? 'Consulter l\'analyse IA' : analysisAvailabilityLabel(item)"
+                          (click)="viewAnalysis(item)">
+                    <mat-icon>visibility</mat-icon>
+                  </button>
+                </div>
               </td>
             </ng-container>
  
