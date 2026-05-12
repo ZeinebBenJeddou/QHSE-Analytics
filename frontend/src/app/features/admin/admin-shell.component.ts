@@ -38,7 +38,7 @@ export class AdminShellComponent {
 
   navItems = [
     { label: 'Profil',        icon: 'person',           route: '/admin/profile',  badge: null },
-    { label: 'Overview',      icon: 'bar_chart',        route: '/admin/overview', badge: null },
+    { label: 'Tableau de bord',      icon: 'bar_chart',        route: '/admin/overview', badge: null },
     { label: 'Historique',    icon: 'history',          route: '/admin/historique', badge: null },
     { label: 'Utilisateurs',  icon: 'group',            route: '/admin/users',    badge: null },
     //{ label: 'KPIs',          icon: 'speed',            route: '/admin/kpis',     badge: null },
