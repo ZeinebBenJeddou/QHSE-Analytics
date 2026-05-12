@@ -139,7 +139,6 @@ export class RagAdminComponent implements OnInit {
 
   submitEntry(): void {
     if (this.entryForm.invalid) return;
-    this.saving = true;
     const raw = this.entryForm.value;
     const payload = {
       kpiName:    raw.kpiName!.trim(),
@@ -147,6 +146,23 @@ export class RagAdminComponent implements OnInit {
       thresholds: raw.thresholds?.trim() || null,
       category:   raw.category || null,
     };
+
+    if (!this.editingEntry) {
+      const duplicate = this.entries.find(e =>
+        e.kpiName.trim().toLowerCase() === payload.kpiName.toLowerCase() &&
+        (e.definition ?? '').trim().toLowerCase() === payload.definition.trim().toLowerCase(),
+      );
+      if (duplicate) {
+        this.snackBar.open(
+          `Une entrée identique pour "${payload.kpiName}" existe déjà dans la base.`,
+          'Fermer',
+          { duration: 5000 },
+        );
+        return;
+      }
+    }
+
+    this.saving = true;
 
     const op$ = this.editingEntry
       ? this.adminService.updateRagEntry(this.editingEntry.id, payload)
