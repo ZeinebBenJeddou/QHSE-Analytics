@@ -5,7 +5,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://REMPLACER-PAR-URL-RENDER.onrender.com/api/$1"
+      "destination": "https://qhse-analytics-backend.onrender.com/api/$1"
     },
     {
       "source": "/(.*)",
