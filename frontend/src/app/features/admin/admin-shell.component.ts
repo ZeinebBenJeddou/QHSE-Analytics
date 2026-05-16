@@ -45,7 +45,7 @@ export class AdminShellComponent {
     { label: 'Actions Administrateur',         icon: 'policy',           route: '/admin/audit',     badge: null },
     { label: 'Base RAG',      icon: 'hub',              route: '/admin/rag',       badge: null },
     
-    { label: 'Config IA',     icon: 'tune',             route: '/admin/ia-config',       badge: null },
+    //{ label: 'Config IA',     icon: 'tune',             route: '/admin/ia-config',       badge: null },
     
   ];
 
