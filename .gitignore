@@ -1,4 +1,6 @@
 .claude
+
+.env.render
 .env
 *.env
 !.env.example
