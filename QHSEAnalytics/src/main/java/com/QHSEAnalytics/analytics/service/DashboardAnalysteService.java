@@ -66,8 +66,10 @@ public class DashboardAnalysteService {
                 .toList();
 
         int critiques = (int) resultats.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.CRITIQUE).count();
+        int preEscalades = (int) resultats.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.PRE_ESCALADE).count();
         int moderes = (int) resultats.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.MODERE).count();
         int faibles = (int) resultats.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.FAIBLE).count();
+        int excellents = (int) resultats.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.EXCELLENT).count();
 
         return ResumeAnalysteResponse.builder()
                 .dernierImportId(session.getId())
@@ -76,9 +78,9 @@ public class DashboardAnalysteService {
                 .dateAnalyse(session.getUpdatedAt())
                 .resumeCategories(resumeCategories)
                 .nombreTotalKpis(resultats.size())
-                .nombreTotalCritiques(critiques)
+                .nombreTotalCritiques(critiques + preEscalades)
                 .nombreTotalModeres(moderes)
-                .nombreTotalFaibles(faibles)
+                .nombreTotalFaibles(faibles + excellents)
                 .build();
     }
 
@@ -116,9 +118,13 @@ public class DashboardAnalysteService {
                 return toLigneComparatif(r, analysis);
             })
                 .toList();
-        int critiques = (int) sorted.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.CRITIQUE).count();
+        int critiques = (int) sorted.stream().filter(r ->
+                r.getNiveauVariation() == NiveauVariation.CRITIQUE ||
+                r.getNiveauVariation() == NiveauVariation.PRE_ESCALADE).count();
         int moderes = (int) sorted.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.MODERE).count();
-        int faibles = (int) sorted.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.FAIBLE).count();
+        int faibles = (int) sorted.stream().filter(r ->
+                r.getNiveauVariation() == NiveauVariation.FAIBLE ||
+                r.getNiveauVariation() == NiveauVariation.EXCELLENT).count();
 
         return ComparatifTableauResponse.builder()
                 .importId(session.getId())
@@ -259,9 +265,13 @@ public class DashboardAnalysteService {
     }
 
     private ResumeCategorieResponse toResumeCategorie(List<ResultatKpi> resultats) {
-        int critiques = (int) resultats.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.CRITIQUE).count();
+        int critiques = (int) resultats.stream().filter(r ->
+                r.getNiveauVariation() == NiveauVariation.CRITIQUE ||
+                r.getNiveauVariation() == NiveauVariation.PRE_ESCALADE).count();
         int moderes = (int) resultats.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.MODERE).count();
-        int faibles = (int) resultats.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.FAIBLE).count();
+        int faibles = (int) resultats.stream().filter(r ->
+                r.getNiveauVariation() == NiveauVariation.FAIBLE ||
+                r.getNiveauVariation() == NiveauVariation.EXCELLENT).count();
 
         String couleur;
         if (critiques == 0) {
@@ -459,9 +469,12 @@ public class DashboardAnalysteService {
             return 99;
         }
         return switch (niveauVariation) {
-            case CRITIQUE -> 0;
-            case MODERE -> 1;
-            case FAIBLE -> 2;
+            case CRITIQUE     -> 0;
+            case PRE_ESCALADE -> 1;
+            case MODERE       -> 2;
+            case FAIBLE       -> 3;
+            case INDETERMINE  -> 4;
+            case EXCELLENT    -> 5;
         };
     }
 

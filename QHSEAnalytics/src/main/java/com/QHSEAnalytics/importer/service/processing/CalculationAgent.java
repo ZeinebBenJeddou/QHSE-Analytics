@@ -150,9 +150,16 @@ public class CalculationAgent {
                 } else if (variationPercentage == null) {
                     status = "Nouveau"; statusColor = "blue";
                 } else {
-                    if (variationPercentage > 0) { status = "Augmentation"; statusColor = "green"; }
-                    else if (variationPercentage < 0) { status = "Diminution"; statusColor = "red"; }
-                    else { status = "Stable"; statusColor = "yellow"; }
+                    Direction dir = comp.getDirection() != null ? comp.getDirection() : Direction.HIGHER_IS_BETTER;
+                    if (variationPercentage > 0) {
+                        status = "Augmentation";
+                        statusColor = dir == Direction.LOWER_IS_BETTER ? "red" : "green";
+                    } else if (variationPercentage < 0) {
+                        status = "Diminution";
+                        statusColor = dir == Direction.LOWER_IS_BETTER ? "green" : "red";
+                    } else {
+                        status = "Stable"; statusColor = "yellow";
+                    }
                 }
                 historicalSeries = findHistoricalSeries(effectiveKpi);
                 classRes = classificationEngine.classify(effectiveKpi, comp, historicalSeries);
@@ -240,17 +247,14 @@ public class CalculationAgent {
         if (row.getKpiName() == null || row.getKpiName().isBlank()) return new MatchResult(null, null);
         String normalized = normalize(row.getKpiName());
 
-
-        if (byName.containsKey(normalized)) return new MatchResult(byName.get(normalized), null);
-
+        if (byName.containsKey(normalized)) return new MatchResult(byName.get(normalized), 1.0);
 
         for (Map.Entry<String, Kpi> entry : byName.entrySet()) {
             String key = entry.getKey();
             if (normalized.contains(key) || key.contains(normalized)) {
-                return new MatchResult(entry.getValue(), null);
+                return new MatchResult(entry.getValue(), 0.9);
             }
         }
-
 
         Kpi best = null;
         double bestScore = 0.0;

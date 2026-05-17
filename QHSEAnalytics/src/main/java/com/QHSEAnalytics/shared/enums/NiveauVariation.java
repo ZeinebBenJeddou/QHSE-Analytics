@@ -1,7 +1,10 @@
 package com.QHSEAnalytics.shared.enums;
 
 public enum NiveauVariation {
+    EXCELLENT,
     FAIBLE,
     MODERE,
-    CRITIQUE
+    PRE_ESCALADE,
+    CRITIQUE,
+    INDETERMINE
 }

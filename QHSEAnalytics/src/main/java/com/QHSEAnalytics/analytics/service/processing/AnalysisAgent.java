@@ -814,15 +814,33 @@ public class AnalysisAgent {
         prompt.append("Your goal is to identify trends, potential risks, and ensure compliance with ISO standards.\n\n");
 
         prompt.append("=== DONNÉES KPI ACTUELLES (N vs N-1) ===\n");
-        data.forEach(kpi -> prompt.append(String.format(
-                "KPI: %s | Categorie: %s | N-1=%s | N=%s | Δ=%s%% | Classification=%s\n",
-                promptSanitizer.sanitize(kpi.getKpiName()),
-                promptSanitizer.sanitize(kpi.getCategorie()),
-                promptSanitizer.sanitizeNumber(kpi.getValeurN1()),
-                promptSanitizer.sanitizeNumber(kpi.getValeurN()),
-                promptSanitizer.sanitizeNumber(kpi.getVariationPercentage()),
-                promptSanitizer.sanitize(kpi.getClassification())
-        )));
+        data.forEach(kpi -> {
+            StringBuilder line = new StringBuilder(String.format(
+                    "KPI: %s | Catégorie: %s | Direction: %s | N-1=%s | N=%s | Δ_abs=%s | Δ_rel=%s%% | Classification=%s | NiveauRisque=%s",
+                    promptSanitizer.sanitize(kpi.getKpiName()),
+                    promptSanitizer.sanitize(kpi.getCategorie()),
+                    kpi.getDirection() != null ? kpi.getDirection() : "?",
+                    promptSanitizer.sanitizeNumber(kpi.getValeurN1()),
+                    promptSanitizer.sanitizeNumber(kpi.getValeurN()),
+                    promptSanitizer.sanitizeNumber(kpi.getAbsoluteGap()),
+                    promptSanitizer.sanitizeNumber(kpi.getVariationPercentage()),
+                    promptSanitizer.sanitize(kpi.getClassification()),
+                    kpi.getRiskLevel() != null ? kpi.getRiskLevel() : "?"
+            ));
+            if (kpi.getSeuilFaible() != null || kpi.getSeuilModere() != null || kpi.getSeuilCritique() != null) {
+                line.append(String.format(" | Seuils[F=%s,M=%s,C=%s]",
+                        promptSanitizer.sanitizeNumber(kpi.getSeuilFaible()),
+                        promptSanitizer.sanitizeNumber(kpi.getSeuilModere()),
+                        promptSanitizer.sanitizeNumber(kpi.getSeuilCritique())));
+            }
+            if (kpi.getSpcOutOfControl() != null && kpi.getSpcOutOfControl()) {
+                line.append(" | HORS_CONTROLE_SPC");
+            }
+            if (Boolean.TRUE.equals(kpi.getReviewRequired())) {
+                line.append(" | REVUE_REQUISE");
+            }
+            prompt.append(line).append("\n");
+        });
         prompt.append("\n");
 
         prompt.append("=== INSTRUCTIONS STRICTES ===\n");

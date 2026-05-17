@@ -51,8 +51,13 @@ public class ComparativeCalculator {
             if (valN == null || valN == 0d) {
                 special = "STABLE";
             } else {
-                special = "EMERGING_RISK";
-                flags.add(DataFlag.LOW_BASE);
+                // For LOWER_IS_BETTER KPIs a jump from 0 is a new risk; for HIGHER_IS_BETTER it is improvement.
+                if (direction == Direction.HIGHER_IS_BETTER) {
+                    special = "STRONG_IMPROVEMENT";
+                } else {
+                    special = "EMERGING_RISK";
+                    flags.add(DataFlag.LOW_BASE);
+                }
             }
 
         } else {

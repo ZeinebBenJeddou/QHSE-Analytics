@@ -252,10 +252,8 @@ export class ComparatifComponent implements OnInit {
     this.searchFilter = '';
     this.niveauFilter = '';
     this.statutFilter = '';
-
     this.setActiveCat('');
-    return;
-    this.snackBar.open('Filtres appliqués', 'Fermer', { duration: 2500 });
+    this.snackBar.open('Filtres réinitialisés', 'Fermer', { duration: 2500 });
   }
 
   
@@ -274,9 +272,12 @@ export class ComparatifComponent implements OnInit {
   }
 
   getNiveauClass(niveau: string): string {
-    if (niveau === 'CRITIQUE') return 'niveau-critique';
-    if (niveau === 'MODERE')   return 'niveau-modere';
-    if (niveau === 'FAIBLE')   return 'niveau-faible';
+    if (niveau === 'CRITIQUE')     return 'niveau-critique';
+    if (niveau === 'PRE_ESCALADE') return 'niveau-pre-escalade';
+    if (niveau === 'MODERE')       return 'niveau-modere';
+    if (niveau === 'FAIBLE')       return 'niveau-faible';
+    if (niveau === 'EXCELLENT')    return 'niveau-excellent';
+    if (niveau === 'INDETERMINE')  return 'niveau-default';
     return 'niveau-default';
   }
 
