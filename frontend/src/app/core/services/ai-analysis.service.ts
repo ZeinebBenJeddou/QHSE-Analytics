@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AnalyseCompleteResponse, AiAnalysisStructuredResponse } from '../models/analyse-ia.model';
 import {
@@ -14,16 +14,22 @@ export class AiAnalysisService {
   private iaBase = `${environment.apiUrl}/api/ia`;
   private mappingBase = `${environment.apiUrl}/api/mapping`;
 
+  private structuredCache = new Map<number, AiAnalysisStructuredResponse>();
+
   getAnalyseComplete(importSessionId: number): Observable<AnalyseCompleteResponse> {
     return this.http.get<AnalyseCompleteResponse>(`${this.iaBase}/${importSessionId}`);
   }
 
   regenerer(importSessionId: number): Observable<AnalyseCompleteResponse> {
+    this.structuredCache.delete(importSessionId);
     return this.http.post<AnalyseCompleteResponse>(`${this.iaBase}/${importSessionId}/regenerer`, {});
   }
 
   getStructuredAnalysis(importSessionId: number): Observable<AiAnalysisStructuredResponse> {
-    return this.http.get<AiAnalysisStructuredResponse>(`${this.iaBase}/${importSessionId}/structured`);
+    const cached = this.structuredCache.get(importSessionId);
+    if (cached) return of(cached);
+    return this.http.get<AiAnalysisStructuredResponse>(`${this.iaBase}/${importSessionId}/structured`)
+      .pipe(tap(res => this.structuredCache.set(importSessionId, res)));
   }
 
   saveMappingTemplate(req: MappingTemplateRequest): Observable<MappingTemplateResponse> {

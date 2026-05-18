@@ -108,7 +108,7 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
     } catch {  }
   }
 
-  readonly previewColumns = ['rowStatus', 'kpiName', 'categorie', 'unite', 'definition', 'valeurN', 'valeurN1', 'status', 'commentaire', 'variation', 'absoluteGap', 'meta'];
+  readonly previewColumns = ['rowStatus', 'kpiName', 'categorie',/* 'unite','definition',*/ 'valeurN1','valeurN',  'status', 'commentaire', 'variation', 'absoluteGap'/*, 'meta'*/];
   readonly resultColumns  = ['spark', 'kpiName', 'categorie', 'unite', 'valeurN', 'valeurN1', 'variation', 'absoluteGap', 'status', 'risk', 'meta'];
   readonly issueColumns   = ['severity', 'row', 'column', 'message'];
 
@@ -304,9 +304,14 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
 
     try {
       const response = await firstValueFrom(this.importService.confirmStrict(state.file, state.yearN, state.yearNMinus1, mapping, clientId));
-      this.result.set(response);
       this.uploadState.saveResponse(response);
       this.snackBar.open('Importation confirmée avec succès.', 'OK', { duration: 3000 });
+      const sessionId = response.importSessionId;
+      if (sessionId) {
+        this.router.navigate(['/analyste/dashboard', sessionId]);
+      } else {
+        this.router.navigate(['/analyste/dashboard']);
+      }
     } catch (err: any) {
       this.errorMsg.set(err?.error?.message ?? 'Erreur lors de la confirmation.');
       this.snackBar.open(this.errorMsg(), 'OK', { duration: 5000 });
@@ -334,11 +339,16 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
 
     try {
       const response = await firstValueFrom(this.importService.confirmPartial(state.file, state.yearN, state.yearNMinus1, mapping, clientId));
-      this.result.set(response);
       this.uploadState.saveResponse(response);
       const imported = response.qualityReport?.importedRowsCount ?? 0;
       const rejected = response.qualityReport?.rejectedRowsCount ?? 0;
       this.snackBar.open(`Import partiel terminé : ${imported} importées, ${rejected} rejetées.`, 'OK', { duration: 6000 });
+      const sessionId = response.importSessionId;
+      if (sessionId) {
+        this.router.navigate(['/analyste/dashboard', sessionId]);
+      } else {
+        this.router.navigate(['/analyste/dashboard']);
+      }
     } catch (err: any) {
       this.errorMsg.set(err?.error?.message ?? 'Erreur lors de l\'import partiel.');
       this.snackBar.open(this.errorMsg(), 'OK', { duration: 5000 });

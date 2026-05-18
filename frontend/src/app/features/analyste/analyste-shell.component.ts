@@ -45,7 +45,6 @@ export class AnalysteShellComponent implements OnInit {
 
   dashItems = [
     { label: 'Tableau de bord', icon: 'dashboard', route: '/analyste/dashboard', badge: null as number | null },
-    { label: 'Profil', icon: 'person', route: '/analyste/profile', badge: null as number | null },
   ];
 
   dataItems = [
@@ -54,13 +53,14 @@ export class AnalysteShellComponent implements OnInit {
   ];
 
   navItems = [
-    { label: 'Comparatif N vs N-1', icon: 'compare_arrows', route: '/analyste/comparatif', badge: null as number | null },
-    { label: 'Analyse IA',          icon: 'analytics',       route: '/analyste/ia',          badge: null as number | null },
+    //{ label: 'Comparatif N vs N-1', icon: 'compare_arrows', route: '/analyste/comparatif', badge: null as number | null },
+    { label: 'Analyse ',          icon: 'analytics',       route: '/analyste/ia',          badge: null as number | null },
+    { label: 'Export PDF', icon: 'picture_as_pdf', route: '/analyste/export', badge: null as number | null },
     
   ];
 
-  rapportItems = [
-    { label: 'Export PDF', icon: 'picture_as_pdf', route: '/analyste/export', badge: null as number | null },
+  profilItems = [
+    { label: 'Profil', icon: 'person', route: '/analyste/profile', badge: null as number | null },
   ];
 
   constructor() {
@@ -69,7 +69,6 @@ export class AnalysteShellComponent implements OnInit {
       .subscribe(() => {
         const allItems = [
           ...this.dashItems, ...this.dataItems,
-          ...this.navItems, ...this.rapportItems,
         ];
         const match = allItems.find(i =>
           this.router.isActive(i.route, { paths: 'subset', queryParams: 'ignored', fragment: 'ignored', matrixParams: 'ignored' })

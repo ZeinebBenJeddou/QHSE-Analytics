@@ -6,8 +6,8 @@
         <mat-icon>upload_file</mat-icon>
       </div>
       <div>
-        <h1>Import de KPI</h1>
-        <p class="subtitle">Importez un fichier Excel et mappez vos colonnes</p>
+        <h1>Importez un fichier Excel et mappez vos colonnes</h1>
+       
       </div>
     </div>
     <button mat-stroked-button class="reset-btn" (click)="clear()">
@@ -39,11 +39,11 @@
     </div>
   </div>
 
-  <!-- Sélecteur de mode -->
+  
   <div class="mode-selector">
     <button [class.active]="importMode() === 'SINGLE'" (click)="setMode('SINGLE')">
       <mat-icon>description</mat-icon>
-      1 fichier — 2 colonnes
+      1 fichier 
     </button>
     <button [class.active]="importMode() === 'DUAL'" (click)="setMode('DUAL')">
       <mat-icon>file_copy</mat-icon>
@@ -51,7 +51,6 @@
     </button>
   </div>
 
-  <!-- MODE SINGLE — existant inchangé -->
   <div *ngIf="importMode() === 'SINGLE'">
     <div class="panel">
       <div class="upload-card">
@@ -63,25 +62,28 @@
           </button>
 
           <div class="year-fields">
+
+            <mat-form-field appearance="outline">
+              <mat-label>Année N-1</mat-label>
+              <input matInput type="number" min="2000" max="2025" placeholder="2025"
+                     [value]="yearNMinus1() ?? ''"
+                     (input)="onYearNMinus1Change($any($event.target).value)" />
+            </mat-form-field>
+
             <mat-form-field appearance="outline">
               <mat-label>Année N</mat-label>
-              <input matInput type="number" min="1900" max="2100" placeholder="2024"
+              <input matInput type="number" min="2000" max="2026" placeholder="2026"
                      [value]="yearN() ?? ''"
                      (input)="onYearNChange($any($event.target).value)" />
             </mat-form-field>
 
-            <mat-form-field appearance="outline">
-              <mat-label>Année N-1</mat-label>
-              <input matInput type="number" min="1900" max="2100" placeholder="2023"
-                     [value]="yearNMinus1() ?? ''"
-                     (input)="onYearNMinus1Change($any($event.target).value)" />
-            </mat-form-field>
+            
           </div>
 
-          <div class="required-columns">
+          <!--<div class="required-columns">
             <p>Champs obligatoires : Nom du KPI, Valeur N, Valeur N-1.</p>
             <p>Les colonnes supplémentaires seront ignorées.</p>
-          </div>
+          </div>-->
 
           <div class="year-error" *ngIf="yearError()">
             <mat-icon>error_outline</mat-icon>
@@ -109,7 +111,7 @@
     </div>
   </div>
 
-  <!-- MODE DUAL — nouveau -->
+  
   <div *ngIf="importMode() === 'DUAL'">
     <div class="panel">
       <div class="dual-upload">
@@ -135,18 +137,20 @@
       </div>
 
       <div class="year-fields" style="margin-top: 16px;">
-        <mat-form-field appearance="outline">
-          <mat-label>Année N</mat-label>
-          <input matInput type="number" min="1900" max="2100" placeholder="2024"
-                 [value]="yearN() ?? ''"
-                 (input)="onYearNChange($any($event.target).value)" />
-        </mat-form-field>
+        
 
         <mat-form-field appearance="outline">
           <mat-label>Année N-1</mat-label>
-          <input matInput type="number" min="1900" max="2100" placeholder="2023"
+          <input matInput type="number" min="2000" max="2025" placeholder="2025"
                  [value]="yearNMinus1() ?? ''"
                  (input)="onYearNMinus1Change($any($event.target).value)" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Année N</mat-label>
+          <input matInput type="number" min="2000" max="2026" placeholder="2026"
+                 [value]="yearN() ?? ''"
+                 (input)="onYearNChange($any($event.target).value)" />
         </mat-form-field>
       </div>
 

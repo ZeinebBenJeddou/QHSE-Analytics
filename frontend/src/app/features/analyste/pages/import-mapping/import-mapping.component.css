@@ -1204,7 +1204,7 @@ h1 {
   border-radius: 4px;
 }
 
-/* ── Dual-file mapping ── */
+
 .dual-mapping {
   display: grid;
   grid-template-columns: 1fr 1fr;

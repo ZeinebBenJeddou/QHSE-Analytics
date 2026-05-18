@@ -41,7 +41,6 @@
       </nav>
 
       <nav class="nav-section">
-        <p class="nav-label">Données</p>
         <mat-nav-list class="nav-list">
           @for (item of dataItems; track item.route) {
             <a
@@ -64,7 +63,7 @@
       </nav>
 
       <nav class="nav-section">
-        <p class="nav-label">Analyse</p>
+        
         <mat-nav-list class="nav-list">
           @for (item of navItems; track item.route) {
             <a
@@ -86,10 +85,11 @@
         </mat-nav-list>
       </nav>
 
+      
+
       <nav class="nav-section">
-        <p class="nav-label">Rapports</p>
         <mat-nav-list class="nav-list">
-          @for (item of rapportItems; track item.route) {
+          @for (item of profilItems; track item.route) {
             <a
               mat-list-item
               [routerLink]="item.route"

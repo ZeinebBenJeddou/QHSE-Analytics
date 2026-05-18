@@ -40,23 +40,23 @@
     </div>
   </div>
 
-  <!-- ═══════════════ MODE DUAL ═══════════════ -->
+
   <div *ngIf="isDualMode()">
 
-    <!-- MAPPING — affiché tant qu'il n'y a pas de preview -->
+   
     <div class="panel" *ngIf="!previewResponse()">
       <div class="panel-inline-header">
         <div class="panel-icon-wrap"><mat-icon>file_copy</mat-icon></div>
         <div>
-          <div class="panel-title-text">Mapping dual — 2 fichiers</div>
-          <div class="panel-subtitle-text">Associez les colonnes de chaque fichier séparément</div>
+          <div class="panel-title-text">Associez les colonnes de chaque fichier séparément</div>
+          
         </div>
       </div>
       <div class="panel-divider"></div>
 
       <div class="dual-mapping" style="margin-top: 20px;">
 
-        <!-- Fichier N-1 -->
+       
         <div class="mapping-section n1-section">
           <h3 class="dual-section-title n1-title">
             <mat-icon>history</mat-icon>
@@ -83,7 +83,7 @@
           </mat-form-field>
         </div>
 
-        <!-- Fichier N -->
+      
         <div class="mapping-section n-section">
           <h3 class="dual-section-title n-title">
             <mat-icon>trending_up</mat-icon>
@@ -131,27 +131,10 @@
       </div>
     </div>
 
-    <!-- RÉSULTAT PREVIEW — affiché après le retour du preview -->
+    
     <div *ngIf="previewResponse()">
 
       <div class="quality-report-section" *ngIf="qualityReport">
-
-        <div class="blocking-banner" *ngIf="qualityReport.blocking">
-          <mat-icon>block</mat-icon>
-          <div>
-            <strong *ngIf="qualityReport.hardBlocking">Erreur structurelle bloquante</strong>
-            <strong *ngIf="!qualityReport.hardBlocking">Import bloqué en mode strict</strong>
-            <p>{{ qualityReport.blockingReason || 'Corrigez les erreurs bloquantes avant de confirmer l\'import.' }}</p>
-          </div>
-        </div>
-
-        <div class="partial-banner" *ngIf="!qualityReport.blocking && qualityReport.softBlocking">
-          <mat-icon>fact_check</mat-icon>
-          <div>
-            <strong>Import partiel disponible</strong>
-            <p>{{ qualityReport.blockingReason || 'Les lignes valides peuvent être importées.' }}</p>
-          </div>
-        </div>
 
         <div class="warning-banner" *ngIf="!qualityReport.blocking && (qualityReport.warnings.length || qualityReport.infos.length)">
           <mat-icon>warning_amber</mat-icon>
@@ -215,38 +198,6 @@
               <div class="stat-label">Valeurs aberrantes</div>
             </div>
           </div>
-          <div class="quality-stat">
-            <mat-icon class="stat-icon icon-imported">task_alt</mat-icon>
-            <div>
-              <div class="stat-value text-up">{{ qualityReport.importedRowsCount ?? 0 }}</div>
-              <div class="stat-label">Lignes importées</div>
-            </div>
-          </div>
-          <div class="quality-stat">
-            <mat-icon class="stat-icon icon-rejected">remove_circle</mat-icon>
-            <div>
-              <div class="stat-value text-down">{{ qualityReport.rejectedRowsCount ?? 0 }}</div>
-              <div class="stat-label">Lignes rejetées</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="rejected-reasons" *ngIf="rejectedReasons.length > 0">
-          <p class="section-label">Motifs de rejet</p>
-          <div class="rejected-reason-list">
-            <div class="rejected-reason-item" *ngFor="let reason of rejectedReasons">
-              <span class="reason-code">{{ reason.code }}</span>
-              <span class="reason-count">{{ reason.count }}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="blocking-reason-box" *ngIf="hasBlockingReason">
-          <mat-icon>info</mat-icon>
-          <div>
-            <strong>Raison du blocage</strong>
-            <p>{{ qualityReport.blockingReason }}</p>
-          </div>
         </div>
 
         <div class="issues-table-wrap" *ngIf="allIssues.length > 0">
@@ -284,9 +235,9 @@
         </div>
       </div>
 
-      <!-- Tableau des KPIs prévisualisés -->
+      
       <div class="preview-table" *ngIf="previewResponse()?.calculatedData?.length">
-        <h3>Aperçu des données et enrichissement IA</h3>
+        <h3>Aperçu des données </h3>
         <div class="table-scroll">
           <table mat-table [dataSource]="previewResponse()?.calculatedData ?? []" class="kpi-table">
 
@@ -304,19 +255,16 @@
             </ng-container>
 
             <ng-container matColumnDef="categorie">
-              <th mat-header-cell *matHeaderCellDef>Catégorie (IA)</th>
+              <th mat-header-cell *matHeaderCellDef>Catégorie </th>
               <td mat-cell *matCellDef="let row"><span class="cat-badge">{{ row.categorie || 'En recherche...' }}</span></td>
             </ng-container>
 
             <ng-container matColumnDef="unite">
-              <th mat-header-cell *matHeaderCellDef>Unité (IA)</th>
+              <th mat-header-cell *matHeaderCellDef>Unité </th>
               <td mat-cell *matCellDef="let row"><span class="unit-badge">{{ row.unite || '...' }}</span></td>
             </ng-container>
 
-            <ng-container matColumnDef="definition">
-              <th mat-header-cell *matHeaderCellDef>Définition</th>
-              <td mat-cell *matCellDef="let row"><div class="definition-cell" [title]="row.definition">{{ row.definition || 'Génération IA en cours...' }}</div></td>
-            </ng-container>
+
 
             <ng-container matColumnDef="valeurN">
               <th mat-header-cell *matHeaderCellDef>Valeur ({{ dualState()?.yearN }})</th>
@@ -387,7 +335,7 @@
         </div>
       </div>
 
-      <!-- Boutons de confirmation -->
+      
       <div class="actions-row" style="margin-top: 20px;">
         <button mat-stroked-button class="back-btn" (click)="previewResponse.set(null)">
           <mat-icon>arrow_back</mat-icon>
@@ -423,7 +371,7 @@
 
   </div>
 
-  <!-- ═══════════════ MODE SINGLE (existant inchangé) ═══════════════ -->
+  
   <div *ngIf="!isDualMode()">
   <div class="panel">
 
@@ -476,39 +424,6 @@
         <div class="column-item" *ngFor="let header of uploadStateData()?.headers; let i = index">
           <span class="column-index">{{ i }}</span>
           <span class="column-label">{{ header || 'Colonne ' + i }}</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="profile-section" *ngIf="columnProfiles().length > 0 || profilingLoading()" style="margin-top: 20px;">
-      <p class="section-label">
-        <mat-icon style="font-size:16px;vertical-align:middle;">analytics</mat-icon>
-        Profil des colonnes
-        <span class="profile-hint">Aide à identifier les colonnes à mapper</span>
-      </p>
-      <div *ngIf="profilingLoading()" class="profile-loading">
-        <mat-spinner diameter="20"></mat-spinner>
-        <span>Analyse des colonnes…</span>
-      </div>
-      <div class="profile-cards-row" *ngIf="!profilingLoading()">
-        <div class="profile-card" *ngFor="let p of columnProfiles()">
-          <div class="profile-card-header">
-            <mat-icon class="profile-type-icon">{{ profileTypeIcon(p.inferredType) }}</mat-icon>
-            <span class="profile-col-name" [matTooltip]="p.detectedHeader">{{ p.detectedHeader | slice:0:18 }}{{ p.detectedHeader.length > 18 ? '…' : '' }}</span>
-          </div>
-          <span class="profile-semantic-badge" [ngClass]="profileSemanticClass(p.likelySemantic)">{{ p.likelySemantic }}</span>
-          <div class="profile-stats">
-            <span class="profile-type-tag">{{ p.inferredType }}</span>
-            <span class="profile-null">null: {{ profileNullRate(p) }}</span>
-          </div>
-          <div class="profile-samples" *ngIf="p.sampleValues.length">
-            <span *ngFor="let s of p.sampleValues.slice(0,3)" class="profile-sample">{{ s }}</span>
-          </div>
-          <div class="profile-numeric" *ngIf="p.inferredType === 'NUMERIC' && p.numericMean !== null">
-            <span class="profile-stat-pill">∅ {{ p.numericMean | number:'1.1-2' }}</span>
-            <span class="profile-stat-pill">↓ {{ p.numericMin | number:'1.0-2' }}</span>
-            <span class="profile-stat-pill">↑ {{ p.numericMax | number:'1.0-2' }}</span>
-          </div>
         </div>
       </div>
     </div>
@@ -614,23 +529,6 @@
 
     <div class="quality-report-section" *ngIf="qualityReport">
 
-      <div class="blocking-banner" *ngIf="qualityReport.blocking">
-        <mat-icon>block</mat-icon>
-        <div>
-          <strong *ngIf="qualityReport.hardBlocking">Erreur structurelle bloquante</strong>
-          <strong *ngIf="!qualityReport.hardBlocking">Import bloqué en mode strict</strong>
-          <p>{{ qualityReport.blockingReason || 'Corrigez les erreurs bloquantes avant de confirmer l\'import.' }}</p>
-        </div>
-      </div>
-
-      <div class="partial-banner" *ngIf="!qualityReport.blocking && qualityReport.softBlocking">
-        <mat-icon>fact_check</mat-icon>
-        <div>
-          <strong>Import partiel disponible</strong>
-          <p>{{ qualityReport.blockingReason || 'Les lignes valides peuvent être importées.' }}</p>
-        </div>
-      </div>
-
       <div class="warning-banner" *ngIf="!qualityReport.blocking && (qualityReport.warnings.length || qualityReport.infos.length)">
         <mat-icon>warning_amber</mat-icon>
         <div>
@@ -696,38 +594,6 @@
             <div class="stat-label">Valeurs aberrantes</div>
           </div>
         </div>
-        <div class="quality-stat">
-          <mat-icon class="stat-icon icon-imported">task_alt</mat-icon>
-          <div>
-            <div class="stat-value text-up">{{ qualityReport.importedRowsCount ?? 0 }}</div>
-            <div class="stat-label">Lignes importées</div>
-          </div>
-        </div>
-        <div class="quality-stat">
-          <mat-icon class="stat-icon icon-rejected">remove_circle</mat-icon>
-          <div>
-            <div class="stat-value text-down">{{ qualityReport.rejectedRowsCount ?? 0 }}</div>
-            <div class="stat-label">Lignes rejetées</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="rejected-reasons" *ngIf="rejectedReasons.length > 0">
-        <p class="section-label">Motifs de rejet</p>
-        <div class="rejected-reason-list">
-          <div class="rejected-reason-item" *ngFor="let reason of rejectedReasons">
-            <span class="reason-code">{{ reason.code }}</span>
-            <span class="reason-count">{{ reason.count }}</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="blocking-reason-box" *ngIf="hasBlockingReason">
-        <mat-icon>info</mat-icon>
-        <div>
-          <strong>Raison du blocage</strong>
-          <p>{{ qualityReport.blockingReason }}</p>
-        </div>
       </div>
 
       <div class="issues-table-wrap" *ngIf="allIssues.length > 0">
@@ -773,7 +639,7 @@
     </div>
 
     <div class="preview-table" *ngIf="previewResponse()?.calculatedData?.length">
-      <h3>Aperçu des données et enrichissement IA</h3>
+      <h3>Aperçu des données </h3>
       <div class="table-scroll">
         <table mat-table [dataSource]="previewResponse()?.calculatedData ?? []" class="kpi-table">
 
@@ -803,25 +669,37 @@
           </ng-container>
 
           <ng-container matColumnDef="categorie">
-            <th mat-header-cell *matHeaderCellDef>Catégorie (IA)</th>
+            <th mat-header-cell *matHeaderCellDef>Catégorie </th>
             <td mat-cell *matCellDef="let row">
               <span class="cat-badge">{{ row.categorie || 'En recherche...' }}</span>
             </td>
           </ng-container>
 
-          <ng-container matColumnDef="unite">
-            <th mat-header-cell *matHeaderCellDef>Unité (IA)</th>
+          <!--<ng-container matColumnDef="unite">
+            <th mat-header-cell *matHeaderCellDef>Unité </th>
             <td mat-cell *matCellDef="let row">
               <span class="unit-badge">{{ row.unite || '...' }}</span>
             </td>
-          </ng-container>
+          </ng-container>-->
 
-          <ng-container matColumnDef="definition">
+          <!--<ng-container matColumnDef="definition">
             <th mat-header-cell *matHeaderCellDef>Définition</th>
             <td mat-cell *matCellDef="let row">
               <div class="definition-cell" [title]="row.definition">
                 {{ row.definition || 'Génération IA en cours...' }}
               </div>
+            </td>
+          </ng-container>-->
+
+          
+
+          <ng-container matColumnDef="valeurN1">
+            <th mat-header-cell *matHeaderCellDef>Valeur ({{ uploadStateData()?.yearNMinus1 }})</th>
+            <td mat-cell *matCellDef="let row">
+              <ng-container *ngIf="row.valeurN1 !== null; else noValueN1">
+                {{ row.isBoolean ? (row.valeurN1 === 1 ? 'Oui' : 'Non') : row.valeurN1 }}
+              </ng-container>
+              <ng-template #noValueN1>—</ng-template>
             </td>
           </ng-container>
 
@@ -834,17 +712,7 @@
               <ng-template #noValueN>—</ng-template>
             </td>
           </ng-container>
-
-          <ng-container matColumnDef="valeurN1">
-            <th mat-header-cell *matHeaderCellDef>Valeur ({{ uploadStateData()?.yearNMinus1 }})</th>
-            <td mat-cell *matCellDef="let row">
-              <ng-container *ngIf="row.valeurN1 !== null; else noValueN1">
-                {{ row.isBoolean ? (row.valeurN1 === 1 ? 'Oui' : 'Non') : row.valeurN1 }}
-              </ng-container>
-              <ng-template #noValueN1>—</ng-template>
-            </td>
-          </ng-container>
-
+          
           <ng-container matColumnDef="status">
             <th mat-header-cell *matHeaderCellDef>Statut</th>
             <td mat-cell *matCellDef="let row">
@@ -886,7 +754,7 @@
             </td>
           </ng-container>
 
-          <ng-container matColumnDef="meta">
+          <!--<ng-container matColumnDef="meta">
             <th mat-header-cell *matHeaderCellDef></th>
             <td mat-cell *matCellDef="let row">
               <div class="meta-cell">
@@ -896,7 +764,7 @@
                 <span *ngIf="row.dataFlags?.length" class="data-flags" matTooltip="{{ row.dataFlags.join(', ') }}">⚑</span>
               </div>
             </td>
-          </ng-container>
+          </ng-container>-->
 
           <tr mat-header-row *matHeaderRowDef="previewColumns"></tr>
           <tr mat-row *matRowDef="let row; columns: previewColumns"
@@ -1081,6 +949,6 @@
     </mat-card-actions>
   </mat-card>
 
-  </div> <!-- end *ngIf="!isDualMode()" -->
+  </div>
 
 </div>
