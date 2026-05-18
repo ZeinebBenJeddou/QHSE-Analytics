@@ -112,7 +112,6 @@ export class DashboardAnalysteComponent implements OnInit {
   searchFilter = signal('');
   categorieFilter = signal('');
   niveauFilter = signal('');
-  riskFilter = signal('');
   activeCatTab = signal('');
 
   private statutFilterSig = signal('');
@@ -120,8 +119,6 @@ export class DashboardAnalysteComponent implements OnInit {
   set statutFilter(value: string) { this.statutFilterSig.set(value); }
 
   readonly CATEGORIES = CATEGORIES;
-  selectedYearN = signal<number | null>(null);
-  selectedYearN1 = signal<number | null>(null);
 
   sortColumn = signal<string>('variationAbsolue');
   sortDir = signal<'asc' | 'desc'>('desc');
@@ -193,13 +190,11 @@ export class DashboardAnalysteComponent implements OnInit {
     const search = this.searchFilter().toLowerCase();
     const cat = this.categorieFilter() || this.activeCatTab();
     const niveau = this.niveauFilter();
-    const risk = this.riskFilter();
     const statut = this.statutFilterSig();
     const filtered = lignes.filter(l =>
       (!search || l.kpiNom.toLowerCase().includes(search)) &&
       (!cat || l.categorieCode === cat) &&
       (!niveau || l.niveauVariation === niveau) &&
-      (!risk || l.riskLevel === risk) &&
       (!statut || this.getStatut(l.tendance, l.niveauVariation) === statut)
     );
     const col = this.sortColumn();
@@ -472,8 +467,6 @@ export class DashboardAnalysteComponent implements OnInit {
     this.dashboardService.getResume().subscribe({
       next: res => {
         this.resume.set(res);
-        this.selectedYearN.set(res.periodeN ?? null);
-        this.selectedYearN1.set(res.periodeN1 ?? null);
         this.importId.set(res.dernierImportId);
         this.sessionState.setActiveImport(res.dernierImportId);
         this.sessionState.patch({ resume: res });
@@ -499,8 +492,6 @@ export class DashboardAnalysteComponent implements OnInit {
     this.dashboardService.getComparatif(importId).subscribe({
       next: res => {
         this.comparatif.set(res);
-        this.selectedYearN.set(res.periodeN ?? null);
-        this.selectedYearN1.set(res.periodeN1 ?? null);
         this.sessionState.patch({ comparatif: res });
         this.loadDashboardData(importId, { includeComparatif: false });
       },
@@ -520,7 +511,6 @@ export class DashboardAnalysteComponent implements OnInit {
       if (obj.search) this.searchFilter.set(obj.search);
       if (obj.categorie) this.categorieFilter.set(obj.categorie);
       if (obj.niveau) this.niveauFilter.set(obj.niveau);
-      if (obj.risk) this.riskFilter.set(obj.risk);
     } catch {
       
     }
@@ -531,7 +521,6 @@ export class DashboardAnalysteComponent implements OnInit {
       search: this.searchFilter(),
       categorie: this.categorieFilter(),
       niveau: this.niveauFilter(),
-      risk: this.riskFilter(),
     };
     try { localStorage.setItem(this.filtersKey, JSON.stringify(payload)); } catch {}
   }
@@ -587,20 +576,6 @@ export class DashboardAnalysteComponent implements OnInit {
     return (this.comparatif()?.lignes ?? []).filter(l => l.categorieCode === code).length;
   }
 
-  onPeriodChangeN(val: string): void {
-    const n = Number(val) || null;
-    this.selectedYearN.set(n);
-    
-    const id = this.importId();
-    if (id) this.loadDashboardData(id, { includeComparatif: true });
-  }
-
-  onPeriodChangeN1(val: string): void {
-    const n = Number(val) || null;
-    this.selectedYearN1.set(n);
-    const id = this.importId();
-    if (id) this.loadDashboardData(id, { includeComparatif: true });
-  }
 
   loadDashboardData(importId: number, options: { includeComparatif?: boolean } = {}) {
     const { includeComparatif = false } = options;

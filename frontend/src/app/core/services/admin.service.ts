@@ -57,10 +57,6 @@ export class AdminService {
     return this.http.get<AuditPageResponse>(`${this.adminBase}/audit`, { params });
   }
 
-  getUser(id: number): Observable<UserResponse> {
-    return this.http.get<UserResponse>(`${this.adminBase}/users/${id}`);
-  }
-
   createUser(request: CreateAnalysteRequest): Observable<UserResponse> {
     return this.http.post<UserResponse>(`${this.adminBase}/users`, request);
   }

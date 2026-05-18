@@ -39,18 +39,6 @@ public class KpiController {
         return ResponseEntity.ok(kpiService.getAllCategories());
     }
 
-    @GetMapping("/inactifs")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<KpiResponse>> getInactiveKpis() {
-        return ResponseEntity.ok(kpiService.getInactiveKpis());
-    }
-
-    @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','ANALYSTE')")
-    public ResponseEntity<KpiResponse> getKpiById(@PathVariable Long id) {
-        return ResponseEntity.ok(kpiService.getKpiById(id));
-    }
-
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<KpiResponse> createKpi(@Valid @RequestBody CreateKpiRequest request) {

@@ -151,9 +151,6 @@ public class DashboardAdminService {
         List<ResultatKpi> critiques = all.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.CRITIQUE).toList();
 
         Map<String, Integer> repartition = new LinkedHashMap<>();
-        repartition.put("FAIBLE", 0);
-        repartition.put("MODERE", 0);
-        repartition.put("CRITIQUE", 0);
         repartition.put("FAIBLE", (int) all.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.FAIBLE).count());
         repartition.put("MODERE", (int) all.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.MODERE).count());
         repartition.put("CRITIQUE", (int) all.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.CRITIQUE).count());

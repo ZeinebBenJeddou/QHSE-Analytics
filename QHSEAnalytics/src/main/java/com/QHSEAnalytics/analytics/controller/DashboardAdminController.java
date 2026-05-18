@@ -7,10 +7,8 @@ import com.QHSEAnalytics.shared.dto.response.AdminRepartitionResponse;
 import com.QHSEAnalytics.shared.dto.response.AdminStatsResponse;
 import com.QHSEAnalytics.shared.dto.response.AnalyseCompleteResponse;
 import com.QHSEAnalytics.shared.dto.response.HistoriqueAnalysteResponse;
-import com.QHSEAnalytics.shared.dto.response.ComparatifTableauResponse;
 import com.QHSEAnalytics.analytics.service.AnalyseIaService;
 import com.QHSEAnalytics.analytics.service.DashboardAdminService;
-import com.QHSEAnalytics.analytics.service.DashboardAnalysteService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,7 +27,6 @@ import java.util.List;
 public class DashboardAdminController {
 
     private final DashboardAdminService dashboardAdminService;
-    private final DashboardAnalysteService dashboardAnalysteService;
     private final AnalyseIaService analyseIaService;
 
     @GetMapping("/stats")
@@ -65,11 +62,6 @@ public class DashboardAdminController {
     @GetMapping("/analyses/{importId}")
     public ResponseEntity<AnalyseCompleteResponse> getAnalyseById(@PathVariable Long importId) {
         return ResponseEntity.ok(analyseIaService.getAnalyseComplete(importId, 0L, true));
-    }
-
-    @GetMapping("/analystes/{userId}/comparatif/{importId}")
-    public ResponseEntity<ComparatifTableauResponse> getComparatifAnalyste(@PathVariable Long userId, @PathVariable Long importId) {
-        return ResponseEntity.ok(dashboardAnalysteService.getComparatif(userId, importId));
     }
 
     @GetMapping("/analystes/{userId}/analyses/{importId}")

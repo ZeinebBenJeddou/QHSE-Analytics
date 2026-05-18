@@ -4,9 +4,7 @@ import com.QHSEAnalytics.auth.entity.User;
 import com.QHSEAnalytics.auth.exception.UserNotFoundException;
 import com.QHSEAnalytics.auth.repository.UserRepository;
 import com.QHSEAnalytics.shared.dto.response.AiAnalysisStructuredResponse;
-import com.QHSEAnalytics.shared.dto.response.AnalyseCategorieResponse;
 import com.QHSEAnalytics.shared.dto.response.AnalyseCompleteResponse;
-import com.QHSEAnalytics.shared.dto.response.AnalyseGlobaleResponse;
 import com.QHSEAnalytics.analytics.service.AnalyseIaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -19,8 +17,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
 
 @Tag(name = "Analyse IA", description = "Génération et consultation des analyses IA (Groq/Gemini)")
 @RestController
@@ -37,20 +33,6 @@ public class AnalyseIaController {
     public ResponseEntity<AnalyseCompleteResponse> getAnalyseComplete(@PathVariable Long importId) {
         User user = getCurrentUser();
         return ResponseEntity.ok(analyseIaService.getAnalyseComplete(importId, user.getId(), isAdmin()));
-    }
-
-    @GetMapping("/{importId}/categories")
-    @PreAuthorize("hasAnyRole('ADMIN','ANALYSTE')")
-    public ResponseEntity<List<AnalyseCategorieResponse>> getAnalysesCategories(@PathVariable Long importId) {
-        User user = getCurrentUser();
-        return ResponseEntity.ok(analyseIaService.getAnalysesCategories(importId, user.getId(), isAdmin()));
-    }
-
-    @GetMapping("/{importId}/globale")
-    @PreAuthorize("hasAnyRole('ADMIN','ANALYSTE')")
-    public ResponseEntity<AnalyseGlobaleResponse> getAnalyseGlobale(@PathVariable Long importId) {
-        User user = getCurrentUser();
-        return ResponseEntity.ok(analyseIaService.getAnalyseGlobale(importId, user.getId(), isAdmin()));
     }
 
     @Operation(summary = "Analyse IA structurée JSON", description = "Réponse complète avec confidence, rootCauseAnalysis, predictiveAlerts")

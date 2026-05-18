@@ -1171,7 +1171,7 @@ h1 {
 .btn-outline-sm:disabled { opacity: 0.4; cursor: not-allowed; }
 
 
-/* ── Styles du comparatif ── */
+
 
 .page-header-top {
   display: flex;
@@ -1249,7 +1249,6 @@ h1 {
   padding: 3px 12px;
 }
 
-/* KPI cards stats (comparatif) */
 .kpi-cards-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1300,7 +1299,6 @@ h1 {
 .kpi-card .kpi-card-note { font-size: 11px; color: var(--ink-muted); font-weight: 500; }
 .kpi-card-bar { display: none; }
 
-/* Cat cards */
 .cat-cards-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -1393,7 +1391,6 @@ h1 {
 
 .cat-select-hint { font-size: 11px; color: var(--ink-muted); font-style: italic; margin-top: 4px; }
 
-/* Charts comparatif */
 .chart-panel {
   background: #fff;
   border-radius: 12px;
@@ -1440,7 +1437,6 @@ h1 {
 
 .charts-right-col { display: flex; flex-direction: column; gap: 20px; }
 
-/* Tableau comparatif détaillé */
 .table-filters {
   display: flex;
   align-items: center;
@@ -1660,7 +1656,6 @@ h1 {
 .legend-items { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
 .legend-item  { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-muted); }
 
-/* Responsive comparatif */
 @media (max-width: 1200px) {
   .charts-grid { grid-template-columns: 1fr; }
   .charts-right-col { flex-direction: row; }
