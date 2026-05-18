@@ -127,75 +127,6 @@
       </div>
     </section>
 
-    <!-- Cards par catégorie -->
-    <section class="section">
-      <div class="section-header">
-        <h2 class="section-title">Vue par catégorie QHSE</h2>
-      </div>
-      <div class="cat-cards-grid">
-        @for (cat of catStats(); track cat.code) {
-          <div class="cat-card"
-               [style.--cat-color]="cat.color"
-               [style.--cat-bg]="cat.bgLight"
-               [class.active]="activeCatTab() === cat.code"
-               (click)="setActiveCat(activeCatTab() === cat.code ? '' : cat.code)">
-
-            <div class="cat-card-header">
-              <div class="cat-icon-wrap">
-                <mat-icon>{{ cat.icon }}</mat-icon>
-              </div>
-              <div class="cat-badge" [style.background]="cat.bgLight" [style.color]="cat.color">{{ cat.code }}</div>
-            </div>
-
-            <div class="cat-libelle">{{ cat.libelle }}</div>
-            <div class="cat-total">{{ cat.total }} KPI</div>
-
-            <div class="cat-pills">
-              @if (cat.critique > 0) {
-                <span class="pill pill-critique">{{ cat.critique }} critique{{ cat.critique > 1 ? 's' : '' }}</span>
-              }
-              @if (cat.modere > 0) {
-                <span class="pill pill-modere">{{ cat.modere }} modéré{{ cat.modere > 1 ? 's' : '' }}</span>
-              }
-              @if (cat.faible > 0) {
-                <span class="pill pill-faible">{{ cat.faible }} faible{{ cat.faible > 1 ? 's' : '' }}</span>
-              }
-              @if (cat.total === 0) {
-                <span class="pill pill-none">Aucun KPI</span>
-              }
-            </div>
-
-            <div class="cat-variation"
-                 [class.var-pos]="cat.avgVar < 0"
-                 [class.var-neg]="cat.avgVar > 0">
-              <mat-icon class="var-icon">
-                {{ cat.avgVar > 0 ? 'trending_up' : cat.avgVar < 0 ? 'trending_down' : 'trending_flat' }}
-              </mat-icon>
-              {{ variationSign(cat.avgVar) }}{{ cat.avgVar | number:'1.1-1' }}% moy.
-            </div>
-
-            @if (cat.total > 0) {
-              <div class="cat-niveau-bar">
-                <div class="bar-seg bar-critique"
-                     [style.width.%]="(cat.critique / cat.total * 100)"
-                     [matTooltip]="cat.critique + ' critique(s)'"></div>
-                <div class="bar-seg bar-modere"
-                     [style.width.%]="(cat.modere / cat.total * 100)"
-                     [matTooltip]="cat.modere + ' modéré(s)'"></div>
-                <div class="bar-seg bar-faible"
-                     [style.width.%]="(cat.faible / cat.total * 100)"
-                     [matTooltip]="cat.faible + ' faible(s)'"></div>
-              </div>
-            }
-
-            <div class="cat-select-hint">
-              {{ activeCatTab() === cat.code ? 'Cliquer pour désélectionner' : 'Cliquer pour filtrer' }}
-            </div>
-          </div>
-        }
-      </div>
-    </section>
-
     <!-- Visualisation comparative -->
     <section class="section">
       <div class="section-header">
@@ -269,6 +200,75 @@
             </div>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- Cards par catégorie -->
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">Vue par catégorie QHSE</h2>
+      </div>
+      <div class="cat-cards-grid">
+        @for (cat of catStats(); track cat.code) {
+          <div class="cat-card"
+               [style.--cat-color]="cat.color"
+               [style.--cat-bg]="cat.bgLight"
+               [class.active]="activeCatTab() === cat.code"
+               (click)="setActiveCat(activeCatTab() === cat.code ? '' : cat.code)">
+
+            <div class="cat-card-header">
+              <div class="cat-icon-wrap">
+                <mat-icon>{{ cat.icon }}</mat-icon>
+              </div>
+              <div class="cat-badge" [style.background]="cat.bgLight" [style.color]="cat.color">{{ cat.code }}</div>
+            </div>
+
+            <div class="cat-libelle">{{ cat.libelle }}</div>
+            <div class="cat-total">{{ cat.total }} KPI</div>
+
+            <div class="cat-pills">
+              @if (cat.critique > 0) {
+                <span class="pill pill-critique">{{ cat.critique }} critique{{ cat.critique > 1 ? 's' : '' }}</span>
+              }
+              @if (cat.modere > 0) {
+                <span class="pill pill-modere">{{ cat.modere }} modéré{{ cat.modere > 1 ? 's' : '' }}</span>
+              }
+              @if (cat.faible > 0) {
+                <span class="pill pill-faible">{{ cat.faible }} faible{{ cat.faible > 1 ? 's' : '' }}</span>
+              }
+              @if (cat.total === 0) {
+                <span class="pill pill-none">Aucun KPI</span>
+              }
+            </div>
+
+            <div class="cat-variation"
+                 [class.var-pos]="cat.avgVar < 0"
+                 [class.var-neg]="cat.avgVar > 0">
+              <mat-icon class="var-icon">
+                {{ cat.avgVar > 0 ? 'trending_up' : cat.avgVar < 0 ? 'trending_down' : 'trending_flat' }}
+              </mat-icon>
+              {{ variationSign(cat.avgVar) }}{{ cat.avgVar | number:'1.1-1' }}% moy.
+            </div>
+
+            @if (cat.total > 0) {
+              <div class="cat-niveau-bar">
+                <div class="bar-seg bar-critique"
+                     [style.width.%]="(cat.critique / cat.total * 100)"
+                     [matTooltip]="cat.critique + ' critique(s)'"></div>
+                <div class="bar-seg bar-modere"
+                     [style.width.%]="(cat.modere / cat.total * 100)"
+                     [matTooltip]="cat.modere + ' modéré(s)'"></div>
+                <div class="bar-seg bar-faible"
+                     [style.width.%]="(cat.faible / cat.total * 100)"
+                     [matTooltip]="cat.faible + ' faible(s)'"></div>
+              </div>
+            }
+
+            <div class="cat-select-hint">
+              {{ activeCatTab() === cat.code ? 'Cliquer pour désélectionner' : 'Cliquer pour filtrer' }}
+            </div>
+          </div>
+        }
       </div>
     </section>
 
