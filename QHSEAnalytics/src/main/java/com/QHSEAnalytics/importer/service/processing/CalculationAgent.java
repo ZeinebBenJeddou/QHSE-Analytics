@@ -94,8 +94,8 @@ public class CalculationAgent {
 
 
             double score = total == 0 ? 0 :
-                (excellent * 100.0 + faible * 80.0 + indetermine * 50.0
-                + modere * 40.0 + preEscalade * 20.0 + critique * 0.0) / total;
+                (excellent * 100.0 + faible * 75.0 + indetermine * 45.0
+                + modere * 30.0 + preEscalade * 15.0 + critique * 0.0) / total;
 
             String label;
             if (score >= 90) label = "Excellent";

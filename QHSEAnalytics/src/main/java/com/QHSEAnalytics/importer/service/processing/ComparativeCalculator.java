@@ -52,7 +52,7 @@ public class ComparativeCalculator {
 
             special = "NA";
         } else if (valN1 == 0d) {
-            if (valN == null || valN == 0d) {
+            if (valN == 0d) {
                 special = "STABLE";
             } else {
 
