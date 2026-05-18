@@ -188,16 +188,16 @@ public class ClassificationEngine {
                 r.setReviewRequired(true);
                 return r;
             }
-            if (degradationMagnitude > p75 * 0.85) {
-                r.setClassification(PRE_ESCALADE);
-                r.setReason(withTargetFallbackNote("Dégradation pré-critique dans l'historique (approche p75)", forceReviewForTargetFallback));
-                r.setReviewRequired(true);
-                return r;
-            }
             if (degradationMagnitude > p75) {
                 r.setClassification(MODERE);
                 r.setReason(withTargetFallbackNote("Dégradation notable dans l'historique (p75)", forceReviewForTargetFallback));
                 r.setReviewRequired(comp.isReviewRequired() || forceReviewForTargetFallback);
+                return r;
+            }
+            if (degradationMagnitude > p75 * 0.85) {
+                r.setClassification(PRE_ESCALADE);
+                r.setReason(withTargetFallbackNote("Dégradation pré-critique dans l'historique (approche p75)", forceReviewForTargetFallback));
+                r.setReviewRequired(true);
                 return r;
             }
             r.setClassification(FAIBLE);
