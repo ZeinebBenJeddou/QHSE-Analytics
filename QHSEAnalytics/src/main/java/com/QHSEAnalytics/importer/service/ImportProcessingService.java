@@ -176,6 +176,12 @@ public class ImportProcessingService {
                 persistKpiAnalysis(processingSession, processingResponse.getAiResponse(), calcToProcess);
             }
 
+            kpiRawDataRepository.deleteByImportSessionId(processingSession.getId());
+            kpiImportPreviewRepository.deleteByImportSessionId(processingSession.getId());
+            fileStorageService.delete(processingSession.getFileStoragePath());
+            log.info("[ImportProcessing] Données brutes et fichier supprimés après persistance — session {}",
+                    processingSession.getId());
+
             finalSession = advanceStatus(calculatedSession, ImportStatut.READY_FOR_AI);
 
             if (allowPartial && qualityReport != null && qualityReport.isSoftBlocking()) {
@@ -293,6 +299,11 @@ public class ImportProcessingService {
             if (processingResponse.getAiResponse() != null && processingResponse.getAiResponse().getKpis() != null) {
                 persistKpiAnalysis(processingSession, processingResponse.getAiResponse(), calcToProcess);
             }
+            kpiRawDataRepository.deleteByImportSessionId(processingSession.getId());
+            kpiImportPreviewRepository.deleteByImportSessionId(processingSession.getId());
+            fileStorageService.delete(processingSession.getFileStoragePath());
+            log.info("[ImportProcessing] Données brutes et fichier supprimés après persistance (dual) — session {}",
+                    processingSession.getId());
             finalSession = advanceStatus(calculatedSession, ImportStatut.READY_FOR_AI);
         }
 
