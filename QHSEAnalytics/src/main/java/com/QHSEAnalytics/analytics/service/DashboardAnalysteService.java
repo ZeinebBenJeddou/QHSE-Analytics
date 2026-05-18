@@ -286,7 +286,7 @@ public class DashboardAnalysteService {
         return ResumeCategorieResponse.builder()
                 .categorieCode(safeCategorieCode(first))
                 .categorieLibelle(safeCategorieLibelle(first))
-                .variationMoyenne(round2(resultats.stream().mapToDouble(ResultatKpi::getVariationRelative).average().orElse(0d)))
+                .variationMoyenne(round2(resultats.stream().filter(r -> r.getVariationRelative() != null).mapToDouble(ResultatKpi::getVariationRelative).average().orElse(0d)))
                 .nombreKpisCritiques(critiques)
                 .nombreKpisModeres(moderes)
                 .nombreKpisFaibles(faibles)

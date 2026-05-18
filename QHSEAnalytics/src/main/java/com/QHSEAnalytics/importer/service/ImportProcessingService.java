@@ -317,6 +317,20 @@ public class ImportProcessingService {
         return orchestrator.preview(request.getFile(), request.getMappingIndexes());
     }
 
+    public ImportProcessingResponse previewDualFileImport(
+            MultipartFile fileN1,
+            MultipartFile fileN,
+            int anneeN1,
+            int anneeN,
+            Map<String, Integer> mappingN1,
+            Map<String, Integer> mappingN
+    ) {
+        validateYearInputs(anneeN, anneeN1);
+        DualFileImportService.MergeResult merged = dualFileImportService.mergeFiles(
+                fileN1, fileN, anneeN1, anneeN, mappingN1, mappingN);
+        return orchestrator.previewFromRawData(merged.getRows());
+    }
+
     private ImportSession buildImportSessionDual(MultipartFile fileN1, MultipartFile fileN, User user, int yearN, int yearNMinus1) {
         String combinedName = fileN.getOriginalFilename() + " + " + fileN1.getOriginalFilename();
         FileStorageService.StoredFile stored = fileStorageService.store(fileN, user.getId(), yearN);

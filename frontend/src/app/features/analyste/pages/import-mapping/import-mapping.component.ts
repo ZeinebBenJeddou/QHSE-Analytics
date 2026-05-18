@@ -501,8 +501,56 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
       && this.valColN()  !== null;
   }
 
-  async confirmerImportDual() {
+  canConfirmDualStrict(): boolean {
+    return !!this.previewResponse()
+      && this.isDualMode()
+      && !this.isHardBlocking()
+      && !this.isSoftBlocking()
+      && !this.isImportBlocking();
+  }
+
+  canConfirmDualPartial(): boolean {
+    return !!this.previewResponse()
+      && this.isDualMode()
+      && this.isSoftBlocking()
+      && !this.isHardBlocking();
+  }
+
+  async genererPrevisualisationDual() {
     if (!this.canConfirmDual()) return;
+    const dual = this.dualState();
+    if (!dual) return;
+
+    this.processing.set(true);
+    this.errorMsg.set('');
+    this.previewResponse.set(null);
+
+    try {
+      const response = await firstValueFrom(
+        this.importService.previewDualFiles(
+          dual.fileN1, dual.fileN,
+          dual.yearNMinus1, dual.yearN,
+          this.kpiColN1()!, this.valColN1()!,
+          this.kpiColN()!,  this.valColN()!
+        )
+      );
+      this.previewResponse.set(response);
+      if (response.qualityReport?.hardBlocking) {
+        this.snackBar.open('Erreur structurelle bloquante.', 'OK', { duration: 7000 });
+      } else if (response.qualityReport?.softBlocking) {
+        this.snackBar.open('Import partiel disponible : certaines lignes restent importables.', 'OK', { duration: 6000 });
+      } else {
+        this.snackBar.open('Prévisualisation prête.', 'OK', { duration: 3000 });
+      }
+    } catch (err: any) {
+      this.errorMsg.set(err?.error?.message ?? 'Erreur lors de la prévisualisation.');
+      this.snackBar.open(this.errorMsg(), 'OK', { duration: 5000 });
+    } finally {
+      this.processing.set(false);
+    }
+  }
+
+  async confirmerImportDual(allowPartial = false) {
     const dual = this.dualState();
     if (!dual) return;
 
@@ -516,7 +564,7 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
           dual.yearNMinus1, dual.yearN,
           this.kpiColN1()!, this.valColN1()!,
           this.kpiColN()!,  this.valColN()!,
-          false
+          allowPartial
         )
       );
       this.result.set(response);

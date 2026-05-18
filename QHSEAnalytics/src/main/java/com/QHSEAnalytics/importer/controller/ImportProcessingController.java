@@ -105,6 +105,26 @@ public class ImportProcessingController {
         return ResponseEntity.ok(importProcessingService.processManualImport(request, user));
     }
 
+    @PostMapping(value = "/dual/preview", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ANALYSTE') or hasRole('ADMIN')")
+    public ResponseEntity<ImportProcessingResponse> previewDualFile(
+            @RequestPart("fileN1")  MultipartFile fileN1,
+            @RequestPart("fileN")   MultipartFile fileN,
+            @RequestParam("yearN1") int yearN1,
+            @RequestParam("yearN")  int yearN,
+            @RequestParam("kpiColN1") int kpiColN1,
+            @RequestParam("valColN1") int valColN1,
+            @RequestParam("kpiColN")  int kpiColN,
+            @RequestParam("valColN")  int valColN
+    ) {
+        validateYearRange(yearN, yearN1);
+        Map<String, Integer> mappingN1 = Map.of("kpiNameIndex", kpiColN1, "valueIndex", valColN1);
+        Map<String, Integer> mappingN  = Map.of("kpiNameIndex", kpiColN,  "valueIndex", valColN);
+        return ResponseEntity.ok(
+                importProcessingService.previewDualFileImport(fileN1, fileN, yearN1, yearN, mappingN1, mappingN)
+        );
+    }
+
     @PostMapping(value = "/dual/profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ANALYSTE')")
     public ResponseEntity<DualFileProfileResponse> profileDualFiles(

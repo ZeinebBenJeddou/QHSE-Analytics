@@ -65,6 +65,19 @@ export class ImportService {
     return this.http.post<DualFileProfileResponse>(`${this.manualBase}/dual/profile`, form);
   }
 
+  previewDualFiles(
+    fileN1: File, fileN: File,
+    yearN1: number, yearN: number,
+    kpiColN1: number, valColN1: number,
+    kpiColN: number, valColN: number
+  ): Observable<ImportProcessingResponse> {
+    const form = new FormData();
+    form.append('fileN1', fileN1);
+    form.append('fileN', fileN);
+    const url = `${this.manualBase}/dual/preview?yearN1=${yearN1}&yearN=${yearN}&kpiColN1=${kpiColN1}&valColN1=${valColN1}&kpiColN=${kpiColN}&valColN=${valColN}`;
+    return this.http.post<ImportProcessingResponse>(url, form);
+  }
+
   importDualFiles(
     fileN1: File, fileN: File,
     yearN1: number, yearN: number,

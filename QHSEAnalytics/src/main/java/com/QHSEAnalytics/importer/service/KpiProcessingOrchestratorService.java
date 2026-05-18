@@ -148,6 +148,25 @@ public class KpiProcessingOrchestratorService {
                 .build();
     }
 
+    public ImportProcessingResponse previewFromRawData(List<KpiRawDataDTO> mergedRaw) {
+        List<KpiRawDataDTO> cleaned = cleaningAgent.clean(mergedRaw);
+
+        ImportQualityReport qualityReport = qualityReportBuilder.build(cleaned, false);
+        qualityReport.setExtractionIssues(List.of());
+
+        List<KpiCalculatedDTO> calculatedData = calculationAgent.calculate(cleaned);
+        calculatedData = metadataEnrichmentAgent.enrichMetadata(calculatedData);
+
+        return ImportProcessingResponse.builder()
+                .rawData(cleaned)
+                .calculatedData(calculatedData)
+                .extractionMethod("DUAL_FILE")
+                .qualityScore(qualityReport.getQualityScore())
+                .detectedHeaders(List.of())
+                .qualityReport(qualityReport)
+                .build();
+    }
+
     public ImportProcessingResponse preview(MultipartFile file, Map<String, Integer> mapping) {
         ExtractionAgent.ExtractionResult result = extractionAgent.extract(file, mapping);
         List<KpiRawDataDTO> rawData = cleaningAgent.clean(result.getRows());
