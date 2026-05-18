@@ -41,10 +41,6 @@ public class KpiCalculatedDTO {
 
     private java.util.List<String> dataFlags;
 
-    private String businessClassification;
-    private Boolean isAnomaly;
-
-
     private Double matchConfidence;
 
 

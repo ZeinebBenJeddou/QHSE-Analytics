@@ -6,7 +6,7 @@ import com.QHSEAnalytics.shared.dto.response.KpiDeleteResponse;
 import com.QHSEAnalytics.shared.dto.response.KpiResponse;
 import com.QHSEAnalytics.shared.entity.CategorieKpi;
 import com.QHSEAnalytics.shared.entity.Kpi;
-import com.QHSEAnalytics.shared.entity.UniteKpi;
+import com.QHSEAnalytics.shared.enums.UniteKpi;
 import com.QHSEAnalytics.shared.enums.Direction;
 import com.QHSEAnalytics.shared.exception.InvalidSeuilException;
 import com.QHSEAnalytics.shared.exception.KpiAlreadyExistsException;

@@ -10,15 +10,11 @@ import {
   AdminKpiCritiqueResponse,
   AdminRepartitionResponse,
   AdminStatsResponse,
-  AiConfigResponse,
-  AiConfigUpdateRequest,
   AuditPageResponse,
   ChangePasswordRequest,
   CategorieKpiResponse,
   CreateAnalysteRequest,
   CreateKpiRequest,
-  DataRetentionPolicyResponse,
-  IaHealthResponse,
   KpiResponse,
   MessageResponse,
   ProfileResponse,
@@ -187,14 +183,6 @@ export class AdminService {
   }
 
 
-  getDataRetention(): Observable<DataRetentionPolicyResponse> {
-    return this.http.get<DataRetentionPolicyResponse>(`${this.adminBase}/data-retention`);
-  }
-
-  triggerPurge(): Observable<DataRetentionPolicyResponse> {
-    return this.http.post<DataRetentionPolicyResponse>(`${this.adminBase}/data-retention/purge`, {});
-  }
-
   recalculateAnalyse(userId: number, importId: number): Observable<AnalyseCompleteResponse> {
     return this.http.post<AnalyseCompleteResponse>(
       `${this.dashboardBase}/analystes/${userId}/analyses/${importId}/regenerer`, {}
@@ -202,24 +190,4 @@ export class AdminService {
   }
 
 
-  getAiConfigs(): Observable<AiConfigResponse[]> {
-    return this.http.get<AiConfigResponse[]>(`${this.adminBase}/ia/config`);
-  }
-
-  updateAiConfig(key: string, request: AiConfigUpdateRequest): Observable<AiConfigResponse> {
-    return this.http.put<AiConfigResponse>(`${this.adminBase}/ia/config/${key}`, request);
-  }
-
-
-  getIaHealth(): Observable<IaHealthResponse> {
-    return this.http.get<IaHealthResponse>(`${this.adminBase}/ia/health`);
-  }
-
-  clearIaCache(): Observable<void> {
-    return this.http.delete<void>(`${this.adminBase}/ia/cache`);
-  }
-
-  clearProviderCooldown(name: string): Observable<void> {
-    return this.http.delete<void>(`${this.adminBase}/ia/providers/${name}/cooldown`);
-  }
 }

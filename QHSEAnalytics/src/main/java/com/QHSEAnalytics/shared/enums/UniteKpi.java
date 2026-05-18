@@ -1,4 +1,4 @@
-package com.QHSEAnalytics.shared.entity;
+package com.QHSEAnalytics.shared.enums;
 
 public enum UniteKpi {
     POURCENTAGE,

@@ -3,7 +3,7 @@ package com.QHSEAnalytics.config;
 import com.QHSEAnalytics.shared.entity.CategorieKpi;
 import com.QHSEAnalytics.shared.entity.Kpi;
 import com.QHSEAnalytics.shared.entity.RagKnowledge;
-import com.QHSEAnalytics.shared.entity.UniteKpi;
+import com.QHSEAnalytics.shared.enums.UniteKpi;
 import com.QHSEAnalytics.shared.enums.Direction;
 import com.QHSEAnalytics.shared.repository.CategorieKpiRepository;
 import com.QHSEAnalytics.shared.repository.KpiRepository;

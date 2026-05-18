@@ -80,11 +80,11 @@ public class ClassificationEngine {
             Direction dir = resolveDirection(kpi, comp);
             Double currentValue = comp.getCurrentValue();
 
-            // Évaluation de la position absolue de la valeur N par rapport aux seuils
+
             String absolutePosition = computeAbsolutePosition(dir, currentValue, faible, modere, critique);
 
             if (!hasDegradation) {
-                // La position absolue de valeur_n prime sur la magnitude de variation
+
                 if (dir != Direction.TARGET_IS_BEST) {
                     if ("EXCELLENT".equals(absolutePosition)) {
                         r.setClassification(EXCELLENT);
@@ -253,11 +253,7 @@ public class ClassificationEngine {
         return kpi != null && kpi.getSeuilFaible() != null && kpi.getSeuilModere() != null && kpi.getSeuilCritique() != null;
     }
 
-    /**
-     * Évalue la position absolue de valeur N par rapport aux seuils métier.
-     * LOWER_IS_BETTER : valeur <= faible → EXCELLENT, <= modere → FAIBLE, <= critique → MODERE, sinon CRITIQUE
-     * HIGHER_IS_BETTER : valeur >= critique → EXCELLENT, >= modere → FAIBLE, >= faible → MODERE, sinon CRITIQUE
-     */
+
     private String computeAbsolutePosition(Direction dir, Double currentValue, double faible, double modere, double critique) {
         if (currentValue == null || dir == Direction.TARGET_IS_BEST) {
             return "UNKNOWN";

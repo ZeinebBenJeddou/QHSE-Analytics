@@ -23,9 +23,6 @@ import { adminAuditResolver } from './features/admin/pages/audit/audit.resolver'
 import { RagAdminComponent } from './features/admin/pages/rag/rag-admin.component';
 import { ragAdminResolver } from './features/admin/pages/rag/rag-admin.resolver';
 
-import { IaConfigComponent } from './features/admin/pages/ia-config/ia-config.component';
-import { iaConfigResolver } from './features/admin/pages/ia-config/ia-config.resolver';
-
 import { AnalysteShellComponent } from './features/analyste/analyste-shell.component';
 
 import { ImportComponent } from './features/analyste/pages/import/import.component';
@@ -60,8 +57,6 @@ export const routes: Routes = [
       { path: 'historique', component: AdminHistoriqueComponent, resolve: { historique: adminHistoriqueResolver } },
       { path: 'audit', component: AdminAuditComponent, resolve: { audit: adminAuditResolver } },
       { path: 'rag', component: RagAdminComponent, resolve: { entries: ragAdminResolver } },
-      
-      { path: 'ia-config', component: IaConfigComponent, resolve: { configs: iaConfigResolver } },
       
       { path: 'users', component: AdminUsersComponent, resolve: { users: adminUsersResolver } },
       { path: 'kpis', component: AdminKpisComponent, resolve: { kpis: adminKpisResolver } },

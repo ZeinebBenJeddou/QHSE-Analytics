@@ -1,6 +1,7 @@
 package com.QHSEAnalytics.shared.entity;
 
 import com.QHSEAnalytics.shared.enums.Direction;
+import com.QHSEAnalytics.shared.enums.UniteKpi;
 import jakarta.persistence.*;
 import lombok.*;
 

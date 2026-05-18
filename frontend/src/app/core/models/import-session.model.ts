@@ -39,9 +39,6 @@ export interface KpiCalculatedDTO {
   matchedKpiId?: number | null;
   matchConfidence?: number | null;       
   
-  businessClassification?: 'CRITICAL' | 'WARNING' | 'OK';
-  isAnomaly?: boolean;
- 
   direction?: 'HIGHER_IS_BETTER' | 'LOWER_IS_BETTER' | 'TARGET_IS_BEST';
   calcConfidence?: number; 
   classificationReason?: string;

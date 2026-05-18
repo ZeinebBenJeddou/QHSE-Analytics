@@ -11,7 +11,6 @@ import java.util.stream.Collectors;
 @Service
 public class RiskDetectionAgent {
 
-    private static final String CRITICAL_CLASSIFICATION = "CRITICAL";
     private static final int PRIORITY_RANKING_LIMIT = 20;
 
 
@@ -41,16 +40,15 @@ public class RiskDetectionAgent {
 
 
     private boolean isCriticalRisk(KpiCalculatedDTO kpi) {
-        return (kpi.getBusinessClassification() != null &&
-                CRITICAL_CLASSIFICATION.equals(kpi.getBusinessClassification())) ||
-               (kpi.getIsAnomaly() != null && kpi.getIsAnomaly());
+        return "CRITIQUE".equals(kpi.getClassification()) ||
+               "PRE_ESCALADE".equals(kpi.getClassification()) ||
+               (kpi.getRiskScore() != null && kpi.getRiskScore() >= 12);
     }
 
 
     private int computeRiskScore(List<KpiCalculatedDTO> criticalKpis) {
         return (int) criticalKpis.stream()
-            .filter(kpi -> kpi.getBusinessClassification() != null &&
-                          CRITICAL_CLASSIFICATION.equals(kpi.getBusinessClassification()))
+            .filter(kpi -> "CRITIQUE".equals(kpi.getClassification()))
             .count();
     }
 

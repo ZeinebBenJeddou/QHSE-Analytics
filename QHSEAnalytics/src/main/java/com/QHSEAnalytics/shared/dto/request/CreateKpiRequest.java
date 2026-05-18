@@ -1,6 +1,6 @@
 package com.QHSEAnalytics.shared.dto.request;
 
-import com.QHSEAnalytics.shared.entity.UniteKpi;
+import com.QHSEAnalytics.shared.enums.UniteKpi;
 import com.QHSEAnalytics.shared.enums.Direction;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

@@ -5,7 +5,7 @@ import com.QHSEAnalytics.shared.dto.response.CategoryScoreDTO;
 import com.QHSEAnalytics.shared.dto.response.KpiCalculatedDTO;
 import com.QHSEAnalytics.shared.entity.CategorieKpi;
 import com.QHSEAnalytics.shared.entity.Kpi;
-import com.QHSEAnalytics.shared.entity.UniteKpi;
+import com.QHSEAnalytics.shared.enums.UniteKpi;
 import com.QHSEAnalytics.shared.enums.Direction;
 import com.QHSEAnalytics.shared.enums.Tendance;
 import com.QHSEAnalytics.shared.repository.KpiRepository;
@@ -45,7 +45,7 @@ public class CalculationAgent {
         List<Kpi> activeKpis = kpiRepository.findByIsActiveTrueOrderByOrdreAsc();
         Map<String, Kpi> byName = buildKpiLookup(activeKpis);
 
-        // Préchargement historique en lot — évite N+1 (1 requête au lieu de 1 par KPI)
+
         List<Long> kpiIds = activeKpis.stream()
                 .map(Kpi::getId)
                 .filter(Objects::nonNull)

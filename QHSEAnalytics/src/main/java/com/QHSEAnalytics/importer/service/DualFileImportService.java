@@ -19,11 +19,7 @@ import java.util.*;
 @Slf4j
 public class DualFileImportService {
 
-    /**
-     * Merges two single-year Excel files into a list of KpiRawDataDTO usable by the existing pipeline.
-     *
-     * mapping keys expected: "kpiNameIndex" (int), "valueIndex" (int)
-     */
+
     public MergeResult mergeFiles(
             MultipartFile fileN1,
             MultipartFile fileN,
@@ -125,7 +121,7 @@ public class DualFileImportService {
                 String valueRaw = ExcelParserUtil.getCellValue(row.getCell(valueIdx),  evaluator, formatter);
 
                 if (kpiRaw == null || kpiRaw.isBlank()) continue;
-                // Rejeter les lignes où la colonne KPI contient un nombre (inversion de colonnes)
+
                 if (parseDouble(kpiRaw) != null) {
                     log.warn("[DualFile] Ligne {} ignorée : colonne KPI contient un nombre ('{}') — vérifiez le mapping", r, kpiRaw);
                     continue;

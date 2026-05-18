@@ -8,7 +8,6 @@ import com.QHSEAnalytics.shared.dto.response.ImportQualityReport;
 import com.QHSEAnalytics.shared.dto.response.KpiCalculatedDTO;
 import com.QHSEAnalytics.importer.service.processing.CalculationAgent;
 import com.QHSEAnalytics.importer.service.processing.CleaningAgent;
-import com.QHSEAnalytics.importer.service.processing.EnrichmentAgent;
 import com.QHSEAnalytics.importer.service.processing.ExtractionAgent;
 import com.QHSEAnalytics.importer.service.processing.MetadataEnrichmentAgent;
 import com.QHSEAnalytics.importer.service.processing.QualityReportBuilder;
@@ -30,7 +29,6 @@ public class KpiProcessingOrchestratorService {
     private final ExtractionAgent         extractionAgent;
     private final CleaningAgent           cleaningAgent;
     private final CalculationAgent        calculationAgent;
-    private final EnrichmentAgent         enrichmentAgent;
     private final RiskDetectionAgent      riskDetectionAgent;
     private final VisualizationAgent      visualizationAgent;
     private final AnalysisAgent           analysisAgent;
@@ -47,8 +45,7 @@ public class KpiProcessingOrchestratorService {
         qualityReport.setExtractionIssues(result.getExtractionIssues() == null ? List.of() : List.copyOf(result.getExtractionIssues()));
 
         List<KpiCalculatedDTO> calculatedData = calculationAgent.calculate(rawData);
-        List<KpiCalculatedDTO> enrichedData   = enrichmentAgent.enrich(calculatedData);
-        enrichedData = metadataEnrichmentAgent.enrichMetadata(enrichedData);
+        List<KpiCalculatedDTO> enrichedData   = metadataEnrichmentAgent.enrichMetadata(calculatedData);
 
         RiskDetectionAgent.RiskAnalysisResult riskAnalysis = riskDetectionAgent.detect(enrichedData);
         List<KpiCalculatedDTO> criticalRisks = riskAnalysis.getCriticalKpis();
@@ -96,10 +93,7 @@ public class KpiProcessingOrchestratorService {
     }
 
 
-    /**
-     * Dual-file path: rawData already merged by DualFileImportService.
-     * Skips ExtractionAgent and injects directly into the cleaning → calculation pipeline.
-     */
+
     public ImportProcessingResponse processFromRawData(List<KpiRawDataDTO> mergedRaw, boolean allowPartialImport) {
         List<KpiRawDataDTO> rawData = cleaningAgent.clean(mergedRaw);
 
@@ -107,8 +101,7 @@ public class KpiProcessingOrchestratorService {
         qualityReport.setExtractionIssues(List.of());
 
         List<KpiCalculatedDTO> calculatedData = calculationAgent.calculate(rawData);
-        List<KpiCalculatedDTO> enrichedData   = enrichmentAgent.enrich(calculatedData);
-        enrichedData = metadataEnrichmentAgent.enrichMetadata(enrichedData);
+        List<KpiCalculatedDTO> enrichedData   = metadataEnrichmentAgent.enrichMetadata(calculatedData);
 
         RiskDetectionAgent.RiskAnalysisResult riskAnalysis = riskDetectionAgent.detect(enrichedData);
         List<KpiCalculatedDTO> criticalRisks = riskAnalysis.getCriticalKpis();

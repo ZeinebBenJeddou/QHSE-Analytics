@@ -19,7 +19,7 @@ import com.QHSEAnalytics.shared.enums.NiveauVariation;
 import com.QHSEAnalytics.shared.enums.QualityStatus;
 import com.QHSEAnalytics.shared.enums.Tendance;
 import com.QHSEAnalytics.shared.enums.Direction;
-import com.QHSEAnalytics.shared.entity.UniteKpi;
+import com.QHSEAnalytics.shared.enums.UniteKpi;
 import com.QHSEAnalytics.shared.exception.ImportTransitionException;
 import com.QHSEAnalytics.shared.exception.ImportValidationException;
 import com.QHSEAnalytics.shared.repository.CategorieKpiRepository;
