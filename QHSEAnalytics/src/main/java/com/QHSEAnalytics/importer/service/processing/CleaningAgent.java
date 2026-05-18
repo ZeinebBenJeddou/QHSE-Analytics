@@ -132,7 +132,8 @@ public class CleaningAgent {
         if (norm == null || norm.isBlank()) {
             return "UNKNOWN_" + row.getRowIndex();
         }
-        return norm;
+        String cat = row.getCategorie() != null ? row.getCategorie().trim().toLowerCase() : "unknown";
+        return norm + "|" + cat;
     }
 
     private boolean isExactDuplicate(KpiRawDataDTO a, KpiRawDataDTO b) {
