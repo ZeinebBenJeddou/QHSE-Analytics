@@ -40,16 +40,16 @@ public class ResultatKpi {
     @Column(name = "periode_n", nullable = false)
     private Integer periodeN;
 
-    @Column(name = "valeur_n1", nullable = false)
+    @Column(name = "valeur_n1")
     private Double valeurN1;
 
-    @Column(name = "valeur_n", nullable = false)
+    @Column(name = "valeur_n")
     private Double valeurN;
 
-    @Column(name = "variation_absolue", nullable = false)
+    @Column(name = "variation_absolue")
     private Double variationAbsolue;
 
-    @Column(name = "variation_relative", nullable = false)
+    @Column(name = "variation_relative")
     private Double variationRelative;
 
     @Enumerated(EnumType.STRING)

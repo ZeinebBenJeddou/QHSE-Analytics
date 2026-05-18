@@ -43,10 +43,14 @@ public class ComparativeCalculator {
 
         Double rel = null;
         String special = null;
-        if (valN1 == null) {
-            if (valN == null || valN == 0d) {
-                special = "STABLE";
-            }
+        if (valN1 == null && valN == null) {
+            special = "NA";
+        } else if (valN1 == null) {
+            // KPI présent en N mais absent en N-1 : pas de base de comparaison
+            special = "NA";
+        } else if (valN == null) {
+            // KPI présent en N-1 mais absent en N : pas de valeur courante
+            special = "NA";
         } else if (valN1 == 0d) {
             if (valN == null || valN == 0d) {
                 special = "STABLE";

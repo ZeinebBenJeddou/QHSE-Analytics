@@ -146,9 +146,9 @@ public class DashboardAnalysteService {
         List<BarreGroupeeData> barres = byCategorie.values().stream()
                 .map(list -> BarreGroupeeData.builder()
                         .categorie(safeCategorieLibelle(list.get(0)))
-                        .valeurMoyenneN1(round2(list.stream().mapToDouble(ResultatKpi::getValeurN1).average().orElse(0d)))
-                        .valeurMoyenneN(round2(list.stream().mapToDouble(ResultatKpi::getValeurN).average().orElse(0d)))
-                        .variationMoyenne(round2(list.stream().mapToDouble(ResultatKpi::getVariationRelative).average().orElse(0d)))
+                        .valeurMoyenneN1(round2(list.stream().filter(r -> r.getValeurN1() != null).mapToDouble(ResultatKpi::getValeurN1).average().orElse(0d)))
+                        .valeurMoyenneN(round2(list.stream().filter(r -> r.getValeurN() != null).mapToDouble(ResultatKpi::getValeurN).average().orElse(0d)))
+                        .variationMoyenne(round2(list.stream().filter(r -> r.getVariationRelative() != null).mapToDouble(ResultatKpi::getVariationRelative).average().orElse(0d)))
                         .build())
                 .toList();
 
@@ -173,7 +173,7 @@ public class DashboardAnalysteService {
                 .map(resultat -> KpiDegrade.builder()
                         .kpiNom(safeKpiNom(resultat))
                         .categorieCode(safeCategorieCode(resultat))
-                        .variationRelative(round2(resultat.getVariationRelative()))
+                        .variationRelative(resultat.getVariationRelative() != null ? round2(resultat.getVariationRelative()) : null)
                         .niveauVariation(resultat.getNiveauVariation() == null ? null : resultat.getNiveauVariation().name())
                         .tendance(resultat.getTendance() == null ? null : resultat.getTendance().name())
                         .build())

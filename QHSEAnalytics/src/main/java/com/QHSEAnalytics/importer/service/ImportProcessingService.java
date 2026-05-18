@@ -525,10 +525,10 @@ public class ImportProcessingService {
                 .kpi(kpi)
                 .periodeN1(session.getPeriodeN1())
                 .periodeN(session.getPeriodeN())
-                .valeurN1(dto.getValeurN1() == null ? 0d : dto.getValeurN1())
-                .valeurN(dto.getValeurN() == null ? 0d : dto.getValeurN())
-                .variationAbsolue(dto.getVariationAbsolute() == null ? 0d : dto.getVariationAbsolute())
-                .variationRelative(dto.getVariationPercentage() == null ? 0d : dto.getVariationPercentage())
+                .valeurN1(dto.getValeurN1())
+                .valeurN(dto.getValeurN())
+                .variationAbsolue(dto.getVariationAbsolute())
+                .variationRelative(dto.getVariationPercentage())
                 .niveauVariation(parseNiveau(dto.getClassification()))
                 .tendance(parseTendance(dto.getTendance()))
                 .confidenceScore(
@@ -545,23 +545,23 @@ public class ImportProcessingService {
 
     private NiveauVariation parseNiveau(String classification) {
         if (classification == null) {
-            return NiveauVariation.FAIBLE;
+            return NiveauVariation.INDETERMINE;
         }
         try {
             return NiveauVariation.valueOf(classification);
         } catch (IllegalArgumentException ex) {
-            return NiveauVariation.FAIBLE;
+            return NiveauVariation.INDETERMINE;
         }
     }
 
     private Tendance parseTendance(String tendance) {
         if (tendance == null) {
-            return Tendance.STABLE;
+            return Tendance.NA;
         }
         try {
             return Tendance.valueOf(tendance);
         } catch (IllegalArgumentException ex) {
-            return Tendance.STABLE;
+            return Tendance.NA;
         }
     }
 

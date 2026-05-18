@@ -145,8 +145,8 @@ public class CalculationAgent {
         String lookupCategoryCode = resolveLookupCategoryCode(matchedKpi, row.getCategorie());
         Kpi effectiveKpi = resolveEffectiveKpi(matchedKpi, row.getKpiName(), lookupCategoryCode, valN, valN1);
 
-        double absoluteGap = 0.0;
-        Double variationPercentage = 0.0;
+        Double absoluteGap = null;
+        Double variationPercentage = null;
         String status = "Inconnu";
         String statusColor = "gray";
 
@@ -155,7 +155,7 @@ public class CalculationAgent {
         List<Double> historicalSeries = List.of();
 
         if (row.isValid()) {
-            absoluteGap = (valN != null && valN1 != null) ? (valN - valN1) : 0.0;
+            absoluteGap = (valN != null && valN1 != null) ? (valN - valN1) : null;
 
             if (isBoolean) {
                 if      (valN1 == 0 && valN == 1) { status = "Acquis";      statusColor = "green"; }
@@ -199,7 +199,7 @@ public class CalculationAgent {
         String classification = classRes != null ? classRes.getClassification() : "INDETERMINE";
         String tendance = isBoolean
                 ? getBooleanTendance(valN1, valN)
-                : (variationPercentage != null ? computeTendance(variationPercentage).name() : "STABLE");
+                : (variationPercentage != null ? computeTendance(variationPercentage).name() : "NA");
 
 
         Double spcMean = null, spcStd = null, spcUcl = null, spcLcl = null;

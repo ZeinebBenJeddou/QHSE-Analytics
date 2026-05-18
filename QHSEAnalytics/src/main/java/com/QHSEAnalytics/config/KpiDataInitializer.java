@@ -4,6 +4,7 @@ import com.QHSEAnalytics.shared.entity.CategorieKpi;
 import com.QHSEAnalytics.shared.entity.Kpi;
 import com.QHSEAnalytics.shared.entity.RagKnowledge;
 import com.QHSEAnalytics.shared.entity.UniteKpi;
+import com.QHSEAnalytics.shared.enums.Direction;
 import com.QHSEAnalytics.shared.repository.CategorieKpiRepository;
 import com.QHSEAnalytics.shared.repository.KpiRepository;
 import com.QHSEAnalytics.shared.repository.RagKnowledgeRepository;
@@ -512,41 +513,45 @@ public class KpiDataInitializer implements ApplicationRunner {
         CategorieKpi s = ensureCategory("S", "Sécurité", "Prévention des risques et accidents");
         CategorieKpi e = ensureCategory("E", "Environnement", "Gestion des impacts et durabilité");
 
-        ensureKpi(q, "Taux de Non-Conformité", "Ratio produits non conformes / total produit", UniteKpi.POURCENTAGE, 2.0, 5.0, 10.0, 1);
-        ensureKpi(q, "Coût de la Non-Qualité", "Coûts des rebuts et retouches en k€", UniteKpi.NOMBRE, 500.0, 2000.0, 5000.0, 2);
-        ensureKpi(q, "Taux de Satisfaction Client", "Indice de satisfaction global", UniteKpi.POURCENTAGE, 70.0, 80.0, 90.0, 3);
-        ensureKpi(q, "Délai Moyen de Livraison", "Respect des délais promis (jours)", UniteKpi.NOMBRE, 2.0, 5.0, 10.0, 4);
-        ensureKpi(q, "Taux de Rebuts", "Pourcentage de perte matière brute", UniteKpi.POURCENTAGE, 1.0, 3.0, 5.0, 5);
-        ensureKpi(q, "First Pass Yield", "Produits conformes dès le premier essai", UniteKpi.POURCENTAGE, 90.0, 95.0, 98.0, 6);
-        ensureKpi(q, "Nombre de Réclamations Clients", "Total des plaintes enregistrées", UniteKpi.NOMBRE, 2.0, 10.0, 25.0, 7);
-        ensureKpi(q, "Taux de Réussite des Audits", "Score moyen des audits qualité internes", UniteKpi.POURCENTAGE, 75.0, 85.0, 95.0, 8);
+        // Qualité
+        ensureKpi(q, "Taux de Non-Conformité",        "Ratio produits non conformes / total produit",    UniteKpi.POURCENTAGE,  2.0,    5.0,    10.0,   1, Direction.LOWER_IS_BETTER);
+        ensureKpi(q, "Coût de la Non-Qualité",         "Coûts des rebuts et retouches en k€",             UniteKpi.NOMBRE,     500.0, 2000.0, 5000.0,  2, Direction.LOWER_IS_BETTER);
+        ensureKpi(q, "Taux de Satisfaction Client",    "Indice de satisfaction global",                   UniteKpi.POURCENTAGE,  70.0,   80.0,   90.0,  3, Direction.HIGHER_IS_BETTER);
+        ensureKpi(q, "Délai Moyen de Livraison",       "Respect des délais promis (jours)",               UniteKpi.NOMBRE,       2.0,    5.0,   10.0,   4, Direction.LOWER_IS_BETTER);
+        ensureKpi(q, "Taux de Rebuts",                 "Pourcentage de perte matière brute",              UniteKpi.POURCENTAGE,  1.0,    3.0,    5.0,   5, Direction.LOWER_IS_BETTER);
+        ensureKpi(q, "First Pass Yield",               "Produits conformes dès le premier essai",         UniteKpi.POURCENTAGE, 90.0,   95.0,   98.0,   6, Direction.HIGHER_IS_BETTER);
+        ensureKpi(q, "Nombre de Réclamations Clients", "Total des plaintes enregistrées",                 UniteKpi.NOMBRE,       2.0,   10.0,   25.0,   7, Direction.LOWER_IS_BETTER);
+        ensureKpi(q, "Taux de Réussite des Audits",    "Score moyen des audits qualité internes",         UniteKpi.POURCENTAGE, 75.0,   85.0,   95.0,   8, Direction.HIGHER_IS_BETTER);
 
-        ensureKpi(h, "Taux d'Absentéisme", "Heures d'absence / Heures théoriques", UniteKpi.POURCENTAGE, 3.0, 6.0, 10.0, 1);
-        ensureKpi(h, "Taux de Maladies Professionnelles", "Cas déclarés pour 1000 salariés", UniteKpi.NOMBRE, 0.0, 1.0, 2.0, 2);
-        ensureKpi(h, "Conformité Ergonomique", "Postes de travail adaptés aux normes", UniteKpi.POURCENTAGE, 80.0, 90.0, 100.0, 3);
-        ensureKpi(h, "Taux de Visites Médicales", "Salariés à jour de leur suivi médical", UniteKpi.POURCENTAGE, 90.0, 95.0, 100.0, 4);
-        ensureKpi(h, "Qualité de l'Air (CO2)", "Niveau moyen de CO2 en ppm", UniteKpi.NOMBRE, 600.0, 1000.0, 1500.0, 5);
-        ensureKpi(h, "Taux de Renouvellement d'Air", "Volume d'air renouvelé par heure", UniteKpi.NOMBRE, 20.0, 25.0, 30.0, 6);
-        ensureKpi(h, "Indice d'Exposition au Bruit", "Moyenne des niveaux sonores en dB(A)", UniteKpi.NOMBRE, 80.0, 85.0, 90.0, 7);
-        ensureKpi(h, "Usage des Équipements de Repos", "Fréquence d'utilisation des zones de pause", UniteKpi.POURCENTAGE, 40.0, 60.0, 80.0, 8);
+        // Hygiène & Santé
+        ensureKpi(h, "Taux d'Absentéisme",             "Heures d'absence / Heures théoriques",            UniteKpi.POURCENTAGE,  3.0,    6.0,   10.0,   1, Direction.LOWER_IS_BETTER);
+        ensureKpi(h, "Taux de Maladies Professionnelles", "Cas déclarés pour 1000 salariés",              UniteKpi.NOMBRE,       0.0,    1.0,    2.0,   2, Direction.LOWER_IS_BETTER);
+        ensureKpi(h, "Conformité Ergonomique",         "Postes de travail adaptés aux normes",            UniteKpi.POURCENTAGE, 80.0,   90.0,  100.0,   3, Direction.HIGHER_IS_BETTER);
+        ensureKpi(h, "Taux de Visites Médicales",      "Salariés à jour de leur suivi médical",           UniteKpi.POURCENTAGE, 90.0,   95.0,  100.0,   4, Direction.HIGHER_IS_BETTER);
+        ensureKpi(h, "Qualité de l'Air (CO2)",         "Niveau moyen de CO2 en ppm",                      UniteKpi.NOMBRE,     600.0, 1000.0, 1500.0,   5, Direction.LOWER_IS_BETTER);
+        ensureKpi(h, "Taux de Renouvellement d'Air",   "Volume d'air renouvelé par heure",                UniteKpi.NOMBRE,      20.0,   25.0,   30.0,   6, Direction.HIGHER_IS_BETTER);
+        ensureKpi(h, "Indice d'Exposition au Bruit",   "Moyenne des niveaux sonores en dB(A)",            UniteKpi.NOMBRE,      80.0,   85.0,   90.0,   7, Direction.LOWER_IS_BETTER);
+        ensureKpi(h, "Usage des Équipements de Repos", "Fréquence d'utilisation des zones de pause",      UniteKpi.POURCENTAGE, 40.0,   60.0,   80.0,   8, Direction.HIGHER_IS_BETTER);
 
-        ensureKpi(s, "Taux de Fréquence (TF1)", "Accidents avec arrêt / million d'heures", UniteKpi.NOMBRE, 5.0, 15.0, 30.0, 1);
-        ensureKpi(s, "Taux de Gravité (TG)", "Jours perdus / millier d'heures", UniteKpi.NOMBRE, 0.5, 1.0, 2.0, 2);
-        ensureKpi(s, "Nombre de Presque-accidents", "Near-miss signalés (vigilance)", UniteKpi.NOMBRE, 5.0, 10.0, 20.0, 3);
-        ensureKpi(s, "Heures de Formation Sécurité", "Total heures formation par employé", UniteKpi.NOMBRE, 5.0, 10.0, 20.0, 4);
-        ensureKpi(s, "Taux de Port des EPI", "Conformité observée lors des rondes", UniteKpi.POURCENTAGE, 90.0, 95.0, 100.0, 5);
-        ensureKpi(s, "Nombre de Situations Dangereuses", "Situations à risque signalées", UniteKpi.NOMBRE, 10.0, 25.0, 50.0, 6);
-        ensureKpi(s, "Délai Levée des Non-Conformités", "Temps pour corriger une faille sécurité (jours)", UniteKpi.NOMBRE, 2.0, 7.0, 15.0, 7);
-        ensureKpi(s, "Nombre de Visites Sécurité (VMS)", "Total des visites managériales terrain", UniteKpi.NOMBRE, 4.0, 8.0, 12.0, 8);
+        // Sécurité
+        ensureKpi(s, "Taux de Fréquence (TF1)",        "Accidents avec arrêt / million d'heures",         UniteKpi.NOMBRE,       5.0,   15.0,   30.0,   1, Direction.LOWER_IS_BETTER);
+        ensureKpi(s, "Taux de Gravité (TG)",            "Jours perdus / millier d'heures",                 UniteKpi.NOMBRE,       0.5,    1.0,    2.0,   2, Direction.LOWER_IS_BETTER);
+        ensureKpi(s, "Nombre de Presque-accidents",     "Near-miss signalés (vigilance)",                  UniteKpi.NOMBRE,       5.0,   10.0,   20.0,   3, Direction.HIGHER_IS_BETTER);
+        ensureKpi(s, "Heures de Formation Sécurité",    "Total heures formation par employé",              UniteKpi.NOMBRE,       5.0,   10.0,   20.0,   4, Direction.HIGHER_IS_BETTER);
+        ensureKpi(s, "Taux de Port des EPI",            "Conformité observée lors des rondes",             UniteKpi.POURCENTAGE, 90.0,   95.0,  100.0,   5, Direction.HIGHER_IS_BETTER);
+        ensureKpi(s, "Nombre de Situations Dangereuses","Situations à risque signalées",                   UniteKpi.NOMBRE,      10.0,   25.0,   50.0,   6, Direction.LOWER_IS_BETTER);
+        ensureKpi(s, "Délai Levée des Non-Conformités", "Temps pour corriger une faille sécurité (jours)",UniteKpi.NOMBRE,       2.0,    7.0,   15.0,   7, Direction.LOWER_IS_BETTER);
+        ensureKpi(s, "Nombre de Visites Sécurité (VMS)","Total des visites managériales terrain",          UniteKpi.NOMBRE,       4.0,    8.0,   12.0,   8, Direction.HIGHER_IS_BETTER);
 
-        ensureKpi(e, "Consommation Électricité", "kWh consommés par tonne produite", UniteKpi.KWH, 100.0, 200.0, 500.0, 1);
-        ensureKpi(e, "Consommation Eau", "Mètres cubes d'eau consommés", UniteKpi.NOMBRE, 50.0, 150.0, 300.0, 2);
-        ensureKpi(e, "Taux de Valorisation Déchets", "Déchets recyclés / Déchets totaux", UniteKpi.POURCENTAGE, 50.0, 70.0, 85.0, 3);
-        ensureKpi(e, "Émissions CO2 (Scope 1&2)", "Tonnes de CO2 équivalent", UniteKpi.KG, 1000.0, 5000.0, 10000.0, 4);
-        ensureKpi(e, "Volume Déchets Dangereux", "Total déchets toxiques ou polluants", UniteKpi.KG, 50.0, 200.0, 500.0, 5);
-        ensureKpi(e, "Consommation de Papier", "Nombre de rames par collaborateur", UniteKpi.NOMBRE, 1.0, 3.0, 5.0, 6);
-        ensureKpi(e, "Incidents Environnementaux", "Déversements ou fuites accidentelles", UniteKpi.NOMBRE, 0.0, 1.0, 2.0, 7);
-        ensureKpi(e, "Part Énergie Renouvelable", "Pourcentage d'énergie propre utilisée", UniteKpi.POURCENTAGE, 10.0, 30.0, 50.0, 8);
+        // Environnement
+        ensureKpi(e, "Consommation Électricité",        "kWh consommés par tonne produite",               UniteKpi.KWH,        100.0,  200.0,  500.0,   1, Direction.LOWER_IS_BETTER);
+        ensureKpi(e, "Consommation Eau",                "Mètres cubes d'eau consommés",                   UniteKpi.NOMBRE,      50.0,  150.0,  300.0,   2, Direction.LOWER_IS_BETTER);
+        ensureKpi(e, "Taux de Valorisation Déchets",    "Déchets recyclés / Déchets totaux",              UniteKpi.POURCENTAGE, 50.0,   70.0,   85.0,   3, Direction.HIGHER_IS_BETTER);
+        ensureKpi(e, "Émissions CO2 (Scope 1&2)",       "Tonnes de CO2 équivalent",                       UniteKpi.KG,        1000.0, 5000.0,10000.0,   4, Direction.LOWER_IS_BETTER);
+        ensureKpi(e, "Volume Déchets Dangereux",        "Total déchets toxiques ou polluants",             UniteKpi.KG,          50.0,  200.0,  500.0,   5, Direction.LOWER_IS_BETTER);
+        ensureKpi(e, "Consommation de Papier",          "Nombre de rames par collaborateur",               UniteKpi.NOMBRE,       1.0,    3.0,    5.0,   6, Direction.LOWER_IS_BETTER);
+        ensureKpi(e, "Incidents Environnementaux",      "Déversements ou fuites accidentelles",            UniteKpi.NOMBRE,       0.0,    1.0,    2.0,   7, Direction.LOWER_IS_BETTER);
+        ensureKpi(e, "Part Énergie Renouvelable",       "Pourcentage d'énergie propre utilisée",           UniteKpi.POURCENTAGE, 10.0,   30.0,   50.0,   8, Direction.HIGHER_IS_BETTER);
 
         initCorrelationChunks();
         initBenchmarkSectorielChunks();
@@ -577,7 +582,8 @@ public class KpiDataInitializer implements ApplicationRunner {
         Double seuilFaible,
         Double seuilModere,
         Double seuilCritique,
-        Integer ordre
+        Integer ordre,
+        Direction direction
     ) {
         try {
             if (!kpiRepository.existsByNomAndCategorieKpi(nom, categorie)) {
@@ -591,13 +597,23 @@ public class KpiDataInitializer implements ApplicationRunner {
                     .seuilCritique(seuilCritique)
                     .ordre(ordre)
                     .isActive(true)
+                    .direction(direction)
                     .build();
-
                 kpiRepository.save(kpi);
-                log.info("KPI seed cree categorie={} nom={}", categorie.getCode(), nom);
+                log.info("KPI seed cree categorie={} nom={} direction={}", categorie.getCode(), nom, direction);
+            } else {
+                // Mettre à jour la direction si elle était null
+                kpiRepository.findByNom(nom)
+                    .ifPresent(existing -> {
+                        if (existing.getDirection() == null && direction != null) {
+                            existing.setDirection(direction);
+                            kpiRepository.save(existing);
+                            log.info("Direction mise a jour KPI={} direction={}", nom, direction);
+                        }
+                    });
             }
 
-            upsertKpiChunks(nom, categorie.getCode(), seuilFaible, seuilModere, seuilCritique);
+            upsertKpiChunks(nom, categorie.getCode(), seuilFaible, seuilModere, seuilCritique, direction);
         } catch (Exception ex) {
             log.error("Echec creation KPI seed categorie={} nom={} cause={}", categorie.getCode(), nom, ex.getMessage());
         }
@@ -608,34 +624,36 @@ public class KpiDataInitializer implements ApplicationRunner {
         String categoryCode,
         Double seuilFaible,
         Double seuilModere,
-        Double seuilCritique
+        Double seuilCritique,
+        Direction direction
     ) {
         Map<String, String> chunkDefinitions = ENRICHED_CHUNKS.get(kpiName);
         String thresholds = buildThresholdsJson(seuilFaible, seuilModere, seuilCritique);
+        String directionStr = direction != null ? direction.name().toLowerCase() : null;
 
         for (String chunkType : KPI_CHUNK_TYPES) {
             String definition = chunkDefinitions != null
                 ? chunkDefinitions.get(chunkType)
                 : buildDefaultChunkDefinition(kpiName, categoryCode, chunkType, seuilFaible, seuilModere, seuilCritique);
-            upsertRagKnowledge(kpiName, categoryCode, chunkType, definition, thresholds);
+            upsertRagKnowledge(kpiName, categoryCode, chunkType, definition, thresholds, directionStr);
         }
     }
 
     private void initCorrelationChunks() {
         CORRELATION_CHUNKS.forEach((kpiName, definition) ->
-            upsertRagKnowledge(kpiName, null, "correlation", definition, null)
+            upsertRagKnowledge(kpiName, null, "correlation", definition, null, null)
         );
     }
 
     private void initBenchmarkSectorielChunks() {
         BENCHMARK_SECTORIEL_CHUNKS.forEach((kpiName, definition) ->
-            upsertRagKnowledge(kpiName, null, "benchmark_sectoriel", definition, null)
+            upsertRagKnowledge(kpiName, null, "benchmark_sectoriel", definition, null, null)
         );
     }
 
     private void initFewShotExamples() {
         FEW_SHOT_EXAMPLES.forEach((kpiName, definition) ->
-            upsertRagKnowledge(kpiName, null, "exemple_analyse", definition, null)
+            upsertRagKnowledge(kpiName, null, "exemple_analyse", definition, null, null)
         );
     }
 
@@ -644,7 +662,8 @@ public class KpiDataInitializer implements ApplicationRunner {
         String categoryCode,
         String chunkType,
         String definition,
-        String thresholds
+        String thresholds,
+        String direction
     ) {
         try {
             LocalDateTime now = LocalDateTime.now();
@@ -668,6 +687,10 @@ public class KpiDataInitializer implements ApplicationRunner {
                         existing.setChunkType(chunkType);
                         changed = true;
                     }
+                    if (direction != null && !Objects.equals(existing.getDirection(), direction)) {
+                        existing.setDirection(direction);
+                        changed = true;
+                    }
 
                     if (changed) {
                         existing.setUpdatedAt(now);
@@ -682,6 +705,7 @@ public class KpiDataInitializer implements ApplicationRunner {
                         .definition(definition)
                         .category(categoryCode)
                         .thresholds(thresholds)
+                        .direction(direction)
                         .createdAt(now)
                         .updatedAt(now)
                         .build();
