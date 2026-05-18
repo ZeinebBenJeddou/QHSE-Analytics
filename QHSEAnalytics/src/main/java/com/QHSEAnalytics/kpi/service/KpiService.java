@@ -247,8 +247,14 @@ public class KpiService {
     }
 
     private void validateSeuils(Double faible, Double modere, Double critique) {
-        if (!(faible < modere && modere < critique)) {
-            throw new InvalidSeuilException("Règle invalide: seuilFaible < seuilModere < seuilCritique");
+        if (faible < 0 || modere < 0 || critique < 0) {
+            throw new InvalidSeuilException("Les seuils ne peuvent pas être négatifs.");
+        }
+        if (faible >= modere) {
+            throw new InvalidSeuilException("Le seuil faible doit être inférieur au seuil modéré.");
+        }
+        if (modere >= critique) {
+            throw new InvalidSeuilException("Le seuil modéré doit être inférieur au seuil critique.");
         }
     }
 

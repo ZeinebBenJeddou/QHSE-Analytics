@@ -260,44 +260,20 @@ export class DashboardAnalysteComponent implements OnInit {
     const comparatif = this.comparatif();
     const lignes = comparatif?.lignes ?? [];
     const totalKpis = resume?.nombreTotalKpis ?? lignes.length ?? 0;
-    const critiques = resume?.nombreTotalCritiques ?? comparatif?.nombreCritiques ?? 0;
+    const critiques     = resume?.nombreTotalCritiques  ?? comparatif?.nombreCritiques ?? 0;
+    const preEscalades  = resume?.nombreTotalPreEscalades  ?? 0;
+    const moderes       = resume?.nombreTotalModeres    ?? comparatif?.nombreModeres   ?? 0;
+    const faibles       = resume?.nombreTotalFaibles    ?? comparatif?.nombreFaibles   ?? 0;
+    const excellents    = resume?.nombreTotalExcellents    ?? 0;
+    const indetermines  = resume?.nombreTotalIndetermines  ?? 0;
 
-    let enHausse = 0;
-    let enBaisse = 0;
-    let sumVariation = 0;
-
-    if (lignes.length > 0) {
-      lignes.forEach(l => {
-        if (l.variationRelative > 0) enHausse++;
-        else if (l.variationRelative < 0) enBaisse++;
-        sumVariation += l.variationRelative;
-      });
-    }
-
-    const avgVariation = lignes.length > 0 ? sumVariation / lignes.length : 0;
-    const isAmelioration = avgVariation < 0; 
     return [
       {
         label: 'INDICATEURS SUIVIS',
         value: totalKpis,
         icon: 'assignment',
         color: 'blue',
-        note: `${this.dataYearN1 ?? 'N-1'} vs  ${this.dataYearN ?? 'N'}   `,
-      },
-      
-      {
-        label: 'INDICATEURS EN HAUSSE',
-        value: enHausse,
-        icon: 'trending_up',
-        color: 'red',
-        note: totalKpis ? `${Math.round((enHausse / totalKpis) * 100)}% du total` : '',
-      },
-      {
-        label: 'INDICATEURS EN BAISSE',
-        value: enBaisse,
-        icon: 'trending_down',
-        color: 'green',
-        note: totalKpis ? `${Math.round((enBaisse / totalKpis) * 100)}% du total` : '',
+        note: `${this.dataYearN1 ?? 'N-1'} vs ${this.dataYearN ?? 'N'}`,
       },
       {
         label: 'ALERTES CRITIQUES',
@@ -305,6 +281,41 @@ export class DashboardAnalysteComponent implements OnInit {
         icon: 'warning',
         color: 'red',
         note: critiques > 0 ? `${critiques} à traiter en priorité` : 'Tous les seuils respectés',
+      },
+      {
+        label: 'PRÉ-ESCALADE',
+        value: preEscalades,
+        icon: 'trending_up',
+        color: 'orange',
+        note: totalKpis ? `${Math.round((preEscalades / totalKpis) * 100)}% du total` : '',
+      },
+      {
+        label: 'MODÉRÉS',
+        value: moderes,
+        icon: 'swap_vert',
+        color: 'orange',
+        note: totalKpis ? `${Math.round((moderes / totalKpis) * 100)}% du total` : '',
+      },
+      {
+        label: 'FAIBLES',
+        value: faibles,
+        icon: 'trending_down',
+        color: 'green',
+        note: totalKpis ? `${Math.round((faibles / totalKpis) * 100)}% du total` : '',
+      },
+      {
+        label: 'EXCELLENTS',
+        value: excellents,
+        icon: 'star',
+        color: 'green',
+        note: totalKpis ? `${Math.round((excellents / totalKpis) * 100)}% du total` : '',
+      },
+      {
+        label: 'INDÉTERMINÉS',
+        value: indetermines,
+        icon: 'help_outline',
+        color: 'blue',
+        note: indetermines > 0 ? 'Données N-1 manquantes' : 'Aucun KPI indéterminé',
       },
     ];
   }

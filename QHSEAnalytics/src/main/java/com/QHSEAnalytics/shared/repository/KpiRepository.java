@@ -12,6 +12,7 @@ import java.util.Optional;
 
 public interface KpiRepository extends JpaRepository<Kpi, Long> {
 
+    @EntityGraph(attributePaths = {"categorieKpi"})
     List<Kpi> findByIsActiveTrueOrderByOrdreAsc();
 
     Page<Kpi> findByIsActiveTrueOrderByOrdreAsc(Pageable pageable);

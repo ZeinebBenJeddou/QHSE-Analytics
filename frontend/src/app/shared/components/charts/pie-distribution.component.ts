@@ -1,21 +1,35 @@
 import {
   AfterViewInit, Component, ElementRef, Input,
-  OnChanges, OnDestroy, SimpleChanges, ViewChild
+  OnChanges, OnDestroy, SimpleChanges, ViewChild, signal
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Chart, ChartConfiguration, Plugin, registerables } from 'chart.js';
+import { MatIconModule } from '@angular/material/icon';
 
 Chart.register(...registerables);
 
 @Component({
   selector: 'app-pie-distribution',
   standalone: true,
-  imports: [CommonModule],
-  template: `<div class="chart-wrapper"><canvas #chartCanvas></canvas></div>`,
+  imports: [CommonModule, MatIconModule],
+  template: `
+    <div class="chart-wrapper">
+      @if (isEmpty()) {
+        <div class="empty-chart">
+          <mat-icon>info_outline</mat-icon>
+          <span>Aucune donnée classifiée disponible</span>
+        </div>
+      } @else {
+        <canvas #chartCanvas></canvas>
+      }
+    </div>
+  `,
   styles: [`
     :host { display: block; width: 100%; height: 100%; }
-    .chart-wrapper { position: relative; width: 100%; height: 100%; min-height: 180px; }
+    .chart-wrapper { position: relative; width: 100%; height: 100%; min-height: 180px; display: flex; align-items: center; justify-content: center; }
     canvas { width: 100% !important; height: 100% !important; }
+    .empty-chart { display: flex; flex-direction: column; align-items: center; gap: 8px; color: #94A3B8; font-size: 0.8rem; text-align: center; padding: 16px; }
+    .empty-chart mat-icon { font-size: 32px; width: 32px; height: 32px; color: #CBD5E1; }
   `]
 })
 export class PieDistributionComponent implements AfterViewInit, OnChanges, OnDestroy {
@@ -24,8 +38,10 @@ export class PieDistributionComponent implements AfterViewInit, OnChanges, OnDes
   @Input() enBaisseModeree  = 0;
   @Input() enBaisseFaible   = 0;
 
-  @ViewChild('chartCanvas', { static: true }) canvas?: ElementRef<HTMLCanvasElement>;
+  @ViewChild('chartCanvas') canvas?: ElementRef<HTMLCanvasElement>;
   private chart?: Chart<'doughnut'>;
+
+  isEmpty = signal(false);
 
   ngAfterViewInit(): void { this.buildChart(); }
   ngOnChanges(c: SimpleChanges): void {
@@ -41,9 +57,20 @@ export class PieDistributionComponent implements AfterViewInit, OnChanges, OnDes
 
   private buildChart(): void {
     this.chart?.destroy();
-    if (!this.canvas) return;
-    const ctx = this.canvas.nativeElement.getContext('2d');
-    if (!ctx) return;
+    if (this.total === 0) {
+      this.isEmpty.set(true);
+      return;
+    }
+    this.isEmpty.set(false);
+    setTimeout(() => {
+      if (!this.canvas) return;
+      const ctx = this.canvas.nativeElement.getContext('2d');
+      if (!ctx) return;
+      this.renderChart(ctx);
+    });
+  }
+
+  private renderChart(ctx: CanvasRenderingContext2D): void {
 
     const BORDER = '#E2E8F0';
     const MUTED  = '#94A3B8';

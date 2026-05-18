@@ -96,18 +96,27 @@
               <mat-label>Seuil faible</mat-label>
               <mat-icon matPrefix class="field-icon">arrow_downward</mat-icon>
               <input matInput type="number" formControlName="seuilFaible" />
+              <mat-error *ngIf="kpiForm.get('seuilFaible')?.hasError('min')">
+                Le seuil ne peut pas être négatif
+              </mat-error>
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Seuil modéré</mat-label>
               <mat-icon matPrefix class="field-icon">remove</mat-icon>
               <input matInput type="number" formControlName="seuilModere" />
+              <mat-error *ngIf="kpiForm.get('seuilModere')?.hasError('min')">
+                Le seuil ne peut pas être négatif
+              </mat-error>
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Seuil critique</mat-label>
               <mat-icon matPrefix class="field-icon">arrow_upward</mat-icon>
               <input matInput type="number" formControlName="seuilCritique" />
+              <mat-error *ngIf="kpiForm.get('seuilCritique')?.hasError('min')">
+                Le seuil ne peut pas être négatif
+              </mat-error>
             </mat-form-field>
           </div>
 

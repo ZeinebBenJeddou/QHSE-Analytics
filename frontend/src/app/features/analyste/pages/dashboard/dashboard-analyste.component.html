@@ -46,7 +46,18 @@
       </div>
     }
 
-   
+    @if (resume()?.messageErreurIa) {
+      <div class="ia-error-banner">
+        <mat-icon>warning_amber</mat-icon>
+        <span>{{ resume()!.messageErreurIa }}</span>
+        <button class="ia-retry-btn" (click)="runFullAnalysis()">
+          <mat-icon>refresh</mat-icon>
+          Réessayer l'analyse IA
+        </button>
+      </div>
+    }
+
+
     <div class="kpi-cards-row">
       @for (card of summaryCards; track card.label) {
         <div class="kpi-card"

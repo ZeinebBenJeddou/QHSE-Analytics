@@ -4,6 +4,8 @@ import com.QHSEAnalytics.auth.exception.UserNotFoundException;
 import com.QHSEAnalytics.auth.repository.UserRepository;
 import com.QHSEAnalytics.shared.dto.response.ExportResponse;
 import com.QHSEAnalytics.export.service.ExportService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ContentDisposition;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.nio.charset.StandardCharsets;
 
+@Tag(name = "Export", description = "Export PDF des rapports QHSE")
 @RestController
 @RequestMapping("/api/export")
 @RequiredArgsConstructor
@@ -29,6 +32,7 @@ public class ExportController {
     private final ExportService exportService;
     private final UserRepository userRepository;
 
+    @Operation(summary = "Télécharger le rapport PDF analyste", description = "Génère et télécharge le rapport PDF avec tableau comparatif et analyse IA")
     @GetMapping("/analyste/{importId}")
     @PreAuthorize("hasRole('ANALYSTE')")
     public ResponseEntity<byte[]> exportAnalyste(@PathVariable Long importId) {
@@ -36,6 +40,7 @@ public class ExportController {
         return buildPdfResponse(exportResponse);
     }
 
+    @Operation(summary = "Télécharger le rapport PDF global admin", description = "Rapport consolidé tous analystes")
     @GetMapping("/admin/global")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<byte[]> exportAdmin() {

@@ -65,11 +65,16 @@ public class DashboardAnalysteService {
                 .sorted(Comparator.comparing(ResumeCategorieResponse::getCategorieCode, Comparator.nullsLast(String::compareTo)))
                 .toList();
 
-        int critiques = (int) resultats.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.CRITIQUE).count();
-        int preEscalades = (int) resultats.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.PRE_ESCALADE).count();
-        int moderes = (int) resultats.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.MODERE).count();
-        int faibles = (int) resultats.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.FAIBLE).count();
-        int excellents = (int) resultats.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.EXCELLENT).count();
+        int critiques     = (int) resultats.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.CRITIQUE).count();
+        int preEscalades  = (int) resultats.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.PRE_ESCALADE).count();
+        int moderes       = (int) resultats.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.MODERE).count();
+        int faibles       = (int) resultats.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.FAIBLE).count();
+        int excellents    = (int) resultats.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.EXCELLENT).count();
+        int indetermines  = (int) resultats.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.INDETERMINE).count();
+
+        String messageErreurIa = session.getStatut() == ImportStatut.READY_FOR_AI
+                && session.getMessageErreur() != null && !session.getMessageErreur().isBlank()
+                ? session.getMessageErreur() : null;
 
         return ResumeAnalysteResponse.builder()
                 .dernierImportId(session.getId())
@@ -78,9 +83,13 @@ public class DashboardAnalysteService {
                 .dateAnalyse(session.getUpdatedAt())
                 .resumeCategories(resumeCategories)
                 .nombreTotalKpis(resultats.size())
-                .nombreTotalCritiques(critiques + preEscalades)
+                .nombreTotalCritiques(critiques)
+                .nombreTotalPreEscalades(preEscalades)
                 .nombreTotalModeres(moderes)
-                .nombreTotalFaibles(faibles + excellents)
+                .nombreTotalFaibles(faibles)
+                .nombreTotalExcellents(excellents)
+                .nombreTotalIndetermines(indetermines)
+                .messageErreurIa(messageErreurIa)
                 .build();
     }
 
@@ -154,13 +163,22 @@ public class DashboardAnalysteService {
 
         List<RadarPoint> radar = byCategorie.values().stream()
                 .map(list -> {
-                    long total = list.size();
-                    long critiques = list.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.CRITIQUE).count();
-
-                    double score = total == 0 ? 100d : (100d - (((double) critiques / (double) total) * 100d));
+                    List<ResultatKpi> real = list.stream()
+                            .filter(r -> r.getNiveauVariation() != null && r.getNiveauVariation() != NiveauVariation.INDETERMINE)
+                            .toList();
+                    double score;
+                    if (real.isEmpty()) {
+                        score = 50.0;
+                    } else {
+                        long critiques = real.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.CRITIQUE).count();
+                        long excellents = real.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.EXCELLENT).count();
+                        double realCount = real.size();
+                        score = 100d - ((double) critiques / realCount * 60d) + ((double) excellents / realCount * 20d);
+                        score = Math.min(100d, Math.max(0d, score));
+                    }
                     return RadarPoint.builder()
                             .categorie(safeCategorieLibelle(list.get(0)))
-                    .score(round1(Math.max(0d, score)))
+                            .score(round1(score))
                             .build();
                 })
                 .toList();

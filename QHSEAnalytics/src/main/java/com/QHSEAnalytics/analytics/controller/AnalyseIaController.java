@@ -8,6 +8,8 @@ import com.QHSEAnalytics.shared.dto.response.AnalyseCategorieResponse;
 import com.QHSEAnalytics.shared.dto.response.AnalyseCompleteResponse;
 import com.QHSEAnalytics.shared.dto.response.AnalyseGlobaleResponse;
 import com.QHSEAnalytics.analytics.service.AnalyseIaService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+@Tag(name = "Analyse IA", description = "Génération et consultation des analyses IA (Groq/Gemini)")
 @RestController
 @RequestMapping("/api/ia")
 @RequiredArgsConstructor
@@ -28,6 +31,7 @@ public class AnalyseIaController {
     private final AnalyseIaService analyseIaService;
     private final UserRepository userRepository;
 
+    @Operation(summary = "Analyse IA complète d'un import", description = "Synthèse, insights par KPI, causes probables, plan d'actions")
     @GetMapping("/{importId}")
     @PreAuthorize("hasAnyRole('ADMIN','ANALYSTE')")
     public ResponseEntity<AnalyseCompleteResponse> getAnalyseComplete(@PathVariable Long importId) {
@@ -49,6 +53,7 @@ public class AnalyseIaController {
         return ResponseEntity.ok(analyseIaService.getAnalyseGlobale(importId, user.getId(), isAdmin()));
     }
 
+    @Operation(summary = "Analyse IA structurée JSON", description = "Réponse complète avec confidence, rootCauseAnalysis, predictiveAlerts")
     @GetMapping("/{importId}/structured")
     @PreAuthorize("hasAnyRole('ADMIN','ANALYSTE')")
     public ResponseEntity<AiAnalysisStructuredResponse> getAnalyseStructured(@PathVariable Long importId) {
@@ -56,6 +61,7 @@ public class AnalyseIaController {
         return ResponseEntity.ok(analyseIaService.getAnalyseStructured(importId, user.getId(), isAdmin()));
     }
 
+    @Operation(summary = "Régénérer l'analyse IA", description = "Force une nouvelle analyse en bypassant le cache")
     @PostMapping("/{importId}/regenerer")
     @PreAuthorize("hasRole('ANALYSTE')")
     public ResponseEntity<AnalyseCompleteResponse> regenerer(@PathVariable Long importId) {

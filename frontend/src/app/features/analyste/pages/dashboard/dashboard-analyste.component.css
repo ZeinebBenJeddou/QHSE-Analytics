@@ -183,10 +183,61 @@ h1 {
   color: #5B21B6;
 }
 
+.ia-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #FFF7ED;
+  border: 1px solid #FDBA74;
+  border-radius: 8px;
+  padding: 12px 20px;
+  margin: 12px 24px;
+  color: #9A3412;
+  font-size: 0.875rem;
+}
+
+.ia-error-banner mat-icon {
+  color: #EA580C;
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.ia-error-banner span {
+  flex: 1;
+}
+
+.ia-retry-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #EA580C;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ia-retry-btn:hover {
+  background: #C2410C;
+}
+
+.ia-retry-btn mat-icon {
+  color: #fff;
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+
 
 .kpi-cards-row {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 12px;
   padding: 16px 0 0;
 }

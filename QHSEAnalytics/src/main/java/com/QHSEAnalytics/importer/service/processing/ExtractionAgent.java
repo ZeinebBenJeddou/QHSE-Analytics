@@ -322,7 +322,7 @@ public class ExtractionAgent {
     private int findHeaderRow(Sheet sheet, Map<String, Integer> mapping,
                                FormulaEvaluator evaluator, DataFormatter formatter) {
         int first = sheet.getFirstRowNum();
-        int last  = Math.min(first + 10, sheet.getLastRowNum());
+        int last  = Math.min(first + 50, sheet.getLastRowNum());
         for (int i = first; i <= last; i++) {
             Row row = sheet.getRow(i);
             if (row == null) continue;

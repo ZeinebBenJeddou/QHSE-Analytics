@@ -305,6 +305,21 @@ public class ImportProcessingService {
             log.info("[ImportProcessing] Données brutes et fichier supprimés après persistance (dual) — session {}",
                     processingSession.getId());
             finalSession = advanceStatus(calculatedSession, ImportStatut.READY_FOR_AI);
+
+            int totalKpis = calcToProcess.size();
+            int validKpis = results.size();
+            int rejectedKpis = totalKpis - validKpis;
+            int indetermines = (int) calcToProcess.stream()
+                    .filter(k -> "INDETERMINE".equals(k.getClassification()))
+                    .count();
+            if (rejectedKpis > 0 || indetermines > 0) {
+                String message = String.format(
+                        "Import dual terminé : %d KPIs traités, %d valides, %d INDETERMINE (absents d'un fichier).",
+                        totalKpis, validKpis, indetermines);
+                finalSession.setMessageErreur(message);
+                importSessionRepository.save(finalSession);
+                log.info("[ImportProcessing] Import dual partiel — session {} : {}", finalSession.getId(), message);
+            }
         }
 
         List<CategoryScoreDTO> categoryScores = calculationAgent.computeCategoryScores(calcToProcess);

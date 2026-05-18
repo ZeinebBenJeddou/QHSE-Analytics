@@ -53,14 +53,15 @@ public class ColumnProfileService {
             FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
 
 
-            int headerRowIndex = 0;
-            for (int i = 0; i <= Math.min(10, sheet.getLastRowNum()); i++) {
-                Row r = sheet.getRow(i);
-                if (r != null && ExcelParserUtil.countNonBlankCells(r, formatter, evaluator) >= 2) {
-                    headerRowIndex = i;
-                    break;
-                }
-            }
+            int headerRowIndex = HeaderDetectionUtil.detectHeaderRow(sheet, formatter, evaluator)
+                    .map(HeaderDetectionUtil.HeaderDetectionResult::getHeaderRowIndex)
+                    .orElseGet(() -> {
+                        for (int i = 0; i <= Math.min(50, sheet.getLastRowNum()); i++) {
+                            Row r = sheet.getRow(i);
+                            if (r != null && ExcelParserUtil.countNonBlankCells(r, formatter, evaluator) >= 2) return i;
+                        }
+                        return 0;
+                    });
 
             Row headerRow = sheet.getRow(headerRowIndex);
             if (headerRow == null) return List.of();

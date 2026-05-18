@@ -13,6 +13,8 @@ import com.QHSEAnalytics.importer.service.processing.ColumnProfileService;
 import com.QHSEAnalytics.importer.service.ImportProcessingService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +32,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.util.List;
 import java.util.Map;
 
+@Tag(name = "Import", description = "Gestion de l'import des données QHSE (Single File et Dual File)")
 @RestController
 @RequestMapping("/api/import/manual")
 @RequiredArgsConstructor
@@ -47,6 +50,7 @@ public class ImportProcessingController {
         return importProgressService.register(clientId);
     }
 
+    @Operation(summary = "Analyser les colonnes d'un fichier Excel", description = "Retourne le profil de chaque colonne (type, sémantique, statistiques)")
     @PostMapping(value = "/profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ANALYSTE')")
     public ResponseEntity<List<ColumnProfileDTO>> profileColumns(
@@ -55,6 +59,7 @@ public class ImportProcessingController {
         return ResponseEntity.ok(columnProfileService.profile(file));
     }
 
+    @Operation(summary = "Prévisualiser l'import sans persister", description = "Retourne le rapport qualité et les KPIs calculés sans sauvegarde")
     @PostMapping(value = "/preview", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ANALYSTE')")
     public ResponseEntity<ImportProcessingResponse> previewImport(
@@ -77,6 +82,7 @@ public class ImportProcessingController {
         return ResponseEntity.ok(importProcessingService.previewImport(request));
     }
 
+    @Operation(summary = "Confirmer et exécuter l'import", description = "Pipeline complet : extraction, calcul, classification, analyse IA")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ANALYSTE')")
     public ResponseEntity<ImportProcessingResponse> processManualImport(
@@ -105,6 +111,7 @@ public class ImportProcessingController {
         return ResponseEntity.ok(importProcessingService.processManualImport(request, user));
     }
 
+    @Operation(summary = "Prévisualiser un import dual", description = "Fusionne les deux fichiers et retourne la prévisualisation")
     @PostMapping(value = "/dual/preview", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ANALYSTE') or hasRole('ADMIN')")
     public ResponseEntity<ImportProcessingResponse> previewDualFile(
@@ -125,6 +132,7 @@ public class ImportProcessingController {
         );
     }
 
+    @Operation(summary = "Profiler deux fichiers séparés", description = "Retourne les colonnes de chaque fichier pour le mapping dual")
     @PostMapping(value = "/dual/profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ANALYSTE')")
     public ResponseEntity<DualFileProfileResponse> profileDualFiles(
@@ -138,6 +146,7 @@ public class ImportProcessingController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "Confirmer un import dual", description = "Import avec deux fichiers séparés (un par année)")
     @PostMapping(value = "/dual", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ANALYSTE')")
     public ResponseEntity<ImportProcessingResponse> importDualFile(

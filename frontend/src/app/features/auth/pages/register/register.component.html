@@ -88,7 +88,7 @@
           </button>
         </div>
         <span class="field-hint field-hint--error" *ngIf="password?.hasError('required') && password?.touched">Mot de passe requis</span>
-        <span class="field-hint field-hint--error" *ngIf="password?.hasError('minlength') && password?.touched">6 caractères minimum</span>
+        <span class="field-hint field-hint--error" *ngIf="password?.hasError('passwordStrength') && password?.touched">Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial (tout caractère non alphanumérique).</span>
       </div>
 
       <div class="field" [class.field--error]="(confirmPassword?.invalid && confirmPassword?.touched) || (passwordsMismatch && confirmPassword?.touched)">

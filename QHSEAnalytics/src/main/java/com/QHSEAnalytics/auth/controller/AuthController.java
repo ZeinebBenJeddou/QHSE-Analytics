@@ -9,6 +9,8 @@ import com.QHSEAnalytics.auth.dto.response.AuthResponse;
 import com.QHSEAnalytics.auth.dto.response.MessageResponse;
 import com.QHSEAnalytics.auth.service.AuthService;
 import com.QHSEAnalytics.auth.service.CookieTokenService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -18,6 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+@Tag(name = "Authentification", description = "Inscription, connexion OTP, refresh token, reset mot de passe")
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -26,6 +29,7 @@ public class AuthController {
     private final AuthService authService;
     private final CookieTokenService cookieTokenService;
 
+    @Operation(summary = "Inscription d'un nouvel analyste", description = "Crée un compte non vérifié et envoie un email de confirmation")
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
@@ -41,11 +45,13 @@ public class AuthController {
         return ResponseEntity.ok(authService.resendVerification(email));
     }
 
+    @Operation(summary = "Initier la connexion", description = "Vérifie les identifiants et envoie un OTP par email")
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
 
+    @Operation(summary = "Valider l'OTP et obtenir les tokens", description = "Vérifie l'OTP et retourne JWT + refresh token")
     @PostMapping("/verify-otp")
     public ResponseEntity<?> verifyOtp(@Valid @RequestBody VerifyOtpRequest request,
                                        HttpServletResponse response) {
@@ -60,6 +66,7 @@ public class AuthController {
         return ResponseEntity.ok(authService.resendOtp(email));
     }
 
+    @Operation(summary = "Renouveler le JWT", description = "Rotation du refresh token et émission d'un nouveau JWT")
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(HttpServletRequest request, HttpServletResponse response) {
         String refreshToken = cookieTokenService.extractFromCookie(request, "refresh_token");
@@ -73,11 +80,13 @@ public class AuthController {
         return ResponseEntity.ok(auth);
     }
 
+    @Operation(summary = "Demander un reset de mot de passe", description = "Envoie un lien de reset si l'email existe")
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgot(@Valid @RequestBody ForgotPasswordRequest request) {
         return ResponseEntity.ok(authService.forgotPassword(request));
     }
 
+    @Operation(summary = "Réinitialiser le mot de passe", description = "Valide le token de reset et met à jour le mot de passe")
     @PostMapping("/reset-password")
     public ResponseEntity<?> reset(@Valid @RequestBody ResetPasswordRequest request) {
         return ResponseEntity.ok(authService.resetPassword(request));

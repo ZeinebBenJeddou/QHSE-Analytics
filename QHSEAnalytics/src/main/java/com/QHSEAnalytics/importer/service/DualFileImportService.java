@@ -1,6 +1,7 @@
 package com.QHSEAnalytics.importer.service;
 
 import com.QHSEAnalytics.importer.service.processing.ExcelParserUtil;
+import com.QHSEAnalytics.importer.service.processing.HeaderDetectionUtil;
 import com.QHSEAnalytics.shared.dto.request.KpiRawDataDTO;
 import com.QHSEAnalytics.shared.dto.response.ImportIssue;
 import lombok.RequiredArgsConstructor;
@@ -112,7 +113,9 @@ public class DualFileImportService {
             DataFormatter formatter = new DataFormatter(Locale.ROOT);
             FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
 
-            int headerRow = detectHeaderRow(sheet, formatter, evaluator);
+            int headerRow = HeaderDetectionUtil.detectHeaderRow(sheet, formatter, evaluator)
+                    .map(HeaderDetectionUtil.HeaderDetectionResult::getHeaderRowIndex)
+                    .orElseGet(() -> detectHeaderRow(sheet, formatter, evaluator));
 
             for (int r = headerRow + 1; r <= sheet.getLastRowNum(); r++) {
                 Row row = sheet.getRow(r);
@@ -155,7 +158,7 @@ public class DualFileImportService {
     }
 
     private int detectHeaderRow(Sheet sheet, DataFormatter formatter, FormulaEvaluator evaluator) {
-        for (int i = 0; i <= Math.min(10, sheet.getLastRowNum()); i++) {
+        for (int i = 0; i <= Math.min(50, sheet.getLastRowNum()); i++) {
             Row r = sheet.getRow(i);
             if (r != null && ExcelParserUtil.countNonBlankCells(r, formatter, evaluator) >= 2) {
                 return i;

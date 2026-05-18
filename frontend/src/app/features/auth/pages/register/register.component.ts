@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CommonModule } from '@angular/common';
@@ -14,6 +14,18 @@ const passwordMatchValidator: ValidatorFn = (group): ValidationErrors | null => 
   const password = group.get('password')?.value;
   const confirmPassword = group.get('confirmPassword')?.value;
   return password && confirmPassword && password !== confirmPassword ? { passwordMismatch: true } : null;
+};
+
+const passwordStrengthValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
+  const value = control.value || '';
+  const hasUpper   = /[A-Z]/.test(value);
+  const hasLower   = /[a-z]/.test(value);
+  const hasDigit   = /\d/.test(value);
+  const hasSpecial = /[^A-Za-z\d]/.test(value);
+  const hasLength  = value.length >= 8;
+  return hasUpper && hasLower && hasDigit && hasSpecial && hasLength
+    ? null
+    : { passwordStrength: true };
 };
 
 @Component({
@@ -39,7 +51,7 @@ export class RegisterComponent {
       nom: ['', [Validators.required]],
       prenom: ['', [Validators.required]],
       email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(6)]],
+      password: ['', [Validators.required, passwordStrengthValidator]],
       confirmPassword: ['', [Validators.required]]
     },
     { validators: passwordMatchValidator }

@@ -31,7 +31,7 @@ public final class HeaderDetectionUtil {
         }
 
         int firstRow = sheet.getFirstRowNum();
-        int lastRow = Math.min(firstRow + 15, sheet.getLastRowNum());
+        int lastRow = Math.min(firstRow + 50, sheet.getLastRowNum());
         HeaderDetectionResult fallback = null;
 
         for (int rowIndex = firstRow; rowIndex <= lastRow; rowIndex++) {
@@ -59,7 +59,7 @@ public final class HeaderDetectionUtil {
         }
 
         int firstRow = sheet.getFirstRowNum();
-        int lastRow = Math.min(firstRow + 15, sheet.getLastRowNum());
+        int lastRow = Math.min(firstRow + 50, sheet.getLastRowNum());
 
         for (int rowIndex = firstRow; rowIndex <= lastRow; rowIndex++) {
             Row row = sheet.getRow(rowIndex);
