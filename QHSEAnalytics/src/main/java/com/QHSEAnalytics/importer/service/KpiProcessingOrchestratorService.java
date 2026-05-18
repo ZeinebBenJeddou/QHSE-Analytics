@@ -96,6 +96,58 @@ public class KpiProcessingOrchestratorService {
     }
 
 
+    /**
+     * Dual-file path: rawData already merged by DualFileImportService.
+     * Skips ExtractionAgent and injects directly into the cleaning → calculation pipeline.
+     */
+    public ImportProcessingResponse processFromRawData(List<KpiRawDataDTO> mergedRaw, boolean allowPartialImport) {
+        List<KpiRawDataDTO> rawData = cleaningAgent.clean(mergedRaw);
+
+        ImportQualityReport qualityReport = qualityReportBuilder.build(rawData, allowPartialImport);
+        qualityReport.setExtractionIssues(List.of());
+
+        List<KpiCalculatedDTO> calculatedData = calculationAgent.calculate(rawData);
+        List<KpiCalculatedDTO> enrichedData   = enrichmentAgent.enrich(calculatedData);
+        enrichedData = metadataEnrichmentAgent.enrichMetadata(enrichedData);
+
+        RiskDetectionAgent.RiskAnalysisResult riskAnalysis = riskDetectionAgent.detect(enrichedData);
+        List<KpiCalculatedDTO> criticalRisks = riskAnalysis.getCriticalKpis();
+        Integer riskScore = riskAnalysis.getRiskScore();
+
+        ChartResponseDTO charts = visualizationAgent.build(enrichedData);
+
+        String analyseIa = null;
+        com.QHSEAnalytics.shared.dto.llm.AiResponse aiResponse = null;
+        try {
+            List<KpiCalculatedDTO> validKpis = enrichedData.stream()
+                    .filter(k -> !"UNKNOWN".equals(k.getClassification()))
+                    .toList();
+            if (!validKpis.isEmpty()) {
+                aiResponse = analysisAgent.analyzeStrict(validKpis);
+                if (aiResponse != null) {
+                    analyseIa = aiResponse.getSummary();
+                }
+            }
+        } catch (Exception ex) {
+            analyseIa = "Analyse IA temporairement indisponible.";
+            log.error("[Orchestrator/Dual] Exception AnalysisAgent : {}", ex.getMessage(), ex);
+        }
+
+        return ImportProcessingResponse.builder()
+                .rawData(rawData)
+                .calculatedData(enrichedData)
+                .extractionMethod("DUAL_FILE")
+                .qualityScore(qualityReport.getQualityScore())
+                .detectedHeaders(List.of())
+                .charts(charts)
+                .analyseIa(analyseIa)
+                .aiResponse(aiResponse)
+                .risks(criticalRisks)
+                .riskScore(riskScore)
+                .qualityReport(qualityReport)
+                .build();
+    }
+
     public ImportProcessingResponse preview(MultipartFile file, Map<String, Integer> mapping) {
         ExtractionAgent.ExtractionResult result = extractionAgent.extract(file, mapping);
         List<KpiRawDataDTO> rawData = cleaningAgent.clean(result.getRows());

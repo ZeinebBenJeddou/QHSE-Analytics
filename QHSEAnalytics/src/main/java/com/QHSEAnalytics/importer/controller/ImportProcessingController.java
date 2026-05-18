@@ -5,6 +5,7 @@ import com.QHSEAnalytics.auth.exception.UserNotFoundException;
 import com.QHSEAnalytics.auth.repository.UserRepository;
 import com.QHSEAnalytics.shared.dto.request.ImportRequestDTO;
 import com.QHSEAnalytics.shared.dto.response.ColumnProfileDTO;
+import com.QHSEAnalytics.shared.dto.response.DualFileProfileResponse;
 import com.QHSEAnalytics.shared.dto.response.ImportProcessingResponse;
 import com.QHSEAnalytics.shared.exception.ImportValidationException;
 import com.QHSEAnalytics.importer.service.ImportProgressService;
@@ -102,6 +103,42 @@ public class ImportProcessingController {
                 .clientId(clientId)
                 .build();
         return ResponseEntity.ok(importProcessingService.processManualImport(request, user));
+    }
+
+    @PostMapping(value = "/dual/profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ANALYSTE')")
+    public ResponseEntity<DualFileProfileResponse> profileDualFiles(
+            @RequestPart("fileN1") MultipartFile fileN1,
+            @RequestPart("fileN")  MultipartFile fileN
+    ) {
+        DualFileProfileResponse response = DualFileProfileResponse.builder()
+                .columnsN1(columnProfileService.profile(fileN1))
+                .columnsN(columnProfileService.profile(fileN))
+                .build();
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping(value = "/dual", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ANALYSTE')")
+    public ResponseEntity<ImportProcessingResponse> importDualFile(
+            @RequestPart("fileN1")  MultipartFile fileN1,
+            @RequestPart("fileN")   MultipartFile fileN,
+            @RequestParam("yearN1") int yearN1,
+            @RequestParam("yearN")  int yearN,
+            @RequestParam("kpiColN1") int kpiColN1,
+            @RequestParam("valColN1") int valColN1,
+            @RequestParam("kpiColN")  int kpiColN,
+            @RequestParam("valColN")  int valColN,
+            @RequestParam(value = "allowPartial", defaultValue = "false") boolean allowPartial
+    ) {
+        validateYearRange(yearN, yearN1);
+        Map<String, Integer> mappingN1 = Map.of("kpiNameIndex", kpiColN1, "valueIndex", valColN1);
+        Map<String, Integer> mappingN  = Map.of("kpiNameIndex", kpiColN,  "valueIndex", valColN);
+        User user = getCurrentUser();
+        return ResponseEntity.ok(
+                importProcessingService.processDualFileImport(
+                        fileN1, fileN, yearN1, yearN, mappingN1, mappingN, allowPartial, user)
+        );
     }
 
     private Map<String, Integer> parseMapping(String mappingJson) {

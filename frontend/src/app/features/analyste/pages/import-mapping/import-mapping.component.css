@@ -1203,3 +1203,48 @@ h1 {
   padding: 1px 6px;
   border-radius: 4px;
 }
+
+/* ── Dual-file mapping ── */
+.dual-mapping {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+.mapping-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding-left: 16px;
+}
+.mapping-section.n1-section { border-left: 4px solid #7c3aed; }
+.mapping-section.n-section  { border-left: 4px solid var(--blue); }
+
+.dual-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 4px;
+  font-family: var(--font);
+  flex-wrap: wrap;
+}
+.dual-section-title mat-icon { font-size: 18px; width: 18px; height: 18px; }
+.n1-title { color: #7c3aed; }
+.n-title  { color: var(--blue); }
+.dual-file-name {
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  font-weight: 400;
+  color: var(--ink-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  word-break: break-all;
+}
+
+@media (max-width: 860px) {
+  .dual-mapping { grid-template-columns: 1fr; }
+}

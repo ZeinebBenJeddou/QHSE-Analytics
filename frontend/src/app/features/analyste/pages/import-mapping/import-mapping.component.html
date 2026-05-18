@@ -40,6 +40,97 @@
     </div>
   </div>
 
+  <!-- ═══════════════ MODE DUAL ═══════════════ -->
+  <div *ngIf="isDualMode()">
+    <div class="panel">
+      <div class="panel-inline-header">
+        <div class="panel-icon-wrap"><mat-icon>file_copy</mat-icon></div>
+        <div>
+          <div class="panel-title-text">Mapping dual — 2 fichiers</div>
+          <div class="panel-subtitle-text">Associez les colonnes de chaque fichier séparément</div>
+        </div>
+      </div>
+      <div class="panel-divider"></div>
+
+      <div class="dual-mapping" style="margin-top: 20px;">
+
+        <!-- Fichier N-1 -->
+        <div class="mapping-section n1-section">
+          <h3 class="dual-section-title n1-title">
+            <mat-icon>history</mat-icon>
+            Fichier N-1 ({{ dualState()?.yearNMinus1 }})
+            <span class="dual-file-name">{{ dualState()?.fileN1?.name }}</span>
+          </h3>
+
+          <mat-form-field appearance="outline" style="width:100%;margin-top:12px;">
+            <mat-label>Colonne Nom du KPI</mat-label>
+            <mat-select [value]="kpiColN1()" (selectionChange)="kpiColN1.set($event.value)">
+              <mat-option *ngFor="let col of columnsN1()" [value]="col.columnIndex">
+                {{ col.columnIndex }} — {{ col.detectedHeader }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" style="width:100%;">
+            <mat-label>Colonne Valeur N-1</mat-label>
+            <mat-select [value]="valColN1()" (selectionChange)="valColN1.set($event.value)">
+              <mat-option *ngFor="let col of columnsN1()" [value]="col.columnIndex">
+                {{ col.columnIndex }} — {{ col.detectedHeader }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <!-- Fichier N -->
+        <div class="mapping-section n-section">
+          <h3 class="dual-section-title n-title">
+            <mat-icon>trending_up</mat-icon>
+            Fichier N ({{ dualState()?.yearN }})
+            <span class="dual-file-name">{{ dualState()?.fileN?.name }}</span>
+          </h3>
+
+          <mat-form-field appearance="outline" style="width:100%;margin-top:12px;">
+            <mat-label>Colonne Nom du KPI</mat-label>
+            <mat-select [value]="kpiColN()" (selectionChange)="kpiColN.set($event.value)">
+              <mat-option *ngFor="let col of columnsN()" [value]="col.columnIndex">
+                {{ col.columnIndex }} — {{ col.detectedHeader }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" style="width:100%;">
+            <mat-label>Colonne Valeur N</mat-label>
+            <mat-select [value]="valColN()" (selectionChange)="valColN.set($event.value)">
+              <mat-option *ngFor="let col of columnsN()" [value]="col.columnIndex">
+                {{ col.columnIndex }} — {{ col.detectedHeader }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <div class="error-msg" *ngIf="errorMsg()" style="margin-top:12px;">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ errorMsg() }}</span>
+      </div>
+
+      <div *ngIf="processing()" style="margin-top:16px;">
+        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+      </div>
+
+      <div style="margin-top: 20px; display:flex; gap:12px; flex-wrap:wrap;">
+        <button mat-flat-button class="confirm-btn"
+                [disabled]="!canConfirmDual() || processing()"
+                (click)="confirmerImportDual()">
+          <mat-icon>check_circle</mat-icon>
+          {{ processing() ? 'Traitement…' : 'Générer la prévisualisation →' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ MODE SINGLE (existant inchangé) ═══════════════ -->
+  <div *ngIf="!isDualMode()">
   <div class="panel">
 
     <div class="panel-inline-header">
@@ -695,5 +786,7 @@
       </button>
     </mat-card-actions>
   </mat-card>
+
+  </div> <!-- end *ngIf="!isDualMode()" -->
 
 </div>

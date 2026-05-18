@@ -42,7 +42,15 @@ export class ImportComponent implements OnInit, AfterViewInit, OnDestroy {
 
   readonly tableColumns = ['kpi', 'categorieCode', 'valeurN1', 'valeurN', 'variationPercentage', 'classification', 'seuilFaible', 'seuilCritique'];
 
+  importMode = signal<'SINGLE' | 'DUAL'>('SINGLE');
+
+  // SINGLE mode
   selectedFile = signal<File | null>(null);
+
+  // DUAL mode
+  fileN1 = signal<File | null>(null);
+  fileN  = signal<File | null>(null);
+
   yearN = signal<number | null>(null);
   yearNMinus1 = signal<number | null>(null);
   yearError = signal('');
@@ -232,11 +240,82 @@ export class ImportComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  setMode(mode: 'SINGLE' | 'DUAL') {
+    this.importMode.set(mode);
+    this.fileN1.set(null);
+    this.fileN.set(null);
+    this.selectedFile.set(null);
+    this.errorMsg.set('');
+    this.result.set(null);
+    this.uploadState.clearUpload();
+    this.uploadState.clearDualState();
+    this.uploadState.clearResponse();
+    this.destroyCharts();
+  }
+
+  onFileN1Selected(event: Event) {
+    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
+    if (!file) return;
+    if (!file.name.toLowerCase().match(/\.xlsx?$/)) {
+      this.snackBar.open('Seuls les fichiers Excel .xlsx et .xls sont acceptés.', 'OK', { duration: 4000 });
+      return;
+    }
+    this.fileN1.set(file);
+    this.errorMsg.set('');
+  }
+
+  onFileNSelected(event: Event) {
+    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
+    if (!file) return;
+    if (!file.name.toLowerCase().match(/\.xlsx?$/)) {
+      this.snackBar.open('Seuls les fichiers Excel .xlsx et .xls sont acceptés.', 'OK', { duration: 4000 });
+      return;
+    }
+    this.fileN.set(file);
+    this.errorMsg.set('');
+  }
+
+  canContinueDual(): boolean {
+    return this.fileN1() !== null
+      && this.fileN() !== null
+      && this.yearN() !== null
+      && this.yearNMinus1() !== null
+      && this.yearNMinus1() === this.yearN()! - 1;
+  }
+
+  async continuerVersMappingDual() {
+    if (!this.canContinueDual()) return;
+    this.isSubmitting.set(true);
+    this.errorMsg.set('');
+    try {
+      const profile = await firstValueFrom(
+        this.importService.profileDualFiles(this.fileN1()!, this.fileN()!)
+      );
+      this.uploadState.saveDualState({
+        fileN1: this.fileN1()!,
+        fileN: this.fileN()!,
+        yearN: this.yearN()!,
+        yearNMinus1: this.yearNMinus1()!,
+        columnsN1: profile.columnsN1,
+        columnsN: profile.columnsN,
+      });
+      this.router.navigate(['/analyste/import/mapping'], { queryParams: { mode: 'DUAL' } });
+    } catch (error: any) {
+      this.errorMsg.set(error?.error?.message ?? 'Erreur lors du profilage des fichiers.');
+      this.snackBar.open(this.errorMsg(), 'OK', { duration: 5000 });
+    } finally {
+      this.isSubmitting.set(false);
+    }
+  }
+
   clear() {
     this.selectedFile.set(null);
+    this.fileN1.set(null);
+    this.fileN.set(null);
     this.result.set(null);
     this.errorMsg.set('');
     this.uploadState.clearUpload();
+    this.uploadState.clearDualState();
     this.uploadState.clearResponse();
     this.destroyCharts();
   }

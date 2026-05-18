@@ -50,6 +50,7 @@ import java.util.stream.Collectors;
 public class ImportProcessingService {
 
     private final KpiProcessingOrchestratorService orchestrator;
+    private final DualFileImportService dualFileImportService;
     private final CalculationAgent calculationAgent;
     private final ImportSessionRepository importSessionRepository;
     private final ResultatKpiRepository resultatKpiRepository;
@@ -206,9 +207,133 @@ public class ImportProcessingService {
                 .build();
     }
 
+    @Transactional
+    public ImportProcessingResponse processDualFileImport(
+            MultipartFile fileN1,
+            MultipartFile fileN,
+            int anneeN1,
+            int anneeN,
+            Map<String, Integer> mappingN1,
+            Map<String, Integer> mappingN,
+            boolean allowPartialImport,
+            User user
+    ) {
+        validateYearInputs(anneeN, anneeN1);
+
+        DualFileImportService.MergeResult merged = dualFileImportService.mergeFiles(
+                fileN1, fileN, anneeN1, anneeN, mappingN1, mappingN);
+
+        ImportSession session = buildImportSessionDual(fileN1, fileN, user, anneeN, anneeN1);
+        ImportSession initialSession = importSessionRepository.save(session);
+        ImportSession processingSession = advanceStatus(initialSession, ImportStatut.processing());
+
+        ImportProcessingResponse processingResponse =
+                orchestrator.processFromRawData(merged.getRows(), allowPartialImport);
+        ImportQualityReport qualityReport = processingResponse.getQualityReport();
+
+        if (qualityReport != null && qualityReport.isBlocking()) {
+            ImportSession erreurSession = advanceStatus(processingSession, ImportStatut.ERREUR);
+            String reason = qualityReport.getBlockingReason() != null
+                    ? qualityReport.getBlockingReason()
+                    : "Import dual refusé : des erreurs bloquantes ont été détectées.";
+            erreurSession.setMessageErreur(reason);
+            importSessionRepository.save(erreurSession);
+            return ImportProcessingResponse.builder()
+                    .importSessionId(erreurSession.getId())
+                    .rawData(processingResponse.getRawData())
+                    .calculatedData(processingResponse.getCalculatedData())
+                    .extractionMethod("DUAL_FILE")
+                    .qualityScore(qualityReport.getQualityScore())
+                    .qualityReport(qualityReport)
+                    .build();
+        }
+
+        List<com.QHSEAnalytics.shared.dto.request.KpiRawDataDTO> rawToProcess = processingResponse.getRawData();
+        List<com.QHSEAnalytics.shared.dto.response.KpiCalculatedDTO> calcToProcess = processingResponse.getCalculatedData();
+
+        if (allowPartialImport && qualityReport != null && qualityReport.isSoftBlocking()) {
+            java.util.Set<Integer> rejectedIndexes = qualityReport.getRejectedRowIndexes() == null
+                    ? java.util.Collections.emptySet()
+                    : new java.util.HashSet<>(qualityReport.getRejectedRowIndexes());
+            rawToProcess = processingResponse.getRawData() == null ? List.of() :
+                    processingResponse.getRawData().stream()
+                            .filter(r -> r.isValid() && !rejectedIndexes.contains(r.getRowIndex()))
+                            .collect(Collectors.toList());
+            if (calcToProcess != null && !calcToProcess.isEmpty()) {
+                java.util.Set<String> validKpiNames = rawToProcess.stream()
+                        .map(com.QHSEAnalytics.shared.dto.request.KpiRawDataDTO::getKpiName)
+                        .filter(Objects::nonNull).collect(java.util.stream.Collectors.toSet());
+                calcToProcess = calcToProcess.stream()
+                        .filter(k -> validKpiNames.contains(k.getKpiName()))
+                        .collect(Collectors.toList());
+            }
+        }
+
+        persistRawRows(processingSession, rawToProcess);
+        persistPreviewRows(processingSession, calcToProcess);
+
+        List<Long> matchedIds = calcToProcess.stream()
+                .map(KpiCalculatedDTO::getMatchedKpiId)
+                .filter(Objects::nonNull).distinct().collect(Collectors.toList());
+        Map<Long, Kpi> kpiCache = kpiRepository.findAllById(matchedIds)
+                .stream().collect(Collectors.toMap(Kpi::getId, k -> k));
+
+        List<ResultatKpi> results = calcToProcess.stream()
+                .map(dto -> mapToResultatKpi(dto, processingSession, user, kpiCache))
+                .filter(Objects::nonNull).collect(Collectors.toList());
+
+        ImportSession finalSession;
+        if (results.isEmpty()) {
+            finalSession = advanceStatus(processingSession, ImportStatut.ERREUR);
+            finalSession.setMessageErreur("Aucun KPI valide n'a pu être traité.");
+            importSessionRepository.save(finalSession);
+        } else {
+            ImportSession calculatedSession = advanceStatus(processingSession, ImportStatut.CALCULATED);
+            resultatKpiRepository.saveAll(results);
+            if (processingResponse.getAiResponse() != null && processingResponse.getAiResponse().getKpis() != null) {
+                persistKpiAnalysis(processingSession, processingResponse.getAiResponse(), calcToProcess);
+            }
+            finalSession = advanceStatus(calculatedSession, ImportStatut.READY_FOR_AI);
+        }
+
+        List<CategoryScoreDTO> categoryScores = calculationAgent.computeCategoryScores(calcToProcess);
+
+        return ImportProcessingResponse.builder()
+                .importSessionId(finalSession.getId())
+                .calculatedData(calcToProcess)
+                .rawData(rawToProcess)
+                .extractionMethod("DUAL_FILE")
+                .qualityScore(processingResponse.getQualityScore())
+                .detectedHeaders(List.of())
+                .charts(processingResponse.getCharts())
+                .analyseIa(processingResponse.getAnalyseIa())
+                .qualityReport(qualityReport)
+                .categoryScores(categoryScores)
+                .build();
+    }
+
     public ImportProcessingResponse previewImport(ImportRequestDTO request) {
         validateYearInputs(request.getYearN(), request.getYearN1());
         return orchestrator.preview(request.getFile(), request.getMappingIndexes());
+    }
+
+    private ImportSession buildImportSessionDual(MultipartFile fileN1, MultipartFile fileN, User user, int yearN, int yearNMinus1) {
+        String combinedName = fileN.getOriginalFilename() + " + " + fileN1.getOriginalFilename();
+        FileStorageService.StoredFile stored = fileStorageService.store(fileN, user.getId(), yearN);
+        return ImportSession.builder()
+                .user(user)
+                .mode(ImportMode.MANUAL)
+                .nomFichier(combinedName)
+                .templateVersion(null)
+                .fileStoragePath(stored.path())
+                .fileStorageBucket(stored.bucket())
+                .fileSizeBytes(stored.sizeBytes())
+                .fileChecksum(stored.checksum())
+                .periodeN1(yearNMinus1)
+                .periodeN(yearN)
+                .statut(ImportStatut.initial())
+                .messageErreur(null)
+                .build();
     }
 
     private ImportSession buildImportSession(MultipartFile file, User user, int yearN, int yearNMinus1) {

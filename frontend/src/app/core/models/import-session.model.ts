@@ -163,6 +163,11 @@ export interface ImportQualityReport {
 }
 
 
+export interface DualFileProfileResponse {
+  columnsN1: ColumnProfileDTO[];
+  columnsN: ColumnProfileDTO[];
+}
+
 export interface ImportProcessingResponse {
   importSessionId?: number;
   calculatedData?: KpiCalculatedDTO[];

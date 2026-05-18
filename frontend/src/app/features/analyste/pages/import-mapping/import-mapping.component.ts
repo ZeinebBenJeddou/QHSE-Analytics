@@ -1,6 +1,6 @@
 import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -25,6 +25,7 @@ import {
   KpiCalculatedDTO,
   RejectedReasonSummary,
 } from '../../../../core/models/import-session.model';
+import { DualFileState } from '../../../../core/services/import-upload-state.service';
 
 @Component({
   selector: 'app-import-mapping',
@@ -49,9 +50,20 @@ import {
 })
 export class ImportMappingComponent implements OnInit, OnDestroy {
   private router = inject(Router);
+  private route  = inject(ActivatedRoute);
   private importService = inject(ImportService);
   private uploadState = inject(ImportUploadStateService);
   private snackBar = inject(MatSnackBar);
+
+  // DUAL mode state
+  isDualMode   = signal(false);
+  dualState    = signal<DualFileState | null>(null);
+  columnsN1    = signal<ColumnProfileDTO[]>([]);
+  columnsN     = signal<ColumnProfileDTO[]>([]);
+  kpiColN1     = signal<number | null>(null);
+  valColN1     = signal<number | null>(null);
+  kpiColN      = signal<number | null>(null);
+  valColN      = signal<number | null>(null);
 
   uploadStateData = signal<{ file: File; yearN: number; yearNMinus1: number; headers: string[]; detectedHeaders?: string[] } | null>(null);
 
@@ -159,12 +171,21 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    const mode = this.route.snapshot.queryParamMap.get('mode');
+    if (mode === 'DUAL') {
+      const dual = this.uploadState.getDualState();
+      if (!dual) { this.router.navigate(['/analyste/import']); return; }
+      this.isDualMode.set(true);
+      this.dualState.set(dual);
+      this.columnsN1.set(dual.columnsN1 ?? []);
+      this.columnsN.set(dual.columnsN ?? []);
+      return;
+    }
+
     const state = this.uploadState.getUpload();
     if (!state) { this.router.navigate(['/analyste/import']); return; }
     this.uploadStateData.set(state);
-    
     this.restoreMapping(state.headers);
-    
     this.loadColumnProfiles(state.file);
   }
 
@@ -471,6 +492,48 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
     if (!items.length) return 'Aucune ligne détectée.';
     const invalid = items.filter(r => !r.valid).length;
     return `${invalid} ligne(s) invalide(s) sur ${items.length} (${Math.round((invalid / items.length) * 100)}%)`;
+  }
+
+  canConfirmDual(): boolean {
+    return this.kpiColN1() !== null
+      && this.valColN1() !== null
+      && this.kpiColN()  !== null
+      && this.valColN()  !== null;
+  }
+
+  async confirmerImportDual() {
+    if (!this.canConfirmDual()) return;
+    const dual = this.dualState();
+    if (!dual) return;
+
+    this.processing.set(true);
+    this.errorMsg.set('');
+
+    try {
+      const response = await firstValueFrom(
+        this.importService.importDualFiles(
+          dual.fileN1, dual.fileN,
+          dual.yearNMinus1, dual.yearN,
+          this.kpiColN1()!, this.valColN1()!,
+          this.kpiColN()!,  this.valColN()!,
+          false
+        )
+      );
+      this.result.set(response);
+      this.uploadState.saveResponse(response);
+      this.snackBar.open('Import dual confirmé avec succès.', 'OK', { duration: 3000 });
+      const sessionId = response.importSessionId;
+      if (sessionId) {
+        this.router.navigate(['/analyste/dashboard', sessionId]);
+      } else {
+        this.router.navigate(['/analyste/dashboard']);
+      }
+    } catch (err: any) {
+      this.errorMsg.set(err?.error?.message ?? 'Erreur lors de l\'import dual.');
+      this.snackBar.open(this.errorMsg(), 'OK', { duration: 5000 });
+    } finally {
+      this.processing.set(false);
+    }
   }
 
   goBack() { this.router.navigate(['/analyste/import']); }

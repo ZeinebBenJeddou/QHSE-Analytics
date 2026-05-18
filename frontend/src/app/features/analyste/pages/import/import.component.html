@@ -1,6 +1,5 @@
 <div class="import-page">
 
- 
   <div class="header-row">
     <div class="header-left">
       <div class="header-icon-wrap">
@@ -17,7 +16,6 @@
     </button>
   </div>
 
-  
   <div class="stepper-card">
     <div class="step active">
       <span class="step-number">1</span>
@@ -37,74 +35,140 @@
       <span class="step-number">3</span>
       <div>
         <div class="step-title">Traitement</div>
-        
       </div>
     </div>
   </div>
 
- 
-  <div class="panel">
-    <div class="upload-card">
-      <div class="upload-info">
-        <input #fileInput type="file" accept=".xlsx,.xls" hidden (change)="onFileSelected($event)" />
-        <button mat-flat-button class="select-file-btn" (click)="fileInput.click()">
-          <mat-icon>upload_file</mat-icon>
-          Sélectionner un fichier
+  <!-- Sélecteur de mode -->
+  <div class="mode-selector">
+    <button [class.active]="importMode() === 'SINGLE'" (click)="setMode('SINGLE')">
+      <mat-icon>description</mat-icon>
+      1 fichier — 2 colonnes
+    </button>
+    <button [class.active]="importMode() === 'DUAL'" (click)="setMode('DUAL')">
+      <mat-icon>file_copy</mat-icon>
+      2 fichiers séparés
+    </button>
+  </div>
+
+  <!-- MODE SINGLE — existant inchangé -->
+  <div *ngIf="importMode() === 'SINGLE'">
+    <div class="panel">
+      <div class="upload-card">
+        <div class="upload-info">
+          <input #fileInput type="file" accept=".xlsx,.xls" hidden (change)="onFileSelected($event)" />
+          <button mat-flat-button class="select-file-btn" (click)="fileInput.click()">
+            <mat-icon>upload_file</mat-icon>
+            Sélectionner un fichier
+          </button>
+
+          <div class="year-fields">
+            <mat-form-field appearance="outline">
+              <mat-label>Année N</mat-label>
+              <input matInput type="number" min="1900" max="2100" placeholder="2024"
+                     [value]="yearN() ?? ''"
+                     (input)="onYearNChange($any($event.target).value)" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Année N-1</mat-label>
+              <input matInput type="number" min="1900" max="2100" placeholder="2023"
+                     [value]="yearNMinus1() ?? ''"
+                     (input)="onYearNMinus1Change($any($event.target).value)" />
+            </mat-form-field>
+          </div>
+
+          <div class="required-columns">
+            <p>Champs obligatoires : Nom du KPI, Valeur N, Valeur N-1.</p>
+            <p>Les colonnes supplémentaires seront ignorées.</p>
+          </div>
+
+          <div class="year-error" *ngIf="yearError()">
+            <mat-icon>error_outline</mat-icon>
+            <span>{{ yearError() }}</span>
+          </div>
+
+          <div class="file-details" *ngIf="selectedFile()">
+            <div><strong>Fichier :</strong> {{ fileName }}</div>
+            <div><strong>Taille :</strong> {{ fileSize }}</div>
+          </div>
+        </div>
+
+        <button mat-flat-button class="continue-btn"
+                [disabled]="isUploadDisabled"
+                (click)="continueToMapping()">
+          <mat-icon>arrow_forward</mat-icon>
+          {{ isSubmitting() ? 'Lecture…' : 'Continuer vers le mapping' }}
         </button>
-
-        <div class="year-fields">
-          <mat-form-field appearance="outline">
-            <mat-label>Année N</mat-label>
-            <input matInput type="number" min="1900" max="2100" placeholder="2024"
-                   [value]="yearN() ?? ''"
-                   (input)="onYearNChange($any($event.target).value)" />
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>Année N-1</mat-label>
-            <input matInput type="number" min="1900" max="2100" placeholder="2023"
-                   [value]="yearNMinus1() ?? ''"
-                   (input)="onYearNMinus1Change($any($event.target).value)" />
-          </mat-form-field>
-        </div>
-
-        <div class="required-columns">
-          <p>Champs obligatoires : Nom du KPI, Valeur N, Valeur N-1.</p>
-          <p>Les colonnes supplémentaires seront ignorées .</p>
-        </div>
-
-        <div class="year-error" *ngIf="yearError()">
-          <mat-icon>error_outline</mat-icon>
-          <span>{{ yearError() }}</span>
-        </div>
-
-        <div class="file-details" *ngIf="selectedFile()">
-          <div><strong>Fichier :</strong> {{ fileName }}</div>
-          <div><strong>Taille :</strong> {{ fileSize }}</div>
-        </div>
       </div>
 
-      <button mat-flat-button class="continue-btn"
-              [disabled]="isUploadDisabled"
-              (click)="continueToMapping()">
-        <mat-icon>arrow_forward</mat-icon>
-        {{ isSubmitting() ? 'Lecture…' : 'Continuer vers le mapping' }}
-      </button>
-    </div>
-
-    <div class="error-banner" *ngIf="errorMsg()">
-      <mat-icon>error_outline</mat-icon>
-      <span>{{ errorMsg() }}</span>
+      <div class="error-banner" *ngIf="errorMsg()">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ errorMsg() }}</span>
+      </div>
     </div>
   </div>
 
-  
-  
+  <!-- MODE DUAL — nouveau -->
+  <div *ngIf="importMode() === 'DUAL'">
+    <div class="panel">
+      <div class="dual-upload">
+        <div class="file-zone n1-zone">
+          <input #fileN1Input type="file" accept=".xlsx,.xls" hidden (change)="onFileN1Selected($event)" />
+          <label>Fichier Année N-1</label>
+          <button mat-flat-button class="select-file-btn n1-btn" (click)="fileN1Input.click()">
+            <mat-icon>upload_file</mat-icon>
+            Sélectionner
+          </button>
+          <span class="file-name-badge" *ngIf="fileN1()">{{ fileN1()!.name }}</span>
+        </div>
 
-    
-  
+        <div class="file-zone n-zone">
+          <input #fileNInput type="file" accept=".xlsx,.xls" hidden (change)="onFileNSelected($event)" />
+          <label>Fichier Année N</label>
+          <button mat-flat-button class="select-file-btn n-btn" (click)="fileNInput.click()">
+            <mat-icon>upload_file</mat-icon>
+            Sélectionner
+          </button>
+          <span class="file-name-badge" *ngIf="fileN()">{{ fileN()!.name }}</span>
+        </div>
+      </div>
 
-   
+      <div class="year-fields" style="margin-top: 16px;">
+        <mat-form-field appearance="outline">
+          <mat-label>Année N</mat-label>
+          <input matInput type="number" min="1900" max="2100" placeholder="2024"
+                 [value]="yearN() ?? ''"
+                 (input)="onYearNChange($any($event.target).value)" />
+        </mat-form-field>
 
- 
+        <mat-form-field appearance="outline">
+          <mat-label>Année N-1</mat-label>
+          <input matInput type="number" min="1900" max="2100" placeholder="2023"
+                 [value]="yearNMinus1() ?? ''"
+                 (input)="onYearNMinus1Change($any($event.target).value)" />
+        </mat-form-field>
+      </div>
+
+      <div class="year-error" *ngIf="yearError()">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ yearError() }}</span>
+      </div>
+
+      <div style="margin-top: 16px;">
+        <button mat-flat-button class="continue-btn"
+                [disabled]="!canContinueDual() || isSubmitting()"
+                (click)="continuerVersMappingDual()">
+          <mat-icon>arrow_forward</mat-icon>
+          {{ isSubmitting() ? 'Profilage…' : 'Continuer vers le mapping →' }}
+        </button>
+      </div>
+
+      <div class="error-banner" *ngIf="errorMsg()">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ errorMsg() }}</span>
+      </div>
+    </div>
+  </div>
+
 </div>
