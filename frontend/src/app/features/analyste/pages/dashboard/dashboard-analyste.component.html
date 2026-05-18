@@ -1,4 +1,4 @@
-﻿<div class="dashboard-page">
+<div class="dashboard-page">
   @if (loading()) {
     <div class="loader-overlay">
       <div class="spinner-wrap">
@@ -21,21 +21,28 @@
   }
 
   @if (!loading() && !error()) {
-  
+
+    <!-- En-tête -->
     <div class="page-header">
-      <div class="header-left">
-        <div>
-          <h1>Vue d'ensemble des indicateurs QHSE</h1>
+      <div class="page-header-top">
+        <div class="page-header-left">
+          <h1 class="page-title">
+            Comparatif
+            <span class="year-badge">{{ dataYearN1 ?? 'N-1' }}</span>
+            <span class="vs-label">vs</span>
+            <span class="year-badge accent">{{ dataYearN ?? 'N' }}</span>
+          </h1>
         </div>
-      </div>
-      <div class="header-right">
-        @if (dataYearN && dataYearN1) {
-          <span class="period-pill">{{ dataYearN1 }} → {{ dataYearN }}</span>
-        }
-        <button class="btn-primary import-btn" (click)="goToImport()">
-          <mat-icon>upload</mat-icon>
-          Importer
-        </button>
+        <div class="page-header-right">
+          <button class="btn-export" (click)="exportExcel()">
+            <mat-icon>download</mat-icon>
+            Exporter Excel
+          </button>
+          <button class="btn-primary import-btn" (click)="goToImport()">
+            <mat-icon>upload</mat-icon>
+            Importer
+          </button>
+        </div>
       </div>
     </div>
 
@@ -57,286 +64,376 @@
       </div>
     }
 
+    <!-- KPI cards stats -->
+    <section class="section">
+      <div class="kpi-cards-grid">
 
-    <div class="kpi-cards-row">
-      @for (card of summaryCards; track card.label) {
-        <div class="kpi-card"
-             [class.kpi-card-alert-safe]="card.color === 'red' && card.value == 0"
-             [class.kpi-card-alert-danger]="card.color === 'red' && +card.value > 0">
-          <div class="kpi-card-top">
-            <div>
-              <div class="kpi-card-label">{{ card.label }}</div>
-              <div class="kpi-card-value">{{ card.value }}</div>
-              <span class="kpi-variation-badge"
-                    [class.var-up]="card.color === 'red'"
-                    [class.var-down]="card.color === 'green'"
-                    [class.var-flat]="card.color === 'blue' || card.color === 'orange'">
-                {{ card.note }}
-              </span>
+        <div class="kpi-card kpi-card--total">
+          <div class="kpi-card-icon" style="background:#DBEAFE">
+            <mat-icon style="color:#1E40AF">assignment</mat-icon>
+          </div>
+          <div class="kpi-card-body">
+            <div class="kpi-card-label">Total KPI analysés</div>
+            <div class="kpi-card-value">{{ stats.total }}</div>
+            <div class="kpi-card-note">100% des KPI actifs</div>
+          </div>
+        </div>
+
+        <div class="kpi-card kpi-card--amelio">
+          <div class="kpi-card-icon" style="background:#D1FAE5">
+            <mat-icon style="color:#10B981">trending_down</mat-icon>
+          </div>
+          <div class="kpi-card-body">
+            <div class="kpi-card-label">En amélioration</div>
+            <div class="kpi-card-value" style="color:#05cd99">{{ stats.amelioration }}</div>
+            <div class="kpi-card-note" style="color:#05cd99">{{ stats.ameliorationPct }}% des KPI</div>
+          </div>
+          <div class="kpi-card-bar"
+               [style.--bar-pct]="stats.ameliorationPct + '%'"
+               [style.--bar-color]="'#05cd99'">
+          </div>
+        </div>
+
+        <div class="kpi-card kpi-card--degrad">
+          <div class="kpi-card-icon" style="background:#FEE2E2">
+            <mat-icon style="color:#EF4444">trending_up</mat-icon>
+          </div>
+          <div class="kpi-card-body">
+            <div class="kpi-card-label">En dégradation</div>
+            <div class="kpi-card-value" style="color:#ee5d50">{{ stats.degradation }}</div>
+            <div class="kpi-card-note" style="color:#ee5d50">{{ stats.degradationPct }}% des KPI</div>
+          </div>
+          <div class="kpi-card-bar"
+               [style.--bar-pct]="stats.degradationPct + '%'"
+               [style.--bar-color]="'#ee5d50'">
+          </div>
+        </div>
+
+        <div class="kpi-card kpi-card--stable">
+          <div class="kpi-card-icon" style="background:#FEF3C7">
+            <mat-icon style="color:#F59E0B">drag_handle</mat-icon>
+          </div>
+          <div class="kpi-card-body">
+            <div class="kpi-card-label">Stables</div>
+            <div class="kpi-card-value" style="color:#ff9800">{{ stats.stables }}</div>
+            <div class="kpi-card-note" style="color:#ff9800">{{ stats.stablesPct }}% des KPI</div>
+          </div>
+          <div class="kpi-card-bar"
+               [style.--bar-pct]="stats.stablesPct + '%'"
+               [style.--bar-color]="'#ff9800'">
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Cards par catégorie -->
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">Vue par catégorie QHSE</h2>
+      </div>
+      <div class="cat-cards-grid">
+        @for (cat of catStats(); track cat.code) {
+          <div class="cat-card"
+               [style.--cat-color]="cat.color"
+               [style.--cat-bg]="cat.bgLight"
+               [class.active]="activeCatTab() === cat.code"
+               (click)="setActiveCat(activeCatTab() === cat.code ? '' : cat.code)">
+
+            <div class="cat-card-header">
+              <div class="cat-icon-wrap">
+                <mat-icon>{{ cat.icon }}</mat-icon>
+              </div>
+              <div class="cat-badge" [style.background]="cat.bgLight" [style.color]="cat.color">{{ cat.code }}</div>
             </div>
-            <div class="kpi-card-icon kpi-icon-{{ card.color }}">
-              <mat-icon>{{ card.icon }}</mat-icon>
+
+            <div class="cat-libelle">{{ cat.libelle }}</div>
+            <div class="cat-total">{{ cat.total }} KPI</div>
+
+            <div class="cat-pills">
+              @if (cat.critique > 0) {
+                <span class="pill pill-critique">{{ cat.critique }} critique{{ cat.critique > 1 ? 's' : '' }}</span>
+              }
+              @if (cat.modere > 0) {
+                <span class="pill pill-modere">{{ cat.modere }} modéré{{ cat.modere > 1 ? 's' : '' }}</span>
+              }
+              @if (cat.faible > 0) {
+                <span class="pill pill-faible">{{ cat.faible }} faible{{ cat.faible > 1 ? 's' : '' }}</span>
+              }
+              @if (cat.total === 0) {
+                <span class="pill pill-none">Aucun KPI</span>
+              }
+            </div>
+
+            <div class="cat-variation"
+                 [class.var-pos]="cat.avgVar < 0"
+                 [class.var-neg]="cat.avgVar > 0">
+              <mat-icon class="var-icon">
+                {{ cat.avgVar > 0 ? 'trending_up' : cat.avgVar < 0 ? 'trending_down' : 'trending_flat' }}
+              </mat-icon>
+              {{ variationSign(cat.avgVar) }}{{ cat.avgVar | number:'1.1-1' }}% moy.
+            </div>
+
+            @if (cat.total > 0) {
+              <div class="cat-niveau-bar">
+                <div class="bar-seg bar-critique"
+                     [style.width.%]="(cat.critique / cat.total * 100)"
+                     [matTooltip]="cat.critique + ' critique(s)'"></div>
+                <div class="bar-seg bar-modere"
+                     [style.width.%]="(cat.modere / cat.total * 100)"
+                     [matTooltip]="cat.modere + ' modéré(s)'"></div>
+                <div class="bar-seg bar-faible"
+                     [style.width.%]="(cat.faible / cat.total * 100)"
+                     [matTooltip]="cat.faible + ' faible(s)'"></div>
+              </div>
+            }
+
+            <div class="cat-select-hint">
+              {{ activeCatTab() === cat.code ? 'Cliquer pour désélectionner' : 'Cliquer pour filtrer' }}
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- Visualisation comparative -->
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">Visualisation comparative</h2>
+        <span class="section-subtitle">Répartition et performance par catégorie QHSE</span>
+      </div>
+
+      <div class="charts-grid">
+
+        <div class="chart-panel chart-panel--bar">
+          <div class="chart-panel-header">
+            <div class="chart-panel-title">
+              <mat-icon>bar_chart</mat-icon>
+              Valeurs moyennes par catégorie
+            </div>
+          </div>
+          <div class="chart-body">
+            @if (graphiques()?.barresGroupees?.length) {
+              <app-bar-comparison
+                [data]="graphiques()!.barresGroupees"
+                [labelN1]="dataYearN1?.toString() ?? 'N-1'"
+                [labelN]="dataYearN?.toString() ?? 'N'"
+              />
+            } @else {
+              <div class="no-data">
+                <mat-icon>bar_chart</mat-icon> Aucune donnée de graphique disponible
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="charts-right-col">
+          <div class="chart-panel chart-panel--donut">
+            <div class="chart-panel-header">
+              <div class="chart-panel-title">
+                <mat-icon>donut_large</mat-icon>
+                Répartition des variations
+              </div>
+            </div>
+            <div class="chart-body--donut">
+              <div class="donut-center-wrap">
+                <app-pie-distribution
+                  [enHausseCritique]="donutChartData.enHausseCritique"
+                  [enHausseModeree]="donutChartData.enHausseModeree"
+                  [enBaisseModeree]="donutChartData.enBaisseModeree"
+                  [enBaisseFaible]="donutChartData.enBaisseFaible"
+                />
+                <div class="donut-center-label">
+                  <div class="donut-total">{{ stats.total }}</div>
+                  <div class="donut-total-label">KPIs</div>
+                </div>
+              </div>
+            </div>
+            <div class="donut-legend">
+              <div class="donut-legend-item">
+                <span class="donut-dot" style="background:#1E40AF"></span>
+                Hausse critique ({{ donutChartData.enHausseCritique }})
+              </div>
+              <div class="donut-legend-item">
+                <span class="donut-dot" style="background:#6366F1"></span>
+                Hausse modérée ({{ donutChartData.enHausseModeree }})
+              </div>
+              <div class="donut-legend-item">
+                <span class="donut-dot" style="background:#10B981"></span>
+                Baisse modérée ({{ donutChartData.enBaisseModeree }})
+              </div>
+              <div class="donut-legend-item">
+                <span class="donut-dot" style="background:#F59E0B"></span>
+                Baisse faible ({{ donutChartData.enBaisseFaible }})
+              </div>
             </div>
           </div>
         </div>
-      }
-    </div>
+      </div>
+    </section>
 
-   
-    <div class="charts-grid">
-      <div class="panel chart-line-panel">
-        <div class="panel-header">
-          <div class="panel-title">ÉVOLUTION PAR CATÉGORIE</div>
+    <!-- Tableau comparatif détaillé -->
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">Tableau comparatif détaillé</h2>
+        <span class="table-count">{{ filteredLignes().length }} / {{ (comparatif()?.lignes ?? []).length }} KPI</span>
+      </div>
+
+      <div class="table-filters">
+        <select class="filter-select"
+                [ngModel]="activeCatTab()"
+                (ngModelChange)="setActiveCat($event)">
+          <option value="">Toutes les catégories</option>
+          <option value="Q">Qualité</option>
+          <option value="H">Hygiène</option>
+          <option value="S">Sécurité</option>
+          <option value="E">Environnement</option>
+        </select>
+
+        <div class="filter-search">
+          <mat-icon>search</mat-icon>
+          <input type="text" placeholder="Rechercher un KPI…"
+                 [ngModel]="searchFilter()"
+                 (ngModelChange)="onSearchChange($event)">
+          @if (searchFilter()) {
+            <button class="clear-btn" (click)="onSearchChange('')">
+              <mat-icon>close</mat-icon>
+            </button>
+          }
         </div>
-        @if (graphiques()?.barresGroupees?.length) {
-          <div class="chart-canvas-wrap">
-            <app-bar-comparison
-              [data]="graphiques()!.barresGroupees"
-              [labelN1]="comparatif()?.periodeN1?.toString() ?? 'N-1'"
-              [labelN]="comparatif()?.periodeN?.toString() ?? 'N'"
-            />
+
+        <select class="filter-select"
+                [ngModel]="niveauFilter()"
+                (ngModelChange)="onNiveauChange($event)">
+          <option value="">Tous les niveaux</option>
+          <option value="CRITIQUE">Critique</option>
+          <option value="PRE_ESCALADE">Pré-escalade</option>
+          <option value="MODERE">Modéré</option>
+          <option value="FAIBLE">Faible</option>
+          <option value="EXCELLENT">Excellent</option>
+          <option value="INDETERMINE">Indéterminé</option>
+        </select>
+
+        <select class="filter-select" [(ngModel)]="statutFilter">
+          <option value="">Tous les statuts</option>
+          <option value="Dégradation">Dégradation</option>
+          <option value="Dégradation légère">Dégradation légère</option>
+          <option value="Stable">Stable</option>
+          <option value="Amélioration">Amélioration</option>
+        </select>
+
+        @if (activeCatTab()) {
+          <div class="active-cat-chip"
+               [style.--cat-color]="getCatInfo(activeCatTab()).color"
+               (click)="setActiveCat('')">
+            <mat-icon>{{ getCatInfo(activeCatTab()).icon }}</mat-icon>
+            {{ getCatInfo(activeCatTab()).libelle }}
+            <mat-icon class="chip-close">close</mat-icon>
           </div>
-        } @else {
-          <div class="no-data">Aucune donnée graphique disponible</div>
+        }
+
+        @if (searchFilter() || niveauFilter() || statutFilter || activeCatTab()) {
+          <button class="btn-reset-filters"
+                  (click)="onSearchChange(''); onNiveauChange(''); statutFilter=''; setActiveCat('')">
+            <mat-icon>filter_list_off</mat-icon> Réinitialiser
+          </button>
         }
       </div>
 
-      <div class="panel donut-panel">
-        <div class="panel-header">
-          <div class="panel-title">RÉPARTITION DES VARIATIONS</div>
-        </div>
-        <div class="donut-wrap">
-          <app-pie-distribution
-            [enHausseCritique]="donutChartData.enHausseCritique"
-            [enHausseModeree]="donutChartData.enHausseModeree"
-            [enBaisseModeree]="donutChartData.enBaisseModeree"
-            [enBaisseFaible]="donutChartData.enBaisseFaible"
-          />
-          <div class="donut-center-label">
-            <div class="donut-total">{{ comparatif()?.lignes?.length ?? 0 }}</div>
-            <div class="donut-total-label">KPIs</div>
-          </div>
-        </div>
-        <div class="donut-legend">
-          <div class="donut-legend-item"><span class="dot dot-primary"></span> Hausse critique ({{ donutChartData.enHausseCritique }})</div>
-          <div class="donut-legend-item"><span class="dot dot-indigo"></span> Hausse modérée ({{ donutChartData.enHausseModeree }})</div>
-          <div class="donut-legend-item"><span class="dot dot-success"></span> Baisse modérée ({{ donutChartData.enBaisseModeree }})</div>
-          <div class="donut-legend-item"><span class="dot dot-warning"></span> Baisse faible ({{ donutChartData.enBaisseFaible }})</div>
-        </div>
-      </div>
-    </div>
-
-   
-    <div class="comparatif-full">
-      <div class="panel comparatif-panel">
-        <div class="panel-header">
-          <div>
-            <div class="panel-title">COMPARATIF DES INDICATEURS QHSE</div>
-            <div class="panel-meta">
-              {{ filteredLignes().length }} indicateur{{ filteredLignes().length > 1 ? 's' : '' }}
-              @if (categorieFilter() || niveauFilter() || searchFilter()) {
-                <span class="filter-active-hint">· filtrés</span>
-              }
-            </div>
-          </div>
-          <button class="btn-ia-run" (click)="goToIA()">
-            <mat-icon>auto_awesome</mat-icon>
-            Analyse IA détaillée
-          </button>
-        </div>
-
-        <div class="filter-bar">
-          <div class="filter-bar-left">
-            <div class="cat-tabs">
-              <button class="cat-tab" [class.active]="!categorieFilter()" (click)="onCategoryChange('')">
-                Tous <span class="tab-badge">{{ comparatif()?.lignes?.length ?? 0 }}</span>
-              </button>
-              @for (cat of categories(); track cat) {
-                <button class="cat-tab cat-tab-{{ cat.toLowerCase() }}"
-                        [class.active]="categorieFilter() === cat"
-                        (click)="onCategoryChange(cat)">
-                  {{ catLabel(cat) }}
-                  <span class="tab-badge">{{ catCount(cat) }}</span>
-                </button>
-              }
-            </div>
-          </div>
-          <div class="filter-bar-right">
-            <div class="niveau-filters niveau-filters-desktop">
-              <button class="niveau-chip-btn" [class.active]="!niveauFilter()" (click)="onNiveauChange('')">Tous</button>
-              <button class="niveau-chip-btn nf-faible" [class.active]="niveauFilter() === 'FAIBLE'" (click)="onNiveauChange('FAIBLE')">Faible</button>
-              <button class="niveau-chip-btn nf-modere" [class.active]="niveauFilter() === 'MODERE'" (click)="onNiveauChange('MODERE')">Modéré</button>
-              <button class="niveau-chip-btn nf-critique" [class.active]="niveauFilter() === 'CRITIQUE'" (click)="onNiveauChange('CRITIQUE')">Critique</button>
-            </div>
-            <div class="search-wrap">
-              <mat-icon class="search-icon-inline">search</mat-icon>
-              <input class="search-input-bar" placeholder="Rechercher un KPI..."
-                     (input)="onSearchChange($any($event.target).value)"
-                     [value]="searchFilter()" />
-            </div>
-          </div>
-        </div>
-
-        <div class="table-scroll">
-          <table class="kpi-table">
-            <thead>
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="th-sortable" (click)="toggleSort('kpiNom')">
+                KPI <mat-icon class="sort-icon">{{ sortIcon('kpiNom') }}</mat-icon>
+              </th>
+              <th class="th-sortable" (click)="toggleSort('categorieCode')">
+                Catégorie <mat-icon class="sort-icon">{{ sortIcon('categorieCode') }}</mat-icon>
+              </th>
+              <th class="th-number">N-1 ({{ dataYearN1 ?? '—' }})</th>
+              <th class="th-number">N ({{ dataYearN ?? '—' }})</th>
+              <th class="th-number th-sortable" (click)="toggleSort('variationAbsolue')">
+                Δ Absolu <mat-icon class="sort-icon">{{ sortIcon('variationAbsolue') }}</mat-icon>
+              </th>
+              <th class="th-number th-sortable" (click)="toggleSort('variationRelative')">
+                Δ % <mat-icon class="sort-icon">{{ sortIcon('variationRelative') }}</mat-icon>
+              </th>
+              <th>Niveau</th>
+              <th>Statut</th>
+              <th class="th-center">Tendance</th>
+            </tr>
+          </thead>
+          <tbody>
+            @if (filteredLignes().length === 0) {
               <tr>
-                <th class="th-kpi">Indicateur</th>
-                <th class="th-num sortable" (click)="toggleSort('valeurN1')">
-                  <span>{{ dataYearN1 ?? 'N-1' }}</span>
-                  <mat-icon class="sort-chevron">{{ sortIcon('valeurN1') }}</mat-icon>
-                </th>
-                <th class="th-num sortable" (click)="toggleSort('valeurN')">
-                  <span>{{ dataYearN ?? 'N' }}</span>
-                  <mat-icon class="sort-chevron">{{ sortIcon('valeurN') }}</mat-icon>
-                </th>
-                <th class="th-num sortable" (click)="toggleSort('variationAbsolue')">
-                  <span>Écart</span>
-                  <mat-icon class="sort-chevron">{{ sortIcon('variationAbsolue') }}</mat-icon>
-                </th>
-                <th class="th-var sortable" (click)="toggleSort('variationRelative')">
-                  <span>Écart %</span>
-                  <mat-icon class="sort-chevron">{{ sortIcon('variationRelative') }}</mat-icon>
-                </th>
-                <th>Niveau</th>
-                <th>↕</th>
+                <td colspan="9" class="no-rows">
+                  <mat-icon>search_off</mat-icon>
+                  Aucun KPI ne correspond aux filtres actifs
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              @for (row of filteredLignes(); track row.kpiId) {
-                <tr class="kpi-row"
-                    [class.row-critique]="row.niveauVariation === 'CRITIQUE'"
-                    [class.row-expandable]="hasDeepAnalysis(row)"
-                    [class.row-expanded]="isExpanded(row.kpiId)"
-                    (click)="hasDeepAnalysis(row) && toggleRow(row.kpiId)">
-                  <td class="kpi-name-cell">
-                    <div class="kpi-name-inner">
-                      <div class="kpi-name-wrap">
-                        <span class="cat-code-badge" [ngClass]="catClass(row.categorieCode)">{{ row.categorieCode }}</span>
-                        <div class="kpi-name-block">
-                          <span class="kpi-name-text">{{ row.kpiNom }}</span>
-                          @if (row.unite) {
-                            <span class="kpi-unit">{{ row.unite }}</span>
-                          }
-                        </div>
-                      </div>
-                      @if (hasDeepAnalysis(row)) {
-                        <mat-icon class="expand-caret" [class.caret-open]="isExpanded(row.kpiId)">expand_more</mat-icon>
-                      }
-                    </div>
-                  </td>
-                  <td class="num-cell">{{ row.valeurN1 | number:'1.0-2' }}</td>
-                  <td class="num-cell num-n">{{ row.valeurN | number:'1.0-2' }}</td>
-                  <td class="num-cell ecart-cell"
-                      [class.ecart-pos]="row.variationAbsolue > 0"
-                      [class.ecart-neg]="row.variationAbsolue < 0">
-                    {{ row.variationAbsolue > 0 ? '+' : '' }}{{ row.variationAbsolue | number:'1.0-2' }}
-                  </td>
-                  <td class="var-cell">
-                    <div class="var-cell-inner">
-                      <span class="var-chip" [ngClass]="variationStyle(row.variationRelative)">
-                        {{ row.variationRelative > 0 ? '+' : '' }}{{ row.variationRelative | number:'1.1-1' }}%
-                      </span>
-                      <div class="var-bar-track">
-                        <div class="var-bar-fill" [ngClass]="variationBarClass(row)" [style.width]="getBarWidth(row.variationRelative)"></div>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <span class="niveau-chip" [ngClass]="niveauClass(row.niveauVariation)">{{ row.niveauVariation }}</span>
-                  </td>
-                  <td class="tendance-cell">
-                    <mat-icon class="trend-icon" [ngClass]="tendanceClass(row.tendance)">{{ tendanceIcon(row.tendance) }}</mat-icon>
-                  </td>
-                </tr>
+            }
+            @for (row of filteredLignes(); track row.kpiId) {
+              <tr class="data-row">
+                <td class="td-kpi">
+                  <div class="kpi-name-cell">
+                    <span class="cat-dot"
+                          [style.background]="getCatInfo(row.categorieCode).color"
+                          [matTooltip]="getCatInfo(row.categorieCode).libelle"></span>
+                    {{ row.kpiNom }}
+                  </div>
+                </td>
+                <td>
+                  <div class="cat-tag"
+                       [style.background]="getCatInfo(row.categorieCode).bgLight"
+                       [style.color]="getCatInfo(row.categorieCode).color">
+                    <mat-icon class="cat-tag-icon">{{ getCatInfo(row.categorieCode).icon }}</mat-icon>
+                    {{ row.categorieLibelle }}
+                  </div>
+                </td>
+                <td class="td-number">{{ row.valeurN1 | number:'1.0-2' }}</td>
+                <td class="td-number">{{ row.valeurN | number:'1.0-2' }}</td>
+                <td class="td-number" [ngClass]="getVariationClass(row.variationAbsolue)">
+                  {{ variationSign(row.variationAbsolue) }}{{ row.variationAbsolue | number:'1.0-2' }}
+                </td>
+                <td class="td-number td-variation" [ngClass]="getVariationClass(row.variationRelative)">
+                  <span class="var-pill" [ngClass]="getVariationClass(row.variationRelative)">
+                    {{ variationSign(row.variationRelative) }}{{ row.variationRelative | number:'1.1-1' }}%
+                  </span>
+                </td>
+                <td>
+                  <span class="badge" [ngClass]="getNiveauClass(row.niveauVariation)">
+                    {{ row.niveauVariation }}
+                  </span>
+                </td>
+                <td>
+                  <span class="statut-label" [ngClass]="getStatutClass(getStatut(row.tendance, row.niveauVariation))">
+                    {{ getStatut(row.tendance, row.niveauVariation) }}
+                  </span>
+                </td>
+                <td class="td-center">
+                  <mat-icon class="tendance-icon" [ngClass]="getTendanceIconClass(row.tendance)">
+                    {{ getTendanceIcon(row.tendance) }}
+                  </mat-icon>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
 
-                @if (isExpanded(row.kpiId) && hasDeepAnalysis(row)) {
-                  <tr class="expanded-row">
-                    <td colspan="7">
-                      <div class="analysis-panel">
-                        <div class="analysis-panel-header">
-                          <div class="analysis-kpi-label">
-                            <mat-icon>auto_awesome</mat-icon>
-                            Analyse IA - {{ row.kpiNom }}
-                          </div>
-                          <div class="analysis-badges">
-                            @if (row.riskLevel) {
-                              <span class="risk-badge" [ngClass]="riskClass(row.riskLevel)">
-                                {{ riskIcon(row.riskLevel) }} Risque {{ row.riskLevel }}
-                              </span>
-                            }
-                            @if (row.immediatePriority) {
-                              <span class="priority-tag" [ngClass]="priorityClass(row.immediatePriority)">
-                                Priorité {{ row.immediatePriority }}
-                              </span>
-                            }
-                          </div>
-                        </div>
-                        <div class="analysis-cards-grid">
-                          @if (row.riskJustification || row.issueDetected) {
-                            <div class="analysis-card card-risk">
-                              <div class="analysis-card-head">
-                                <mat-icon>gpp_maybe</mat-icon> Identification du risque
-                              </div>
-                              @if (row.riskJustification) {
-                                <p class="analysis-card-text">{{ row.riskJustification }}</p>
-                              }
-                              @if (row.issueDetected) {
-                                <div class="issue-banner">
-                                  <mat-icon>warning_amber</mat-icon>
-                                  <span>{{ row.issueDetected }}</span>
-                                </div>
-                              }
-                            </div>
-                          }
-                          @if (row.correctiveAction || row.immediateAction || row.preventiveAction) {
-                            <div class="analysis-card card-actions">
-                              <div class="analysis-card-head">
-                                <mat-icon>build</mat-icon> Plan d'actions
-                              </div>
-                              <div class="actions-stack">
-                                @if (row.immediateAction) {
-                                  <div class="action-row action-immediate">
-                                    <div class="action-row-label"><mat-icon>bolt</mat-icon> Immédiate</div>
-                                    <p>{{ row.immediateAction }}</p>
-                                  </div>
-                                }
-                                @if (row.correctiveAction) {
-                                  <div class="action-row action-corrective">
-                                    <div class="action-row-label"><mat-icon>build_circle</mat-icon> Corrective</div>
-                                    <p>{{ row.correctiveAction }}</p>
-                                  </div>
-                                }
-                                @if (row.preventiveAction) {
-                                  <div class="action-row action-preventive">
-                                    <div class="action-row-label"><mat-icon>shield</mat-icon> Préventive</div>
-                                    <p>{{ row.preventiveAction }}</p>
-                                  </div>
-                                }
-                              </div>
-                            </div>
-                          }
-                          @if (row.aiNote) {
-                            <div class="analysis-card card-ai-note">
-                              <div class="analysis-card-head ai-head">
-                                <mat-icon>auto_awesome</mat-icon> Note synthétique IA
-                              </div>
-                              <p class="analysis-card-text ai-note-text">{{ row.aiNote }}</p>
-                            </div>
-                          }
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                }
-              }
-            </tbody>
-          </table>
+      <div class="table-legend">
+        <div class="legend-items">
+          <span class="legend-item">
+            <mat-icon style="color:#05cd99;font-size:16px">trending_down</mat-icon> BAISSE = Amélioration (QHSE)
+          </span>
+          <span class="legend-item">
+            <mat-icon style="color:#ee5d50;font-size:16px">trending_up</mat-icon> HAUSSE = Dégradation (QHSE)
+          </span>
         </div>
       </div>
-    </div>
+    </section>
 
-   
+    <!-- Synthèse IA -->
     <div class="synthese-full">
       <div class="panel synthese-ia-panel">
         <div class="panel-header">

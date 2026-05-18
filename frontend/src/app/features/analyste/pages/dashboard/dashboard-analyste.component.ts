@@ -38,6 +38,21 @@ import { BarComparisonComponent } from '../../../../shared/components/charts/bar
 import { PieDistributionComponent } from '../../../../shared/components/charts/pie-distribution.component';
 import * as XLSX from 'xlsx';
 
+interface CategorieInfo {
+  code: string;
+  libelle: string;
+  icon: string;
+  color: string;
+  bgLight: string;
+}
+
+const CATEGORIES: CategorieInfo[] = [
+  { code: 'Q', libelle: 'Qualité',       icon: 'verified',  color: '#4318FF', bgLight: '#f0edff' },
+  { code: 'H', libelle: 'Hygiène',       icon: 'sanitizer', color: '#05cd99', bgLight: '#e8f8f0' },
+  { code: 'S', libelle: 'Sécurité',      icon: 'security',  color: '#ee5d50', bgLight: '#ffebee' },
+  { code: 'E', libelle: 'Environnement', icon: 'eco',       color: '#ff9800', bgLight: '#fff3e0' },
+];
+
 interface SummaryCardVm {
   label: string;
   value: string | number;
@@ -98,6 +113,13 @@ export class DashboardAnalysteComponent implements OnInit {
   categorieFilter = signal('');
   niveauFilter = signal('');
   riskFilter = signal('');
+  activeCatTab = signal('');
+
+  private statutFilterSig = signal('');
+  get statutFilter(): string { return this.statutFilterSig(); }
+  set statutFilter(value: string) { this.statutFilterSig.set(value); }
+
+  readonly CATEGORIES = CATEGORIES;
   selectedYearN = signal<number | null>(null);
   selectedYearN1 = signal<number | null>(null);
 
@@ -110,17 +132,75 @@ export class DashboardAnalysteComponent implements OnInit {
 
   tableColumns = ['expand', 'kpiNom', 'categorieLibelle', 'valeurN1', 'valeurN', 'variationAbsolue', 'variationRelative', 'niveauVariation', 'tendance'];
 
+  getStatut(tendance: string, niveau: string): string {
+    if (tendance === 'HAUSSE' && niveau === 'CRITIQUE')                        return 'Dégradation';
+    if (tendance === 'HAUSSE' && (niveau === 'MODERE' || niveau === 'FAIBLE')) return 'Dégradation légère';
+    if (tendance === 'BAISSE')                                                  return 'Amélioration';
+    return 'Stable';
+  }
+
+  getStatutClass(statut: string): string {
+    if (statut === 'Dégradation')        return 'statut-red';
+    if (statut === 'Dégradation légère') return 'statut-orange';
+    if (statut === 'Amélioration')       return 'statut-green';
+    return 'statut-blue';
+  }
+
+  getNiveauClass(niveau: string): string {
+    if (niveau === 'CRITIQUE')     return 'niveau-critique';
+    if (niveau === 'PRE_ESCALADE') return 'niveau-pre-escalade';
+    if (niveau === 'MODERE')       return 'niveau-modere';
+    if (niveau === 'FAIBLE')       return 'niveau-faible';
+    if (niveau === 'EXCELLENT')    return 'niveau-excellent';
+    if (niveau === 'INDETERMINE')  return 'niveau-default';
+    return 'niveau-default';
+  }
+
+  getTendanceIcon(tendance: string): string {
+    if (tendance === 'HAUSSE') return 'trending_up';
+    if (tendance === 'BAISSE') return 'trending_down';
+    return 'trending_flat';
+  }
+
+  getTendanceIconClass(tendance: string): string {
+    if (tendance === 'HAUSSE') return 'icon-red';
+    if (tendance === 'BAISSE') return 'icon-green';
+    return 'icon-blue';
+  }
+
+  getVariationClass(value: number): string {
+    if (value > 10)  return 'var-neg';
+    if (value < -10) return 'var-pos';
+    return 'var-neutral';
+  }
+
+  variationSign(value: number): string {
+    return value > 0 ? '+' : '';
+  }
+
+  getCatInfo(code: string): CategorieInfo {
+    return CATEGORIES.find(c => c.code === code)
+      ?? { code, libelle: code, icon: 'label', color: '#a3aed1', bgLight: '#f4f7fe' };
+  }
+
+  setActiveCat(code: string): void {
+    this.activeCatTab.set(code);
+    this.categorieFilter.set('');
+  }
+
   filteredLignes = computed(() => {
     const lignes = this.comparatif()?.lignes ?? [];
     const search = this.searchFilter().toLowerCase();
-    const cat = this.categorieFilter();
+    const cat = this.categorieFilter() || this.activeCatTab();
     const niveau = this.niveauFilter();
     const risk = this.riskFilter();
+    const statut = this.statutFilterSig();
     const filtered = lignes.filter(l =>
       (!search || l.kpiNom.toLowerCase().includes(search)) &&
       (!cat || l.categorieCode === cat) &&
       (!niveau || l.niveauVariation === niveau) &&
-      (!risk || l.riskLevel === risk)
+      (!risk || l.riskLevel === risk) &&
+      (!statut || this.getStatut(l.tendance, l.niveauVariation) === statut)
     );
     const col = this.sortColumn();
     const dir = this.sortDir();
@@ -133,6 +213,40 @@ export class DashboardAnalysteComponent implements OnInit {
       return dir === 'asc' ? aVal - bVal : bVal - aVal;
     });
   });
+
+  catStats = computed(() => {
+    const lignes = this.comparatif()?.lignes ?? [];
+    return CATEGORIES.map(cat => {
+      const items    = lignes.filter(l => l.categorieCode === cat.code);
+      const critique = items.filter(l => l.niveauVariation === 'CRITIQUE').length;
+      const modere   = items.filter(l => l.niveauVariation === 'MODERE').length;
+      const faible   = items.filter(l => l.niveauVariation === 'FAIBLE').length;
+      const avgVar   = items.length
+        ? items.reduce((s, l) => s + l.variationRelative, 0) / items.length
+        : 0;
+      return { ...cat, total: items.length, critique, modere, faible, avgVar };
+    });
+  });
+
+  get stats() {
+    const lignes = this.filteredLignes();
+    const total  = lignes.length;
+    let amelioration = 0, degradation = 0, stables = 0, sumVar = 0;
+    lignes.forEach(l => {
+      if (l.variationRelative < -10)     amelioration++;
+      else if (l.variationRelative > 10) degradation++;
+      else                               stables++;
+      sumVar += l.variationRelative;
+    });
+    const avg = total > 0 ? sumVar / total : 0;
+    return {
+      total, amelioration, degradation, stables,
+      avgVariation: avg,
+      ameliorationPct: total ? +(amelioration / total * 100).toFixed(1) : 0,
+      degradationPct:  total ? +(degradation  / total * 100).toFixed(1) : 0,
+      stablesPct:      total ? +(stables      / total * 100).toFixed(1) : 0,
+    };
+  }
 
   maxVariationAbs = computed(() => {
     const lignes = this.comparatif()?.lignes ?? [];

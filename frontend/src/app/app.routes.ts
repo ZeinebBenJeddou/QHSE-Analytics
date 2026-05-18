@@ -36,7 +36,6 @@ import { AnalyseIAComponent } from './features/analyste/pages/analyse-ia/analyse
 import { authGuard } from './core/guards/auth.guard';
 import { adminGuard } from './core/guards/admin.guard';
 import { analysteGuard } from './core/guards/analyste.guard';
-import { ComparatifComponent } from './features/analyste/pages/comparatif/comparatif.component';
 import { ExportPdfComponent } from './features/analyste/pages/export-pdf/export-pdf.component';
 
 export const routes: Routes = [
@@ -86,7 +85,6 @@ export const routes: Routes = [
       { path: 'profile', component: AdminProfileComponent, resolve: { profile: adminProfileResolver } },
       { path: 'ia', component: AnalyseIAComponent },
       { path: 'ia/:id', component: AnalyseIAComponent },
-      { path: 'comparatif', component: ComparatifComponent },
       { path: 'export', component: ExportPdfComponent },
     ],
   },

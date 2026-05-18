@@ -53,7 +53,6 @@ export class AnalysteShellComponent implements OnInit {
   ];
 
   navItems = [
-    //{ label: 'Comparatif N vs N-1', icon: 'compare_arrows', route: '/analyste/comparatif', badge: null as number | null },
     { label: 'Analyse ',          icon: 'analytics',       route: '/analyste/ia',          badge: null as number | null },
     { label: 'Export PDF', icon: 'picture_as_pdf', route: '/analyste/export', badge: null as number | null },
     
