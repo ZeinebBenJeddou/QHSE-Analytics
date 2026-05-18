@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -54,7 +55,7 @@ class CalculationAgentRagKnowledgeTest {
                 .build();
 
         when(kpiRepository.findByIsActiveTrueOrderByOrdreAsc()).thenReturn(List.of(catalogKpi));
-        when(resultatKpiRepository.findVariationHistoryByKpiId(1L)).thenReturn(List.of());
+        when(resultatKpiRepository.findVariationHistoryByKpiIds(anyList())).thenReturn(List.of());
         when(kpiKnowledgeLookup.findBestMatch("Nombre d'incidents", "S", 20.0, 10.0))
                 .thenReturn(Optional.of(new KpiKnowledgeLookup.KnowledgeMatch(
                         "Nombre d'incidents",

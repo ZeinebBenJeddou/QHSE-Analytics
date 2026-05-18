@@ -18,25 +18,30 @@ class ClassificationEngineTest {
 
     @Test
     void testThresholdsClassificationCriticalOnDegradation() {
+        // LOWER_IS_BETTER : N-1=5, N=15 → dégradation de 10, seuilCritique=10 → CRITIQUE
         Kpi k = Kpi.builder()
-                .nom("Taux de conformité")
-                .categorieKpi(CategorieKpi.builder().code("Q").libelle("Qualité").build())
+                .nom("Nombre d'accidents")
+                .categorieKpi(CategorieKpi.builder().code("S").libelle("Sécurité").build())
                 .seuilFaible(1.0).seuilModere(5.0).seuilCritique(10.0)
                 .build();
-        ComparativeCalculator.ComparativeResult comp = compCalc.compute(k, 90d, 70d);
+        k.setDirection(Direction.LOWER_IS_BETTER);
+        ComparativeCalculator.ComparativeResult comp = compCalc.compute(k, 5d, 15d);
         ClassificationEngine.ClassificationResult res = engine.classify(k, comp, null);
         assertEquals("CRITIQUE", res.getClassification());
     }
 
     @Test
     void testThresholdsImprovementNotCritical() {
+        // LOWER_IS_BETTER : N-1=20, N=10 → amélioration, valeur N=10 ≤ seuilModere(5)? non → zone FAIBLE → FAIBLE
+        // valeur N=10 : > seuilFaible(1), > seuilModere(5), < seuilCritique(20) → MODERE
+        // Pour EXCELLENT : N=10 ≤ seuilFaible(1)? non. Utilisons N=0.5
         Kpi k = Kpi.builder()
                 .nom("Nombre d'incidents")
                 .categorieKpi(CategorieKpi.builder().code("S").libelle("Sécurité").build())
                 .seuilFaible(1.0).seuilModere(5.0).seuilCritique(10.0)
                 .build();
-
-        ComparativeCalculator.ComparativeResult comp = compCalc.compute(k, 20d, 10d);
+        k.setDirection(Direction.LOWER_IS_BETTER);
+        ComparativeCalculator.ComparativeResult comp = compCalc.compute(k, 20d, 0.5d);
         ClassificationEngine.ClassificationResult res = engine.classify(k, comp, null);
         assertEquals("EXCELLENT", res.getClassification());
     }

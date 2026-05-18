@@ -21,7 +21,20 @@ class ComparativeCalculatorTest {
 
     @Test
     void testN1ZeroToNonZeroEmergingRisk() {
+        // Sans KPI, direction = HIGHER_IS_BETTER par défaut → passage 0→5 = STRONG_IMPROVEMENT
         ComparativeCalculator.ComparativeResult r = calc.compute(null, 0d, 5d);
+        assertEquals("STRONG_IMPROVEMENT", r.getSpecialCase());
+    }
+
+    @Test
+    void testN1ZeroToNonZeroEmergingRiskWithLowerIsBetter() {
+        // Avec KPI LOWER_IS_BETTER → passage 0→5 = EMERGING_RISK
+        Kpi kpi = Kpi.builder()
+                .nom("Nombre d'incidents")
+                .categorieKpi(CategorieKpi.builder().code("S").libelle("Sécurité").build())
+                .build();
+        kpi.setDirection(com.QHSEAnalytics.shared.enums.Direction.LOWER_IS_BETTER);
+        ComparativeCalculator.ComparativeResult r = calc.compute(kpi, 0d, 5d);
         assertEquals("EMERGING_RISK", r.getSpecialCase());
         assertTrue(r.getDataFlags().contains(com.QHSEAnalytics.shared.enums.DataFlag.LOW_BASE));
     }

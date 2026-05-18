@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyList;
 
 class CalculationAgentIntegrationTest {
 
@@ -34,12 +35,19 @@ class CalculationAgentIntegrationTest {
                 .seuilFaible(1.0).seuilModere(5.0).seuilCritique(10.0)
                 .ordre(1).createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
                 .build();
+
+        ResultatKpiRepository.VariationHistoryProjection proj = new ResultatKpiRepository.VariationHistoryProjection() {
+            public Long getKpiId() { return 1L; }
+            public Double getVariation() { return 1.5; }
+        };
+
         Mockito.when(repo.findByIsActiveTrueOrderByOrdreAsc()).thenReturn(List.of(sample));
-            Mockito.when(histRepo.findVariationHistoryByKpiId(1L)).thenReturn(List.of(1.0, 2.0, 1.5, 3.0, 1.2, 2.1, 2.8, 1.1, 2.4, 2.0));
+        Mockito.when(histRepo.findVariationHistoryByKpiIds(anyList()))
+                .thenReturn(List.of(proj, proj, proj, proj, proj, proj, proj, proj, proj, proj));
 
         ComparativeCalculator comp = new ComparativeCalculator();
         ClassificationEngine cls = new ClassificationEngine();
-            CalculationAgent agent = new CalculationAgent(repo, histRepo, comp, cls, KpiKnowledgeLookup.noop());
+        CalculationAgent agent = new CalculationAgent(repo, histRepo, comp, cls, KpiKnowledgeLookup.noop());
 
         KpiRawDataDTO row = KpiRawDataDTO.builder()
                 .rowIndex(1)
@@ -54,13 +62,13 @@ class CalculationAgentIntegrationTest {
         List<KpiCalculatedDTO> out = agent.calculate(List.of(row));
         assertEquals(1, out.size());
         KpiCalculatedDTO dto = out.get(0);
-        assertEquals("Risque émergent", dto.getStatus());
-        assertEquals("MODERE", dto.getClassification());
-        assertTrue(dto.getReviewRequired());
+        assertEquals("Amélioration forte", dto.getStatus());
+        assertEquals("FAIBLE", dto.getClassification());
+        assertFalse(dto.getReviewRequired());
         assertEquals("HIGHER_IS_BETTER", dto.getDirection());
         assertNotNull(dto.getCalcConfidence());
         assertNotNull(dto.getClassificationReason());
         assertNotNull(dto.getDataFlags());
-        Mockito.verify(histRepo).findVariationHistoryByKpiId(1L);
+        Mockito.verify(histRepo).findVariationHistoryByKpiIds(anyList());
     }
 }

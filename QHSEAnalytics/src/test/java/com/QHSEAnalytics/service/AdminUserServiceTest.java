@@ -23,8 +23,6 @@ import com.QHSEAnalytics.shared.repository.StagingDonneeRepository;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
-import org.springframework.test.util.ReflectionTestUtils;
-
 import java.util.List;
 import java.util.Optional;
 
@@ -66,8 +64,6 @@ class AdminUserServiceTest {
                 analyseCategorieRepository,
                 analyseGlobaleRepository
         );
-        ReflectionTestUtils.setField(service, "adminEmail", "admin@qhse.test");
-
         User user = User.builder()
                 .id(5L)
                 .nom("Doe")

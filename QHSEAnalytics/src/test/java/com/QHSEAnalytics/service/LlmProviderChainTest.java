@@ -1,7 +1,7 @@
 package com.QHSEAnalytics.service;
 
 import com.QHSEAnalytics.shared.exception.ProviderUnavailableException;
-import com.QHSEAnalytics.analytics.service.processing.GeminiClientService;
+import com.QHSEAnalytics.analytics.service.GeminiClientService;
 import com.QHSEAnalytics.analytics.service.GroqService;
 import com.QHSEAnalytics.analytics.service.LlmProviderChain;
 import com.QHSEAnalytics.analytics.service.ProviderCooldownManager;
@@ -15,8 +15,6 @@ import org.springframework.cache.CacheManager;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
