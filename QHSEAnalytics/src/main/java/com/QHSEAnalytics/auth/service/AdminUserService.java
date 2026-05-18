@@ -30,7 +30,6 @@ import com.QHSEAnalytics.shared.repository.ResultatKpiRepository;
 import com.QHSEAnalytics.shared.repository.StagingDonneeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -69,9 +68,6 @@ public class AdminUserService {
     private final KpiRawDataRepository kpiRawDataRepository;
     private final AnalyseCategorieRepository analyseCategorieRepository;
     private final AnalyseGlobaleRepository analyseGlobaleRepository;
-
-    @Value("${app.admin.email}")
-    private String adminEmail;
 
     @Transactional(readOnly = true)
     public UserListResponse getAllUsers(Pageable pageable, String search) {
@@ -295,7 +291,7 @@ public class AdminUserService {
     }
 
     private boolean isSystemAdmin(User user) {
-        return user.getEmail() != null && user.getEmail().equalsIgnoreCase(adminEmail);
+        return user.isSystemAdmin();
     }
 
     private void checkNotSystemAdmin(User user) {

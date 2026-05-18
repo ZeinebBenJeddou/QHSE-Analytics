@@ -40,6 +40,7 @@ public class AdminInitializer implements CommandLineRunner {
                         .password(passwordEncoder.encode(password))
                         .role(User.Role.ADMIN)
                         .verified(true)
+                        .systemAdmin(true)
                         .build());
                 log.info("Compte admin initial créé");
             }

@@ -50,6 +50,10 @@ public class User implements UserDetails {
     @Builder.Default
     private boolean active = true;
 
+    @Column(name = "is_system_admin", nullable = false)
+    @Builder.Default
+    private boolean systemAdmin = false;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

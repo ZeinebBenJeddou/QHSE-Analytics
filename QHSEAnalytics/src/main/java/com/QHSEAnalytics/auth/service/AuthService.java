@@ -157,7 +157,7 @@ public class AuthService {
         }
 
         if (!user.isActive()) {
-            throw new AccountNotVerifiedException("Compte désactivé.");
+            throw new AccountDisabledException("Compte désactivé.");
         }
 
         try {
@@ -165,6 +165,7 @@ public class AuthService {
                     new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
             );
         } catch (AuthenticationException e) {
+            log.warn("[AUTH] Tentative de connexion échouée — email={}", request.getEmail());
             throw new BadCredentialsException("Email ou mot de passe incorrect.");
         }
 
@@ -219,14 +220,14 @@ public class AuthService {
     @Transactional
     public AuthResponse refreshToken(String tokenValue) {
 
-        RefreshToken refreshToken = refreshTokenService.validateRefreshToken(tokenValue);
-        User user = refreshToken.getUser();
+        RefreshToken newRefreshToken = refreshTokenService.rotateRefreshToken(tokenValue);
+        User user = newRefreshToken.getUser();
 
         String newAccessToken = jwtService.generateAccessToken(user);
 
         return AuthResponse.builder()
                 .accessToken(newAccessToken)
-                .refreshToken(refreshToken.getToken())
+                .refreshToken(newRefreshToken.getToken())
                 .email(user.getEmail())
                 .nom(user.getNom())
                 .prenom(user.getPrenom())

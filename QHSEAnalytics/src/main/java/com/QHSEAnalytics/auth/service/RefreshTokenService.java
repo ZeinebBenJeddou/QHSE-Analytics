@@ -41,6 +41,29 @@ public class RefreshTokenService {
     }
 
 
+    @Transactional
+    public RefreshToken rotateRefreshToken(String oldTokenValue) {
+        RefreshToken old = refreshTokenRepository
+                .findByTokenAndRevokedFalse(oldTokenValue)
+                .filter(rt -> !rt.isExpired())
+                .orElseThrow(() -> new RefreshTokenInvalidException("Refresh token invalide ou expiré"));
+
+        old.setRevoked(true);
+        refreshTokenRepository.save(old);
+
+        boolean wasRememberMe = old.getExpiresAt()
+                .isAfter(LocalDateTime.now().plusHours(2));
+        long expMs = wasRememberMe ? refreshTokenRememberExpiration : refreshTokenExpiration;
+
+        RefreshToken newToken = RefreshToken.builder()
+                .user(old.getUser())
+                .expiresAt(LocalDateTime.now().plusSeconds(expMs / 1000))
+                .build();
+
+        return refreshTokenRepository.save(newToken);
+    }
+
+
     @Transactional(readOnly = true)
     public RefreshToken validateRefreshToken(String token) {
         return refreshTokenRepository

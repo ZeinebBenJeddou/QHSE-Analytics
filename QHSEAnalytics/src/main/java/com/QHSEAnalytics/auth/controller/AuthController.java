@@ -69,6 +69,7 @@ public class AuthController {
         }
         AuthResponse auth = authService.refreshToken(refreshToken);
         cookieTokenService.setAccessTokenCookie(response, auth.getAccessToken());
+        cookieTokenService.setRefreshTokenCookie(response, auth.getRefreshToken(), false);
         return ResponseEntity.ok(auth);
     }
 

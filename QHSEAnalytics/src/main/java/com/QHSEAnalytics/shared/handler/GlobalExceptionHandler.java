@@ -65,6 +65,11 @@ public class GlobalExceptionHandler {
         return buildError(HttpStatus.FORBIDDEN, ex.getMessage());
     }
 
+    @ExceptionHandler(AccountDisabledException.class)
+    public ResponseEntity<?> handleAccountDisabled(AccountDisabledException ex) {
+        return buildError(HttpStatus.FORBIDDEN, ex.getMessage());
+    }
+
     @ExceptionHandler(TokenExpiredException.class)
     public ResponseEntity<?> handleTokenExpired(TokenExpiredException ex) {
         return buildError(HttpStatus.GONE, ex.getMessage());

@@ -165,11 +165,18 @@ public class ImportProcessingController {
         if (mappingJson == null || mappingJson.isBlank()) {
             throw new ImportValidationException("Le mapping des colonnes est requis.");
         }
+        Map<String, Integer> mapping;
         try {
-            return objectMapper.readValue(mappingJson, new TypeReference<Map<String, Integer>>() {});
+            mapping = objectMapper.readValue(mappingJson, new TypeReference<Map<String, Integer>>() {});
         } catch (Exception ex) {
             throw new ImportValidationException("Le mapping des colonnes est invalide.");
         }
+        long distinctIndexes = mapping.values().stream().filter(v -> v != null).distinct().count();
+        if (distinctIndexes < mapping.values().stream().filter(v -> v != null).count()) {
+            throw new ImportValidationException(
+                "Mapping invalide : deux champs différents pointent vers la même colonne.");
+        }
+        return mapping;
     }
 
     private int parseYear(String rawValue, String fieldName) {
