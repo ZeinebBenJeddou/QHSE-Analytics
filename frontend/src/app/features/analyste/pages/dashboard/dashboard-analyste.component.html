@@ -53,16 +53,6 @@
       </div>
     }
 
-    @if (resume()?.messageErreurIa) {
-      <div class="ia-error-banner">
-        <mat-icon>warning_amber</mat-icon>
-        <span>{{ resume()!.messageErreurIa }}</span>
-        <button class="ia-retry-btn" (click)="runFullAnalysis()">
-          <mat-icon>refresh</mat-icon>
-          Réessayer l'analyse IA
-        </button>
-      </div>
-    }
 
     <!-- KPI cards stats -->
     <section class="section">
@@ -307,11 +297,11 @@
                 (ngModelChange)="onNiveauChange($event)">
           <option value="">Tous les niveaux</option>
           <option value="CRITIQUE">Critique</option>
-          <option value="PRE_ESCALADE">Pré-escalade</option>
+          <!--<option value="PRE_ESCALADE">Pré-escalade</option>-->
           <option value="MODERE">Modéré</option>
           <option value="FAIBLE">Faible</option>
-          <option value="EXCELLENT">Excellent</option>
-          <option value="INDETERMINE">Indéterminé</option>
+          <!--<option value="EXCELLENT">Excellent</option>-->
+          <!--<option value="INDETERMINE">Indéterminé</option>-->
         </select>
 
         <select class="filter-select" [(ngModel)]="statutFilter">
@@ -506,7 +496,7 @@
                           [class.tone-danger]="kpi.immediatePriority === 'Haute' || kpi.niveauVariation === 'CRITIQUE'"
                           [class.tone-warning]="kpi.immediatePriority === 'Moyenne' || kpi.niveauVariation === 'MODERE'"
                           [class.tone-safe]="kpi.immediatePriority === 'Basse' || kpi.niveauVariation === 'FAIBLE'">
-                      {{ kpi.immediatePriority ?? kpi.niveauVariation ?? '—' }}
+                      {{ kpi.immediatePriority ?? kpi.niveauVariation }}
                     </span>
                   </div>
                   <span class="ia-action-desc">
