@@ -57,7 +57,10 @@ public class KpiProcessingOrchestratorService {
         com.QHSEAnalytics.shared.dto.llm.AiResponse aiResponse = null;
         try {
             List<KpiCalculatedDTO> validKpis = enrichedData.stream()
-                    .filter(k -> !"UNKNOWN".equals(k.getClassification()))
+                    .filter(k -> k.getClassification() != null
+                            && !"UNKNOWN".equals(k.getClassification())
+                            && !"INDETERMINE".equals(k.getClassification())
+                            && k.getVariationPercentage() != null)
                     .toList();
             if (!validKpis.isEmpty()) {
                 aiResponse = analysisAgent.analyzeStrict(validKpis);
@@ -113,7 +116,10 @@ public class KpiProcessingOrchestratorService {
         com.QHSEAnalytics.shared.dto.llm.AiResponse aiResponse = null;
         try {
             List<KpiCalculatedDTO> validKpis = enrichedData.stream()
-                    .filter(k -> !"UNKNOWN".equals(k.getClassification()))
+                    .filter(k -> k.getClassification() != null
+                            && !"UNKNOWN".equals(k.getClassification())
+                            && !"INDETERMINE".equals(k.getClassification())
+                            && k.getVariationPercentage() != null)
                     .toList();
             if (!validKpis.isEmpty()) {
                 aiResponse = analysisAgent.analyzeStrict(validKpis);
