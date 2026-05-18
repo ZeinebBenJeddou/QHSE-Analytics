@@ -125,10 +125,6 @@ export class AdminService {
     );
   }
 
-  getInactiveKpis(): Observable<KpiResponse[]> {
-    return this.http.get<KpiResponse[]>(`${this.kpiBase}/inactifs`);
-  }
-
   getKpiCategories(): Observable<CategorieKpiResponse[]> {
     return this.http.get<CategorieKpiResponse[]>(`${this.kpiBase}/categories`);
   }

@@ -56,13 +56,6 @@ public class AnalyseIaController {
         return ResponseEntity.ok(analyseIaService.getAnalyseStructured(importId, user.getId(), isAdmin()));
     }
 
-    @PostMapping("/{importId}")
-    @PreAuthorize("hasRole('ANALYSTE')")
-    public ResponseEntity<AnalyseCompleteResponse> lancerAnalyse(@PathVariable Long importId) {
-        User user = getCurrentUser();
-        return ResponseEntity.ok(analyseIaService.regenerer(importId, user.getId()));
-    }
-
     @PostMapping("/{importId}/regenerer")
     @PreAuthorize("hasRole('ANALYSTE')")
     public ResponseEntity<AnalyseCompleteResponse> regenerer(@PathVariable Long importId) {

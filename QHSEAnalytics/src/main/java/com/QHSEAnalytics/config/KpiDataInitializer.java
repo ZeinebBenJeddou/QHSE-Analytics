@@ -1,4 +1,4 @@
-package com.QHSEAnalytics.initializer;
+package com.QHSEAnalytics.config;
 
 import com.QHSEAnalytics.shared.entity.CategorieKpi;
 import com.QHSEAnalytics.shared.entity.Kpi;

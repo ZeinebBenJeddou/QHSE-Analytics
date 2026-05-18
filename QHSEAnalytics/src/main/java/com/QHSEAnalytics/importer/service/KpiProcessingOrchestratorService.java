@@ -1,4 +1,4 @@
-package com.QHSEAnalytics.importer.service.processing;
+package com.QHSEAnalytics.importer.service;
 
 import com.QHSEAnalytics.analytics.service.processing.AnalysisAgent;
 import com.QHSEAnalytics.shared.dto.request.KpiRawDataDTO;
@@ -6,6 +6,14 @@ import com.QHSEAnalytics.shared.dto.response.ChartResponseDTO;
 import com.QHSEAnalytics.shared.dto.response.ImportProcessingResponse;
 import com.QHSEAnalytics.shared.dto.response.ImportQualityReport;
 import com.QHSEAnalytics.shared.dto.response.KpiCalculatedDTO;
+import com.QHSEAnalytics.importer.service.processing.CalculationAgent;
+import com.QHSEAnalytics.importer.service.processing.CleaningAgent;
+import com.QHSEAnalytics.importer.service.processing.EnrichmentAgent;
+import com.QHSEAnalytics.importer.service.processing.ExtractionAgent;
+import com.QHSEAnalytics.importer.service.processing.MetadataEnrichmentAgent;
+import com.QHSEAnalytics.importer.service.processing.QualityReportBuilder;
+import com.QHSEAnalytics.importer.service.processing.RiskDetectionAgent;
+import com.QHSEAnalytics.importer.service.processing.VisualizationAgent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

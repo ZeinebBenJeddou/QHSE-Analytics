@@ -48,20 +48,10 @@ export class KpiEnrichmentService {
   private http = inject(HttpClient);
   private base = `${environment.apiUrl}/api/kpi-enrichment`;
 
-  
-  savePreview(importSessionId: number, inputs: KpiPreviewInput[]): Observable<any> {
-    return this.http.post(`${this.base}/${importSessionId}/preview`, inputs);
-  }
-
   analyseAll(importSessionId: number, force = false): Observable<KpiEnrichedResponse[]> {
     return this.http.post<KpiEnrichedResponse[]>(
       `${this.base}/${importSessionId}/analyse?force=${force}`,
       {}
     );
-  }
-
- 
-  getEnrichedView(importSessionId: number): Observable<KpiEnrichedResponse[]> {
-    return this.http.get<KpiEnrichedResponse[]>(`${this.base}/${importSessionId}`);
   }
 }

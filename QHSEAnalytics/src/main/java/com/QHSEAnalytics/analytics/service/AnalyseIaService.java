@@ -22,7 +22,7 @@ import com.QHSEAnalytics.shared.repository.AnalyseCategorieRepository;
 import com.QHSEAnalytics.shared.repository.AnalyseGlobaleRepository;
 import com.QHSEAnalytics.shared.repository.ImportSessionRepository;
 import com.QHSEAnalytics.shared.repository.ResultatKpiRepository;
-import com.QHSEAnalytics.analytics.service.TextNormalizer;
+import com.QHSEAnalytics.analytics.service.processing.TextNormalizer;
 import com.QHSEAnalytics.analytics.service.LlmProviderChain;
 import com.QHSEAnalytics.analytics.service.processing.AnalysisAgent;
 import com.QHSEAnalytics.shared.dto.response.KpiCalculatedDTO;

@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.text.Normalizer;
 import java.util.*;
+import java.util.Collections;
 import java.util.stream.Collectors;
 
 @Service
@@ -43,8 +44,29 @@ public class CalculationAgent {
     public List<KpiCalculatedDTO> calculate(List<KpiRawDataDTO> rawData) {
         List<Kpi> activeKpis = kpiRepository.findByIsActiveTrueOrderByOrdreAsc();
         Map<String, Kpi> byName = buildKpiLookup(activeKpis);
+
+        // Préchargement historique en lot — évite N+1 (1 requête au lieu de 1 par KPI)
+        List<Long> kpiIds = activeKpis.stream()
+                .map(Kpi::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+        Map<Long, List<Double>> historyCache;
+        if (!kpiIds.isEmpty()) {
+            historyCache = resultatKpiRepository.findVariationHistoryByKpiIds(kpiIds)
+                    .stream()
+                    .collect(Collectors.groupingBy(
+                            ResultatKpiRepository.VariationHistoryProjection::getKpiId,
+                            Collectors.mapping(
+                                    ResultatKpiRepository.VariationHistoryProjection::getVariation,
+                                    Collectors.toList()
+                            )
+                    ));
+        } else {
+            historyCache = Collections.emptyMap();
+        }
+
         return rawData.stream()
-                .map(row -> mapCalculatedRow(row, byName))
+                .map(row -> mapCalculatedRow(row, byName, historyCache))
                 .toList();
     }
 
@@ -109,7 +131,7 @@ public class CalculationAgent {
         return lookup;
     }
 
-    private KpiCalculatedDTO mapCalculatedRow(KpiRawDataDTO row, Map<String, Kpi> byName) {
+    private KpiCalculatedDTO mapCalculatedRow(KpiRawDataDTO row, Map<String, Kpi> byName, Map<Long, List<Double>> historyCache) {
         MatchResult matchResult = findMatchingKpi(row, byName);
         Kpi matchedKpi = matchResult.kpi();
         Double matchConf = matchResult.confidence();
@@ -161,7 +183,7 @@ public class CalculationAgent {
                         status = "Stable"; statusColor = "yellow";
                     }
                 }
-                historicalSeries = findHistoricalSeries(effectiveKpi);
+                historicalSeries = findHistoricalSeries(effectiveKpi, historyCache);
                 classRes = classificationEngine.classify(effectiveKpi, comp, historicalSeries);
             }
         } else {
@@ -412,18 +434,13 @@ public class CalculationAgent {
         return Tendance.STABLE.name();
     }
 
-    private List<Double> findHistoricalSeries(Kpi kpi) {
+    private List<Double> findHistoricalSeries(Kpi kpi, Map<Long, List<Double>> historyCache) {
         if (kpi == null || kpi.getId() == null) return List.of();
-        try {
-            return resultatKpiRepository.findVariationHistoryByKpiId(kpi.getId())
-                    .stream()
-                    .filter(v -> v != null && !v.isNaN() && !v.isInfinite())
-                    .limit(60)
-                    .toList();
-        } catch (Exception ex) {
-            log.debug("Historique indisponible pour KPI {}: {}", kpi.getId(), ex.getMessage());
-            return List.of();
-        }
+        return historyCache.getOrDefault(kpi.getId(), List.of())
+                .stream()
+                .filter(v -> v != null && !v.isNaN() && !v.isInfinite())
+                .limit(60)
+                .toList();
     }
 
     private String resolveLookupCategoryCode(Kpi matchedKpi, String dtoCategoryLabel) {

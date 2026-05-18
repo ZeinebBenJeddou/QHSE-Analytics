@@ -1,4 +1,4 @@
-package com.QHSEAnalytics.analytics.service;
+package com.QHSEAnalytics.analytics.service.processing;
 
 import java.text.Normalizer;
 import java.util.regex.Pattern;
@@ -12,11 +12,11 @@ public class TextNormalizer {
             return "";
         }
         String cleaned = value.trim();
-        cleaned = cleaned.replace('\u00A0', ' ');
-        cleaned = cleaned.replaceAll("[\u2018\u2019\u201A\u201B\u2032\u2035]", "'");
-        cleaned = cleaned.replaceAll("[\u201C\u201D\u201E\u201F\u00AB\u00BB]", "\"");
-        cleaned = cleaned.replaceAll("[\u2013\u2014\u2015]", "-");
-        cleaned = cleaned.replaceAll("\u2026", "...");
+        cleaned = cleaned.replace(' ', ' ');
+        cleaned = cleaned.replaceAll("[‘’‚‛′‵]", "'");
+        cleaned = cleaned.replaceAll("[“”„‟«»]", "\"");
+        cleaned = cleaned.replaceAll("[–—―]", "-");
+        cleaned = cleaned.replaceAll("…", "...");
         cleaned = cleaned.replaceAll("[\\u0000-\\u001F\\u007F]", " ");
         cleaned = normalizeUnicode(cleaned);
         cleaned = cleaned.replaceAll("[\\uFFFD\\u00B4\\u02BC\\u02BB]", "'");

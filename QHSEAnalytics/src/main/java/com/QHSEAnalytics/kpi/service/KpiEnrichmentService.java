@@ -1,7 +1,7 @@
 package com.QHSEAnalytics.kpi.service;
 
 import com.QHSEAnalytics.analytics.service.LlmProviderChain;
-import com.QHSEAnalytics.analytics.service.GroqPromptBuilder;
+import com.QHSEAnalytics.analytics.service.processing.GroqPromptBuilder;
 import com.QHSEAnalytics.analytics.service.RagSearchService;
 import com.QHSEAnalytics.shared.dto.response.KpiAnalysisResult;
 import com.QHSEAnalytics.shared.dto.response.KpiEnrichedResponse;

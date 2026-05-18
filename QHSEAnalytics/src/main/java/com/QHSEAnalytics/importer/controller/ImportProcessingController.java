@@ -9,7 +9,7 @@ import com.QHSEAnalytics.shared.dto.response.ImportProcessingResponse;
 import com.QHSEAnalytics.shared.exception.ImportValidationException;
 import com.QHSEAnalytics.importer.service.ImportProgressService;
 import com.QHSEAnalytics.importer.service.processing.ColumnProfileService;
-import com.QHSEAnalytics.importer.service.processing.ImportProcessingService;
+import com.QHSEAnalytics.importer.service.ImportProcessingService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;

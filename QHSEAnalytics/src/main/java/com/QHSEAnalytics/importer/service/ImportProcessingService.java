@@ -1,4 +1,4 @@
-package com.QHSEAnalytics.importer.service.processing;
+package com.QHSEAnalytics.importer.service;
 
 import com.QHSEAnalytics.auth.entity.User;
 import com.QHSEAnalytics.shared.dto.request.ImportRequestDTO;
@@ -30,8 +30,7 @@ import com.QHSEAnalytics.shared.repository.KpiRawDataRepository;
 import com.QHSEAnalytics.shared.repository.KpiRepository;
 import com.QHSEAnalytics.shared.repository.RagKnowledgeRepository;
 import com.QHSEAnalytics.shared.repository.ResultatKpiRepository;
-import com.QHSEAnalytics.importer.service.FileStorageService;
-import com.QHSEAnalytics.importer.service.ImportProgressService;
+import com.QHSEAnalytics.importer.service.processing.CalculationAgent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -40,6 +39,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -138,8 +138,19 @@ public class ImportProcessingService {
         persistPreviewRows(processingSession, calcToProcess);
 
         importProgressService.push(clientId, "CALCUL", 75, "Enregistrement des résultats KPI…");
+
+        // Préchargement en lot — évite le N+1 sur kpiRepository.findById()
+        List<Long> matchedIds = calcToProcess.stream()
+                .map(KpiCalculatedDTO::getMatchedKpiId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Long, Kpi> kpiCache = kpiRepository.findAllById(matchedIds)
+                .stream()
+                .collect(Collectors.toMap(Kpi::getId, k -> k));
+
         List<ResultatKpi> results = calcToProcess.stream()
-                .map(dto -> mapToResultatKpi(dto, processingSession, user))
+                .map(dto -> mapToResultatKpi(dto, processingSession, user, kpiCache))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
@@ -161,7 +172,7 @@ public class ImportProcessingService {
             resultatKpiRepository.saveAll(results);
 
             if (processingResponse.getAiResponse() != null && processingResponse.getAiResponse().getKpis() != null) {
-                persistKpiAnalysis(processingSession, processingResponse.getAiResponse());
+                persistKpiAnalysis(processingSession, processingResponse.getAiResponse(), calcToProcess);
             }
 
             finalSession = advanceStatus(calculatedSession, ImportStatut.READY_FOR_AI);
@@ -244,11 +255,19 @@ public class ImportProcessingService {
         return savedSession;
     }
 
-    private void persistKpiAnalysis(ImportSession session, com.QHSEAnalytics.shared.dto.llm.AiResponse aiResponse) {
+    private void persistKpiAnalysis(ImportSession session, com.QHSEAnalytics.shared.dto.llm.AiResponse aiResponse,
+                                     List<KpiCalculatedDTO> calculatedKpis) {
         if (aiResponse == null || aiResponse.getKpis() == null || aiResponse.getKpis().isEmpty()) {
             log.warn("[ImportProcessing] persistKpiAnalysis called with null/empty aiResponse for import {}", session.getId());
             return;
         }
+
+        java.util.Map<String, KpiCalculatedDTO> calcByName = calculatedKpis == null
+                ? java.util.Collections.emptyMap()
+                : calculatedKpis.stream()
+                        .filter(k -> k.getKpiName() != null)
+                        .collect(java.util.stream.Collectors.toMap(
+                                KpiCalculatedDTO::getKpiName, k -> k, (a, b) -> a));
 
         List<com.QHSEAnalytics.shared.entity.KpiAnalysis> analyses = aiResponse.getKpis().stream()
                 .map(insight -> {
@@ -258,17 +277,39 @@ public class ImportProcessingService {
                         aiNote != null ? aiNote.substring(0, Math.min(40, aiNote.length())) : "null",
                         insight.getIdentificationRisque());
 
+                    KpiCalculatedDTO calc = calcByName.get(insight.getName());
+                    String classification = calc != null ? calc.getClassification() : null;
+                    Double variationPct = calc != null ? calc.getVariationPercentage() : null;
+                    Integer confidence = calc != null ? calc.getCalcConfidence() : null;
+
+                    String riskJustification = firstNonBlank(insight.getIdentificationRisque(), insight.getRiskJustification());
+                    if (riskJustification == null && classification != null && variationPct != null) {
+                        riskJustification = String.format(
+                                "Classification %s basée sur une variation de %.1f%% (confiance : %d%%)",
+                                classification, variationPct, confidence != null ? confidence : 60);
+                    } else if (riskJustification == null) {
+                        riskJustification = "Données insuffisantes pour justification automatique";
+                    }
+
                     return com.QHSEAnalytics.shared.entity.KpiAnalysis.builder()
                         .importSession(session)
                         .kpiName(insight.getName())
-                        .riskLevel("Modéré")
-                        .riskJustification(firstNonBlank(insight.getIdentificationRisque(), insight.getRiskJustification()))
+                        .riskLevel(mapClassificationToRiskLevel(classification))
+                        .riskJustification(riskJustification)
                         .identificationRisque(insight.getIdentificationRisque())
+                        // FR (source prompts IA) + EN (lu par le frontend) — synchronisés
                         .problemeDetecte(firstNonBlank(insight.getProblemeDetecte(), insight.getIssueDetected()))
+                        .issueDetected(firstNonBlank(insight.getProblemeDetecte(), insight.getIssueDetected())) // alias EN → même valeur
+                        // FR (source prompts IA) + EN (lu par le frontend) — synchronisés
                         .actionsPreventives(firstNonBlank(insight.getActionsPreventives(), insight.getPreventiveAction()))
+                        .preventiveAction(firstNonBlank(insight.getActionsPreventives(), insight.getPreventiveAction())) // alias EN → même valeur
+                        // FR (source prompts IA) + EN (lu par le frontend) — synchronisés
                         .actionImmediate(insight.getActionImmediate())
+                        .immediateAction(insight.getActionImmediate()) // alias EN → même valeur
                         .prioriteAction(insight.getPrioriteAction())
+                        // FR (source prompts IA) + EN (lu par le frontend) — synchronisés
                         .methode8D(insight.getMethode8D())
+                        .eightDDetails(insight.getMethode8D()) // alias EN → même valeur
                         .aiNote(aiNote)
                         .noteFinale(firstNonBlank(insight.getNoteFinale(), aiNote))
                         .requires8d(false)
@@ -278,6 +319,19 @@ public class ImportProcessingService {
 
         kpiAnalysisRepository.saveAll(analyses);
         log.info("[ImportProcessing] Persisted {} KpiAnalysis records for import {}", analyses.size(), session.getId());
+    }
+
+    private String mapClassificationToRiskLevel(String classification) {
+        if (classification == null) return "Indéterminé";
+        return switch (classification.toUpperCase()) {
+            case "EXCELLENT"    -> "Faible";
+            case "FAIBLE"       -> "Faible";
+            case "MODERE"       -> "Modéré";
+            case "PRE_ESCALADE" -> "Élevé";
+            case "CRITIQUE"     -> "Critique";
+            case "INDETERMINE"  -> "Indéterminé";
+            default             -> "Indéterminé";
+        };
     }
 
     private String firstNonBlank(String candidate, String fallback) {
@@ -325,11 +379,11 @@ public class ImportProcessingService {
         kpiRawDataRepository.saveAll(entities);
     }
 
-    private ResultatKpi mapToResultatKpi(KpiCalculatedDTO dto, ImportSession session, User user) {
+    private ResultatKpi mapToResultatKpi(KpiCalculatedDTO dto, ImportSession session, User user, Map<Long, Kpi> kpiCache) {
 
         Kpi kpi;
         if (dto.getMatchedKpiId() != null) {
-            kpi = kpiRepository.findById(dto.getMatchedKpiId()).orElse(null);
+            kpi = kpiCache.get(dto.getMatchedKpiId());
         } else {
 
             kpi = createOrGetKpi(dto);
@@ -352,7 +406,11 @@ public class ImportProcessingService {
                 .variationRelative(dto.getVariationPercentage() == null ? 0d : dto.getVariationPercentage())
                 .niveauVariation(parseNiveau(dto.getClassification()))
                 .tendance(parseTendance(dto.getTendance()))
-                .confidenceScore(1.0d)
+                .confidenceScore(
+                        dto.getCalcConfidence() != null
+                                ? dto.getCalcConfidence() / 100.0
+                                : 0.6d
+                )
                 .qualityStatus(QualityStatus.OK)
                 .status(dto.getStatus())
                 .commentaire(dto.getCommentaire())

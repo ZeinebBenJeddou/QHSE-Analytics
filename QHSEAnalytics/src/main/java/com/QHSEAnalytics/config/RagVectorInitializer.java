@@ -1,4 +1,4 @@
-package com.QHSEAnalytics.initializer;
+package com.QHSEAnalytics.config;
 
 import com.QHSEAnalytics.analytics.service.EmbeddingService;
 import com.QHSEAnalytics.shared.entity.RagKnowledge;

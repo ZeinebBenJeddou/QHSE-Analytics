@@ -147,7 +147,7 @@ public class DashboardAdminService {
     }
 
     public AdminGraphiquesDataResponse getGraphiques() {
-        List<ResultatKpi> all = resultatKpiRepository.findAllWithDetails();
+        List<ResultatKpi> all = resultatKpiRepository.findAllByOrderByCreatedAtDesc();
         List<ResultatKpi> critiques = all.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.CRITIQUE).toList();
 
         Map<String, Integer> repartition = new LinkedHashMap<>();
@@ -239,7 +239,7 @@ public class DashboardAdminService {
 
             @Transactional(readOnly = true)
             public AdminRepartitionResponse getRepartitionComplete() {
-            List<ResultatKpi> all = resultatKpiRepository.findAllWithDetails();
+            List<ResultatKpi> all = resultatKpiRepository.findAllByOrderByCreatedAtDesc();
 
             Map<String, List<ResultatKpi>> byCategorie = all.stream()
                 .filter(r -> r.getKpi() != null && r.getKpi().getCategorieKpi() != null)

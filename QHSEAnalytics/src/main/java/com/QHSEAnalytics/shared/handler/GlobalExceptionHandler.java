@@ -1,9 +1,10 @@
-package com.QHSEAnalytics.auth.handler;
+package com.QHSEAnalytics.shared.handler;
 
 import com.QHSEAnalytics.auth.exception.*;
 import com.QHSEAnalytics.shared.exception.CategorieNotFoundException;
 import com.QHSEAnalytics.shared.exception.AdminProtectedException;
 import com.QHSEAnalytics.shared.exception.AnalyseNotFoundException;
+import com.QHSEAnalytics.shared.exception.FileStorageException;
 import com.QHSEAnalytics.shared.exception.FileTooLargeException;
 import com.QHSEAnalytics.shared.exception.ImportNotFoundException;
 import com.QHSEAnalytics.shared.exception.ImportNotReadyException;
@@ -152,6 +153,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(WrongPasswordException.class)
     public ResponseEntity<?> handleWrongPassword(WrongPasswordException ex) {
         return buildError(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(FileStorageException.class)
+    public ResponseEntity<?> handleFileStorage(FileStorageException ex) {
+        return buildError(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
     }
 
     @ExceptionHandler(PdfGenerationException.class)

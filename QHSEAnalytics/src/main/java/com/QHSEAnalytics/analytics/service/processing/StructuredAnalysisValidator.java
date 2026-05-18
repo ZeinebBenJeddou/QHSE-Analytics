@@ -7,7 +7,6 @@ import com.QHSEAnalytics.shared.dto.response.AiPredictiveAlertResponse;
 import com.QHSEAnalytics.shared.dto.response.AiRootCauseResponse;
 import com.QHSEAnalytics.shared.dto.response.AiTraceabilityResponse;
 import com.QHSEAnalytics.shared.dto.response.KpiCalculatedDTO;
-import com.QHSEAnalytics.analytics.service.TextNormalizer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 

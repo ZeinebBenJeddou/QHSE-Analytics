@@ -87,9 +87,6 @@ export const routes: Routes = [
       { path: 'ia', component: AnalyseIAComponent },
       { path: 'ia/:id', component: AnalyseIAComponent },
       { path: 'comparatif', component: ComparatifComponent },
-      
-      { path: 'tendances', component: DashboardAnalysteComponent },
-      { path: 'categories', component: DashboardAnalysteComponent },
       { path: 'export', component: ExportPdfComponent },
     ],
   },

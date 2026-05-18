@@ -1,8 +1,6 @@
 package com.QHSEAnalytics.analytics.service;
 
-import com.QHSEAnalytics.shared.entity.ResultatKpi;
-import com.QHSEAnalytics.shared.enums.NiveauVariation;
-import com.QHSEAnalytics.shared.enums.Tendance;
+import com.QHSEAnalytics.analytics.service.processing.GroqPromptBuilder;
 import com.QHSEAnalytics.shared.exception.ProviderUnavailableException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -196,67 +194,6 @@ public class GroqService {
                 .map(String::trim)
                 .filter(modelName -> !modelName.isBlank())
                 .toList();
-    }
-
-    public String analyserKpi(String prompt) {
-        return appeler(prompt, 700);
-    }
-
-    public String analyserCategorie(String prompt) {
-        return appeler(prompt, 900);
-    }
-
-    public String genererSynthese(String prompt) {
-        return appeler(prompt, 1200);
-    }
-
-    public String genererPlanActions(String prompt) {
-        return appeler(prompt, 1400);
-    }
-
-    public String analyserKpi(
-            String kpiNom,
-            String definition,
-            String unite,
-            String categorie,
-            double valeurN1,
-            double valeurN,
-            double variationRelative,
-            NiveauVariation niveau,
-            Tendance tendance,
-            int periodeN1,
-            int periodeN
-    ) {
-        String prompt = groqPromptBuilder.buildKpiPrompt(
-                kpiNom,
-                definition,
-                unite,
-                categorie,
-                valeurN1,
-                valeurN,
-                variationRelative,
-                niveau,
-                tendance,
-                periodeN1,
-                periodeN,
-                null
-        );
-        return analyserKpi(prompt);
-    }
-
-    public String genererSyntheseGlobale(List<ResultatKpi> resultats, int periodeN1, int periodeN) {
-        String prompt = groqPromptBuilder.buildSynthesePrompt(resultats, periodeN1, periodeN);
-        return genererSynthese(prompt);
-    }
-
-    public String genererAnalyseCategorie(String categorieLibelle, List<ResultatKpi> resultats, int periodeN1, int periodeN) {
-        String prompt = groqPromptBuilder.buildCategoriePrompt(categorieLibelle, resultats, periodeN1, periodeN);
-        return analyserCategorie(prompt);
-    }
-
-    public String genererPlanActions(List<ResultatKpi> resultats, int periodeN1, int periodeN) {
-        String prompt = groqPromptBuilder.buildPlanActionsPrompt(resultats, periodeN1, periodeN);
-        return genererPlanActions(prompt);
     }
 
     private RestTemplate buildRestTemplate() {

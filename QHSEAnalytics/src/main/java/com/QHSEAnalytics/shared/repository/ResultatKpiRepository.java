@@ -21,13 +21,17 @@ public interface ResultatKpiRepository extends JpaRepository<ResultatKpi, Long> 
     @EntityGraph(attributePaths = {"kpi", "kpi.categorieKpi", "user", "importSession"})
     List<ResultatKpi> findByUserId(Long userId);
 
-    @Query("select r.variationAbsolue from ResultatKpi r where r.kpi.id = :kpiId and r.variationAbsolue is not null order by r.createdAt desc")
-    List<Double> findVariationHistoryByKpiId(@Param("kpiId") Long kpiId);
+    @Query("select r.kpi.id as kpiId, r.variationAbsolue as variation " +
+           "from ResultatKpi r " +
+           "where r.kpi.id in :kpiIds and r.variationAbsolue is not null " +
+           "order by r.createdAt desc")
+    List<VariationHistoryProjection> findVariationHistoryByKpiIds(@Param("kpiIds") List<Long> kpiIds);
 
+    interface VariationHistoryProjection {
+        Long getKpiId();
+        Double getVariation();
+    }
 
-    @EntityGraph(attributePaths = {"kpi", "kpi.categorieKpi", "user", "importSession"})
-    @Query("select r from ResultatKpi r order by r.createdAt desc")
-    List<ResultatKpi> findAllWithDetails();
 
     @EntityGraph(attributePaths = {"kpi", "kpi.categorieKpi", "user", "importSession"})
     List<ResultatKpi> findAllByOrderByCreatedAtDesc();

@@ -2,7 +2,6 @@ package com.QHSEAnalytics.analytics.service.processing;
 
 import com.QHSEAnalytics.analytics.service.LlmProviderChain;
 import com.QHSEAnalytics.analytics.service.RagSearchService;
-import com.QHSEAnalytics.analytics.service.TextNormalizer;
 import com.QHSEAnalytics.shared.dto.llm.AiResponse;
 import com.QHSEAnalytics.shared.dto.llm.KpiInsight;
 import com.QHSEAnalytics.shared.dto.response.AiActionPlanItemResponse;

@@ -52,11 +52,4 @@ public class KpiEnrichmentController {
     }
 
 
-    @GetMapping("/test/{previewId}")
-    @PreAuthorize("hasRole('ANALYSTE')")
-    public ResponseEntity<Map<String, Object>> debugAnalyseOne(@PathVariable Long previewId,
-                                                                @RequestParam(defaultValue = "false") boolean force) {
-        Map<String, Object> result = kpiEnrichmentService.debugAnalyseOne(previewId, force);
-        return ResponseEntity.ok(result);
-    }
 }

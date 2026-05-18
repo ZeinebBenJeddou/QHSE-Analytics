@@ -18,10 +18,6 @@ export class AiAnalysisService {
     return this.http.get<AnalyseCompleteResponse>(`${this.iaBase}/${importSessionId}`);
   }
 
-  runAi(importSessionId: number): Observable<AnalyseCompleteResponse> {
-    return this.http.post<AnalyseCompleteResponse>(`${this.iaBase}/${importSessionId}`, {});
-  }
-
   regenerer(importSessionId: number): Observable<AnalyseCompleteResponse> {
     return this.http.post<AnalyseCompleteResponse>(`${this.iaBase}/${importSessionId}/regenerer`, {});
   }

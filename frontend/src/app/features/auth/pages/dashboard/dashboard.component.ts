@@ -12,6 +12,7 @@ import { AuthService } from '../../../../core/services/auth.service';
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
 })
+// Pure redirect component: on init, sends admins to /admin/overview and analystes to /analyste/dashboard.
 export class DashboardComponent {
   private readonly tokenService = inject(TokenService) as TokenService;
   private readonly authService = inject(AuthService);

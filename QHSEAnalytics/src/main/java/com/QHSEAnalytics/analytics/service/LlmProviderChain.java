@@ -1,7 +1,7 @@
 package com.QHSEAnalytics.analytics.service;
 
 import com.QHSEAnalytics.shared.exception.ProviderUnavailableException;
-import com.QHSEAnalytics.analytics.service.processing.GeminiClientService;
+import com.QHSEAnalytics.analytics.service.GeminiClientService;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
 import lombok.extern.slf4j.Slf4j;
@@ -70,7 +70,11 @@ public class LlmProviderChain {
             return new ProviderResult(null, "none");
         }
 
-        String fullCacheKey = "llm:" + toHexString(sha256(cacheKeyPrefix + "|" + prompt));
+        // Clé basée sur le contenu uniquement (sans sessionId)
+        // → permet le cache hit sur les re-analyses du même fichier
+        String stablePrefix = cacheKeyPrefix == null ? ""
+                : cacheKeyPrefix.replaceAll("(?:^|\\|)session=[^|]*", "").replaceAll("^\\|", "").trim();
+        String fullCacheKey = "llm:" + toHexString(sha256(stablePrefix + "|" + prompt));
         Cache cache = getCache();
         if (!bypassCache && cache != null) {
             Cache.ValueWrapper cached = cache.get(fullCacheKey);

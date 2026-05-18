@@ -81,10 +81,7 @@ export class AnalysteShellComponent implements OnInit {
   ngOnInit(): void {
     this.dashboardService.getAlertes().subscribe({
       next: (res) => {
-        const count = res?.count ?? 0;
-        this.notificationCount = count;
-        const alerteItem = this.navItems.find(i => i.route === '/analyste/alertes');
-        if (alerteItem) alerteItem.badge = count > 0 ? count : null;
+        this.notificationCount = res?.count ?? 0;
       },
       error: () => {},
     });

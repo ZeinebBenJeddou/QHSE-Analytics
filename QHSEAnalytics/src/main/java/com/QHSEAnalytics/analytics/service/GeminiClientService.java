@@ -1,9 +1,6 @@
 
-package com.QHSEAnalytics.analytics.service.processing;
+package com.QHSEAnalytics.analytics.service;
 
-import com.QHSEAnalytics.shared.dto.llm.AiResponse;
-import com.QHSEAnalytics.shared.dto.llm.KpiInsight;
-import com.QHSEAnalytics.analytics.service.ProviderCooldownManager;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -16,9 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Service
 @Slf4j
@@ -74,6 +68,16 @@ public class GeminiClientService {
                 headers.set("User-Agent", "QHSEAnalytics-Backend/1.0");
 
                 com.fasterxml.jackson.databind.node.ObjectNode payloadNode = objectMapper.createObjectNode();
+                // System instruction — identique au system message Groq
+                payloadNode.set("system_instruction",
+                        objectMapper.createObjectNode()
+                                .set("parts", objectMapper.createArrayNode().add(
+                                        objectMapper.createObjectNode()
+                                                .put("text",
+                                                        "Tu réponds uniquement avec du JSON valide. " +
+                                                        "Aucun texte avant ou après, aucun markdown, " +
+                                                        "aucune explication, aucun bloc de code. " +
+                                                        "Commence ta réponse par { et termine par }."))));
                 payloadNode.set("contents", objectMapper.createArrayNode().add(
                         objectMapper.createObjectNode()
                                 .set("parts", objectMapper.createArrayNode().add(
@@ -110,40 +114,6 @@ public class GeminiClientService {
             }
         }
         return null;
-    }
-
-    public AiResponse generateAnalysis(String prompt) {
-        String json = generateRaw(prompt);
-        return json != null ? parseGeminiResponse(json) : null;
-    }
-
-    private AiResponse parseGeminiResponse(String jsonText) {
-        try {
-            JsonNode root = objectMapper.readTree(jsonText);
-
-            AiResponse response = new AiResponse();
-            response.setOverallScore(root.path("overallScore").asDouble(0.0));
-            response.setSummary(root.path("summary").asText("Analyse indisponible"));
-
-            List<String> recs = new ArrayList<>();
-            root.path("recommendations").forEach(n -> recs.add(n.asText()));
-            response.setRecommendations(recs);
-
-            List<KpiInsight> kpis = new ArrayList<>();
-            root.path("kpis").forEach(n -> {
-                KpiInsight insight = new KpiInsight();
-                insight.setName(n.path("name").asText());
-                insight.setScore(n.path("score").asDouble(0.0));
-                insight.setInsight(n.path("insight").asText());
-                kpis.add(insight);
-            });
-            response.setKpis(kpis);
-
-            return response;
-        } catch (Exception e) {
-            log.error("Error parsing Gemini JSON response: {}", e.getMessage());
-            return null;
-        }
     }
 
     private long extractRetryDelaySeconds(HttpClientErrorException e) {

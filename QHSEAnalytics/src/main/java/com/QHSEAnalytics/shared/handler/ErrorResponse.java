@@ -1,4 +1,4 @@
-package com.QHSEAnalytics.auth.handler;
+package com.QHSEAnalytics.shared.handler;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;
