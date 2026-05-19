@@ -488,6 +488,8 @@ public class AnalyseIaService {
                 .tendance(resultat.getTendance() == null ? null : resultat.getTendance().name())
                 .matchedKpi(resultat.getKpi().getNom())
                 .matchedKpiId(resultat.getKpi().getId())
+                .periodeN1(resultat.getPeriodeN1())
+                .periodeN(resultat.getPeriodeN())
                 .build();
     }
 

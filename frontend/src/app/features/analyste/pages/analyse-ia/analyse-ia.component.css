@@ -477,6 +477,20 @@
   font-style: normal;
 }
 
+/* === Synthèse Globale === */
+.synth-badge-expert {
+  margin-left: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6366F1;
+  background: #EEF2FF;
+  border: 1px solid #C7D2FE;
+  border-radius: 20px;
+  padding: 2px 8px;
+}
+
 .cat-mini-row {
   display: flex;
   gap: 10px;

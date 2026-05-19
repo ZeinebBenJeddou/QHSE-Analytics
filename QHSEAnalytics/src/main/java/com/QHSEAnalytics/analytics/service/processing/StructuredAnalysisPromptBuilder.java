@@ -6,8 +6,11 @@ import com.QHSEAnalytics.analytics.service.RagSearchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Component
@@ -37,7 +40,13 @@ public class StructuredAnalysisPromptBuilder {
             "6. Réponds en français.\n";
 
     private static final String FEW_SHOT_EXAMPLE =
-            "\n\nEXEMPLE DE RÉPONSE ATTENDUE POUR UN KPI (respecte ce niveau de détail) :\n" +
+            "\n\nEXEMPLE DE globalSummary ATTENDU — un seul paragraphe narratif fluide, rédigé comme un rapport d'expert QHSE senior :\n" +
+            "\"L'analyse QHSE portant sur la période 2025 → 2026, couvrant 12 indicateurs répartis sur 4 catégories, révèle un score global de 42/100 (À SURVEILLER) avec 8 KPIs classés CRITIQUE. " +
+            "La catégorie Qualité est la plus dégradée (score 20/100, 3 critiques), notamment le First Pass Yield qui chute de −18,5 % (91 % → 74,2 %), franchissant le seuil critique ISO 9001. " +
+            "Sur le plan sécurité, le Taux d'Absentéisme progresse de +32 % (4,1 % → 5,4 %), signal d'alerte sur les conditions de travail au sens ISO 45001, tandis que le Taux de Fréquence des Accidents affiche +15 %, exposant l'entreprise à un risque de non-conformité DREAL. " +
+            "Le Délai Moyen de Livraison (+28 %, 3,6 → 4,6 jours) génère un risque contractuel croissant. " +
+            "Il est impératif d'engager dans les 48h une revue sécurité d'urgence sur les postes à risque et de lancer dans la semaine un plan de réduction des défauts pour remonter le First Pass Yield au-dessus de 85 % ; sans intervention rapide, la trajectoire actuelle conduira à une situation de non-conformité multi-normes dans les 2 à 3 prochains mois.\"\n\n" +
+            "EXEMPLE DE RÉPONSE ATTENDUE POUR UN KPI (respecte ce niveau de détail) :\n" +
             "{\n" +
             "  \"kpiId\": 42,\n" +
             "  \"kpiName\": \"Taux de Fréquence des Accidents (TF1)\",\n" +
@@ -67,6 +76,15 @@ public class StructuredAnalysisPromptBuilder {
     private final PromptSanitizer promptSanitizer;
 
     public String buildPrompt(List<KpiCalculatedDTO> kpis) {
+        return buildPrompt(kpis, kpis == null ? 0 : kpis.size(), null);
+    }
+
+    /**
+     * @param kpis            KPIs in this chunk (what the LLM must analyse)
+     * @param totalKpiCount   total number of KPIs in the session (used only for globalSummary context)
+     * @param allKpis         full list used to compute session-wide scores; falls back to kpis when null
+     */
+    public String buildPrompt(List<KpiCalculatedDTO> kpis, int totalKpiCount, List<KpiCalculatedDTO> allKpis) {
         if (kpis == null || kpis.isEmpty()) {
             throw new IllegalArgumentException("At least one KPI is required to build a structured IA prompt.");
         }
@@ -74,6 +92,11 @@ public class StructuredAnalysisPromptBuilder {
         List<KpiCalculatedDTO> orderedKpis = kpis.stream()
                 .sorted(Comparator.comparingDouble(k -> -Math.abs(k.getVariationPercentage() == null ? 0.0 : k.getVariationPercentage())))
                 .collect(Collectors.toList());
+
+        // Compute scores on the full session KPI list so globalSummary always reflects the real totals
+        List<KpiCalculatedDTO> scoreSource = (allKpis != null && !allKpis.isEmpty()) ? allKpis : orderedKpis;
+        ScoreSummary scores = computeScores(scoreSource);
+        int reportedTotal = totalKpiCount > 0 ? totalKpiCount : orderedKpis.size();
 
         StringBuilder prompt = new StringBuilder();
         prompt.append("SYSTEM:\n");
@@ -83,6 +106,32 @@ public class StructuredAnalysisPromptBuilder {
         prompt.append("USER:\n");
         prompt.append("You have the following targeted context sources and KPI results.\n");
         prompt.append("Use the provided sources to answer. Do not use any external knowledge.\n\n");
+
+        // Resolve actual years from KPI data
+        String periodeN1Str = scoreSource.stream()
+                .map(KpiCalculatedDTO::getPeriodeN1).filter(p -> p != null && p > 0)
+                .findFirst().map(String::valueOf).orElse("N-1");
+        String periodeNStr = scoreSource.stream()
+                .map(KpiCalculatedDTO::getPeriodeN).filter(p -> p != null && p > 0)
+                .findFirst().map(String::valueOf).orElse("N");
+
+        // Inject pre-computed scores as ground truth for globalSummary
+        prompt.append("=== SCORES CALCULÉS (à citer tels quels dans globalSummary) ===\n");
+        prompt.append(String.format("Période analysée : %s → %s\n", periodeN1Str, periodeNStr));
+        prompt.append(String.format("Score global : %d/100 (%s) | KPIs totaux session : %d | Critiques : %d | Modérés : %d | Faibles/OK : %d\n",
+                scores.globalScore, scores.globalLabel, reportedTotal,
+                scores.critiques, scores.moderes, scores.faibledOk));
+        for (ScoreSummary.CatScore cs : scores.categories) {
+            prompt.append(String.format("  • %s : score %d/100 | %d critique(s), %d modéré(s), %d OK\n",
+                    cs.libelle, cs.score, cs.critiques, cs.moderes, cs.ok));
+        }
+        if (scores.worstKpi != null) {
+            prompt.append(String.format("KPI le plus dégradé : %s (%+.1f%%, %s→%s, %s)\n",
+                    scores.worstKpi.getKpiName(), scores.worstVariation,
+                    safeNumber(scores.worstKpi.getValeurN1()), safeNumber(scores.worstKpi.getValeurN()),
+                    safeText(scores.worstKpi.getClassification())));
+        }
+        prompt.append("\n");
 
 
         String combinedQuery = orderedKpis.stream()
@@ -116,7 +165,9 @@ public class StructuredAnalysisPromptBuilder {
 
         prompt.append("OUTPUT SCHEMA:\n");
         prompt.append("{\n");
-        prompt.append("  \"globalSummary\": string,\n");
+        prompt.append("  \"globalSummary\": string,  // OBLIGATOIRE : un seul paragraphe narratif fluide (5 à 8 phrases), rédigé comme un rapport d'expert QHSE senior destiné à la direction.\n");
+        prompt.append("  // Doit couvrir dans l'ordre, sans sauts de ligne : (1) période et périmètre analysés, (2) score global chiffré et bilan par catégorie, (3) les 2-3 KPIs les plus critiques avec valeurs N-1→N et impact réel ISO/réglementaire, (4) les 2 actions prioritaires avec horizon temporel, (5) conclusion sur la trajectoire globale.\n");
+        prompt.append("  // INTERDIT : sauts de ligne (\\n), puces, titres de section, texte générique sans valeurs chiffrées, répétitions.\n");
         prompt.append("  \"confidence\": {\n");
         prompt.append("    \"overall\": number,\n");
         prompt.append("    \"sections\": {\n");
@@ -261,5 +312,84 @@ public class StructuredAnalysisPromptBuilder {
         }
         String safeName = TextNormalizer.normalizeForSearch(name);
         return safeName.isBlank() ? "unknown" : safeName.replaceAll("\\s+", "_");
+    }
+
+    // ── Score pre-computation ─────────────────────────────────────────────────
+
+    static class ScoreSummary {
+        int globalScore;
+        String globalLabel;
+        int critiques;
+        int moderes;
+        int faibledOk;
+        KpiCalculatedDTO worstKpi;
+        double worstVariation;
+        List<CatScore> categories = new ArrayList<>();
+
+        static class CatScore {
+            String libelle;
+            int score;
+            int critiques;
+            int moderes;
+            int ok;
+        }
+    }
+
+    private ScoreSummary computeScores(List<KpiCalculatedDTO> kpis) {
+        ScoreSummary s = new ScoreSummary();
+
+        // Global counts
+        for (KpiCalculatedDTO k : kpis) {
+            String cls = k.getClassification() == null ? "" : k.getClassification().toUpperCase();
+            if (cls.contains("CRITIQUE")) s.critiques++;
+            else if (cls.contains("MODERE") || cls.contains("MODERÉ")) s.moderes++;
+            else s.faibledOk++;
+        }
+
+        // Weighted global score (CRITIQUE counts double)
+        double weightedSum = 0;
+        double totalWeight = 0;
+        for (KpiCalculatedDTO k : kpis) {
+            String cls = k.getClassification() == null ? "" : k.getClassification().toUpperCase();
+            double base   = cls.contains("CRITIQUE") ? 20 : cls.contains("MODERE") || cls.contains("MODERÉ") ? 60 : 100;
+            double weight = cls.contains("CRITIQUE") ? 2 : 1;
+            weightedSum += base * weight;
+            totalWeight += weight;
+        }
+        s.globalScore = totalWeight > 0 ? (int) Math.round(weightedSum / totalWeight) : 0;
+        if (s.globalScore >= 80)      s.globalLabel = "EXCELLENT";
+        else if (s.globalScore >= 60) s.globalLabel = "SATISFAISANT";
+        else if (s.globalScore >= 40) s.globalLabel = "À SURVEILLER";
+        else                          s.globalLabel = "CRITIQUE";
+
+        // Worst KPI by absolute variation
+        kpis.stream()
+            .filter(k -> k.getVariationPercentage() != null)
+            .max(Comparator.comparingDouble(k -> Math.abs(((KpiCalculatedDTO) k).getVariationPercentage())))
+            .ifPresent(k -> {
+                s.worstKpi = k;
+                s.worstVariation = k.getVariationPercentage();
+            });
+
+        // Per-category scores
+        Map<String, List<KpiCalculatedDTO>> byCat = kpis.stream()
+            .filter(k -> k.getCategorie() != null)
+            .collect(Collectors.groupingBy(KpiCalculatedDTO::getCategorie, LinkedHashMap::new, Collectors.toList()));
+
+        for (Map.Entry<String, List<KpiCalculatedDTO>> entry : byCat.entrySet()) {
+            ScoreSummary.CatScore cs = new ScoreSummary.CatScore();
+            cs.libelle = entry.getKey();
+            List<KpiCalculatedDTO> catKpis = entry.getValue();
+            double cw = 0, cws = 0;
+            for (KpiCalculatedDTO k : catKpis) {
+                String cls = k.getClassification() == null ? "" : k.getClassification().toUpperCase();
+                if (cls.contains("CRITIQUE")) { cs.critiques++; cws += 20 * 2; cw += 2; }
+                else if (cls.contains("MODERE") || cls.contains("MODERÉ")) { cs.moderes++; cws += 60; cw += 1; }
+                else { cs.ok++; cws += 100; cw += 1; }
+            }
+            cs.score = cw > 0 ? (int) Math.round(cws / cw) : 0;
+            s.categories.add(cs);
+        }
+        return s;
     }
 }

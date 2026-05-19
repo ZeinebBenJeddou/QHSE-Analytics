@@ -143,13 +143,25 @@ export class AnalyseIAComponent implements OnInit, OnDestroy {
   globalScore = computed(() => {
     const kpis = this.analyse()?.analysesKpis ?? [];
     if (!kpis.length) return 0;
-    const pts = kpis.reduce((acc, k) => {
-      if (k.niveauVariation === 'FAIBLE')   return acc + 100;
-      if (k.niveauVariation === 'MODERE')   return acc + 60;
-      if (k.niveauVariation === 'CRITIQUE') return acc + 20;
-      return acc + 70;
-    }, 0);
-    return Math.round(pts / kpis.length);
+
+    // Base score by classification level
+    const baseByNiveau: Record<string, number> = {
+      FAIBLE: 100, MODERE: 60, CRITIQUE: 20
+    };
+    // Weight: CRITIQUE KPIs count double in the denominator (they drag the score down more)
+    let weightedSum = 0;
+    let totalWeight = 0;
+    for (const k of kpis) {
+      const base   = baseByNiveau[k.niveauVariation ?? ''] ?? 70;
+      const weight = k.niveauVariation === 'CRITIQUE' ? 2 : 1;
+      // Penalty for large negative variations: cap penalty at -15 pts
+      const variation = k.variationRelative ?? 0;
+      const deteriorating = k.tendance === 'BAISSE' && variation < -15;
+      const penalty = deteriorating ? Math.min(15, Math.abs(variation) * 0.1) : 0;
+      weightedSum += (base - penalty) * weight;
+      totalWeight += weight;
+    }
+    return Math.max(0, Math.min(100, Math.round(weightedSum / totalWeight)));
   });
 
   catStats = computed(() => {
@@ -399,20 +411,17 @@ export class AnalyseIAComponent implements OnInit, OnDestroy {
   }
 
   miniRingDash(cat: { critique: number; modere: number; faible: number; total: number }): string {
-    if (!cat.total) return '0 339';
-    const score = Math.round(
-      ((cat.faible * 100 + cat.modere * 60 + (cat.total - cat.faible - cat.modere - cat.critique) * 70 + cat.critique * 20) / cat.total)
-    );
-    const pct = score / 100;
+    const pct = this.miniScore(cat) / 100;
     return `${Math.round(pct * 220)} 220`;
   }
 
   miniScore(cat: { critique: number; modere: number; faible: number; total: number }): number {
     if (!cat.total) return 0;
-    return Math.round(
-      (cat.faible * 100 + cat.modere * 60 + cat.critique * 20 +
-       (cat.total - cat.faible - cat.modere - cat.critique) * 70) / cat.total
-    );
+    // CRITIQUE counts double (same weighting logic as globalScore)
+    const excellent = cat.total - cat.faible - cat.modere - cat.critique;
+    const weightedSum = cat.faible * 100 + cat.modere * 60 + cat.critique * 20 * 2 + excellent * 70;
+    const totalWeight = cat.total + cat.critique; // critique adds 1 extra weight unit
+    return Math.max(0, Math.min(100, Math.round(weightedSum / totalWeight)));
   }
 
   get periode(): string {
@@ -661,6 +670,7 @@ export class AnalyseIAComponent implements OnInit, OnDestroy {
         || this.analyse()?.analyseGlobale?.synthese?.trim()
         || '';
   }
+
 
   probableCausesList(): string[] {
     const s = this.structured()?.probableCauses ?? [];

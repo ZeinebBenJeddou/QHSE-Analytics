@@ -151,6 +151,7 @@ public class AnalysisAgent {
             log.info("[AnalysisAgent] analyseStructured: starting chunk {}/{} ({} KPIs)", chunkNumber, chunks.size(), chunk.size());
             ChunkAnalysisResult chunkResult = analyzeStructuredChunkWithRetries(
                     chunk,
+                    topKpis,
                     importSessionId,
                     bypassCache,
                     chunkCacheKeyPrefix,
@@ -230,12 +231,13 @@ public class AnalysisAgent {
     }
 
     private ChunkAnalysisResult analyzeStructuredChunk(List<KpiCalculatedDTO> chunkKpis,
+                                                       List<KpiCalculatedDTO> allKpis,
                                                        Long importSessionId,
                                                        boolean bypassCache,
                                                        String chunkCacheKeyPrefix,
                                                        int chunkNumber,
                                                        int totalChunks) {
-        String prompt = structuredAnalysisPromptBuilder.buildPrompt(chunkKpis);
+        String prompt = structuredAnalysisPromptBuilder.buildPrompt(chunkKpis, allKpis.size(), allKpis);
         long start = System.currentTimeMillis();
         LlmProviderChain.ProviderResult providerResult = llmProviderChain.generate(prompt, chunkCacheKeyPrefix, bypassCache);
         long latency = System.currentTimeMillis() - start;
@@ -311,12 +313,13 @@ public class AnalysisAgent {
     }
 
     private ChunkAnalysisResult analyzeStructuredChunkWithRetries(List<KpiCalculatedDTO> chunkKpis,
+                                                                  List<KpiCalculatedDTO> allKpis,
                                                                   Long importSessionId,
                                                                   boolean bypassCache,
                                                                   String chunkCacheKeyPrefix,
                                                                   int chunkNumber,
                                                                   int totalChunks) {
-        String basePrompt = structuredAnalysisPromptBuilder.buildPrompt(chunkKpis);
+        String basePrompt = structuredAnalysisPromptBuilder.buildPrompt(chunkKpis, allKpis.size(), allKpis);
         String retryPromptBase = basePrompt;
         String currentPrompt = basePrompt;
         String providerUsed = "none";
@@ -431,11 +434,13 @@ public class AnalysisAgent {
     }
 
     private AiAnalysisStructuredResponse mergeChunkResponses(List<AiAnalysisStructuredResponse> chunkResponses) {
+        // Keep only the first non-blank globalSummary: each chunk generates a full synthesis
+        // from partial KPI data, so concatenating them produces duplicate sections (§1, §2... repeated N times).
         String mergedSummary = chunkResponses.stream()
                 .map(AiAnalysisStructuredResponse::getGlobalSummary)
                 .filter(summary -> summary != null && !summary.isBlank())
-                .distinct()
-                .collect(Collectors.joining("\n\n"));
+                .findFirst()
+                .orElse("");
 
         List<AiKpiInsightResponse> mergedInsights = chunkResponses.stream()
                 .flatMap(response -> safeList(response.getKpiInsights()).stream())

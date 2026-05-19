@@ -43,6 +43,9 @@ public class KpiCalculatedDTO {
 
     private Double matchConfidence;
 
+    private Integer periodeN1;
+    private Integer periodeN;
+
 
     private Double spcMean;
     private Double spcStd;
