@@ -1,9 +1,9 @@
 import {
-  Component, inject, OnInit, signal, computed
+  Component, inject, OnDestroy, OnInit, signal, computed
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { catchError, finalize, forkJoin, of } from 'rxjs';
 
 import { MatIconModule } from '@angular/material/icon';
@@ -70,7 +70,8 @@ const CATEGORIES: CategorieInfo[] = [
   templateUrl: './analyse-ia.component.html',
   styleUrls: ['./analyse-ia.component.css'],
 })
-export class AnalyseIAComponent implements OnInit {
+export class AnalyseIAComponent implements OnInit, OnDestroy {
+  private loadingTimeout: ReturnType<typeof setTimeout> | null = null;
 
   private dashboardService = inject(DashboardService);
   private aiAnalysisService = inject(AiAnalysisService);
@@ -79,6 +80,7 @@ export class AnalyseIAComponent implements OnInit {
   private tokenService     = inject(TokenService);
   private snackBar         = inject(MatSnackBar);
   private route            = inject(ActivatedRoute);
+  private router           = inject(Router);
   importId        = signal<number | null>(null);
   loading         = signal(true);
   regenerating    = signal(false);
@@ -208,8 +210,33 @@ export class AnalyseIAComponent implements OnInit {
         this.error.set('Aucun import sélectionné.');
         return;
       }
-      this.loadResume();
+
+      const cachedId = this.sessionState.getActiveImportId();
+      if (cachedId) {
+        this.importId.set(cachedId);
+        this.loadAnalyse(cachedId);
+      } else {
+        this.startLoadingTimeout();
+        this.loadResume();
+      }
     }
+  }
+
+  ngOnDestroy() {
+    if (this.loadingTimeout) {
+      clearTimeout(this.loadingTimeout);
+    }
+  }
+
+  private startLoadingTimeout(): void {
+    this.loadingTimeout = setTimeout(() => {
+      if (this.loading()) {
+        this.loading.set(false);
+        if (!this.analyse() && !this.structured()) {
+          this.error.set('Délai de chargement dépassé. Veuillez réessayer ou sélectionner un import depuis l\'historique.');
+        }
+      }
+    }, 10000);
   }
 
   loadResume() {
@@ -221,12 +248,12 @@ export class AnalyseIAComponent implements OnInit {
           this.loadAnalyse(res.dernierImportId);
         } else {
           this.loading.set(false);
-          this.error.set('Aucun import disponible. Veuillez importer des données.');
+          this.router.navigate(['/analyste/historique']);
         }
       },
       error: () => {
         this.loading.set(false);
-        this.error.set('Impossible de charger les données.');
+        this.router.navigate(['/analyste/historique']);
       }
     });
   }

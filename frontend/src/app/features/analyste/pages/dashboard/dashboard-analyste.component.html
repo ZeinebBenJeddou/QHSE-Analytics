@@ -45,12 +45,6 @@
       </div>
     </div>
 
-    @if (isAnalysing()) {
-      <div class="enrichment-bar">
-        <mat-progress-bar mode="indeterminate" color="accent"></mat-progress-bar>
-        <p>Groq analyse chaque indicateur, avec Gemini en fallback, pour détecter les risques...</p>
-      </div>
-    }
 
 
     <section class="section">
@@ -455,15 +449,11 @@
 
         @if (dynamicSynthese()) {
           <div class="ia-synthese-text">{{ dynamicSynthese() }}</div>
-        } @else if (isAnalysing()) {
-          <div class="ia-synthese-text no-data">
-            Analyse IA en cours — détection des risques et génération des recommandations...
-          </div>
         } @else {
           <div class="ia-synthese-text no-data">
             Aucune analyse disponible pour cet import.
             @if (importId()) {
-              <button class="link-btn" (click)="runFullAnalysis()">Relancer l'analyse →</button>
+              <button class="link-btn" (click)="goToIA()">Voir l'analyse IA →</button>
             }
           </div>
         }

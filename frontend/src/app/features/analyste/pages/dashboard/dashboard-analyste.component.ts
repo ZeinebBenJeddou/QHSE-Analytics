@@ -24,7 +24,6 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 import { DashboardService } from '../../../../core/services/dashboard.service';
 import { ImportService } from '../../../../core/services/import.service';
-import { KpiEnrichmentService } from '../../../../core/services/kpi-enrichment.service';
 import { ImportSessionStateService } from '../../../../core/services/import-session-state.service';
 import {
   ResumeAnalysteResponse,
@@ -89,14 +88,11 @@ export class DashboardAnalysteComponent implements OnInit {
   private router = inject(Router);
   private dashboardService = inject(DashboardService);
   private importService = inject(ImportService);
-  private enrichmentService = inject(KpiEnrichmentService);
   private snackBar = inject(MatSnackBar);
   private sessionState = inject(ImportSessionStateService);
 
   importId = signal<number | null>(null);
   exporting = signal(false);
-  isAnalysing = signal(false);
-  private analysisAutoTriggered = false;
   loading = signal(true);
   error = signal('');
 
@@ -496,7 +492,6 @@ export class DashboardAnalysteComponent implements OnInit {
     this.graphiques.set(null);
     this.analysesIa.set(null);
     this.expandedRows.set(new Set());
-    this.analysisAutoTriggered = false;
     this.sessionState.setActiveImport(importId);
 
     this.dashboardService.getComparatif(importId).subscribe({
@@ -625,11 +620,7 @@ export class DashboardAnalysteComponent implements OnInit {
 
     this.dashboardService.getAnalysesIa(importId)
       .pipe(
-        catchError(err => {
-          const msg = this.extractErrorMessage(err, 'Analyse IA indisponible pour le moment.');
-          this.snackBar.open(msg, 'OK', { duration: 6000 });
-          return of(null);
-        }),
+        catchError(() => of(null)),
         finalize(check)
       )
       .subscribe({ next: r => {
@@ -637,13 +628,6 @@ export class DashboardAnalysteComponent implements OnInit {
           this.analysesIa.set(r);
           this.sessionState.patch({ analysesIa: r });
           this.applyAnalysesToComparatif();
-          this.analysisAutoTriggered = false;
-        } else if (!this.analysisAutoTriggered && !this.isAnalysing()) {
-          const id = this.importId();
-          if (id && (this.comparatif()?.lignes?.length ?? 0) > 0) {
-            this.analysisAutoTriggered = true;
-            this.runFullAnalysis();
-          }
         }
       } });
   }
@@ -825,31 +809,6 @@ export class DashboardAnalysteComponent implements OnInit {
       return;
     }
     this.router.navigate(['/analyste/ia', id]);
-  }
-
- 
-  runFullAnalysis() {
-    const id = this.importId();
-    if (!id) return;
-
-    this.analysisAutoTriggered = false;
-    this.isAnalysing.set(true);
-    this.snackBar.open('Analyse IA approfondie en cours (ligne par ligne)...', 'Fermer', { duration: 5000 });
-
-    this.enrichmentService.analyseAll(id, true).subscribe({
-      next: (results) => {
-        this.snackBar.open(`${results.length} indicateurs analysés avec succès.`, 'OK', { duration: 4000 });
-        
-        this.loadSelectedImport(id);
-      },
-      error: (err) => {
-        const msg = this.extractErrorMessage(err, 'Erreur lors de l\'analyse approfondie.');
-        this.snackBar.open(msg, 'OK', { duration: 5000 });
-      },
-      complete: () => {
-        this.isAnalysing.set(false);
-      }
-    });
   }
 
   private downloadFile(blob: Blob, filename: string): void {

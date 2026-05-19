@@ -52,6 +52,9 @@ public class AnalyseGlobale {
     @Column(name = "overall_confidence")
     private Integer overallConfidence;
 
+    @Column(name = "structured_response_json", columnDefinition = "TEXT")
+    private String structuredResponseJson;
+
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();

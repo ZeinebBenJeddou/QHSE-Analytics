@@ -3,6 +3,7 @@ package com.QHSEAnalytics.analytics.service;
 import com.QHSEAnalytics.auth.entity.User;
 import com.QHSEAnalytics.auth.exception.UserNotFoundException;
 import com.QHSEAnalytics.auth.repository.UserRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.QHSEAnalytics.shared.dto.response.AnalyseCategorieResponse;
 import com.QHSEAnalytics.shared.dto.response.AiAnalysisStructuredResponse;
 import com.QHSEAnalytics.shared.dto.response.AnalyseCompleteResponse;
@@ -51,6 +52,7 @@ public class AnalyseIaService {
     private final LlmProviderChain llmProviderChain;
     private final ImportSessionRepository importSessionRepository;
     private final UserRepository userRepository;
+    private final ObjectMapper objectMapper;
 
     @Transactional
     public void genererToutesLesAnalyses(Long importSessionId, Long userId) {
@@ -206,6 +208,25 @@ public class AnalyseIaService {
                 session.setMessageErreur(null);
             }
             importSessionRepository.save(session);
+
+            // Persister l'analyse structurée maintenant pour éviter un appel LLM à la première consultation
+            if (!iaUnavailable) {
+                try {
+                    AiAnalysisStructuredResponse structured =
+                            analysisAgent.analyzeStructured(cleanedData, importSessionId, bypassStructuredCache);
+                    if (structured != null) {
+                        analyseGlobale.setStructuredResponseJson(objectMapper.writeValueAsString(structured));
+                        if (structured.getConfidence() != null && structured.getConfidence().getOverall() != null) {
+                            analyseGlobale.setOverallConfidence(structured.getConfidence().getOverall().intValue());
+                        }
+                        analyseGlobaleRepository.save(analyseGlobale);
+                        log.info("[IA] Analyse structurée persistée pour session {}", importSessionId);
+                    }
+                } catch (Exception e) {
+                    log.warn("[IA] Impossible de persister l'analyse structurée pour session {} : {}", importSessionId, e.getMessage());
+                }
+            }
+
             log.info("Analyse IA complète générée pour la session {} en {} ms", importSessionId,
                     System.currentTimeMillis() - startAt);
         } catch (Exception ex) {
@@ -290,7 +311,27 @@ public class AnalyseIaService {
 
     @Transactional
     public AiAnalysisStructuredResponse getAnalyseStructured(Long importSessionId, Long userId, boolean isAdmin) {
-        loadSessionWithOwnership(importSessionId, userId, isAdmin);
+        ImportSession session = loadSessionWithOwnership(importSessionId, userId, isAdmin);
+
+        // Analyse encore en cours → ne pas déclencher un appel LLM concurrent
+        if (session.getStatut() == ImportStatut.READY_FOR_AI) {
+            log.info("[AnalyseStructured] Session {} encore en READY_FOR_AI — analyse en cours, structured non disponible.", importSessionId);
+            return null;
+        }
+
+        // Lire depuis la base si déjà générée — ne pas relancer le LLM
+        var analyseGlobaleOpt = analyseGlobaleRepository.findByImportSessionId(importSessionId);
+        if (analyseGlobaleOpt.isPresent()) {
+            String json = analyseGlobaleOpt.get().getStructuredResponseJson();
+            if (json != null && !json.isBlank()) {
+                try {
+                    return objectMapper.readValue(json, AiAnalysisStructuredResponse.class);
+                } catch (Exception e) {
+                    log.warn("[AnalyseStructured] Échec désérialisation JSON pour session {}, recalcul.", importSessionId);
+                }
+            }
+        }
+
         List<ResultatKpi> resultats = resultatKpiRepository.findByImportSessionIdOrderByCreatedAtDesc(importSessionId).stream()
                 .filter(resultat -> resultat.getKpi() != null && resultat.getKpi().getCategorieKpi() != null)
                 .toList();
@@ -313,10 +354,17 @@ public class AnalyseIaService {
         List<KpiCalculatedDTO> cleanedData = cleanKpis(kpiData);
         AiAnalysisStructuredResponse result = analysisAgent.analyzeStructured(cleanedData, importSessionId);
 
-        if (result != null && result.getConfidence() != null && result.getConfidence().getOverall() != null) {
-            int score = result.getConfidence().getOverall().intValue();
+        if (result != null) {
+            // Persister pour les consultations futures
             analyseGlobaleRepository.findByImportSessionId(importSessionId).ifPresent(ag -> {
-                ag.setOverallConfidence(score);
+                try {
+                    ag.setStructuredResponseJson(objectMapper.writeValueAsString(result));
+                } catch (Exception e) {
+                    log.warn("[AnalyseStructured] Échec sérialisation JSON pour session {}", importSessionId);
+                }
+                if (result.getConfidence() != null && result.getConfidence().getOverall() != null) {
+                    ag.setOverallConfidence(result.getConfidence().getOverall().intValue());
+                }
                 analyseGlobaleRepository.save(ag);
             });
         }
@@ -333,11 +381,9 @@ public class AnalyseIaService {
         }
 
         try {
-
             analyseCategorieRepository.deleteByImportSessionId(importSessionId);
             analyseGlobaleRepository.deleteByImportSessionId(importSessionId);
             llmProviderChain.clearKpiAnalysisCache();
-
 
             List<ResultatKpi> resultats = resultatKpiRepository.findByImportSessionIdOrderByCreatedAtDesc(importSessionId);
             for (ResultatKpi r : resultats) {
@@ -372,6 +418,7 @@ public class AnalyseIaService {
                 r.setAnalyseIa(null);
             }
             resultatKpiRepository.saveAll(resultats);
+            log.info("[RegenerAsAdmin] Cleared analyseIa for {} ResultatKpi records of session {}", resultats.size(), importSessionId);
         } catch (Exception ex) {
             log.error("Erreur suppression analyses pour session {} : {}", importSessionId, ex.getMessage());
         }

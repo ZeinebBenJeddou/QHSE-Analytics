@@ -188,10 +188,10 @@ public class StructuredAnalysisValidator {
                 errors.add(prefix + ".dueHorizon is mandatory.");
             }
             if (isBlank(insight.getSuccessMetric())) {
-                errors.add(prefix + ".successMetric is mandatory.");
+                log.debug("[Validation] {} successMetric absent — ignoré", prefix);
             }
             if (isBlank(insight.getRiskIfNotDone())) {
-                errors.add(prefix + ".riskIfNotDone is mandatory.");
+                log.debug("[Validation] {} riskIfNotDone absent — ignoré", prefix);
             }
         }
 
