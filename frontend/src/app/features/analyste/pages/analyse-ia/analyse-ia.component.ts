@@ -2,7 +2,6 @@ import {
   Component, inject, OnDestroy, OnInit, signal, computed
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
 import { ActivatedRoute, Router } from '@angular/router';
 import { catchError, finalize, forkJoin, of } from 'rxjs';
 
@@ -34,16 +33,6 @@ interface EnrichedKpi extends ResultatKpiIaResponse {
   urgency?: string;
 }
 
-interface KanbanItem {
-  id: string;
-  action: string;
-  priority: string;
-  ownerRole?: string;
-  dueHorizon?: string;
-  source: 'action_plan' | 'kpi_immediate';
-  kpiRef?: string;
-}
-
 interface CategorieInfo {
   code: string;
   libelle: string;
@@ -63,7 +52,7 @@ const CATEGORIES: CategorieInfo[] = [
   selector: 'app-analyse-ia',
   standalone: true,
   imports: [
-    CommonModule, RouterModule,
+    CommonModule,
     MatIconModule, MatProgressSpinnerModule, MatSnackBarModule,
     MatTooltipModule, MatButtonModule,
   ],
@@ -89,7 +78,6 @@ export class AnalyseIAComponent implements OnInit, OnDestroy {
   analyse         = signal<AnalyseCompleteResponse | null>(null);
   structured      = signal<AiAnalysisStructuredResponse | null>(null);
 
-  activeCatCode   = signal('Q');
   expandedKpiId   = signal<number | null>(null);
 
   searchKpi       = signal('');
@@ -103,41 +91,6 @@ export class AnalyseIAComponent implements OnInit, OnDestroy {
   planActionsList = computed(() => {
     const pa = this.analyse()?.analyseGlobale?.planActions ?? '';
     return pa.split('\n').map(s => s.trim()).filter(s => s.length > 0);
-  });
-
-  isStructuredSuccess = computed(() => this.structured()?.status === 'SUCCESS');
-  isStructuredPartial = computed(() => this.structured()?.status === 'PARTIAL');
-  isStructuredFailed = computed(() => this.structured()?.status === 'FAILED');
-  showLegacyFallback = computed(() => this.isStructuredFailed() || this.isStructuredPartial());
-  structuredExpectedKpis = computed(() => this.analyse()?.analysesKpis?.length ?? 0);
-  structuredReceivedKpis = computed(() => this.structured()?.kpiInsights?.length ?? 0);
-  structuredMissingKpis = computed(() => Math.max(this.structuredExpectedKpis() - this.structuredReceivedKpis(), 0));
-  structuredCoverageLabel = computed(() => {
-    const expected = this.structuredExpectedKpis();
-    const received = this.structuredReceivedKpis();
-    return `${received}/${expected}`;
-  });
-  structuredStatusLabel = computed(() => {
-    if (this.isStructuredPartial()) return 'Partiel';
-    if (this.isStructuredFailed()) return 'Échec';
-    return 'Succès';
-  });
-
-  showConfidenceBadge = computed(() => {
-    const conf = this.structured()?.confidence?.overall ?? 100;
-    return conf < 60 || this.isStructuredPartial() || this.isStructuredFailed();
-  });
-
-  structuredConfidence = computed(() => this.structured()?.confidence?.overall ?? 0);
-
-  activeCatAnalyse = computed(() => {
-    const code = this.activeCatCode();
-    return this.analyse()?.analysesCategories.find(c => c.categorieCode === code) ?? null;
-  });
-
-  activeKpis = computed(() => {
-    const code = this.activeCatCode();
-    return (this.analyse()?.analysesKpis ?? []).filter(k => k.categorieCode === code);
   });
 
   globalScore = computed(() => {
@@ -275,7 +228,6 @@ export class AnalyseIAComponent implements OnInit, OnDestroy {
     this.error.set('');
     this.structured.set(null);
     this.analyse.set(null);
-    this.loadKanbanState();
     this.sessionState.setActiveImport(importId);
 
     const cached = this.sessionState.getDashboardData();
@@ -322,10 +274,6 @@ export class AnalyseIAComponent implements OnInit, OnDestroy {
           if (cached.analysesIa == null) {
             this.sessionState.patch({ analysesIa: legacy });
           }
-          const firstCat = CATEGORIES.find(c =>
-            legacy.analysesKpis.some(k => k.categorieCode === c.code)
-          );
-          if (firstCat) this.activeCatCode.set(firstCat.code);
         } else if (!structured || structured.status === 'FAILED') {
           this.error.set('Aucune analyse IA disponible pour cet import. Lancez une analyse.');
         }
@@ -353,8 +301,6 @@ export class AnalyseIAComponent implements OnInit, OnDestroy {
         error: () => this.snackBar.open('Erreur lors de la régénération', 'Fermer', { duration: 4000 })
       });
   }
-
-  setActiveCat(code: string) { this.activeCatCode.set(code); }
 
   toggleKpi(id: number) {
     this.expandedKpiId.set(this.expandedKpiId() === id ? null : id);
@@ -397,24 +343,6 @@ export class AnalyseIAComponent implements OnInit, OnDestroy {
     return 'var-neutral';
   }
 
-  parse8D(analyseIa: string | null): string[] {
-    if (!analyseIa) return [];
-    const idx = analyseIa.toLowerCase().indexOf('8d');
-    if (idx < 0) return [];
-    return analyseIa.substring(idx).split(/\n|\./).map(s => s.trim()).filter(s => s.length > 4).slice(0, 8);
-  }
-
-  extractRecos(analyseIa: string | null): string[] {
-    if (!analyseIa) return [];
-    const lines = analyseIa.split(/\n/).map(s => s.trim()).filter(s => s.length > 10);
-    return lines.filter(l => /^[-•–*]|^[A-ZÉÈÀÂ]/.test(l)).slice(0, 5);
-  }
-
-  miniRingDash(cat: { critique: number; modere: number; faible: number; total: number }): string {
-    const pct = this.miniScore(cat) / 100;
-    return `${Math.round(pct * 220)} 220`;
-  }
-
   miniScore(cat: { critique: number; modere: number; faible: number; total: number }): number {
     if (!cat.total) return 0;
     // CRITIQUE counts double (same weighting logic as globalScore)
@@ -436,10 +364,6 @@ export class AnalyseIAComponent implements OnInit, OnDestroy {
     return new Date(ag.createdAt).toLocaleDateString('fr-FR', {
       day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
     });
-  }
-
-  getStructuredFallbackMessage(): string {
-    return this.structured()?.fallbackReason || 'Affichage des analyses classiques en fallback.';
   }
 
   formatPriorityLabel(value: string | null | undefined): string {
@@ -480,109 +404,6 @@ export class AnalyseIAComponent implements OnInit, OnDestroy {
       .replace(/\bPARTIAL\b/gi, 'Partiel')
       .replace(/\bNew Performance KPI\b/gi, 'nouvel indicateur de performance')
       .replace(/\bPerformance KPI\b/gi, 'indicateur de performance');
-  }
-
-  getRecommendationTitle(rec: { title?: string; rationale?: string; expectedBenefit?: string } | null | undefined): string {
-    return rec?.title?.trim() || rec?.rationale?.trim() || rec?.expectedBenefit?.trim() || 'Recommandation';
-  }
-
-  getRecommendationRationale(rec: { rationale?: string; expectedBenefit?: string } | null | undefined): string {
-    return rec?.rationale?.trim() || rec?.expectedBenefit?.trim() || '';
-  }
-
-  getRecommendationBenefit(rec: { expectedBenefit?: string } | null | undefined): string {
-    return rec?.expectedBenefit?.trim() || '';
-  }
-
-  readonly KANBAN_COLS = ['todo', 'in_progress', 'done'] as const;
-  readonly KANBAN_LABELS: Record<string, string> = { todo: 'À Faire', in_progress: 'En Cours', done: 'Terminé' };
-  readonly KANBAN_ICONS:  Record<string, string> = { todo: 'assignment', in_progress: 'pending_actions', done: 'task_alt' };
-
-  kanbanState = signal<Record<string, string>>({});
-
-  kanbanItems = computed((): KanbanItem[] => {
-    const structured = this.structured();
-    if (!structured) return [];
-    const items: KanbanItem[] = [];
-
-    (structured.actionPlan ?? []).forEach((item, i) => {
-      items.push({ id: `plan-${i}`, action: item.action, priority: item.priority, ownerRole: item.ownerRole, dueHorizon: item.dueHorizon, source: 'action_plan' });
-    });
-
-    (structured.kpiInsights ?? []).filter(ins => ins.urgency === 'HIGH' && ins.actionImmediate).forEach((ins, i) => {
-      items.push({ id: `kpi-imm-${i}`, action: ins.actionImmediate, priority: 'HIGH', ownerRole: ins.ownerRole, dueHorizon: ins.dueHorizon, source: 'kpi_immediate', kpiRef: ins.kpiName });
-    });
-
-    return items;
-  });
-
-  hasKanban = computed(() => this.kanbanItems().length > 0);
-
-  itemsInColumn(col: string): KanbanItem[] {
-    const state = this.kanbanState();
-    return this.kanbanItems().filter(item => (state[item.id] ?? 'todo') === col);
-  }
-
-  moveItem(id: string, col: string): void {
-    this.kanbanState.update(s => ({ ...s, [id]: col }));
-    this.saveKanbanState();
-  }
-
-  kanbanPriorityClass(priority: string): string {
-    if (priority === 'HIGH' || priority === 'CRITIQUE')   return 'k-prio-high';
-    if (priority === 'MEDIUM' || priority === 'MODERE')  return 'k-prio-medium';
-    return 'k-prio-low';
-  }
-
-  private kanbanStorageKey(): string {
-    return `qhse-kanban-${this.importId() ?? 'default'}`;
-  }
-
-  private saveKanbanState(): void {
-    try { localStorage.setItem(this.kanbanStorageKey(), JSON.stringify(this.kanbanState())); } catch {  }
-  }
-
-  private loadKanbanState(): void {
-    try {
-      const raw = localStorage.getItem(this.kanbanStorageKey());
-      if (raw) this.kanbanState.set(JSON.parse(raw));
-    } catch { }
-  }
-
-  hasRootCauses = computed(() => (this.structured()?.rootCauseAnalysis ?? []).length > 0);
-
-  ishikawaClass(category: string): string {
-    const map: Record<string, string> = {
-      'Homme':   'ishi-homme',
-      'Machine': 'ishi-machine',
-      'Méthode': 'ishi-methode',
-      'Milieu':  'ishi-milieu',
-      'Matière': 'ishi-matiere',
-    };
-    return map[category] ?? 'ishi-default';
-  }
-
-  hasAlerts = computed(() => (this.structured()?.predictiveAlerts ?? []).length > 0);
-  criticalAlertsCount = computed(() =>
-    (this.structured()?.predictiveAlerts ?? []).filter(a => a.severity === 'HIGH').length
-  );
-
-  alertSeverityClass(severity: string): string {
-    if (severity === 'HIGH')   return 'alert-sev-high';
-    if (severity === 'MEDIUM') return 'alert-sev-medium';
-    return 'alert-sev-low';
-  }
-
-  alertSeverityLabel(severity: string): string {
-    if (severity === 'HIGH')   return 'Critique';
-    if (severity === 'MEDIUM') return 'Modérée';
-    return 'Faible';
-  }
-
-  alertSeverityIcon(severity: string): string {
-    if (severity === 'HIGH')   return 'error';
-    if (severity === 'MEDIUM') return 'warning';
-    return 'info';
   }
 
   enrichedKpis = computed((): EnrichedKpi[] => {
@@ -657,26 +478,42 @@ export class AnalyseIAComponent implements OnInit, OnDestroy {
     return { total, critiques, moderes, faibles, withAi: Math.min(withAi, total) };
   });
 
-  get modelLabel(): string {
-    const m = this.structured()?.traceability?.modelName ?? '';
-    if (m.toLowerCase().includes('gemini')) return 'Gemini';
-    if (m.toLowerCase().includes('llama') || m.toLowerCase().includes('qwen') || m.toLowerCase().includes('groq')) return 'Groq';
-    if (m) return m;
-    return 'IA';
-  }
+  globalSummaryText = computed(() =>
+    this.structured()?.globalSummary?.trim()
+    || this.analyse()?.analyseGlobale?.synthese?.trim()
+    || ''
+  );
 
-  globalSummaryText(): string {
-    return this.structured()?.globalSummary?.trim()
-        || this.analyse()?.analyseGlobale?.synthese?.trim()
-        || '';
-  }
-
-
-  probableCausesList(): string[] {
+  probableCausesList = computed(() => {
     const s = this.structured()?.probableCauses ?? [];
     if (s.length) return s;
     return this.planActionsList().slice(0, 5);
-  }
+  });
+
+  private static readonly ISHIKAWA_META: Record<string, { icon: string; cssKey: string }> = {
+    'Homme':   { icon: 'person',        cssKey: 'homme'   },
+    'Machine': { icon: 'precision_manufacturing', cssKey: 'machine' },
+    'Méthode': { icon: 'account_tree',  cssKey: 'methode' },
+    'Milieu':  { icon: 'landscape',     cssKey: 'milieu'  },
+    'Matière': { icon: 'inventory_2',   cssKey: 'matiere' },
+  };
+
+  groupedCauses = computed((): { category: string; icon: string; cssKey: string; causes: string[] }[] => {
+    const causes = this.probableCausesList();
+    const map = new Map<string, string[]>();
+    const OTHER = 'Autre';
+    for (const raw of causes) {
+      const match = raw.match(/^\[([^\]]+)\]\s*/);
+      const cat   = match ? match[1].trim() : OTHER;
+      const text  = match ? raw.slice(match[0].length).trim() : raw.trim();
+      if (!map.has(cat)) map.set(cat, []);
+      map.get(cat)!.push(text);
+    }
+    return Array.from(map.entries()).map(([category, list]) => {
+      const meta = AnalyseIAComponent.ISHIKAWA_META[category] ?? { icon: 'help_outline', cssKey: 'autre' };
+      return { category, icon: meta.icon, cssKey: meta.cssKey, causes: list };
+    });
+  });
 
   setCatFilter(code: string)   { this.catFilter.set(code); }
   setNiveauFilter(n: string)   { this.niveauKpiFilter.set(n); }

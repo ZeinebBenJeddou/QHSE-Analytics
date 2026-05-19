@@ -70,7 +70,7 @@
 }
 .skeleton-strip {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 14px;
 }
 .skeleton-stat-card {
@@ -568,6 +568,61 @@
   width: 18px !important;
   height: 18px !important;
   color: var(--blue);
+}
+
+/* === Causes groupées par catégorie Ishikawa === */
+.causes-grouped {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cause-group {
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.cause-group-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.cause-group-header mat-icon {
+  font-size: 15px !important;
+  width: 15px !important;
+  height: 15px !important;
+}
+.cause-group-count {
+  margin-left: auto;
+  background: rgba(0,0,0,.08);
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 10px;
+}
+.ishikawa-homme   { background: #EFF6FF; color: #1D4ED8; }
+.ishikawa-machine { background: #FFF7ED; color: #C2410C; }
+.ishikawa-methode { background: #F5F3FF; color: #6D28D9; }
+.ishikawa-milieu  { background: #F0FDF4; color: #15803D; }
+.ishikawa-matiere { background: #FFF8E1; color: #B45309; }
+.ishikawa-autre   { background: var(--surface); color: var(--navy-soft); }
+
+.cause-group-list {
+  margin: 0;
+  padding: 8px 12px 8px 28px;
+  list-style: disc;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: var(--white);
+}
+.cause-group-list li {
+  font-size: 13px;
+  color: var(--navy-soft);
+  line-height: 1.5;
 }
 
 .causes-list {
@@ -1109,6 +1164,110 @@
   line-height: 1.55;
 }
 
+/* === Plan d'Action Global — cartes enrichies === */
+.ap-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ap-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 14px 18px;
+  border-left: 4px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ap-prio-haute,  .ap-prio-high    { border-left-color: #EF4444; }
+.ap-prio-moyenne, .ap-prio-medium { border-left-color: #F59E0B; }
+.ap-prio-basse,  .ap-prio-low     { border-left-color: #10B981; }
+
+.ap-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.ap-num {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--navy-soft);
+  margin-top: 1px;
+}
+.ap-card-action {
+  flex: 1;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--navy);
+  line-height: 1.5;
+}
+
+.ap-card-meta {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.ap-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--navy-soft);
+}
+.ap-meta-item mat-icon {
+  font-size: 14px !important;
+  width: 14px !important;
+  height: 14px !important;
+}
+
+.ap-success {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12px;
+  color: #059669;
+  background: #F0FDF4;
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+.ap-success mat-icon {
+  font-size: 14px !important;
+  width: 14px !important;
+  height: 14px !important;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.ap-risk {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12px;
+  color: #DC2626;
+  background: #FFF5F5;
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+.ap-risk mat-icon {
+  font-size: 14px !important;
+  width: 14px !important;
+  height: 14px !important;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* legacy table styles kept for fallback */
 .ap-table {
   background: var(--white);
   border-radius: var(--radius-lg);

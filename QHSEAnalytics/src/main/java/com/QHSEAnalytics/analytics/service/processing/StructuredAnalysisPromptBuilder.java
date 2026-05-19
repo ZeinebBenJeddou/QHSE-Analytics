@@ -24,53 +24,88 @@ public class StructuredAnalysisPromptBuilder {
             "Sois précis, concret et spécifique à chaque KPI.";
 
     private static final String SYSTEM_PROMPT =
-            "Tu es un expert QHSE senior maîtrisant ISO 9001, ISO 14001 et ISO 45001. " +
-            "Tu analyses des indicateurs de performance QHSE et tu fournis des diagnostics " +
-            "précis, des causes probables documentées et des plans d'action concrets et actionnables. " +
+            "Tu es un consultant QHSE expert de niveau senior (15 ans d'expérience), auditeur certifié ISO 9001, ISO 14001 et ISO 45001, " +
+            "maîtrisant les référentiels DREAL, INRS, et les méthodes d'analyse 8D, 5 Pourquoi et diagramme d'Ishikawa. " +
+            "Tu produis des rapports d'analyse QHSE de qualité professionnelle, destinés à la direction et aux responsables opérationnels.\n\n" +
             "RÈGLES ABSOLUES :\n" +
-            "1. Réponds UNIQUEMENT avec du JSON valide — aucun texte avant ou après.\n" +
-            "2. Chaque champ texte doit contenir une analyse réelle et spécifique au KPI fourni " +
-            "   (minimum 20 mots). Les valeurs génériques comme 'N/A', 'À analyser', " +
-            "   'Non disponible' ou les champs vides sont INTERDITS.\n" +
-            "3. actionImmediate doit décrire une action concrète avec un verbe d'action " +
-            "   (ex : 'Organiser une réunion de revue...', 'Mettre en place un suivi...').\n" +
-            "4. insight doit expliquer pourquoi cette variation est significative dans un " +
-            "   contexte QHSE réel.\n" +
-            "5. Tu dois produire exactement un objet kpiInsights pour chaque KPI fourni.\n" +
-            "6. Réponds en français.\n";
+            "1. Réponds UNIQUEMENT avec du JSON valide — aucun texte avant ou après, aucun markdown, aucun backtick.\n" +
+            "2. Chaque champ texte doit être spécifique, chiffré et actionnable. " +
+            "   Les valeurs génériques ('N/A', 'À analyser', 'Non disponible', texte < 15 mots) sont STRICTEMENT INTERDITES.\n" +
+            "3. insight : analyse la variation chiffrée (valeur N-1 → N, écart %, seuil franchi), " +
+            "   son impact QHSE réel (sécurité des personnes, conformité normative, coût, satisfaction client) " +
+            "   et la norme ISO ou réglementation concernée.\n" +
+            "4. probableCauses (par KPI) : chaque cause doit être classée dans une catégorie Ishikawa " +
+            "   (Homme / Machine / Méthode / Milieu / Matière) et rédigée comme une phrase causale précise.\n" +
+            "5. actionImmediate : action SMART — Spécifique, Mesurable, avec un verbe d'action fort " +
+            "   (Organiser, Déployer, Auditer, Suspendre, Mettre en place), un responsable et un horizon temporel.\n" +
+            "6. successMetric : indicateur de résultat précis et mesurable " +
+            "   (ex : 'TF1 < 2,5 dans les 3 mois', 'FPY > 90 % à J+30').\n" +
+            "7. riskIfNotDone : conséquence concrète si l'action n'est pas menée " +
+            "   (pénalité réglementaire, accident grave, perte client, audit défavorable).\n" +
+            "8. probableCauses (global) : liste de causes TRANSVERSALES classées par catégorie Ishikawa, " +
+            "   couvrant les thèmes communs à plusieurs KPIs. Format : '[Catégorie] Cause précise'.\n" +
+            "9. recommendations : chaque recommandation doit citer le(s) KPI(s) concerné(s), " +
+            "   la norme ISO applicable, et l'impact attendu chiffré si possible.\n" +
+            "10. actionPlan : plan d'actions priorisé, chaque action doit avoir un ownerRole précis " +
+            "    (Responsable HSE / Responsable Qualité / Directeur de Production / RH...), " +
+            "    un dueHorizon réaliste (48h / 1 semaine / 1 mois / 3 mois) et un successMetric mesurable.\n" +
+            "11. Tu dois produire exactement un objet kpiInsights pour chaque KPI fourni.\n" +
+            "12. Réponds intégralement en français.\n";
 
     private static final String FEW_SHOT_EXAMPLE =
-            "\n\nEXEMPLE DE globalSummary ATTENDU — un seul paragraphe narratif fluide, rédigé comme un rapport d'expert QHSE senior :\n" +
-            "\"L'analyse QHSE portant sur la période 2025 → 2026, couvrant 12 indicateurs répartis sur 4 catégories, révèle un score global de 42/100 (À SURVEILLER) avec 8 KPIs classés CRITIQUE. " +
-            "La catégorie Qualité est la plus dégradée (score 20/100, 3 critiques), notamment le First Pass Yield qui chute de −18,5 % (91 % → 74,2 %), franchissant le seuil critique ISO 9001. " +
-            "Sur le plan sécurité, le Taux d'Absentéisme progresse de +32 % (4,1 % → 5,4 %), signal d'alerte sur les conditions de travail au sens ISO 45001, tandis que le Taux de Fréquence des Accidents affiche +15 %, exposant l'entreprise à un risque de non-conformité DREAL. " +
-            "Le Délai Moyen de Livraison (+28 %, 3,6 → 4,6 jours) génère un risque contractuel croissant. " +
-            "Il est impératif d'engager dans les 48h une revue sécurité d'urgence sur les postes à risque et de lancer dans la semaine un plan de réduction des défauts pour remonter le First Pass Yield au-dessus de 85 % ; sans intervention rapide, la trajectoire actuelle conduira à une situation de non-conformité multi-normes dans les 2 à 3 prochains mois.\"\n\n" +
-            "EXEMPLE DE RÉPONSE ATTENDUE POUR UN KPI (respecte ce niveau de détail) :\n" +
+            "\n\n=== EXEMPLES DE RÉPONSES ATTENDUES (respecte ce niveau de qualité) ===\n\n" +
+            "EXEMPLE globalSummary :\n" +
+            "\"L'analyse QHSE portant sur la période 2025 → 2026, couvrant 12 indicateurs répartis sur 4 catégories (Qualité, Hygiène, Sécurité, Environnement), révèle un score global de 42/100 (À SURVEILLER) avec 8 KPIs classés CRITIQUE. " +
+            "La catégorie Qualité est la plus dégradée (score 20/100, 3 critiques), notamment le First Pass Yield en chute de −18,5 % (91 % → 74,2 %), franchissant le seuil critique ISO 9001 §8.7 sur la maîtrise des non-conformités. " +
+            "Sur le plan sécurité (ISO 45001), le Taux d'Absentéisme progresse de +32 % (4,1 % → 5,4 %), signal d'alerte sur les conditions de travail, tandis que le Taux de Fréquence des Accidents affiche +15 %, exposant l'entreprise à un risque de mise en demeure DREAL. " +
+            "Le Délai Moyen de Livraison (+28 %, 3,6 → 4,6 jours) génère un risque contractuel direct. " +
+            "Il est impératif d'engager dans les 48h une revue sécurité d'urgence ciblant les postes à risque, et dans la semaine un plan de réduction des défauts visant FPY > 85 % ; sans action immédiate, la trajectoire actuelle conduira à une non-conformité multi-normes dans les 2 à 3 prochains mois.\"\n\n" +
+            "EXEMPLE d'un kpiInsights (reproduis ce niveau de détail pour CHAQUE KPI) :\n" +
             "{\n" +
             "  \"kpiId\": 42,\n" +
             "  \"kpiName\": \"Taux de Fréquence des Accidents (TF1)\",\n" +
             "  \"confidence\": 87,\n" +
-            "  \"insight\": \"Le TF1 a augmenté de 28% entre N-1 et N, passant de 2.5 à 3.2. " +
-            "Cette hausse dépasse le seuil critique ISO 45001 et indique une dégradation " +
-            "significative des conditions de sécurité, probablement liée à une augmentation " +
-            "de la cadence de production ou à un déficit de formation.\",\n" +
+            "  \"insight\": \"Le TF1 a progressé de +28 % entre N-1 et N (2,5 → 3,2), dépassant le seuil critique fixé à 3,0 selon le référentiel ISO 45001 §6.1.2. Cette dégradation, couplée à une augmentation de la cadence de production de 15 %, traduit une insuffisance des barrières préventives face à l'accroissement de l'activité. Un accident grave est statistiquement probable si la tendance n'est pas inversée sous 6 semaines.\",\n" +
             "  \"probableCauses\": [\n" +
-            "    \"Augmentation de la cadence de production sans adaptation des mesures de sécurité\",\n" +
-            "    \"Déficit de formation sécurité pour les nouveaux opérateurs\",\n" +
-            "    \"Sous-déclaration des presqu'accidents réduisant les actions préventives\"\n" +
+            "    \"[Méthode] Absence de révision des analyses de risques lors de l'augmentation de cadence de production\",\n" +
+            "    \"[Homme] Déficit de formation sécurité pour les opérateurs récemment embauchés (< 6 mois d'ancienneté)\",\n" +
+            "    \"[Milieu] Sous-déclaration des presqu'accidents réduisant la visibilité sur les signaux faibles\"\n" +
             "  ],\n" +
-            "  \"actionImmediate\": \"Suspendre les postes à risque identifiés et organiser " +
-            "une revue sécurité d'urgence avec les responsables de ligne dans les 48h.\",\n" +
+            "  \"recommendations\": [\n" +
+            "    \"Mettre à jour les analyses de risques (DUERP) pour intégrer les nouveaux postes créés lors de l'augmentation de cadence\",\n" +
+            "    \"Déployer un programme de formation sécurité ciblé pour les opérateurs < 6 mois, avec évaluation des acquis\"\n" +
+            "  ],\n" +
+            "  \"actionImmediate\": \"Organiser une revue sécurité d'urgence avec les responsables de ligne et le Responsable HSE dans les 48h pour identifier et condamner les postes à risque élevé.\",\n" +
             "  \"urgency\": \"HIGH\",\n" +
             "  \"ownerRole\": \"Responsable HSE\",\n" +
             "  \"dueHorizon\": \"48h\",\n" +
-            "  \"successMetric\": \"TF1 revient sous 2.5 dans les 3 prochains mois\",\n" +
-            "  \"riskIfNotDone\": \"Risque d'accident grave, pénalités réglementaires DREAL\",\n" +
-            "  \"note\": \"Indicateur sous surveillance prioritaire — nécessite un reporting " +
-            "hebdomadaire à la direction.\"\n" +
-            "}\n" +
-            "DONNÉES RÉELLES À ANALYSER (produis le même niveau de détail pour chaque KPI) :\n";
+            "  \"successMetric\": \"TF1 revient sous le seuil de 2,5 dans les 3 prochains mois et zéro accident avec arrêt sur les 30 prochains jours\",\n" +
+            "  \"riskIfNotDone\": \"Risque d'accident grave avec arrêt de travail, mise en demeure DREAL, augmentation de la cotisation AT/MP et atteinte à l'image de l'entreprise\",\n" +
+            "  \"note\": \"KPI sous surveillance prioritaire — reporting hebdomadaire à la direction obligatoire jusqu'au retour sous seuil. Envisager un audit interne ISO 45001 ciblé sur ce processus.\"\n" +
+            "}\n\n" +
+            "EXEMPLE probableCauses (global, causes transversales classées Ishikawa) :\n" +
+            "[\"[Homme] Manque de formation et de sensibilisation des opérateurs aux exigences qualité et sécurité\",\n" +
+            " \"[Méthode] Processus de contrôle qualité insuffisamment documentés et appliqués (écart ISO 9001 §8.5)\",\n" +
+            " \"[Machine] Maintenance préventive insuffisante engendrant des défaillances récurrentes\",\n" +
+            " \"[Milieu] Conditions de travail dégradées (bruit, température, ergonomie) favorisant les erreurs humaines\",\n" +
+            " \"[Matière] Variabilité de la qualité des matières premières non détectée à réception\"]\n\n" +
+            "EXEMPLE recommendation :\n" +
+            "{\n" +
+            "  \"title\": \"Renforcer le plan de formation sécurité et qualité\",\n" +
+            "  \"rationale\": \"Les KPIs TF1 (+28 %) et First Pass Yield (−18,5 %) convergent vers un déficit de compétences opérateurs. ISO 45001 §7.2 et ISO 9001 §7.2 exigent la mise à jour des compétences lors de changements organisationnels.\",\n" +
+            "  \"expectedBenefit\": \"Réduction du TF1 de 20 % et remontée du FPY au-dessus de 88 % sous 3 mois\",\n" +
+            "  \"urgency\": \"HIGH\"\n" +
+            "}\n\n" +
+            "EXEMPLE actionPlan :\n" +
+            "{\n" +
+            "  \"action\": \"Déployer un audit interne ISO 9001 ciblé sur les processus de contrôle qualité en production\",\n" +
+            "  \"priority\": \"HAUTE\",\n" +
+            "  \"ownerRole\": \"Responsable Qualité\",\n" +
+            "  \"dueHorizon\": \"1 mois\",\n" +
+            "  \"successMetric\": \"Rapport d'audit remis, non-conformités majeures traitées, FPY > 88 % à J+30\",\n" +
+            "  \"riskIfNotDone\": \"Maintien du FPY sous le seuil critique, risque de plaintes clients et de pertes de contrats\"\n" +
+            "}\n\n" +
+            "=== DONNÉES RÉELLES À ANALYSER (reproduis le même niveau de détail pour chaque KPI) ===\n";
 
     private final RagSearchService ragSearchService;
     private final PromptSanitizer promptSanitizer;
@@ -155,13 +190,17 @@ public class StructuredAnalysisPromptBuilder {
         }
 
         prompt.append("=== INSTRUCTIONS DE SORTIE ===\n");
-        prompt.append("Return a single JSON object with the following structure exactly.\n");
-        prompt.append("Do not include extra fields outside the defined schema.\n");
-        prompt.append("Do not use markdown or backticks.\n");
-        prompt.append("If a field cannot be determined with certainty from the provided data, provide a prudent QHSE analysis grounded in the KPI values and explain the uncertainty without leaving the field empty.\n");
-        prompt.append("Do not omit any provided KPI: every KPI must appear in kpiInsights, even if the insight is a concise justification based on the provided data.\n");
-        prompt.append("Cite the KPI names or ids that justify each recommendation, cause, and action.\n");
-        prompt.append("Confidence values should be numeric percentages between 0 and 100.\n\n");
+        prompt.append("Renvoie un unique objet JSON valide respectant exactement le schéma ci-dessous.\n");
+        prompt.append("Aucun texte avant ou après, aucun markdown, aucun backtick.\n\n");
+        prompt.append("QUALITÉ REQUISE PAR SECTION :\n");
+        prompt.append("• insight (par KPI) : 3 phrases minimum — (1) variation chiffrée + seuil franchi, (2) impact QHSE réel + norme ISO concernée, (3) interprétation causale préliminaire.\n");
+        prompt.append("• probableCauses (par KPI) : 2 à 4 causes, chacune préfixée par sa catégorie Ishikawa entre crochets : [Homme], [Machine], [Méthode], [Milieu] ou [Matière].\n");
+        prompt.append("• probableCauses (global) : 4 à 8 causes TRANSVERSALES couvrant plusieurs KPIs, classées Ishikawa, format '[Catégorie] Cause précise'.\n");
+        prompt.append("• recommendations : 3 à 6 recommandations. Chaque title cite le(s) KPI(s) concerné(s). rationale mentionne la clause ISO applicable. expectedBenefit est chiffré si possible.\n");
+        prompt.append("• actionPlan : 4 à 8 actions SMART ordonnées par priorité décroissante. ownerRole = rôle précis (pas 'Responsable' générique). dueHorizon = délai réaliste. riskIfNotDone = conséquence concrète.\n");
+        prompt.append("• successMetric : indicateur mesurable avec valeur cible et horizon temporel (ex: 'KPI X < seuil Y dans les Z mois').\n");
+        prompt.append("• note (par KPI) : observation experte complémentaire — tendance préoccupante, lien avec un autre KPI, recommandation de surveillance renforcée.\n");
+        prompt.append("Les valeurs confidence sont des entiers entre 0 et 100.\n\n");
 
         prompt.append("OUTPUT SCHEMA:\n");
         prompt.append("{\n");
@@ -290,7 +329,7 @@ public class StructuredAnalysisPromptBuilder {
     }
 
     public String getPromptVersion() {
-        return "structured-qhse-v7";
+        return "structured-qhse-v8";
     }
 
     private String safeText(String value) {

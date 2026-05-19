@@ -437,103 +437,108 @@
       </div>
     </section>
 
-    <div class="synthese-full">
-      <div class="panel synthese-ia-panel">
-        <div class="panel-header">
-          <div class="ai-badge-header">
-            <div class="ai-sparkle-icon"><mat-icon>auto_awesome</mat-icon></div>
-            <div class="panel-title">SYNTHÈSE IA</div>
+    <!-- Aperçu IA — avant-goût de la page Analyse complète -->
+    <div class="ia-preview-section">
+
+      <div class="ia-preview-header">
+        <div class="ia-preview-header-left">
+          <div class="ia-sparkle-icon"><mat-icon>auto_awesome</mat-icon></div>
+          <div>
+            <div class="ia-preview-title">Aperçu Intelligence Artificielle</div>
+            <div class="ia-preview-subtitle">Résumé automatique · Analyse complète disponible</div>
           </div>
-          <span class="ai-badge">IA</span>
         </div>
+        <button class="ia-preview-cta" (click)="goToIA()">
+          <mat-icon>open_in_new</mat-icon>
+          Voir l'analyse complète
+        </button>
+      </div>
 
-        @if (dynamicSynthese()) {
-          <div class="ia-synthese-text">{{ dynamicSynthese() }}</div>
-        } @else {
-          <div class="ia-synthese-text no-data">
-            Aucune analyse disponible pour cet import.
-            @if (importId()) {
-              <button class="link-btn" (click)="goToIA()">Voir l'analyse IA →</button>
-            }
-          </div>
-        }
+      @if (!hasAiData()) {
+        <div class="ia-preview-empty">
+          <mat-icon>smart_toy</mat-icon>
+          <span>Aucune analyse IA disponible. Lancez une analyse depuis la page dédiée.</span>
+          <button class="ia-preview-cta-secondary" (click)="goToIA()">Lancer l'analyse →</button>
+        </div>
+      } @else {
 
-        <div class="synthese-body-grid">
-          <div class="ia-sub-section">
-            <div class="ia-sub-title">INDICATEURS CRITIQUES DÉTECTÉS</div>
-            <div class="ia-sub-subtitle">Par ordre de sévérité</div>
-            <div class="ia-kpi-issues-list">
-              @for (kpi of topIssues(); track kpi.kpiId) {
-                <div class="ia-kpi-issue-item"
-                     [class.issue-critique]="kpi.niveauVariation === 'CRITIQUE'"
-                     [class.issue-modere]="kpi.niveauVariation === 'MODERE'"
-                     [class.issue-faible]="kpi.niveauVariation === 'FAIBLE' || !kpi.niveauVariation">
-                  <div class="issue-kpi-header">
-                    <span class="issue-kpi-name">{{ kpi.kpiNom }}</span>
-                    <span class="issue-kpi-badge"
-                          [class.badge-critique]="kpi.niveauVariation === 'CRITIQUE'"
-                          [class.badge-modere]="kpi.niveauVariation === 'MODERE'"
-                          [class.badge-faible]="kpi.niveauVariation === 'FAIBLE' || !kpi.niveauVariation">
-                      {{ kpi.niveauVariation === 'CRITIQUE' ? 'Critique'
-                         : kpi.niveauVariation === 'MODERE' ? 'Modéré'
-                         : 'Faible' }}
-                    </span>
-                  </div>
-                  @if (kpi.issueDetected || kpi.riskJustification) {
-                    <div class="issue-kpi-desc">{{ kpi.issueDetected ?? kpi.riskJustification }}</div>
-                  }
-                </div>
-              }
-              @if (topIssues().length === 0 && !hasAiData()) {
-                <div class="no-data">Les indicateurs critiques apparaîtront après l'analyse IA.</div>
-              }
-              @if (topIssues().length === 0 && hasAiData()) {
-                <div class="no-data">Aucun indicateur à risque détecté pour cet import.</div>
-              }
+        <div class="ia-preview-body">
+
+          <!-- Synthèse en 2 lignes max -->
+          @if (dynamicSynthese()) {
+            <div class="ia-preview-synthese">
+              <mat-icon>summarize</mat-icon>
+              <p>{{ dynamicSynthese() }}</p>
             </div>
-          </div>
+          }
 
-          <div class="ia-sub-section">
-            <div class="ia-sub-title">ACTIONS PRIORITAIRES SUGGÉRÉES</div>
-            <div class="ia-sub-subtitle">Top {{ topActions().length }} à traiter en urgence</div>
-            <div class="ia-actions-list">
-              @for (kpi of topActions(); track kpi.kpiId) {
-                <div class="ia-action-item">
-                  <div class="ia-action-header">
-                    <div class="ia-action-kpi">{{ kpi.kpiNom }}</div>
-                    <span class="ia-priority-badge"
-                          [class.tone-danger]="kpi.immediatePriority === 'Haute' || kpi.niveauVariation === 'CRITIQUE'"
-                          [class.tone-warning]="kpi.immediatePriority === 'Moyenne' || kpi.niveauVariation === 'MODERE'"
-                          [class.tone-safe]="kpi.immediatePriority === 'Basse' || kpi.niveauVariation === 'FAIBLE'">
-                      {{ kpi.immediatePriority ?? kpi.niveauVariation }}
-                    </span>
-                  </div>
-                  <span class="ia-action-desc">
-                    {{ kpi.immediateAction ?? kpi.correctiveAction ?? kpi.preventiveAction ?? kpi.riskJustification }}
+          <!-- KPIs critiques — top 3, nom + badge seulement -->
+          <div class="ia-preview-col">
+            <div class="ia-preview-col-title">
+              <mat-icon>warning</mat-icon>
+              Points d'attention
+            </div>
+            <div class="ia-preview-kpi-list">
+              @for (kpi of topIssues().slice(0, 3); track kpi.kpiId) {
+                <div class="ia-preview-kpi-row">
+                  <span class="ia-preview-kpi-name">{{ kpi.kpiNom }}</span>
+                  <span class="ia-preview-badge"
+                        [class.badge-crit]="kpi.niveauVariation === 'CRITIQUE'"
+                        [class.badge-mod]="kpi.niveauVariation === 'MODERE'">
+                    {{ kpi.niveauVariation === 'CRITIQUE' ? 'Critique' : 'Modéré' }}
                   </span>
                 </div>
               }
-              @if (topActions().length === 0) {
-                <div class="no-data">
-                  @if (hasAiData()) { Aucune action corrective identifiée. }
-                  @else { Les actions apparaîtront après l'analyse IA. }
-                </div>
+              @if (topIssues().length > 3) {
+                <div class="ia-preview-more">+ {{ topIssues().length - 3 }} autres dans l'analyse complète</div>
+              }
+              @if (topIssues().length === 0) {
+                <div class="ia-preview-ok"><mat-icon>check_circle</mat-icon> Aucun indicateur critique détecté</div>
               }
             </div>
           </div>
+
+          <!-- Actions prioritaires — top 3, action courte seulement -->
+          <div class="ia-preview-col">
+            <div class="ia-preview-col-title">
+              <mat-icon>bolt</mat-icon>
+              Actions urgentes
+            </div>
+            <div class="ia-preview-action-list">
+              @for (kpi of topActions().slice(0, 3); track $index) {
+                <div class="ia-preview-action-row">
+                  <span class="ia-preview-prio"
+                        [class.prio-high]="kpi.immediatePriority === 'Haute' || kpi.niveauVariation === 'CRITIQUE'"
+                        [class.prio-med]="kpi.immediatePriority === 'Moyenne' || kpi.niveauVariation === 'MODERE'">
+                    {{ kpi.immediatePriority === 'Haute' || kpi.niveauVariation === 'CRITIQUE' ? 'Haute' : 'Moyenne' }}
+                  </span>
+                  <span class="ia-preview-action-text">
+                    {{ (kpi.immediateAction ?? kpi.correctiveAction ?? '') | slice:0:80 }}{{ (kpi.immediateAction ?? kpi.correctiveAction ?? '').length > 80 ? '…' : '' }}
+                  </span>
+                </div>
+              }
+              @if (topActions().length > 3) {
+                <div class="ia-preview-more">+ {{ topActions().length - 3 }} autres actions dans l'analyse complète</div>
+              }
+              @if (topActions().length === 0) {
+                <div class="ia-preview-ok"><mat-icon>check_circle</mat-icon> Aucune action corrective identifiée</div>
+              }
+            </div>
+          </div>
+
         </div>
 
-        @if (analysesIa()?.analyseGlobale?.planActions) {
-          <div class="ia-sub-section ia-plan-actions">
-            <div class="ia-sub-title">PLAN D'ACTIONS GLOBAL</div>
-            <div class="ia-plan-text">{{ analysesIa()!.analyseGlobale!.planActions }}</div>
-          </div>
-        }
+        <div class="ia-preview-footer">
+          <span class="ia-preview-footer-hint">
+            <mat-icon>info</mat-icon>
+            Score détaillé, causes probables, recommandations et plan d'action complet disponibles dans l'analyse IA.
+          </span>
+          <button class="ia-preview-cta" (click)="goToIA()">
+            Analyse complète →
+          </button>
+        </div>
 
-        <button class="btn-outline-ia" (click)="goToIA()">
-          Voir l'analyse IA complète →
-        </button>
-      </div>
+      }
     </div>
 
   }

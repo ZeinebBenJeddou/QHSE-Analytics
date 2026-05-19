@@ -23,6 +23,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 import { DashboardService } from '../../../../core/services/dashboard.service';
+import { AiAnalysisService } from '../../../../core/services/ai-analysis.service';
 import { ImportService } from '../../../../core/services/import.service';
 import { ImportSessionStateService } from '../../../../core/services/import-session-state.service';
 import {
@@ -31,7 +32,7 @@ import {
   GraphiquesDataResponse,
   LigneComparatifResponse,
 } from '../../../../core/models/dashboard.model';
-import { AnalyseCompleteResponse, ResultatKpiIaResponse } from '../../../../core/models/analyse-ia.model';
+import { AnalyseCompleteResponse, AiAnalysisStructuredResponse, ResultatKpiIaResponse } from '../../../../core/models/analyse-ia.model';
 
 import { BarComparisonComponent } from '../../../../shared/components/charts/bar-comparison.component';
 import { PieDistributionComponent } from '../../../../shared/components/charts/pie-distribution.component';
@@ -87,6 +88,7 @@ export class DashboardAnalysteComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private dashboardService = inject(DashboardService);
+  private aiAnalysisService = inject(AiAnalysisService);
   private importService = inject(ImportService);
   private snackBar = inject(MatSnackBar);
   private sessionState = inject(ImportSessionStateService);
@@ -104,6 +106,7 @@ export class DashboardAnalysteComponent implements OnInit {
   comparatif = signal<ComparatifTableauResponse | null>(null);
   graphiques = signal<GraphiquesDataResponse | null>(null);
   analysesIa = signal<AnalyseCompleteResponse | null>(null);
+  structured = signal<AiAnalysisStructuredResponse | null>(null);
 
   searchFilter = signal('');
   categorieFilter = signal('');
@@ -287,15 +290,29 @@ export class DashboardAnalysteComponent implements OnInit {
   });
 
   hasAiData = computed(() =>
+    !!(this.structured()?.globalSummary) ||
     (this.comparatif()?.lignes ?? []).some(k =>
       k.aiNote || k.riskJustification || k.issueDetected ||
       k.immediateAction || k.correctiveAction || k.riskLevel
     )
   );
 
+  planActionLines = computed((): string[] => {
+    const structuredPlan = this.structured()?.actionPlan ?? [];
+    if (structuredPlan.length > 0) {
+      return structuredPlan.map(a => a.action).filter(Boolean);
+    }
+    const legacy = this.analysesIa()?.analyseGlobale?.planActions ?? '';
+    return legacy.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+  });
+
   topIssues = computed((): LigneComparatifResponse[] => {
     const lignes = this.comparatif()?.lignes ?? [];
     const priorityOrder: Record<string, number> = { CRITIQUE: 3, MODERE: 2, FAIBLE: 1 };
+
+    // Enrichir avec les insights structurés si disponibles
+    const structuredInsights = this.structured()?.kpiInsights ?? [];
+    const insightByName = new Map(structuredInsights.map(i => [i.kpiName?.toLowerCase().trim(), i]));
 
     const critical = [...lignes]
       .filter(k => k.niveauVariation === 'CRITIQUE' || k.niveauVariation === 'MODERE')
@@ -303,7 +320,13 @@ export class DashboardAnalysteComponent implements OnInit {
         (priorityOrder[b.niveauVariation ?? 'FAIBLE'] ?? 0) -
         (priorityOrder[a.niveauVariation ?? 'FAIBLE'] ?? 0)
       )
-      .slice(0, 6);
+      .slice(0, 6)
+      .map(k => {
+        const ins = insightByName.get(k.kpiNom?.toLowerCase().trim() ?? '');
+        return ins
+          ? { ...k, issueDetected: ins.insight ?? k.issueDetected, riskJustification: ins.riskIfNotDone ?? k.riskJustification }
+          : k;
+      });
 
     if (critical.length > 0) return critical;
 
@@ -314,6 +337,29 @@ export class DashboardAnalysteComponent implements OnInit {
   });
 
   topActions = computed((): LigneComparatifResponse[] => {
+    // Prioriser les actions du plan structuré (plus riche) si disponibles
+    const structuredInsights = this.structured()?.kpiInsights ?? [];
+    if (structuredInsights.length > 0) {
+      const levelOrder: Record<string, number> = { HIGH: 3, MEDIUM: 2, LOW: 1 };
+      const lignes = this.comparatif()?.lignes ?? [];
+      const ligneByName = new Map(lignes.map(l => [l.kpiNom?.toLowerCase().trim(), l]));
+
+      return [...structuredInsights]
+        .filter(i => i.actionImmediate)
+        .sort((a, b) => (levelOrder[b.urgency ?? ''] ?? 0) - (levelOrder[a.urgency ?? ''] ?? 0))
+        .slice(0, 5)
+        .map(i => {
+          const base = ligneByName.get(i.kpiName?.toLowerCase().trim() ?? '');
+          return {
+            ...(base ?? {} as LigneComparatifResponse),
+            kpiNom: i.kpiName,
+            immediateAction: i.actionImmediate,
+            immediatePriority: i.urgency === 'HIGH' ? 'Haute' : i.urgency === 'MEDIUM' ? 'Moyenne' : 'Basse',
+            niveauVariation: base?.niveauVariation ?? null,
+          } as LigneComparatifResponse;
+        });
+    }
+
     const levelOrder: Record<string, number> = {
       Haute: 5, CRITIQUE: 4, Moyenne: 3, MODERE: 2, Basse: 1, FAIBLE: 0
     };
@@ -328,13 +374,15 @@ export class DashboardAnalysteComponent implements OnInit {
   });
 
   dynamicSynthese = computed((): string | null => {
-    const global = this.analysesIa()?.analyseGlobale?.synthese;
-    if (global) return global;
+    const structuredGlobal = this.structured()?.globalSummary?.trim();
+    if (structuredGlobal) return structuredGlobal;
+
+    const legacyGlobal = this.analysesIa()?.analyseGlobale?.synthese?.trim();
+    if (legacyGlobal) return legacyGlobal;
 
     const withAi = [...this.comparatif()?.lignes ?? []]
       .filter(k => k.aiNote || k.riskJustification || k.issueDetected)
       .slice(0, 3);
-
     if (!withAi.length) return null;
 
     return withAi
@@ -493,6 +541,7 @@ export class DashboardAnalysteComponent implements OnInit {
     this.comparatif.set(null);
     this.graphiques.set(null);
     this.analysesIa.set(null);
+    this.structured.set(null);
     this.expandedRows.set(new Set());
     this.sessionState.setActiveImport(importId);
 
@@ -589,7 +638,7 @@ export class DashboardAnalysteComponent implements OnInit {
     this.loading.set(true);
     this.error.set('');
 
-    const endpoints = includeComparatif ? 3 : 2;
+    const endpoints = includeComparatif ? 4 : 3;
     let done = 0;
     const check = () => { if (++done === endpoints) this.loading.set(false); };
 
@@ -630,6 +679,17 @@ export class DashboardAnalysteComponent implements OnInit {
           this.analysesIa.set(r);
           this.sessionState.patch({ analysesIa: r });
           this.applyAnalysesToComparatif();
+        }
+      } });
+
+    this.aiAnalysisService.getStructuredAnalysis(importId)
+      .pipe(
+        catchError(() => of(null)),
+        finalize(check)
+      )
+      .subscribe({ next: r => {
+        if (r && r.status !== 'FAILED') {
+          this.structured.set(r);
         }
       } });
   }
