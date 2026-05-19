@@ -30,9 +30,11 @@ import com.QHSEAnalytics.shared.repository.KpiRawDataRepository;
 import com.QHSEAnalytics.shared.repository.KpiRepository;
 import com.QHSEAnalytics.shared.repository.RagKnowledgeRepository;
 import com.QHSEAnalytics.shared.repository.ResultatKpiRepository;
+import com.QHSEAnalytics.analytics.service.AnalyseIaService;
 import com.QHSEAnalytics.importer.service.processing.CalculationAgent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -62,6 +64,7 @@ public class ImportProcessingService {
     private final RagKnowledgeRepository ragKnowledgeRepository;
     private final ImportProgressService importProgressService;
     private final FileStorageService fileStorageService;
+    private final ApplicationContext applicationContext;
 
     @Transactional
     public ImportProcessingResponse processManualImport(ImportRequestDTO request, User user) {
@@ -199,6 +202,13 @@ public class ImportProcessingService {
 
         List<CategoryScoreDTO> categoryScores = calculationAgent.computeCategoryScores(calcToProcess);
 
+        if (finalSession.getStatut() == ImportStatut.READY_FOR_AI) {
+            Long importId = finalSession.getId();
+            Long ownerId  = finalSession.getUser().getId();
+            log.info("[ImportProcessing] Déclenchement async analyse IA pour session {} user {}", importId, ownerId);
+            applicationContext.getBean(AnalyseIaService.class).triggerAnalyseAsync(importId, ownerId);
+        }
+
         return ImportProcessingResponse.builder()
                 .importSessionId(finalSession.getId())
                 .calculatedData(calcToProcess)
@@ -323,6 +333,13 @@ public class ImportProcessingService {
         }
 
         List<CategoryScoreDTO> categoryScores = calculationAgent.computeCategoryScores(calcToProcess);
+
+        if (finalSession.getStatut() == ImportStatut.READY_FOR_AI) {
+            Long importId = finalSession.getId();
+            Long ownerId  = finalSession.getUser().getId();
+            log.info("[ImportProcessing] Déclenchement async analyse IA pour session {} user {} (dual)", importId, ownerId);
+            applicationContext.getBean(AnalyseIaService.class).triggerAnalyseAsync(importId, ownerId);
+        }
 
         return ImportProcessingResponse.builder()
                 .importSessionId(finalSession.getId())

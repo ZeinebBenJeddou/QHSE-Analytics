@@ -180,8 +180,8 @@ public class ImportProcessingController {
         } catch (Exception ex) {
             throw new ImportValidationException("Le mapping des colonnes est invalide.");
         }
-        long distinctIndexes = mapping.values().stream().filter(v -> v != null).distinct().count();
-        if (distinctIndexes < mapping.values().stream().filter(v -> v != null).count()) {
+        long distinctIndexes = mapping.values().stream().filter(v -> v != null && v >= 0).distinct().count();
+        if (distinctIndexes < mapping.values().stream().filter(v -> v != null && v >= 0).count()) {
             throw new ImportValidationException(
                 "Mapping invalide : deux champs différents pointent vers la même colonne.");
         }

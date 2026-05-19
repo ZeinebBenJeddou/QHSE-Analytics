@@ -224,25 +224,30 @@ public class AnalyseIaService {
 
     @Async("aiAnalysisExecutor")
     public CompletableFuture<Void> triggerAnalyseAsync(Long importSessionId, Long userId) {
-        ImportSession session = loadSessionWithOwnership(importSessionId, userId, false);
-        if (!session.getStatut().isReadyForAi()) {
-            log.warn("Import {} non prêt pour analyse IA.", importSessionId);
-            return CompletableFuture.completedFuture(null);
+        log.info("[IA-Async] Déclenchement analyse IA pour import {} user {} (thread: {})",
+                importSessionId, userId, Thread.currentThread().getName());
+        try {
+            ImportSession session = loadSessionForAsync(importSessionId);
+            if (session.getStatut() != ImportStatut.READY_FOR_AI) {
+                log.warn("[IA-Async] Import {} pas en READY_FOR_AI (statut: {}), skip.",
+                        importSessionId, session.getStatut());
+                return CompletableFuture.completedFuture(null);
+            }
+
+            boolean alreadyStored = analyseGlobaleRepository.findByImportSessionId(importSessionId).isPresent()
+                    || !analyseCategorieRepository.findByImportSessionId(importSessionId).isEmpty()
+                    || resultatKpiRepository.findByImportSessionIdOrderByCreatedAtDesc(importSessionId).stream()
+                            .anyMatch(r -> r.getAnalyseIa() != null && !r.getAnalyseIa().isBlank());
+
+            if (alreadyStored) {
+                log.info("[IA-Async] Analyse IA déjà présente pour la session {}, skip.", importSessionId);
+                return CompletableFuture.completedFuture(null);
+            }
+
+            genererToutesLesAnalyses(importSessionId, userId);
+        } catch (Exception e) {
+            log.error("[IA-Async] Erreur lors de l'analyse IA pour import {} : {}", importSessionId, e.getMessage(), e);
         }
-
-        boolean alreadyStored = session.getStatut() == ImportStatut.TRAITE && (analyseGlobaleRepository
-                .findByImportSessionId(importSessionId).isPresent()
-                || !analyseCategorieRepository.findByImportSessionId(importSessionId).isEmpty()
-                || resultatKpiRepository.findByImportSessionIdOrderByCreatedAtDesc(importSessionId).stream()
-                        .anyMatch(resultat -> resultat.getAnalyseIa() != null && !resultat.getAnalyseIa().isBlank()));
-
-        if (alreadyStored) {
-            log.info("Analyse IA déjà présente pour la session {}, aucune requête supplémentaire nécessaire.",
-                    importSessionId);
-            return CompletableFuture.completedFuture(null);
-        }
-
-        genererToutesLesAnalyses(importSessionId, userId);
         return CompletableFuture.completedFuture(null);
     }
 
@@ -473,6 +478,11 @@ public class AnalyseIaService {
                 : importSessionRepository.findByIdAndUserId(importSessionId, userId)
                         .orElseThrow(() -> new ImportNotFoundException("Import introuvable"));
         return session;
+    }
+
+    private ImportSession loadSessionForAsync(Long importSessionId) {
+        return importSessionRepository.findById(importSessionId)
+                .orElseThrow(() -> new ImportNotFoundException("Import introuvable pour l'analyse async"));
     }
 
     private User loadUser(Long userId) {
