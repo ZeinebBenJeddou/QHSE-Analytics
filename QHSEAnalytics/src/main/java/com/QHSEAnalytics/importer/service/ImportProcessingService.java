@@ -37,6 +37,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -205,8 +207,13 @@ public class ImportProcessingService {
         if (finalSession.getStatut() == ImportStatut.READY_FOR_AI) {
             Long importId = finalSession.getId();
             Long ownerId  = finalSession.getUser().getId();
-            log.info("[ImportProcessing] Déclenchement async analyse IA pour session {} user {}", importId, ownerId);
-            applicationContext.getBean(AnalyseIaService.class).triggerAnalyseAsync(importId, ownerId);
+            log.info("[ImportProcessing] Enregistrement déclenchement async après commit — session {} user {}", importId, ownerId);
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    applicationContext.getBean(AnalyseIaService.class).triggerAnalyseAsync(importId, ownerId);
+                }
+            });
         }
 
         return ImportProcessingResponse.builder()
@@ -337,8 +344,13 @@ public class ImportProcessingService {
         if (finalSession.getStatut() == ImportStatut.READY_FOR_AI) {
             Long importId = finalSession.getId();
             Long ownerId  = finalSession.getUser().getId();
-            log.info("[ImportProcessing] Déclenchement async analyse IA pour session {} user {} (dual)", importId, ownerId);
-            applicationContext.getBean(AnalyseIaService.class).triggerAnalyseAsync(importId, ownerId);
+            log.info("[ImportProcessing] Enregistrement déclenchement async après commit — session {} user {} (dual)", importId, ownerId);
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    applicationContext.getBean(AnalyseIaService.class).triggerAnalyseAsync(importId, ownerId);
+                }
+            });
         }
 
         return ImportProcessingResponse.builder()
