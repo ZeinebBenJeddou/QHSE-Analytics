@@ -389,7 +389,7 @@
                 </td>
                 <td class="td-number td-variation">
                   @if (row.niveauVariation !== 'INDETERMINE' && row.variationRelative != null) {
-                    <span class="var-pill" [ngClass]="getVariationClass(row.variationRelative)">
+                    <span class="var-pill var-neutral">
                       {{ variationSign(row.variationRelative) }}{{ row.variationRelative | number:'1.1-1' }}%
                     </span>
                   } @else {
@@ -412,7 +412,7 @@
                 </td>
                 <td class="td-center">
                   @if (row.niveauVariation !== 'INDETERMINE') {
-                    <mat-icon class="tendance-icon" [ngClass]="getTendanceIconClass(row.tendance)">
+                    <mat-icon class="tendance-icon" [ngClass]="getTendanceIconClass(row.tendance, row.niveauVariation)">
                       {{ getTendanceIcon(row.tendance) }}
                     </mat-icon>
                   } @else {

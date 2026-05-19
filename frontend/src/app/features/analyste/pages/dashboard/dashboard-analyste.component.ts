@@ -155,10 +155,12 @@ export class DashboardAnalysteComponent implements OnInit {
     return 'trending_flat';
   }
 
-  getTendanceIconClass(tendance: string | null): string {
-    if (tendance === 'HAUSSE') return 'icon-red';
-    if (tendance === 'BAISSE') return 'icon-green';
-    return 'icon-blue';
+  getTendanceIconClass(tendance: string | null, niveau?: string | null): string {
+    const statut = this.getStatut(tendance, niveau ?? null);
+    if (statut === 'Dégradation')        return 'icon-red';
+    if (statut === 'Dégradation légère') return 'icon-orange';
+    if (statut === 'Amélioration')       return 'icon-green';
+    return 'icon-gray';
   }
 
   getVariationClass(value: number): string {

@@ -1628,9 +1628,11 @@ h1 {
 .statut-blue   { color: #1E40AF; }
 
 .tendance-icon { font-size: 18px !important; width: 18px !important; height: 18px !important; }
-.icon-red   { color: #EF4444; }
-.icon-green { color: #10B981; }
-.icon-blue  { color: #94A3B8; }
+.icon-red    { color: #EF4444; }
+.icon-orange { color: #F59E0B; }
+.icon-green  { color: #10B981; }
+.icon-gray   { color: #94A3B8; }
+.icon-blue   { color: #94A3B8; }
 
 .no-rows {
   text-align: center;
