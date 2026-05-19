@@ -261,7 +261,16 @@
     <section class="section">
       <div class="section-header">
         <h2 class="section-title">Tableau comparatif détaillé</h2>
-        <span class="table-count">{{ filteredLignes().length }} / {{ (comparatif()?.lignes ?? []).length }} KPI</span>
+        <div class="section-header-right">
+          <span class="table-count">{{ filteredLignes().length }} / {{ (comparatif()?.lignes ?? []).length }} KPI</span>
+          @if (nombreIndetermines() > 0) {
+            <span class="indet-hint" (click)="onNiveauChange(niveauFilter() === 'INDETERMINE' ? '' : 'INDETERMINE')"
+                  [class.active]="niveauFilter() === 'INDETERMINE'">
+              <mat-icon>help_outline</mat-icon>
+              {{ nombreIndetermines() }} indéterminé{{ nombreIndetermines() > 1 ? 's' : '' }} masqué{{ nombreIndetermines() > 1 ? 's' : '' }}
+            </span>
+          }
+        </div>
       </div>
 
       <div class="table-filters">
@@ -292,11 +301,11 @@
                 (ngModelChange)="onNiveauChange($event)">
           <option value="">Tous les niveaux</option>
           <option value="CRITIQUE">Critique</option>
-          <!--<option value="PRE_ESCALADE">Pré-escalade</option>-->
           <option value="MODERE">Modéré</option>
           <option value="FAIBLE">Faible</option>
-          <!--<option value="EXCELLENT">Excellent</option>-->
-          <!--<option value="INDETERMINE">Indéterminé</option>-->
+          @if (nombreIndetermines() > 0) {
+            <option value="INDETERMINE">Indéterminés ({{ nombreIndetermines() }})</option>
+          }
         </select>
 
         <select class="filter-select" [(ngModel)]="statutFilter">
@@ -377,13 +386,21 @@
                 </td>
                 <td class="td-number">{{ row.valeurN1 | number:'1.0-2' }}</td>
                 <td class="td-number">{{ row.valeurN | number:'1.0-2' }}</td>
-                <td class="td-number" [ngClass]="getVariationClass(row.variationAbsolue)">
-                  {{ variationSign(row.variationAbsolue) }}{{ row.variationAbsolue | number:'1.0-2' }}
+                <td class="td-number" [ngClass]="row.niveauVariation !== 'INDETERMINE' ? getVariationClass(row.variationAbsolue) : ''">
+                  @if (row.niveauVariation !== 'INDETERMINE' && row.variationAbsolue != null) {
+                    {{ variationSign(row.variationAbsolue) }}{{ row.variationAbsolue | number:'1.0-2' }}
+                  } @else {
+                    <span class="text-muted">—</span>
+                  }
                 </td>
-                <td class="td-number td-variation" [ngClass]="getVariationClass(row.variationRelative)">
-                  <span class="var-pill" [ngClass]="getVariationClass(row.variationRelative)">
-                    {{ variationSign(row.variationRelative) }}{{ row.variationRelative | number:'1.1-1' }}%
-                  </span>
+                <td class="td-number td-variation">
+                  @if (row.niveauVariation !== 'INDETERMINE' && row.variationRelative != null) {
+                    <span class="var-pill" [ngClass]="getVariationClass(row.variationRelative)">
+                      {{ variationSign(row.variationRelative) }}{{ row.variationRelative | number:'1.1-1' }}%
+                    </span>
+                  } @else {
+                    <span class="text-muted">—</span>
+                  }
                 </td>
                 <td>
                   <span class="badge" [ngClass]="getNiveauClass(row.niveauVariation)">
@@ -391,14 +408,22 @@
                   </span>
                 </td>
                 <td>
-                  <span class="statut-label" [ngClass]="getStatutClass(getStatut(row.tendance, row.niveauVariation))">
-                    {{ getStatut(row.tendance, row.niveauVariation) }}
-                  </span>
+                  @if (row.niveauVariation !== 'INDETERMINE') {
+                    <span class="statut-label" [ngClass]="getStatutClass(getStatut(row.tendance, row.niveauVariation))">
+                      {{ getStatut(row.tendance, row.niveauVariation) }}
+                    </span>
+                  } @else {
+                    <span class="text-muted">—</span>
+                  }
                 </td>
                 <td class="td-center">
-                  <mat-icon class="tendance-icon" [ngClass]="getTendanceIconClass(row.tendance)">
-                    {{ getTendanceIcon(row.tendance) }}
-                  </mat-icon>
+                  @if (row.niveauVariation !== 'INDETERMINE') {
+                    <mat-icon class="tendance-icon" [ngClass]="getTendanceIconClass(row.tendance)">
+                      {{ getTendanceIcon(row.tendance) }}
+                    </mat-icon>
+                  } @else {
+                    <span class="text-muted">—</span>
+                  }
                 </td>
               </tr>
             }

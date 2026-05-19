@@ -239,10 +239,12 @@ public class ImportProcessingService {
             Map<String, Integer> mappingN1,
             Map<String, Integer> mappingN,
             boolean allowPartialImport,
+            String clientId,
             User user
     ) {
         validateYearInputs(anneeN, anneeN1);
 
+        importProgressService.push(clientId, "INITIALISATION", 5, "Création de la session d'import dual…");
         DualFileImportService.MergeResult merged = dualFileImportService.mergeFiles(
                 fileN1, fileN, anneeN1, anneeN, mappingN1, mappingN);
 
@@ -250,9 +252,12 @@ public class ImportProcessingService {
         ImportSession initialSession = importSessionRepository.save(session);
         ImportSession processingSession = advanceStatus(initialSession, ImportStatut.processing());
 
+        importProgressService.push(clientId, "TRAITEMENT", 20, "Fusion et nettoyage des fichiers…");
         ImportProcessingResponse processingResponse =
                 orchestrator.processFromRawData(merged.getRows(), allowPartialImport);
         ImportQualityReport qualityReport = processingResponse.getQualityReport();
+
+        importProgressService.push(clientId, "VALIDATION", 40, "Contrôle qualité des données…");
 
         if (qualityReport != null && qualityReport.isBlocking()) {
             ImportSession erreurSession = advanceStatus(processingSession, ImportStatut.ERREUR);
@@ -261,6 +266,7 @@ public class ImportProcessingService {
                     : "Import dual refusé : des erreurs bloquantes ont été détectées.";
             erreurSession.setMessageErreur(reason);
             importSessionRepository.save(erreurSession);
+            importProgressService.pushError(clientId, reason);
             return ImportProcessingResponse.builder()
                     .importSessionId(erreurSession.getId())
                     .rawData(processingResponse.getRawData())
@@ -290,10 +296,15 @@ public class ImportProcessingService {
                         .filter(k -> validKpiNames.contains(k.getKpiName()))
                         .collect(Collectors.toList());
             }
+            log.info("[ImportProcessing] Mode PARTIAL dual: {} valides pour session {}",
+                    rawToProcess.size(), processingSession.getId());
         }
 
+        importProgressService.push(clientId, "PERSISTANCE", 60, "Sauvegarde des données brutes…");
         persistRawRows(processingSession, rawToProcess);
         persistPreviewRows(processingSession, calcToProcess);
+
+        importProgressService.push(clientId, "CALCUL", 75, "Enregistrement des résultats KPI…");
 
         List<Long> matchedIds = calcToProcess.stream()
                 .map(KpiCalculatedDTO::getMatchedKpiId)
@@ -307,9 +318,16 @@ public class ImportProcessingService {
 
         ImportSession finalSession;
         if (results.isEmpty()) {
-            finalSession = advanceStatus(processingSession, ImportStatut.ERREUR);
-            finalSession.setMessageErreur("Aucun KPI valide n'a pu être traité.");
-            importSessionRepository.save(finalSession);
+            if (allowPartialImport && qualityReport != null && qualityReport.isSoftBlocking()) {
+                ImportSession erreurSession = advanceStatus(processingSession, ImportStatut.ERREUR);
+                erreurSession.setMessageErreur("Import partiel dual : aucune ligne valide n'a pu être importée.");
+                importSessionRepository.save(erreurSession);
+                finalSession = erreurSession;
+            } else {
+                finalSession = advanceStatus(processingSession, ImportStatut.ERREUR);
+                finalSession.setMessageErreur("Aucun KPI valide n'a pu être traité.");
+                importSessionRepository.save(finalSession);
+            }
         } else {
             ImportSession calculatedSession = advanceStatus(processingSession, ImportStatut.CALCULATED);
             resultatKpiRepository.saveAll(results);
@@ -338,6 +356,8 @@ public class ImportProcessingService {
                 log.info("[ImportProcessing] Import dual partiel — session {} : {}", finalSession.getId(), message);
             }
         }
+
+        importProgressService.push(clientId, "TERMINÉ", 100, "Import dual finalisé — analyse IA en cours de déclenchement…");
 
         List<CategoryScoreDTO> categoryScores = calculationAgent.computeCategoryScores(calcToProcess);
 

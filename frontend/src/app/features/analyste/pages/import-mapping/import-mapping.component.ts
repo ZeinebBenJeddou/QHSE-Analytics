@@ -179,6 +179,7 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
       this.dualState.set(dual);
       this.columnsN1.set(dual.columnsN1 ?? []);
       this.columnsN.set(dual.columnsN ?? []);
+      this.autoSelectDualMapping();
       return;
     }
 
@@ -187,6 +188,28 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
     this.uploadStateData.set(state);
     this.restoreMapping(state.headers);
     this.loadColumnProfiles(state.file);
+  }
+
+  private autoSelectDualMapping(): void {
+    if (this.columnsN1()?.length) {
+      const kpiCol = this.columnsN1().find(c => c.likelySemantic === 'KPI_NAME');
+      const valCol = this.columnsN1().find(c => c.likelySemantic === 'VALUE_N1')
+                  ?? this.columnsN1().find(c => c.likelySemantic === 'VALUE_N');
+      const kpiIdx = kpiCol?.columnIndex ?? 0;
+      this.kpiColN1.set(kpiIdx);
+      this.valColN1.set(valCol?.columnIndex ?? (kpiIdx === 0 ? 1 : 0));
+      console.log('[DualMapping] N-1: kpi=', this.kpiColN1(), 'val=', this.valColN1());
+    }
+
+    if (this.columnsN()?.length) {
+      const kpiCol = this.columnsN().find(c => c.likelySemantic === 'KPI_NAME');
+      const valCol = this.columnsN().find(c => c.likelySemantic === 'VALUE_N')
+                  ?? this.columnsN().find(c => c.likelySemantic === 'VALUE_N1');
+      const kpiIdx = kpiCol?.columnIndex ?? 0;
+      this.kpiColN.set(kpiIdx);
+      this.valColN.set(valCol?.columnIndex ?? (kpiIdx === 0 ? 1 : 0));
+      console.log('[DualMapping] N:   kpi=', this.kpiColN(),  'val=', this.valColN());
+    }
   }
 
   private async loadColumnProfiles(file: File): Promise<void> {
@@ -564,8 +587,13 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
     const dual = this.dualState();
     if (!dual) return;
 
+    const clientId = crypto.randomUUID();
+    this.progressPercent.set(0);
+    this.progressStage.set('INITIALISATION');
+    this.progressMessage.set('Démarrage du traitement dual...');
     this.processing.set(true);
     this.errorMsg.set('');
+    this.openProgressStream(clientId);
 
     try {
       const response = await firstValueFrom(
@@ -574,7 +602,8 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
           dual.yearNMinus1, dual.yearN,
           this.kpiColN1()!, this.valColN1()!,
           this.kpiColN()!,  this.valColN()!,
-          allowPartial
+          allowPartial,
+          clientId
         )
       );
       this.result.set(response);
@@ -591,6 +620,7 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
       this.snackBar.open(this.errorMsg(), 'OK', { duration: 5000 });
     } finally {
       this.processing.set(false);
+      this.closeProgressStream();
     }
   }
 

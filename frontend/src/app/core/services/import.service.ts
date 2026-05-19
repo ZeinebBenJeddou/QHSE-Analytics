@@ -83,12 +83,16 @@ export class ImportService {
     yearN1: number, yearN: number,
     kpiColN1: number, valColN1: number,
     kpiColN: number, valColN: number,
-    allowPartial = false
+    allowPartial = false,
+    clientId?: string
   ): Observable<ImportProcessingResponse> {
     const form = new FormData();
     form.append('fileN1', fileN1);
     form.append('fileN', fileN);
-    const url = `${this.manualBase}/dual?yearN1=${yearN1}&yearN=${yearN}&kpiColN1=${kpiColN1}&valColN1=${valColN1}&kpiColN=${kpiColN}&valColN=${valColN}&allowPartial=${allowPartial}`;
+    let url = `${this.manualBase}/dual?yearN1=${yearN1}&yearN=${yearN}&kpiColN1=${kpiColN1}&valColN1=${valColN1}&kpiColN=${kpiColN}&valColN=${valColN}&allowPartial=${allowPartial}`;
+    if (clientId) {
+      url += `&clientId=${encodeURIComponent(clientId)}`;
+    }
     return this.http.post<ImportProcessingResponse>(url, form);
   }
 

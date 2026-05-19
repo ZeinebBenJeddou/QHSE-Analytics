@@ -158,7 +158,8 @@ public class ImportProcessingController {
             @RequestParam("valColN1") int valColN1,
             @RequestParam("kpiColN")  int kpiColN,
             @RequestParam("valColN")  int valColN,
-            @RequestParam(value = "allowPartial", defaultValue = "false") boolean allowPartial
+            @RequestParam(value = "allowPartial", defaultValue = "false") boolean allowPartial,
+            @RequestParam(value = "clientId", required = false, defaultValue = "") String clientId
     ) {
         validateYearRange(yearN, yearN1);
         Map<String, Integer> mappingN1 = Map.of("kpiNameIndex", kpiColN1, "valueIndex", valColN1);
@@ -166,7 +167,7 @@ public class ImportProcessingController {
         User user = getCurrentUser();
         return ResponseEntity.ok(
                 importProcessingService.processDualFileImport(
-                        fileN1, fileN, yearN1, yearN, mappingN1, mappingN, allowPartial, user)
+                        fileN1, fileN, yearN1, yearN, mappingN1, mappingN, allowPartial, clientId, user)
         );
     }
 

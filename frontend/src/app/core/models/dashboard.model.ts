@@ -34,8 +34,8 @@ export interface LigneComparatifResponse {
   valeurN: number;
   variationAbsolue: number;
   variationRelative: number;
-  niveauVariation: 'FAIBLE' | 'MODERE' | 'CRITIQUE';
-  tendance: 'HAUSSE' | 'BAISSE' | 'STABLE';
+  niveauVariation: 'FAIBLE' | 'MODERE' | 'CRITIQUE' | 'PRE_ESCALADE' | 'EXCELLENT' | 'INDETERMINE' | null;
+  tendance: 'HAUSSE' | 'BAISSE' | 'STABLE' | null;
   status?: string;
   commentaire?: string;
 

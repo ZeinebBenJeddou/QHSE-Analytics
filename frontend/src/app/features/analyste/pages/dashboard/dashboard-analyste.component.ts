@@ -129,7 +129,7 @@ export class DashboardAnalysteComponent implements OnInit {
 
   tableColumns = ['expand', 'kpiNom', 'categorieLibelle', 'valeurN1', 'valeurN', 'variationAbsolue', 'variationRelative', 'niveauVariation', 'tendance'];
 
-  getStatut(tendance: string, niveau: string): string {
+  getStatut(tendance: string | null, niveau: string | null): string {
     if (tendance === 'HAUSSE' && niveau === 'CRITIQUE')                        return 'Dégradation';
     if (tendance === 'HAUSSE' && (niveau === 'MODERE' || niveau === 'FAIBLE')) return 'Dégradation légère';
     if (tendance === 'BAISSE')                                                  return 'Amélioration';
@@ -143,7 +143,7 @@ export class DashboardAnalysteComponent implements OnInit {
     return 'statut-blue';
   }
 
-  getNiveauClass(niveau: string): string {
+  getNiveauClass(niveau: string | null): string {
     if (niveau === 'CRITIQUE')     return 'niveau-critique';
     if (niveau === 'PRE_ESCALADE') return 'niveau-pre-escalade';
     if (niveau === 'MODERE')       return 'niveau-modere';
@@ -153,13 +153,13 @@ export class DashboardAnalysteComponent implements OnInit {
     return 'niveau-default';
   }
 
-  getTendanceIcon(tendance: string): string {
+  getTendanceIcon(tendance: string | null): string {
     if (tendance === 'HAUSSE') return 'trending_up';
     if (tendance === 'BAISSE') return 'trending_down';
     return 'trending_flat';
   }
 
-  getTendanceIconClass(tendance: string): string {
+  getTendanceIconClass(tendance: string | null): string {
     if (tendance === 'HAUSSE') return 'icon-red';
     if (tendance === 'BAISSE') return 'icon-green';
     return 'icon-blue';
@@ -185,18 +185,25 @@ export class DashboardAnalysteComponent implements OnInit {
     this.categorieFilter.set('');
   }
 
+  nombreIndetermines = computed(() =>
+    (this.comparatif()?.lignes ?? []).filter(l => l.niveauVariation === 'INDETERMINE').length
+  );
+
   filteredLignes = computed(() => {
     const lignes = this.comparatif()?.lignes ?? [];
     const search = this.searchFilter().toLowerCase();
     const cat = this.categorieFilter() || this.activeCatTab();
     const niveau = this.niveauFilter();
     const statut = this.statutFilterSig();
-    const filtered = lignes.filter(l =>
-      (!search || l.kpiNom.toLowerCase().includes(search)) &&
-      (!cat || l.categorieCode === cat) &&
-      (!niveau || l.niveauVariation === niveau) &&
-      (!statut || this.getStatut(l.tendance, l.niveauVariation) === statut)
-    );
+    const filtered = lignes.filter(l => {
+      if (l.niveauVariation === 'INDETERMINE' && niveau !== 'INDETERMINE') return false;
+      return (
+        (!search || l.kpiNom.toLowerCase().includes(search)) &&
+        (!cat    || l.categorieCode === cat) &&
+        (!niveau || l.niveauVariation === niveau) &&
+        (!statut || this.getStatut(l.tendance, l.niveauVariation) === statut)
+      );
+    });
     const col = this.sortColumn();
     const dir = this.sortDir();
     return [...filtered].sort((a, b) => {
@@ -216,8 +223,9 @@ export class DashboardAnalysteComponent implements OnInit {
       const critique = items.filter(l => l.niveauVariation === 'CRITIQUE').length;
       const modere   = items.filter(l => l.niveauVariation === 'MODERE').length;
       const faible   = items.filter(l => l.niveauVariation === 'FAIBLE').length;
-      const avgVar   = items.length
-        ? items.reduce((s, l) => s + l.variationRelative, 0) / items.length
+      const determined = items.filter(l => l.niveauVariation !== 'INDETERMINE' && l.variationRelative != null);
+      const avgVar   = determined.length
+        ? determined.reduce((s, l) => s + l.variationRelative!, 0) / determined.length
         : 0;
       return { ...cat, total: items.length, critique, modere, faible, avgVar };
     });
@@ -226,14 +234,16 @@ export class DashboardAnalysteComponent implements OnInit {
   get stats() {
     const lignes = this.filteredLignes();
     const total  = lignes.length;
-    let amelioration = 0, degradation = 0, stables = 0, sumVar = 0;
+    let amelioration = 0, degradation = 0, stables = 0, sumVar = 0, countVar = 0;
     lignes.forEach(l => {
+      if (l.niveauVariation === 'INDETERMINE' || l.variationRelative == null) return;
       if (l.variationRelative < -10)     amelioration++;
       else if (l.variationRelative > 10) degradation++;
       else                               stables++;
       sumVar += l.variationRelative;
+      countVar++;
     });
-    const avg = total > 0 ? sumVar / total : 0;
+    const avg = countVar > 0 ? sumVar / countVar : 0;
     return {
       total, amelioration, degradation, stables,
       avgVariation: avg,
