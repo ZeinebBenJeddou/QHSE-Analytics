@@ -43,7 +43,7 @@ export class AdminShellComponent {
     { label: 'Utilisateurs',  icon: 'group',            route: '/admin/users',    badge: null },
     //{ label: 'KPIs',          icon: 'speed',            route: '/admin/kpis',     badge: null },
     { label: 'Actions Administrateur',         icon: 'policy',           route: '/admin/audit',     badge: null },
-    { label: 'Base RAG',      icon: 'hub',              route: '/admin/rag',       badge: null },
+    { label: 'Base ',      icon: 'hub',              route: '/admin/rag',       badge: null },
   ];
 
   constructor() {

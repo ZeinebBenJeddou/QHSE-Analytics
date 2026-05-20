@@ -149,6 +149,52 @@ export class DashboardAnalysteComponent implements OnInit {
 
   topKpisDegrades = computed(() => this.graphiques()?.topKpisDegrades ?? []);
 
+  iaGlobalScore = computed(() => {
+    const kpis = this.analysesIa()?.analysesKpis ?? [];
+    if (!kpis.length) return null;
+    const baseByNiveau: Record<string, number> = { FAIBLE: 100, MODERE: 60, CRITIQUE: 20 };
+    let weightedSum = 0, totalWeight = 0;
+    for (const k of kpis) {
+      const base   = baseByNiveau[k.niveauVariation ?? ''] ?? 70;
+      const weight = k.niveauVariation === 'CRITIQUE' ? 2 : 1;
+      const variation = k.variationRelative ?? 0;
+      const penalty = (k.tendance === 'BAISSE' && variation < -15) ? Math.min(15, Math.abs(variation) * 0.1) : 0;
+      weightedSum += (base - penalty) * weight;
+      totalWeight += weight;
+    }
+    return Math.max(0, Math.min(100, Math.round(weightedSum / totalWeight)));
+  });
+
+  iaScoreLabel = computed(() => {
+    const s = this.iaGlobalScore();
+    if (s === null) return '';
+    if (s >= 80) return 'Excellent';
+    if (s >= 60) return 'Satisfaisant';
+    if (s >= 40) return 'À surveiller';
+    return 'Critique';
+  });
+
+  iaScoreColor = computed(() => {
+    const s = this.iaGlobalScore();
+    if (s === null) return '#a3aed1';
+    if (s >= 80) return '#05cd99';
+    if (s >= 60) return '#4318FF';
+    if (s >= 40) return '#ff9800';
+    return '#ee5d50';
+  });
+
+  iaScoreRingDash = computed(() => {
+    const pct = (this.iaGlobalScore() ?? 0) / 100;
+    return `${Math.round(pct * 339)} 339`;
+  });
+
+  iaRecommendations = computed(() => this.structured()?.recommendations?.slice(0, 3) ?? []);
+
+  formatPriorityLabel(urgency: string): string {
+    const map: Record<string, string> = { HIGH: 'Haute', MEDIUM: 'Moyenne', LOW: 'Basse', haute: 'Haute', moyenne: 'Moyenne', basse: 'Basse' };
+    return map[urgency] ?? urgency;
+  }
+
   searchFilter = signal('');
   categorieFilter = signal('');
   niveauFilter = signal('');
@@ -926,11 +972,12 @@ export class DashboardAnalysteComponent implements OnInit {
   }
 
   goToIA() {
-    const id = this.importId();
+    const id = this.importId() ?? this.resume()?.dernierImportId ?? null;
     if (!id) {
       this.snackBar.open('Aucun import sélectionné pour l\'analyse IA.', 'OK', { duration: 3000 });
       return;
     }
+    window.scrollTo({ top: 0, behavior: 'instant' });
     this.router.navigate(['/analyste/ia', id]);
   }
 

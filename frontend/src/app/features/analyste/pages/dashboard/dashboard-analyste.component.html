@@ -451,103 +451,105 @@
     <!-- ══════════════════════════════════════════════════
          ZONE 6 — Aperçu IA
     ══════════════════════════════════════════════════ -->
-    <div class="ia-preview-section">
+    <div class="ia-block">
 
-      <div class="ia-preview-header">
-        <div class="ia-preview-header-left">
-          <div class="ia-sparkle-icon"><mat-icon>auto_awesome</mat-icon></div>
+      <!-- Header -->
+      <div class="ia-block-header">
+        <div class="ia-block-header-left">
           <div>
-            <div class="ia-preview-title">Aperçu Intelligence Artificielle</div>
-            <div class="ia-preview-subtitle">Résumé automatique · Analyse complète disponible</div>
+            <div class="ia-block-title">Analyse Intelligente</div>
           </div>
         </div>
-        <button class="ia-preview-cta" (click)="goToIA()">
-          <mat-icon>open_in_new</mat-icon>
-          Voir l'analyse complète
-        </button>
       </div>
 
       @if (!hasAiData()) {
-        <div class="ia-preview-empty">
-          <mat-icon>smart_toy</mat-icon>
-          <span>Aucune analyse IA disponible. Lancez une analyse depuis la page dédiée.</span>
-          <button class="ia-preview-cta-secondary" (click)="goToIA()">Lancer l'analyse →</button>
+        <!-- État vide -->
+        <div class="ia-block-empty">
+          <div class="ia-block-empty-icon"><mat-icon>smart_toy</mat-icon></div>
+          <div class="ia-block-empty-text">Aucune analyse IA disponible pour cet import.</div>
+          <button class="ia-block-cta-header" (click)="goToIA()">
+            <mat-icon>play_arrow</mat-icon>
+            Lancer l'analyse
+          </button>
         </div>
       } @else {
 
-        <div class="ia-preview-body">
+        <div class="ia-block-content">
 
-          @if (dynamicSynthese()) {
-            <div class="ia-preview-synthese">
-              <mat-icon>summarize</mat-icon>
-              <p>{{ dynamicSynthese() }}</p>
-            </div>
-          }
+          <!-- Colonne gauche : synthèse globale complète -->
+          <div class="ia-block-left">
 
-          <div class="ia-preview-col">
-            <div class="ia-preview-col-title">
-              <mat-icon>warning</mat-icon>
-              Points d'attention
-            </div>
-            <div class="ia-preview-kpi-list">
-              @for (kpi of topIssues().slice(0, 3); track kpi.kpiId) {
-                <div class="ia-preview-kpi-row">
-                  <span class="ia-preview-kpi-name">{{ kpi.kpiNom }}</span>
-                  <span class="ia-preview-badge"
-                        [class.badge-crit]="kpi.niveauVariation === 'CRITIQUE'"
-                        [class.badge-mod]="kpi.niveauVariation === 'MODERE'">
-                    {{ kpi.niveauVariation === 'CRITIQUE' ? 'Critique' : 'Modéré' }}
-                  </span>
-                </div>
-              }
-              @if (topIssues().length > 3) {
-                <div class="ia-preview-more">+ {{ topIssues().length - 3 }} autres dans l'analyse complète</div>
-              }
-              @if (topIssues().length === 0) {
-                <div class="ia-preview-ok"><mat-icon>check_circle</mat-icon> Aucun indicateur critique</div>
-              }
-            </div>
+            @if (structured()?.globalSummary) {
+              <div class="ia-block-synthese">
+                <div class="ia-block-synthese-label">Synthèse</div>
+                <p class="ia-block-synthese-text">{{ structured()!.globalSummary }}</p>
+              </div>
+            } @else if (dynamicSynthese()) {
+              <div class="ia-block-synthese">
+                <div class="ia-block-synthese-label">Synthèse</div>
+                <p class="ia-block-synthese-text">{{ dynamicSynthese() }}</p>
+              </div>
+            }
+
           </div>
 
-          <div class="ia-preview-col">
-            <div class="ia-preview-col-title">
-              <mat-icon>bolt</mat-icon>
-              Actions urgentes
-            </div>
-            <div class="ia-preview-action-list">
-              @for (kpi of topActions().slice(0, 3); track $index) {
-                <div class="ia-preview-action-row">
-                  <span class="ia-preview-prio"
-                        [class.prio-high]="kpi.immediatePriority === 'Haute' || kpi.niveauVariation === 'CRITIQUE'"
-                        [class.prio-med]="kpi.immediatePriority === 'Moyenne' || kpi.niveauVariation === 'MODERE'">
-                    {{ kpi.immediatePriority === 'Haute' || kpi.niveauVariation === 'CRITIQUE' ? 'Haute' : 'Moyenne' }}
-                  </span>
-                  <span class="ia-preview-action-text">
-                    {{ (kpi.immediateAction ?? kpi.correctiveAction ?? '') | slice:0:80 }}{{ (kpi.immediateAction ?? kpi.correctiveAction ?? '').length > 80 ? '…' : '' }}
-                  </span>
+          <!-- Séparateur vertical -->
+          <div class="ia-block-divider"></div>
+
+          <!-- Colonne droite : score global + recommandations -->
+          <div class="ia-block-right">
+
+            <!-- Score global -->
+            @if (iaGlobalScore() !== null) {
+              <div class="ia-score-row">
+                <div class="ia-score-ring-wrap">
+                  <svg class="ia-score-ring" viewBox="0 0 120 120">
+                    <circle cx="60" cy="60" r="54" fill="none" stroke="#EDE9FE" stroke-width="10"/>
+                    <circle cx="60" cy="60" r="54" fill="none"
+                            [attr.stroke]="iaScoreColor()"
+                            stroke-width="10"
+                            stroke-linecap="round"
+                            [style.stroke-dasharray]="iaScoreRingDash()"
+                            transform="rotate(-90 60 60)"/>
+                  </svg>
+                  <div class="ia-score-center">
+                    <span class="ia-score-value" [style.color]="iaScoreColor()">{{ iaGlobalScore() }}</span>
+                    <span class="ia-score-unit">/100</span>
+                    <span class="ia-score-label" [style.color]="iaScoreColor()">{{ iaScoreLabel() }}</span>
+                  </div>
                 </div>
-              }
-              @if (topActions().length > 3) {
-                <div class="ia-preview-more">+ {{ topActions().length - 3 }} autres actions dans l'analyse complète</div>
-              }
-              @if (topActions().length === 0) {
-                <div class="ia-preview-ok"><mat-icon>check_circle</mat-icon> Aucune action corrective identifiée</div>
-              }
-            </div>
+                <div class="ia-score-info">
+                  <div class="ia-block-section-label">Score global</div>
+                  <p class="ia-score-desc">Performance QHSE globale basée sur le niveau de variation des {{ scorecardsData().total }} indicateurs suivis.</p>
+                </div>
+              </div>
+            }
+
+            <!-- Recommandations -->
+            @if (iaRecommendations().length) {
+              <div class="ia-block-section-label" style="margin-top:4px">Recommandations clés</div>
+              <div class="ia-block-actions-list">
+                @for (rec of iaRecommendations(); track $index) {
+                  <div class="ia-action-row">
+                    <div class="ia-action-prio-wrap">
+                      <span class="ia-action-prio"
+                            [class.prio-high]="rec.urgency === 'HIGH' || rec.urgency === 'haute'"
+                            [class.prio-med]="rec.urgency === 'MEDIUM' || rec.urgency === 'moyenne'">
+                        {{ formatPriorityLabel(rec.urgency) }}
+                      </span>
+                    </div>
+                    <p class="ia-action-text">{{ rec.title || rec.rationale | slice:0:100 }}{{ (rec.title || rec.rationale).length > 100 ? '…' : '' }}</p>
+                  </div>
+                }
+              </div>
+            }
+
+            <button class="ia-block-cta-main" (click)="goToIA()">
+              Voir l'analyse complète
+            </button>
           </div>
 
         </div>
-
-        <div class="ia-preview-footer">
-          <span class="ia-preview-footer-hint">
-            <mat-icon>info</mat-icon>
-            Score global, causes probables, recommandations et plan d'action complet dans l'analyse IA.
-          </span>
-          <button class="ia-preview-cta" (click)="goToIA()">
-            Analyse complète →
-          </button>
-        </div>
-
       }
     </div>
 
