@@ -30,6 +30,19 @@ public class RagVectorInitializer implements ApplicationRunner {
             return;
         }
 
+        // Clear embeddings whose dimension doesn't match the expected 768.
+        // This handles the case where vectors were stored with the wrong model (e.g. 3072-dim).
+        try {
+            int cleared = jdbcTemplate.update(
+                "UPDATE rag_knowledge SET embedding = NULL WHERE embedding IS NOT NULL AND vector_dims(embedding) <> 768"
+            );
+            if (cleared > 0) {
+                log.info("[RagVectorInit] Cleared {} embedding(s) with wrong dimension (expected 768).", cleared);
+            }
+        } catch (Exception ex) {
+            log.warn("[RagVectorInit] Could not check embedding dimensions: {}", ex.getMessage());
+        }
+
         List<Long> ids;
         try {
             ids = jdbcTemplate.queryForList(

@@ -168,6 +168,18 @@ public class StructuredAnalysisPromptBuilder {
         }
         prompt.append("\n");
 
+        // Names-only overview of all session KPIs so the LLM can write a globalSummary that covers
+        // all KPIs, not just the chunk being analyzed. Full data is intentionally omitted to prevent
+        // the LLM from generating kpiInsights for KPIs outside the chunk.
+        if (allKpis != null && allKpis.size() > orderedKpis.size()) {
+            prompt.append("=== PÉRIMÈTRE GLOBAL DE LA SESSION (référence pour globalSummary UNIQUEMENT) ===\n");
+            prompt.append("⚠️ IMPORTANT : Cette liste sert UNIQUEMENT à rédiger le champ globalSummary.\n");
+            prompt.append("Tu NE DOIS PAS produire de kpiInsight pour ces KPIs — seulement pour ceux de la section KPI CONTEXT ci-dessous.\n");
+            prompt.append("Noms des KPIs de la session (tous) : ");
+            List<String> allNames = allKpis.stream().map(k -> safeText(k.getKpiName())).collect(Collectors.toList());
+            prompt.append(String.join(", ", allNames)).append("\n");
+            prompt.append("Scores pré-calculés disponibles dans la section SCORES ci-dessus — utilise-les dans globalSummary.\n\n");
+        }
 
         String combinedQuery = orderedKpis.stream()
                 .map(k -> safeText(k.getKpiName()))
