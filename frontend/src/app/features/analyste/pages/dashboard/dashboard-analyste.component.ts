@@ -215,6 +215,14 @@ export class DashboardAnalysteComponent implements OnInit {
     return 'var-neutral';
   }
 
+  getVariationClassByStatut(value: number, tendance: string | null, niveau: string | null): string {
+    const statut = this.getStatut(tendance, niveau);
+    if (statut === 'Dégradation')        return 'var-neg';
+    if (statut === 'Dégradation légère') return 'var-neg-light';
+    if (statut === 'Amélioration')       return 'var-pos';
+    return 'var-neutral';
+  }
+
   variationSign(value: number): string {
     return value > 0 ? '+' : '';
   }

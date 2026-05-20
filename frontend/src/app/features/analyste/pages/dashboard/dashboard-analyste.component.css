@@ -1639,9 +1639,11 @@ h1 {
 }
 .var-pos { color: #10B981; }
 .var-neg { color: #EF4444; }
+.var-neg-light { color: #D97706; }
 .var-neutral { color: var(--ink-muted); }
 .var-pill.var-pos { background: #D1FAE5; color: #059669; }
 .var-pill.var-neg { background: #FEF2F2; color: #DC2626; }
+.var-pill.var-neg-light { background: #FEF3C7; color: #D97706; }
 .var-pill.var-neutral { background: var(--surface); }
 
 .badge {
