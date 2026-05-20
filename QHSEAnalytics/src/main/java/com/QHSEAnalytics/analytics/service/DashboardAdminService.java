@@ -170,9 +170,9 @@ public class DashboardAdminService {
         List<BarreGroupeeData> evolution = byCategorie.values().stream()
                 .map(list -> BarreGroupeeData.builder()
                         .categorie(list.get(0).getKpi().getCategorieKpi().getLibelle())
-                        .valeurMoyenneN1(round2(list.stream().mapToDouble(ResultatKpi::getValeurN1).average().orElse(0d)))
-                        .valeurMoyenneN(round2(list.stream().mapToDouble(ResultatKpi::getValeurN).average().orElse(0d)))
-                        .variationMoyenne(round2(list.stream().mapToDouble(ResultatKpi::getVariationRelative).average().orElse(0d)))
+                        .valeurMoyenneN1(round2(list.stream().filter(r -> r.getValeurN1() != null).mapToDouble(ResultatKpi::getValeurN1).average().orElse(0d)))
+                        .valeurMoyenneN(round2(list.stream().filter(r -> r.getValeurN() != null).mapToDouble(ResultatKpi::getValeurN).average().orElse(0d)))
+                        .variationMoyenne(round2(list.stream().filter(r -> r.getVariationRelative() != null).mapToDouble(ResultatKpi::getVariationRelative).average().orElse(0d)))
                         .build())
                 .toList();
 

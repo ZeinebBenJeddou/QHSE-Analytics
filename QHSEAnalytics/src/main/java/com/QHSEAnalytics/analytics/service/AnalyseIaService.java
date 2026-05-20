@@ -22,7 +22,9 @@ import com.QHSEAnalytics.shared.exception.ImportNotReadyException;
 import com.QHSEAnalytics.shared.repository.AnalyseCategorieRepository;
 import com.QHSEAnalytics.shared.repository.AnalyseGlobaleRepository;
 import com.QHSEAnalytics.shared.repository.ImportSessionRepository;
+import com.QHSEAnalytics.shared.repository.KpiAnalysisRepository;
 import com.QHSEAnalytics.shared.repository.ResultatKpiRepository;
+import com.QHSEAnalytics.shared.entity.KpiAnalysis;
 import com.QHSEAnalytics.analytics.service.processing.TextNormalizer;
 import com.QHSEAnalytics.analytics.service.LlmProviderChain;
 import com.QHSEAnalytics.analytics.service.processing.AnalysisAgent;
@@ -48,6 +50,7 @@ public class AnalyseIaService {
     private final ResultatKpiRepository resultatKpiRepository;
     private final AnalyseCategorieRepository analyseCategorieRepository;
     private final AnalyseGlobaleRepository analyseGlobaleRepository;
+    private final KpiAnalysisRepository kpiAnalysisRepository;
     private final AnalysisAgent analysisAgent;
     private final LlmProviderChain llmProviderChain;
     private final ImportSessionRepository importSessionRepository;
@@ -209,7 +212,7 @@ public class AnalyseIaService {
             }
             importSessionRepository.save(session);
 
-            // Persister l'analyse structurée maintenant pour éviter un appel LLM à la première consultation
+            // Persister l'analyse structurée et enrichir les KpiAnalysis manquants
             if (!iaUnavailable) {
                 try {
                     AiAnalysisStructuredResponse structured =
@@ -221,6 +224,9 @@ public class AnalyseIaService {
                         }
                         analyseGlobaleRepository.save(analyseGlobale);
                         log.info("[IA] Analyse structurée persistée pour session {}", importSessionId);
+
+                        // Enrichir les KpiAnalysis manquants depuis les kpiInsights structurés
+                        enrichKpiAnalysisFromStructured(session, structured, resultats);
                     }
                 } catch (Exception e) {
                     log.warn("[IA] Impossible de persister l'analyse structurée pour session {} : {}", importSessionId, e.getMessage());
@@ -425,6 +431,121 @@ public class AnalyseIaService {
 
         genererToutesLesAnalyses(importSessionId, sessionOwnerId, true);
         return getAnalyseComplete(importSessionId, sessionOwnerId, true);
+    }
+
+    private void enrichKpiAnalysisFromStructured(ImportSession session,
+                                                   AiAnalysisStructuredResponse structured,
+                                                   List<ResultatKpi> resultats) {
+        if (structured.getKpiInsights() == null || structured.getKpiInsights().isEmpty()) return;
+
+        // Index des KpiAnalysis déjà persistés pour cet import
+        Map<String, com.QHSEAnalytics.shared.entity.KpiAnalysis> existingByName =
+                kpiAnalysisRepository.findByImportSessionIdOrderByIdAsc(session.getId()).stream()
+                        .filter(a -> a.getKpiName() != null)
+                        .collect(Collectors.toMap(
+                                a -> TextNormalizer.normalizeForSearch(a.getKpiName()),
+                                a -> a,
+                                (first, second) -> first));
+
+        // Index des ResultatKpi pour retrouver les infos de classification
+        Map<String, ResultatKpi> resultatByName = resultats.stream()
+                .filter(r -> r.getKpi() != null && r.getKpi().getNom() != null)
+                .collect(Collectors.toMap(
+                        r -> TextNormalizer.normalizeForSearch(r.getKpi().getNom()),
+                        r -> r,
+                        (first, second) -> first));
+
+        List<com.QHSEAnalytics.shared.entity.KpiAnalysis> toSave = new java.util.ArrayList<>();
+
+        for (com.QHSEAnalytics.shared.dto.response.AiKpiInsightResponse insight : structured.getKpiInsights()) {
+            if (insight.getKpiName() == null || insight.getKpiName().isBlank()) continue;
+
+            String key = TextNormalizer.normalizeForSearch(insight.getKpiName());
+            com.QHSEAnalytics.shared.entity.KpiAnalysis analysis = existingByName.get(key);
+
+            if (analysis == null) {
+                // Créer un nouveau KpiAnalysis depuis la réponse structurée
+                ResultatKpi resultat = resultatByName.get(key);
+                String riskLevel = resultat != null && resultat.getNiveauVariation() != null
+                        ? mapNiveauToRiskLevel(resultat.getNiveauVariation().name())
+                        : "Modéré";
+
+                analysis = com.QHSEAnalytics.shared.entity.KpiAnalysis.builder()
+                        .importSession(session)
+                        .kpiName(insight.getKpiName())
+                        .riskLevel(riskLevel)
+                        .riskJustification(insight.getRiskIfNotDone())
+                        .issueDetected(insight.getInsight())
+                        .problemeDetecte(insight.getInsight())
+                        .actionImmediate(insight.getActionImmediate())
+                        .immediateAction(insight.getActionImmediate())
+                        .prioriteAction(urgencyToFr(insight.getUrgency()))
+                        .immediatePriority(urgencyToFr(insight.getUrgency()))
+                        .aiNote(insight.getInsight())
+                        .noteFinale(insight.getInsight())
+                        .requires8d(false)
+                        .build();
+                toSave.add(analysis);
+                log.debug("[IA-Enrich] KpiAnalysis créé pour '{}' (session {})", insight.getKpiName(), session.getId());
+            } else {
+                // Enrichir les champs vides depuis la réponse structurée
+                boolean updated = false;
+                if (isBlankOrNull(analysis.getImmediateAction()) && insight.getActionImmediate() != null) {
+                    analysis.setImmediateAction(insight.getActionImmediate());
+                    analysis.setActionImmediate(insight.getActionImmediate());
+                    updated = true;
+                }
+                if (isBlankOrNull(analysis.getRiskJustification()) && insight.getRiskIfNotDone() != null) {
+                    analysis.setRiskJustification(insight.getRiskIfNotDone());
+                    updated = true;
+                }
+                if (isBlankOrNull(analysis.getIssueDetected()) && insight.getInsight() != null) {
+                    analysis.setIssueDetected(insight.getInsight());
+                    analysis.setProblemeDetecte(insight.getInsight());
+                    updated = true;
+                }
+                if (isBlankOrNull(analysis.getAiNote()) && insight.getInsight() != null) {
+                    analysis.setAiNote(insight.getInsight());
+                    updated = true;
+                }
+                if (updated) {
+                    toSave.add(analysis);
+                    log.debug("[IA-Enrich] KpiAnalysis enrichi pour '{}' (session {})", insight.getKpiName(), session.getId());
+                }
+            }
+        }
+
+        if (!toSave.isEmpty()) {
+            kpiAnalysisRepository.saveAll(toSave);
+            log.info("[IA-Enrich] {} KpiAnalysis créés/enrichis depuis l'analyse structurée (session {})",
+                    toSave.size(), session.getId());
+        }
+    }
+
+    private String mapNiveauToRiskLevel(String niveau) {
+        if (niveau == null) return "Modéré";
+        return switch (niveau.toUpperCase()) {
+            case "CRITIQUE"     -> "Élevé";
+            case "PRE_ESCALADE" -> "Élevé";
+            case "MODERE"       -> "Modéré";
+            case "FAIBLE"       -> "Faible";
+            case "EXCELLENT"    -> "Faible";
+            default             -> "Modéré";
+        };
+    }
+
+    private String urgencyToFr(String urgency) {
+        if (urgency == null) return "Moyenne";
+        return switch (urgency.toUpperCase()) {
+            case "HIGH"   -> "Haute";
+            case "MEDIUM" -> "Moyenne";
+            case "LOW"    -> "Basse";
+            default       -> "Moyenne";
+        };
+    }
+
+    private boolean isBlankOrNull(String s) {
+        return s == null || s.isBlank();
     }
 
     private ResultatKpiResponse toResultatKpiResponse(ResultatKpi resultat) {

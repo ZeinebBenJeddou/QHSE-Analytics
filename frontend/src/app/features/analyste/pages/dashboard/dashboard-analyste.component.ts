@@ -26,6 +26,8 @@ import { DashboardService } from '../../../../core/services/dashboard.service';
 import { AiAnalysisService } from '../../../../core/services/ai-analysis.service';
 import { ImportService } from '../../../../core/services/import.service';
 import { ImportSessionStateService } from '../../../../core/services/import-session-state.service';
+import { AdminService } from '../../../../core/services/admin.service';
+import { ProfileResponse } from '../../../admin/models/admin.models';
 import {
   ResumeAnalysteResponse,
   ComparatifTableauResponse,
@@ -90,6 +92,7 @@ export class DashboardAnalysteComponent implements OnInit {
   private dashboardService = inject(DashboardService);
   private aiAnalysisService = inject(AiAnalysisService);
   private importService = inject(ImportService);
+  private adminService = inject(AdminService);
   private snackBar = inject(MatSnackBar);
   private sessionState = inject(ImportSessionStateService);
 
@@ -99,6 +102,7 @@ export class DashboardAnalysteComponent implements OnInit {
   error = signal('');
 
   resume = signal<ResumeAnalysteResponse | null>(null);
+  profile = signal<ProfileResponse | null>(null);
 
   get hasImport(): boolean {
     return !!this.importId();
@@ -107,6 +111,43 @@ export class DashboardAnalysteComponent implements OnInit {
   graphiques = signal<GraphiquesDataResponse | null>(null);
   analysesIa = signal<AnalyseCompleteResponse | null>(null);
   structured = signal<AiAnalysisStructuredResponse | null>(null);
+
+  analysteInitiales = computed((): string => {
+    const p = this.profile();
+    if (!p) return 'A';
+    const first = (p.prenom ?? '').charAt(0).toUpperCase();
+    const last  = (p.nom   ?? '').charAt(0).toUpperCase();
+    return first + last || 'A';
+  });
+
+  analysteNomComplet = computed((): string => {
+    const p = this.profile();
+    if (!p) return 'Analyste QHSE';
+    return `${p.prenom ?? ''} ${(p.nom ?? '').toUpperCase()}`.trim() || 'Analyste QHSE';
+  });
+
+  scorecardsData = computed(() => {
+    const res = this.resume();
+    const cmp = this.comparatif();
+    const lignes = cmp?.lignes ?? [];
+    const total    = res?.nombreTotalKpis ?? lignes.length;
+    const critiques = res?.nombreTotalCritiques  ?? cmp?.nombreCritiques ?? 0;
+    const moderes   = res?.nombreTotalModeres    ?? cmp?.nombreModeres   ?? 0;
+    const faibles   = res?.nombreTotalFaibles    ?? cmp?.nombreFaibles   ?? 0;
+    const aiCoverage = lignes.filter(l =>
+      l.immediateAction || l.correctiveAction || l.aiNote || l.riskJustification
+    ).length;
+    const pct = (n: number) => total > 0 ? +(n / total * 100).toFixed(1) : 0;
+    return {
+      total,
+      critiques,   critiquesPct: pct(critiques),
+      moderes,     moderesPct:   pct(moderes),
+      faibles,     faiblesPct:   pct(faibles),
+      aiCoverage,  aiCoveragePct: pct(aiCoverage),
+    };
+  });
+
+  topKpisDegrades = computed(() => this.graphiques()?.topKpisDegrades ?? []);
 
   searchFilter = signal('');
   categorieFilter = signal('');
@@ -130,7 +171,10 @@ export class DashboardAnalysteComponent implements OnInit {
 
   getStatut(tendance: string | null, niveau: string | null): string {
     if (tendance === 'HAUSSE' && niveau === 'CRITIQUE')                        return 'Dégradation';
+    if (tendance === 'HAUSSE' && niveau === 'PRE_ESCALADE')                    return 'Dégradation';
     if (tendance === 'HAUSSE' && (niveau === 'MODERE' || niveau === 'FAIBLE')) return 'Dégradation légère';
+    if (tendance === 'HAUSSE' && niveau === 'EXCELLENT')                       return 'Amélioration';
+    if (tendance === 'BAISSE' && niveau === 'CRITIQUE')                        return 'Dégradation';
     if (tendance === 'BAISSE')                                                  return 'Amélioration';
     return 'Stable';
   }
@@ -506,6 +550,10 @@ export class DashboardAnalysteComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.adminService.getCurrentProfile()
+      .pipe(catchError(() => of(null)))
+      .subscribe(p => { if (p) this.profile.set(p); });
+
     this.route.paramMap.subscribe(params => {
       const id = params.get('id');
       if (id) {

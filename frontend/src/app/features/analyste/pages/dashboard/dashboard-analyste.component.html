@@ -1,9 +1,10 @@
 <div class="dashboard-page">
+
   @if (loading()) {
     <div class="loader-overlay">
       <div class="spinner-wrap">
-        <mat-spinner diameter="48" color="primary"></mat-spinner>
-        <p>Chargement du tableau de bord...</p>
+        <mat-spinner diameter="44" color="primary"></mat-spinner>
+        <p>Chargement du tableau de bord…</p>
       </div>
     </div>
   }
@@ -22,107 +23,116 @@
 
   @if (!loading() && !error()) {
 
-    <div class="page-header">
-      <div class="page-header-top">
-        <div class="page-header-left">
-          <h1 class="page-title">
-            Comparatif
-            <span class="year-badge">{{ dataYearN1 ?? 'N-1' }}</span>
-            <span class="vs-label">vs</span>
-            <span class="year-badge accent">{{ dataYearN ?? 'N' }}</span>
-          </h1>
+    <!-- ══════════════════════════════════════════════════
+         ZONE 1 — Barre identitaire
+    ══════════════════════════════════════════════════ -->
+    <div class="identity-bar">
+      <div class="identity-left">
+        <div class="identity-avatar">
+          {{ analysteInitiales() }}
         </div>
-        <div class="page-header-right">
-          <button class="btn-export" (click)="exportExcel()">
-            <mat-icon>download</mat-icon>
-            Exporter Excel
-          </button>
-          <button class="btn-primary import-btn" (click)="goToImport()">
-            <mat-icon>upload</mat-icon>
-            Importer
-          </button>
+        <div class="identity-info">
+          <div class="identity-name">{{ analysteNomComplet() }}</div>
+          <div class="identity-meta">
+            <span class="identity-role">Analyste QHSE</span>
+            @if (dataYearN1 && dataYearN) {
+              <span class="identity-sep">·</span>
+              <span class="identity-period">Période {{ dataYearN1 }} → {{ dataYearN }}</span>
+            }
+            @if (analysisDateLabel) {
+              <span class="identity-sep">·</span>
+              <span class="identity-date">Import du {{ analysisDateLabel }}</span>
+            }
+          </div>
         </div>
+      </div>
+      <div class="identity-actions">
+        <button class="btn-action btn-action--secondary" (click)="exportExcel()" [disabled]="exporting()">
+          <mat-icon>download</mat-icon>
+          Exporter Excel
+        </button>
+        <button class="btn-action btn-action--primary" (click)="goToImport()">
+          <mat-icon>upload_file</mat-icon>
+          Importer
+        </button>
       </div>
     </div>
 
-
-
+    <!-- ══════════════════════════════════════════════════
+         ZONE 2 — Scorecards enrichis
+    ══════════════════════════════════════════════════ -->
     <section class="section">
-      <div class="kpi-cards-grid">
+      <div class="scorecards-grid">
 
-        <div class="kpi-card kpi-card--total">
-          <div class="kpi-card-icon" style="background:#DBEAFE">
+        <div class="scorecard scorecard--blue">
+          <div class="sc-icon-wrap" style="background:#DBEAFE">
             <mat-icon style="color:#1E40AF">assignment</mat-icon>
           </div>
-          <div class="kpi-card-body">
-            <div class="kpi-card-label">Total KPI analysés</div>
-            <div class="kpi-card-value">{{ stats.total }}</div>
-            <div class="kpi-card-note">100% des KPI actifs</div>
+          <div class="sc-body">
+            <div class="sc-value">{{ scorecardsData().total }}</div>
+            <div class="sc-label">KPI suivis</div>
+            <div class="sc-note">{{ dataYearN1 }} → {{ dataYearN }}</div>
           </div>
         </div>
 
-        <div class="kpi-card kpi-card--amelio">
-          <div class="kpi-card-icon" style="background:#D1FAE5">
-            <mat-icon style="color:#10B981">trending_down</mat-icon>
+        <div class="scorecard scorecard--red">
+          <div class="sc-icon-wrap" style="background:#FEE2E2">
+            <mat-icon style="color:#DC2626">warning</mat-icon>
           </div>
-          <div class="kpi-card-body">
-            <div class="kpi-card-label">En amélioration</div>
-            <div class="kpi-card-value" style="color:#05cd99">{{ stats.amelioration }}</div>
-            <div class="kpi-card-note" style="color:#05cd99">{{ stats.ameliorationPct }}% des KPI</div>
+          <div class="sc-body">
+            <div class="sc-value" style="color:#DC2626">{{ scorecardsData().critiques }}</div>
+            <div class="sc-label">Critiques</div>
+            <div class="sc-note sc-note--danger">{{ scorecardsData().critiquesPct }}% du total</div>
           </div>
-          <div class="kpi-card-bar"
-               [style.--bar-pct]="stats.ameliorationPct + '%'"
-               [style.--bar-color]="'#05cd99'">
-          </div>
+          <div class="sc-bar" [style.--bar-pct]="scorecardsData().critiquesPct + '%'" [style.--bar-color]="'#DC2626'"></div>
         </div>
 
-        <div class="kpi-card kpi-card--degrad">
-          <div class="kpi-card-icon" style="background:#FEE2E2">
-            <mat-icon style="color:#EF4444">trending_up</mat-icon>
+        <div class="scorecard scorecard--orange">
+          <div class="sc-icon-wrap" style="background:#FEF3C7">
+            <mat-icon style="color:#D97706">trending_up</mat-icon>
           </div>
-          <div class="kpi-card-body">
-            <div class="kpi-card-label">En dégradation</div>
-            <div class="kpi-card-value" style="color:#ee5d50">{{ stats.degradation }}</div>
-            <div class="kpi-card-note" style="color:#ee5d50">{{ stats.degradationPct }}% des KPI</div>
+          <div class="sc-body">
+            <div class="sc-value" style="color:#D97706">{{ scorecardsData().moderes }}</div>
+            <div class="sc-label">Modérés</div>
+            <div class="sc-note">{{ scorecardsData().moderesPct }}% du total</div>
           </div>
-          <div class="kpi-card-bar"
-               [style.--bar-pct]="stats.degradationPct + '%'"
-               [style.--bar-color]="'#ee5d50'">
-          </div>
+          <div class="sc-bar" [style.--bar-pct]="scorecardsData().moderesPct + '%'" [style.--bar-color]="'#D97706'"></div>
         </div>
 
-        <div class="kpi-card kpi-card--stable">
-          <div class="kpi-card-icon" style="background:#FEF3C7">
-            <mat-icon style="color:#F59E0B">drag_handle</mat-icon>
+        <div class="scorecard scorecard--green">
+          <div class="sc-icon-wrap" style="background:#D1FAE5">
+            <mat-icon style="color:#059669">trending_down</mat-icon>
           </div>
-          <div class="kpi-card-body">
-            <div class="kpi-card-label">Stables</div>
-            <div class="kpi-card-value" style="color:#ff9800">{{ stats.stables }}</div>
-            <div class="kpi-card-note" style="color:#ff9800">{{ stats.stablesPct }}% des KPI</div>
+          <div class="sc-body">
+            <div class="sc-value" style="color:#059669">{{ scorecardsData().faibles }}</div>
+            <div class="sc-label">En amélioration</div>
+            <div class="sc-note sc-note--success">{{ scorecardsData().faiblesPct }}% du total</div>
           </div>
-          <div class="kpi-card-bar"
-               [style.--bar-pct]="stats.stablesPct + '%'"
-               [style.--bar-color]="'#ff9800'">
-          </div>
+          <div class="sc-bar" [style.--bar-pct]="scorecardsData().faiblesPct + '%'" [style.--bar-color]="'#059669'"></div>
         </div>
 
       </div>
     </section>
 
+    <!-- ══════════════════════════════════════════════════
+         ZONE 3 — Graphiques (bar + donut + top dégradés)
+    ══════════════════════════════════════════════════ -->
     <section class="section">
       <div class="section-header">
-        <h2 class="section-title">Visualisation comparative</h2>
-        <span class="section-subtitle">Répartition et performance par catégorie QHSE</span>
+        <div class="section-header-left">
+          <mat-icon class="section-icon">insert_chart</mat-icon>
+          <h2 class="section-title">Analyse comparative</h2>
+          <span class="section-badge">{{ dataYearN1 }} vs {{ dataYearN }}</span>
+        </div>
       </div>
 
-      <div class="charts-grid">
+      <div class="charts-main-grid">
 
-        <div class="chart-panel chart-panel--bar">
+        <!-- Bar chart -->
+        <div class="chart-panel">
           <div class="chart-panel-header">
-            <div class="chart-panel-title">
-              <mat-icon>bar_chart</mat-icon>
-              Valeurs moyennes par catégorie
-            </div>
+            <mat-icon>bar_chart</mat-icon>
+            <span>Valeurs moyennes par catégorie</span>
           </div>
           <div class="chart-body">
             @if (graphiques()?.barresGroupees?.length) {
@@ -132,20 +142,18 @@
                 [labelN]="dataYearN?.toString() ?? 'N'"
               />
             } @else {
-              <div class="no-data">
-                <mat-icon>bar_chart</mat-icon> Aucune donnée de graphique disponible
-              </div>
+              <div class="chart-no-data"><mat-icon>bar_chart</mat-icon> Aucune donnée disponible</div>
             }
           </div>
         </div>
 
+        <!-- Donut + top dégradés côte à côte -->
         <div class="charts-right-col">
+
           <div class="chart-panel chart-panel--donut">
             <div class="chart-panel-header">
-              <div class="chart-panel-title">
-                <mat-icon>donut_large</mat-icon>
-                Répartition des variations
-              </div>
+              <mat-icon>donut_large</mat-icon>
+              <span>Répartition des variations</span>
             </div>
             <div class="chart-body--donut">
               <div class="donut-center-wrap">
@@ -162,31 +170,51 @@
               </div>
             </div>
             <div class="donut-legend">
-              <div class="donut-legend-item">
-                <span class="donut-dot" style="background:#1E40AF"></span>
-                Hausse critique ({{ donutChartData.enHausseCritique }})
-              </div>
-              <div class="donut-legend-item">
-                <span class="donut-dot" style="background:#6366F1"></span>
-                Hausse modérée ({{ donutChartData.enHausseModeree }})
-              </div>
-              <div class="donut-legend-item">
-                <span class="donut-dot" style="background:#10B981"></span>
-                Baisse modérée ({{ donutChartData.enBaisseModeree }})
-              </div>
-              <div class="donut-legend-item">
-                <span class="donut-dot" style="background:#F59E0B"></span>
-                Baisse faible ({{ donutChartData.enBaisseFaible }})
-              </div>
+              <div class="donut-legend-item"><span class="donut-dot" style="background:#1E40AF"></span>Hausse critique ({{ donutChartData.enHausseCritique }})</div>
+              <div class="donut-legend-item"><span class="donut-dot" style="background:#6366F1"></span>Hausse modérée ({{ donutChartData.enHausseModeree }})</div>
+              <div class="donut-legend-item"><span class="donut-dot" style="background:#10B981"></span>Baisse modérée ({{ donutChartData.enBaisseModeree }})</div>
+              <div class="donut-legend-item"><span class="donut-dot" style="background:#F59E0B"></span>Baisse faible ({{ donutChartData.enBaisseFaible }})</div>
             </div>
           </div>
+
+          <!-- Top KPIs dégradés -->
+          @if (topKpisDegrades().length) {
+            <div class="chart-panel top-degrades-panel">
+              <div class="chart-panel-header">
+                <mat-icon>trending_up</mat-icon>
+                <span>Top indicateurs en dégradation</span>
+                <span class="panel-count">{{ topKpisDegrades().length }}</span>
+              </div>
+              <div class="top-degrades-list">
+                @for (kpi of topKpisDegrades(); track $index) {
+                  <div class="top-degrade-row">
+                    <span class="td-cat-dot"
+                          [style.background]="getCatInfo(kpi.categorieCode).color"
+                          [matTooltip]="getCatInfo(kpi.categorieCode).libelle"></span>
+                    <span class="td-name">{{ kpi.kpiNom }}</span>
+                    <span class="td-niveau niveau-{{ kpi.niveauVariation.toLowerCase() }}">
+                      {{ kpi.niveauVariation === 'CRITIQUE' ? 'Critique' : kpi.niveauVariation === 'MODERE' ? 'Modéré' : kpi.niveauVariation }}
+                    </span>
+                    <span class="td-var var-neg">+{{ kpi.variationRelative | number:'1.1-1' }}%</span>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
         </div>
       </div>
     </section>
 
+    <!-- ══════════════════════════════════════════════════
+         ZONE 4 — Catégories QHSE (cartes cliquables)
+    ══════════════════════════════════════════════════ -->
     <section class="section">
       <div class="section-header">
-        <h2 class="section-title">Vue par catégorie QHSE</h2>
+        <div class="section-header-left">
+          <mat-icon class="section-icon">grid_view</mat-icon>
+          <h2 class="section-title">Performance par domaine QHSE</h2>
+        </div>
       </div>
       <div class="cat-cards-grid">
         @for (cat of catStats(); track cat.code) {
@@ -196,15 +224,28 @@
                [class.active]="activeCatTab() === cat.code"
                (click)="setActiveCat(activeCatTab() === cat.code ? '' : cat.code)">
 
-            <div class="cat-card-header">
-              <div class="cat-icon-wrap">
-                <mat-icon>{{ cat.icon }}</mat-icon>
+            <div class="cat-card-top">
+              <div class="cat-icon-wrap"><mat-icon>{{ cat.icon }}</mat-icon></div>
+              <div class="cat-header-info">
+                <div class="cat-libelle">{{ cat.libelle }}</div>
+                <div class="cat-total">{{ cat.total }} indicateurs</div>
               </div>
-              <div class="cat-badge" [style.background]="cat.bgLight" [style.color]="cat.color">{{ cat.code }}</div>
+              <div class="cat-avg-var"
+                   [class.var-pos]="cat.avgVar < 0"
+                   [class.var-neg]="cat.avgVar > 0"
+                   [class.var-neutral]="cat.avgVar === 0">
+                <mat-icon>{{ cat.avgVar > 0 ? 'trending_up' : cat.avgVar < 0 ? 'trending_down' : 'trending_flat' }}</mat-icon>
+                {{ variationSign(cat.avgVar) }}{{ cat.avgVar | number:'1.1-1' }}%
+              </div>
             </div>
 
-            <div class="cat-libelle">{{ cat.libelle }}</div>
-            <div class="cat-total">{{ cat.total }} KPI</div>
+            @if (cat.total > 0) {
+              <div class="cat-niveau-bar" [matTooltip]="cat.critique + ' critique(s), ' + cat.modere + ' modéré(s), ' + cat.faible + ' faible(s)'">
+                <div class="bar-seg bar-critique" [style.width.%]="cat.critique / cat.total * 100"></div>
+                <div class="bar-seg bar-modere"   [style.width.%]="cat.modere   / cat.total * 100"></div>
+                <div class="bar-seg bar-faible"   [style.width.%]="cat.faible   / cat.total * 100"></div>
+              </div>
+            }
 
             <div class="cat-pills">
               @if (cat.critique > 0) {
@@ -221,79 +262,62 @@
               }
             </div>
 
-            <div class="cat-variation"
-                 [class.var-pos]="cat.avgVar < 0"
-                 [class.var-neg]="cat.avgVar > 0">
-              <mat-icon class="var-icon">
-                {{ cat.avgVar > 0 ? 'trending_up' : cat.avgVar < 0 ? 'trending_down' : 'trending_flat' }}
-              </mat-icon>
-              {{ variationSign(cat.avgVar) }}{{ cat.avgVar | number:'1.1-1' }}% moy.
-            </div>
-
-            @if (cat.total > 0) {
-              <div class="cat-niveau-bar">
-                <div class="bar-seg bar-critique"
-                     [style.width.%]="(cat.critique / cat.total * 100)"
-                     [matTooltip]="cat.critique + ' critique(s)'"></div>
-                <div class="bar-seg bar-modere"
-                     [style.width.%]="(cat.modere / cat.total * 100)"
-                     [matTooltip]="cat.modere + ' modéré(s)'"></div>
-                <div class="bar-seg bar-faible"
-                     [style.width.%]="(cat.faible / cat.total * 100)"
-                     [matTooltip]="cat.faible + ' faible(s)'"></div>
-              </div>
-            }
-
-            <div class="cat-select-hint">
-              {{ activeCatTab() === cat.code ? 'Cliquer pour désélectionner' : 'Cliquer pour filtrer' }}
+            <div class="cat-filter-hint">
+              <mat-icon>{{ activeCatTab() === cat.code ? 'filter_list_off' : 'filter_list' }}</mat-icon>
+              {{ activeCatTab() === cat.code ? 'Désélectionner' : 'Filtrer' }}
             </div>
           </div>
         }
       </div>
     </section>
 
+    <!-- ══════════════════════════════════════════════════
+         ZONE 5 — Tableau comparatif détaillé
+    ══════════════════════════════════════════════════ -->
     <section class="section">
       <div class="section-header">
-        <h2 class="section-title">Tableau comparatif détaillé</h2>
+        <div class="section-header-left">
+          <mat-icon class="section-icon">table_chart</mat-icon>
+          <h2 class="section-title">Tableau comparatif détaillé</h2>
+          <span class="section-badge">{{ filteredLignes().length }} / {{ (comparatif()?.lignes ?? []).length }} KPI</span>
+        </div>
         <div class="section-header-right">
-          <span class="table-count">{{ filteredLignes().length }} / {{ (comparatif()?.lignes ?? []).length }} KPI</span>
           @if (nombreIndetermines() > 0) {
-            <span class="indet-hint" (click)="onNiveauChange(niveauFilter() === 'INDETERMINE' ? '' : 'INDETERMINE')"
+            <span class="indet-hint"
+                  (click)="onNiveauChange(niveauFilter() === 'INDETERMINE' ? '' : 'INDETERMINE')"
                   [class.active]="niveauFilter() === 'INDETERMINE'">
               <mat-icon>help_outline</mat-icon>
-              {{ nombreIndetermines() }} indéterminé{{ nombreIndetermines() > 1 ? 's' : '' }} masqué{{ nombreIndetermines() > 1 ? 's' : '' }}
+              {{ nombreIndetermines() }} indéterminé{{ nombreIndetermines() > 1 ? 's' : '' }}
             </span>
           }
         </div>
       </div>
 
       <div class="table-filters">
-        <select class="filter-select"
-                [ngModel]="activeCatTab()"
-                (ngModelChange)="setActiveCat($event)">
-          <option value="">Toutes les catégories</option>
-          <option value="Q">Qualité</option>
-          <option value="H">Hygiène</option>
-          <option value="S">Sécurité</option>
-          <option value="E">Environnement</option>
-        </select>
-
         <div class="filter-search">
           <mat-icon>search</mat-icon>
           <input type="text" placeholder="Rechercher un KPI…"
                  [ngModel]="searchFilter()"
                  (ngModelChange)="onSearchChange($event)">
           @if (searchFilter()) {
-            <button class="clear-btn" (click)="onSearchChange('')">
-              <mat-icon>close</mat-icon>
-            </button>
+            <button class="clear-btn" (click)="onSearchChange('')"><mat-icon>close</mat-icon></button>
           }
         </div>
 
         <select class="filter-select"
+                [ngModel]="activeCatTab()"
+                (ngModelChange)="setActiveCat($event)">
+          <option value="">Toutes catégories</option>
+          <option value="Q">Qualité</option>
+          <option value="H">Hygiène</option>
+          <option value="S">Sécurité</option>
+          <option value="E">Environnement</option>
+        </select>
+
+        <select class="filter-select"
                 [ngModel]="niveauFilter()"
                 (ngModelChange)="onNiveauChange($event)">
-          <option value="">Tous les niveaux</option>
+          <option value="">Tous niveaux</option>
           <option value="CRITIQUE">Critique</option>
           <option value="MODERE">Modéré</option>
           <option value="FAIBLE">Faible</option>
@@ -303,22 +327,12 @@
         </select>
 
         <select class="filter-select" [(ngModel)]="statutFilter">
-          <option value="">Tous les statuts</option>
+          <option value="">Tous statuts</option>
           <option value="Dégradation">Dégradation</option>
           <option value="Dégradation légère">Dégradation légère</option>
           <option value="Stable">Stable</option>
           <option value="Amélioration">Amélioration</option>
         </select>
-
-        @if (activeCatTab()) {
-          <div class="active-cat-chip"
-               [style.--cat-color]="getCatInfo(activeCatTab()).color"
-               (click)="setActiveCat('')">
-            <mat-icon>{{ getCatInfo(activeCatTab()).icon }}</mat-icon>
-            {{ getCatInfo(activeCatTab()).libelle }}
-            <mat-icon class="chip-close">close</mat-icon>
-          </div>
-        }
 
         @if (searchFilter() || niveauFilter() || statutFilter || activeCatTab()) {
           <button class="btn-reset-filters"
@@ -333,15 +347,15 @@
           <thead>
             <tr>
               <th class="th-sortable" (click)="toggleSort('kpiNom')">
-                KPI <mat-icon class="sort-icon">{{ sortIcon('kpiNom') }}</mat-icon>
+                Indicateur <mat-icon class="sort-icon">{{ sortIcon('kpiNom') }}</mat-icon>
               </th>
               <th class="th-sortable" (click)="toggleSort('categorieCode')">
-                Catégorie <mat-icon class="sort-icon">{{ sortIcon('categorieCode') }}</mat-icon>
+                Domaine <mat-icon class="sort-icon">{{ sortIcon('categorieCode') }}</mat-icon>
               </th>
-              <th class="th-number">N-1 ({{ dataYearN1 ?? '—' }})</th>
-              <th class="th-number">N ({{ dataYearN ?? '—' }})</th>
+              <th class="th-number">{{ dataYearN1 ?? 'N-1' }}</th>
+              <th class="th-number">{{ dataYearN ?? 'N' }}</th>
               <th class="th-number th-sortable" (click)="toggleSort('variationAbsolue')">
-                Δ Absolu <mat-icon class="sort-icon">{{ sortIcon('variationAbsolue') }}</mat-icon>
+                Δ Abs. <mat-icon class="sort-icon">{{ sortIcon('variationAbsolue') }}</mat-icon>
               </th>
               <th class="th-number th-sortable" (click)="toggleSort('variationRelative')">
                 Δ % <mat-icon class="sort-icon">{{ sortIcon('variationRelative') }}</mat-icon>
@@ -361,13 +375,18 @@
               </tr>
             }
             @for (row of filteredLignes(); track row.kpiId) {
-              <tr class="data-row">
+              <tr class="data-row" [class.row-critique]="row.niveauVariation === 'CRITIQUE'">
                 <td class="td-kpi">
                   <div class="kpi-name-cell">
                     <span class="cat-dot"
                           [style.background]="getCatInfo(row.categorieCode).color"
                           [matTooltip]="getCatInfo(row.categorieCode).libelle"></span>
-                    {{ row.kpiNom }}
+                    <div class="kpi-name-block">
+                      <span class="kpi-name-text">{{ row.kpiNom }}</span>
+                      @if (row.unite) {
+                        <span class="kpi-unite">{{ row.unite }}</span>
+                      }
+                    </div>
                   </div>
                 </td>
                 <td>
@@ -378,8 +397,8 @@
                     {{ row.categorieLibelle }}
                   </div>
                 </td>
-                <td class="td-number">{{ row.valeurN1 | number:'1.0-2' }}</td>
-                <td class="td-number">{{ row.valeurN | number:'1.0-2' }}</td>
+                <td class="td-number td-n1">{{ row.valeurN1 | number:'1.0-2' }}</td>
+                <td class="td-number td-n">{{ row.valeurN | number:'1.0-2' }}</td>
                 <td class="td-number" [ngClass]="row.niveauVariation !== 'INDETERMINE' ? getVariationClass(row.variationAbsolue) : ''">
                   @if (row.niveauVariation !== 'INDETERMINE' && row.variationAbsolue != null) {
                     {{ variationSign(row.variationAbsolue) }}{{ row.variationAbsolue | number:'1.0-2' }}
@@ -389,7 +408,7 @@
                 </td>
                 <td class="td-number td-variation">
                   @if (row.niveauVariation !== 'INDETERMINE' && row.variationRelative != null) {
-                    <span class="var-pill var-neutral">
+                    <span class="var-pill" [ngClass]="getVariationClass(row.variationRelative)">
                       {{ variationSign(row.variationRelative) }}{{ row.variationRelative | number:'1.1-1' }}%
                     </span>
                   } @else {
@@ -426,18 +445,15 @@
       </div>
 
       <div class="table-legend">
-        <div class="legend-items">
-          <span class="legend-item">
-            <mat-icon style="color:#05cd99;font-size:16px">trending_down</mat-icon> BAISSE = Amélioration (QHSE)
-          </span>
-          <span class="legend-item">
-            <mat-icon style="color:#ee5d50;font-size:16px">trending_up</mat-icon> HAUSSE = Dégradation (QHSE)
-          </span>
-        </div>
+        <span class="legend-item"><mat-icon style="color:#059669;font-size:15px">trending_down</mat-icon> Baisse = Amélioration (indicateurs de risque)</span>
+        <span class="legend-item"><mat-icon style="color:#059669;font-size:15px">trending_up</mat-icon> Hausse + Excellent = Amélioration (indicateurs de performance)</span>
+        <span class="legend-item"><mat-icon style="color:#DC2626;font-size:15px">trending_up</mat-icon> Hausse = Dégradation (indicateurs de risque)</span>
       </div>
     </section>
 
-    <!-- Aperçu IA — avant-goût de la page Analyse complète -->
+    <!-- ══════════════════════════════════════════════════
+         ZONE 6 — Aperçu IA
+    ══════════════════════════════════════════════════ -->
     <div class="ia-preview-section">
 
       <div class="ia-preview-header">
@@ -464,7 +480,6 @@
 
         <div class="ia-preview-body">
 
-          <!-- Synthèse en 2 lignes max -->
           @if (dynamicSynthese()) {
             <div class="ia-preview-synthese">
               <mat-icon>summarize</mat-icon>
@@ -472,7 +487,6 @@
             </div>
           }
 
-          <!-- KPIs critiques — top 3, nom + badge seulement -->
           <div class="ia-preview-col">
             <div class="ia-preview-col-title">
               <mat-icon>warning</mat-icon>
@@ -493,12 +507,11 @@
                 <div class="ia-preview-more">+ {{ topIssues().length - 3 }} autres dans l'analyse complète</div>
               }
               @if (topIssues().length === 0) {
-                <div class="ia-preview-ok"><mat-icon>check_circle</mat-icon> Aucun indicateur critique détecté</div>
+                <div class="ia-preview-ok"><mat-icon>check_circle</mat-icon> Aucun indicateur critique</div>
               }
             </div>
           </div>
 
-          <!-- Actions prioritaires — top 3, action courte seulement -->
           <div class="ia-preview-col">
             <div class="ia-preview-col-title">
               <mat-icon>bolt</mat-icon>
@@ -531,7 +544,7 @@
         <div class="ia-preview-footer">
           <span class="ia-preview-footer-hint">
             <mat-icon>info</mat-icon>
-            Score détaillé, causes probables, recommandations et plan d'action complet disponibles dans l'analyse IA.
+            Score global, causes probables, recommandations et plan d'action complet dans l'analyse IA.
           </span>
           <button class="ia-preview-cta" (click)="goToIA()">
             Analyse complète →
