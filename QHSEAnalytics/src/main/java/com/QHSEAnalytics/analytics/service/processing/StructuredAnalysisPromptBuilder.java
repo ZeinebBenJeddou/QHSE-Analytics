@@ -62,7 +62,7 @@ public class StructuredAnalysisPromptBuilder {
             "Il est impératif d'engager dans les 48h une revue sécurité d'urgence ciblant les postes à risque, et dans la semaine un plan de réduction des défauts visant FPY > 85 % ; sans action immédiate, la trajectoire actuelle conduira à une non-conformité multi-normes dans les 2 à 3 prochains mois.\"\n\n" +
             "EXEMPLE d'un kpiInsights (reproduis ce niveau de détail pour CHAQUE KPI) :\n" +
             "{\n" +
-            "  \"kpiId\": 42,\n" +
+            "  \"kpiId\": 1547,\n" +
             "  \"kpiName\": \"Taux de Fréquence des Accidents (TF1)\",\n" +
             "  \"confidence\": 87,\n" +
             "  \"insight\": \"Le TF1 a progressé de +28 % entre N-1 et N (2,5 → 3,2), dépassant le seuil critique fixé à 3,0 selon le référentiel ISO 45001 §6.1.2. Cette dégradation, couplée à une augmentation de la cadence de production de 15 %, traduit une insuffisance des barrières préventives face à l'accroissement de l'activité. Un accident grave est statistiquement probable si la tendance n'est pas inversée sous 6 semaines.\",\n" +
@@ -296,10 +296,13 @@ public class StructuredAnalysisPromptBuilder {
         prompt.append("}\n\n");
         prompt.append(FEW_SHOT_EXAMPLE);
         prompt.append("=== KPI CONTEXT & RAG SOURCES ===\n");
+        prompt.append("⚠️ RÈGLE ABSOLUE : pour chaque KPI ci-dessous, le champ \"kpiId\" dans kpiInsights DOIT être exactement l'entier indiqué après KPI_ID=. Ne génère jamais 1, 2, 3... séquentiellement — utilise UNIQUEMENT les IDs fournis.\n\n");
         for (KpiCalculatedDTO kpi : orderedKpis) {
+            String realId = safeId(kpi.getMatchedKpiId(), kpi.getKpiName());
             prompt.append(String.format("sourceId: kpi_def_%s | sourceName: KPI definition for %s | relevanceScore: 0.85\n",
-                    safeId(kpi.getMatchedKpiId(), kpi.getKpiName()), safeText(kpi.getKpiName())));
-            prompt.append(String.format("KPI: %s | Categorie: %s | Definition: %s | Seuils: Faible<%s, Modere<%s, Critique<%s | N-1=%s | N=%s | Variation=%s%% | Classification=%s\n",
+                    realId, safeText(kpi.getKpiName())));
+            prompt.append(String.format("KPI_ID=%s | KPI: %s | Categorie: %s | Definition: %s | Seuils: Faible<%s, Modere<%s, Critique<%s | N-1=%s | N=%s | Variation=%s%% | Classification=%s\n",
+                    realId,
                     safeText(kpi.getKpiName()), safeText(kpi.getCategorie()), safeText(kpi.getDefinition()),
                     safeNumber(kpi.getSeuilFaible()), safeNumber(kpi.getSeuilModere()), safeNumber(kpi.getSeuilCritique()),
                     safeNumber(kpi.getValeurN1()), safeNumber(kpi.getValeurN()), safeNumber(kpi.getVariationPercentage()),
@@ -367,23 +370,27 @@ public class StructuredAnalysisPromptBuilder {
 
     // ── Score pre-computation ─────────────────────────────────────────────────
 
-    static class ScoreSummary {
-        int globalScore;
-        String globalLabel;
-        int critiques;
-        int moderes;
-        int faibledOk;
-        KpiCalculatedDTO worstKpi;
-        double worstVariation;
-        List<CatScore> categories = new ArrayList<>();
+    public static class ScoreSummary {
+        public int globalScore;
+        public String globalLabel;
+        public int critiques;
+        public int moderes;
+        public int faibledOk;
+        public KpiCalculatedDTO worstKpi;
+        public double worstVariation;
+        public List<CatScore> categories = new ArrayList<>();
 
-        static class CatScore {
-            String libelle;
-            int score;
-            int critiques;
-            int moderes;
-            int ok;
+        public static class CatScore {
+            public String libelle;
+            public int score;
+            public int critiques;
+            public int moderes;
+            public int ok;
         }
+    }
+
+    public ScoreSummary computeScoresPublic(List<KpiCalculatedDTO> kpis) {
+        return computeScores(kpis);
     }
 
     private ScoreSummary computeScores(List<KpiCalculatedDTO> kpis) {

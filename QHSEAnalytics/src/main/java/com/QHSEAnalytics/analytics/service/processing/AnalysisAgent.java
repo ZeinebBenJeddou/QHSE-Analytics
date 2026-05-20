@@ -198,6 +198,16 @@ public class AnalysisAgent {
         int mergedCoverage = topKpis.size() - mergedMissingCount;
         log.info("[AnalysisAgent] analyseStructured: merged coverage {}/{}", mergedCoverage, topKpis.size());
 
+        // Generate a final globalSummary from the merged insights so it covers ALL KPIs,
+        // not just the first chunk.
+        if (chunks.size() > 1 && !successfulChunkResponses.isEmpty()) {
+            String finalSummary = generateFinalSummary(topKpis, mergedResponse, importSessionId, cacheKeyPrefix);
+            if (finalSummary != null && !finalSummary.isBlank()) {
+                mergedResponse.setGlobalSummary(finalSummary);
+                log.info("[AnalysisAgent] analyseStructured: final globalSummary generated ({} chars)", finalSummary.length());
+            }
+        }
+
         enrichStructuredResponse(mergedResponse, formatProviderLabel(providersUsed), importSessionId);
 
         boolean allChunksSucceeded = successfulChunkResponses.size() == chunks.size();
@@ -433,6 +443,70 @@ public class AnalysisAgent {
         return errors.stream().distinct().toList();
     }
 
+    private String generateFinalSummary(List<KpiCalculatedDTO> allKpis,
+                                         AiAnalysisStructuredResponse merged,
+                                         Long importSessionId,
+                                         String cacheKeyPrefix) {
+        try {
+            StructuredAnalysisPromptBuilder.ScoreSummary scores = structuredAnalysisPromptBuilder.computeScoresPublic(allKpis);
+
+            StringBuilder prompt = new StringBuilder();
+            prompt.append("Tu es un consultant QHSE senior. Rédige un unique paragraphe narratif (5 à 8 phrases) ");
+            prompt.append("en français, sans saut de ligne, sans puces, sans titre. ");
+            prompt.append("Ce paragraphe est le globalSummary d'un rapport QHSE destiné à la direction.\n\n");
+
+            // Inject scores
+            String periodeN1 = allKpis.stream().map(KpiCalculatedDTO::getPeriodeN1).filter(p -> p != null && p > 0)
+                    .findFirst().map(String::valueOf).orElse("N-1");
+            String periodeN = allKpis.stream().map(KpiCalculatedDTO::getPeriodeN).filter(p -> p != null && p > 0)
+                    .findFirst().map(String::valueOf).orElse("N");
+            prompt.append(String.format("Période : %s → %s. Score global : %d/100 (%s). ",
+                    periodeN1, periodeN, scores.globalScore, scores.globalLabel));
+            prompt.append(String.format("KPIs totaux : %d | Critiques : %d | Modérés : %d | OK : %d.\n",
+                    allKpis.size(), scores.critiques, scores.moderes, scores.faibledOk));
+            for (StructuredAnalysisPromptBuilder.ScoreSummary.CatScore cs : scores.categories) {
+                prompt.append(String.format("Catégorie %s : score %d/100 (%d critique(s), %d modéré(s), %d OK).\n",
+                        cs.libelle, cs.score, cs.critiques, cs.moderes, cs.ok));
+            }
+
+            // Inject one-line summary per KPI insight
+            if (merged.getKpiInsights() != null && !merged.getKpiInsights().isEmpty()) {
+                prompt.append("\nRésumé des analyses par KPI :\n");
+                for (var insight : merged.getKpiInsights()) {
+                    String urgency = insight.getUrgency() != null ? insight.getUrgency() : "?";
+                    String action = insight.getActionImmediate() != null
+                            ? insight.getActionImmediate().substring(0, Math.min(80, insight.getActionImmediate().length()))
+                            : "";
+                    prompt.append(String.format("- %s [%s] : %s\n", insight.getKpiName(), urgency, action));
+                }
+            }
+
+            prompt.append("\nConsignes strictes :\n");
+            prompt.append("1. Couvre TOUS les KPIs listés ci-dessus dans le paragraphe.\n");
+            prompt.append("2. Cite les valeurs chiffrées (score global, nombre de critiques, noms des KPIs les plus dégradés).\n");
+            prompt.append("3. Mentionne les 2-3 actions prioritaires avec leur horizon temporel.\n");
+            prompt.append("4. Termine par une conclusion sur la trajectoire globale.\n");
+            prompt.append("5. Réponds avec le texte du paragraphe uniquement — aucun JSON, aucun markdown.\n");
+
+            String summaryKey = cacheKeyPrefix + "|final-summary";
+            LlmProviderChain.ProviderResult result = llmProviderChain.generate(prompt.toString(), summaryKey, false);
+            if (result == null || result.response() == null || result.response().isBlank()) {
+                return null;
+            }
+            // Strip any accidental JSON wrapping the LLM may produce
+            String raw = result.response().trim();
+            if (raw.startsWith("{") || raw.startsWith("[")) {
+                return null;
+            }
+            // Remove markdown bold/italic
+            raw = raw.replaceAll("[*_`#]", "").trim();
+            return raw;
+        } catch (Exception ex) {
+            log.warn("[AnalysisAgent] generateFinalSummary failed: {}", ex.getMessage());
+            return null;
+        }
+    }
+
     private AiAnalysisStructuredResponse mergeChunkResponses(List<AiAnalysisStructuredResponse> chunkResponses) {
         // Keep only the first non-blank globalSummary: each chunk generates a full synthesis
         // from partial KPI data, so concatenating them produces duplicate sections (§1, §2... repeated N times).
@@ -536,7 +610,19 @@ public class AnalysisAgent {
     private <T> List<List<T>> partition(List<T> list, int size) {
         List<List<T>> chunks = new ArrayList<>();
         for (int i = 0; i < list.size(); i += size) {
-            chunks.add(list.subList(i, Math.min(i + size, list.size())));
+            chunks.add(new ArrayList<>(list.subList(i, Math.min(i + size, list.size()))));
+        }
+        // Merge a tiny last chunk (< 3 items) into the previous one to avoid sending
+        // a near-empty prompt that causes the LLM to produce a generic/empty response.
+        if (chunks.size() >= 2) {
+            List<T> last = chunks.get(chunks.size() - 1);
+            if (last.size() < 3) {
+                List<T> prev = chunks.get(chunks.size() - 2);
+                prev.addAll(last);
+                chunks.remove(chunks.size() - 1);
+                log.debug("[AnalysisAgent] Merged tiny last chunk ({} items) into previous chunk ({} items total)",
+                        last.size(), prev.size());
+            }
         }
         return chunks;
     }
