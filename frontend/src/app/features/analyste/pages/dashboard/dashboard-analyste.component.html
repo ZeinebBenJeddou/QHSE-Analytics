@@ -120,7 +120,6 @@
     <section class="section">
       <div class="section-header">
         <div class="section-header-left">
-          <mat-icon class="section-icon">insert_chart</mat-icon>
           <h2 class="section-title">Analyse comparative</h2>
           <span class="section-badge">{{ dataYearN1 }} vs {{ dataYearN }}</span>
         </div>
@@ -131,7 +130,6 @@
         <!-- Bar chart -->
         <div class="chart-panel">
           <div class="chart-panel-header">
-            <mat-icon>bar_chart</mat-icon>
             <span>Valeurs moyennes par catégorie</span>
           </div>
           <div class="chart-body">
@@ -152,7 +150,6 @@
 
           <div class="chart-panel chart-panel--donut">
             <div class="chart-panel-header">
-              <mat-icon>donut_large</mat-icon>
               <span>Répartition des variations</span>
             </div>
             <div class="chart-body--donut">
@@ -195,7 +192,7 @@
                     <span class="td-niveau niveau-{{ kpi.niveauVariation.toLowerCase() }}">
                       {{ kpi.niveauVariation === 'CRITIQUE' ? 'Critique' : kpi.niveauVariation === 'MODERE' ? 'Modéré' : kpi.niveauVariation }}
                     </span>
-                    <span class="td-var var-neg">+{{ kpi.variationRelative | number:'1.1-1' }}%</span>
+                    <span class="td-var var-neg">{{ kpi.variationRelative > 0 ? '+' : '' }}{{ kpi.variationRelative | number:'1.1-1' }}%</span>
                   </div>
                 }
               </div>
@@ -445,9 +442,9 @@
       </div>
 
       <div class="table-legend">
-        <span class="legend-item"><mat-icon style="color:#059669;font-size:15px">trending_down</mat-icon> Baisse = Amélioration (indicateurs de risque)</span>
-        <span class="legend-item"><mat-icon style="color:#059669;font-size:15px">trending_up</mat-icon> Hausse + Excellent = Amélioration (indicateurs de performance)</span>
-        <span class="legend-item"><mat-icon style="color:#DC2626;font-size:15px">trending_up</mat-icon> Hausse = Dégradation (indicateurs de risque)</span>
+        <span class="legend-item"><mat-icon style="color:#059669;font-size:15px">trending_down</mat-icon> Baisse améliorative</span>
+        <span class="legend-item"><mat-icon style="color:#059669;font-size:15px">trending_up</mat-icon> Hausse améliorative</span>
+        <span class="legend-item"><mat-icon style="color:#DC2626;font-size:15px">trending_up</mat-icon> Hausse dégradante</span>
       </div>
     </section>
 

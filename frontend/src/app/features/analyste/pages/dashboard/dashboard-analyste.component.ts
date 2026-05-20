@@ -174,7 +174,6 @@ export class DashboardAnalysteComponent implements OnInit {
     if (tendance === 'HAUSSE' && niveau === 'PRE_ESCALADE')                    return 'Dégradation';
     if (tendance === 'HAUSSE' && (niveau === 'MODERE' || niveau === 'FAIBLE')) return 'Dégradation légère';
     if (tendance === 'HAUSSE' && niveau === 'EXCELLENT')                       return 'Amélioration';
-    if (tendance === 'BAISSE' && niveau === 'CRITIQUE')                        return 'Dégradation';
     if (tendance === 'BAISSE')                                                  return 'Amélioration';
     return 'Stable';
   }
@@ -443,7 +442,13 @@ export class DashboardAnalysteComponent implements OnInit {
   }
 
   get analysisDateLabel(): string | null {
-    return this.comparatif()?.dateAnalyse ?? this.resume()?.dateAnalyse ?? null;
+    const raw = this.comparatif()?.dateAnalyse ?? this.resume()?.dateAnalyse ?? null;
+    if (!raw) return null;
+    const d = new Date(raw);
+    if (isNaN(d.getTime())) return raw;
+    const date = d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const time = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    return `${date} à ${time}`;
   }
 
   get periodLabel(): string {

@@ -18,6 +18,7 @@ import com.QHSEAnalytics.shared.entity.KpiAnalysis;
 import com.QHSEAnalytics.shared.entity.ResultatKpi;
 import com.QHSEAnalytics.shared.enums.ImportStatut;
 import com.QHSEAnalytics.shared.enums.NiveauVariation;
+import com.QHSEAnalytics.shared.enums.Tendance;
 import com.QHSEAnalytics.shared.exception.ImportNotFoundException;
 import com.QHSEAnalytics.shared.exception.ImportNotReadyException;
 import com.QHSEAnalytics.shared.repository.ImportSessionRepository;
@@ -184,9 +185,11 @@ public class DashboardAnalysteService {
                 .toList();
 
         List<KpiDegrade> topDegrades = resultats.stream()
+                .filter(r -> r.getTendance() == Tendance.HAUSSE && r.getNiveauVariation() != NiveauVariation.EXCELLENT)
                 .sorted(Comparator
-                        .comparing(ResultatKpi::getVariationRelative, Comparator.nullsLast(Double::compareTo))
-                        .thenComparing((ResultatKpi r) -> severityRank(r.getNiveauVariation())))
+                        .comparingInt((ResultatKpi r) -> severityRank(r.getNiveauVariation()))
+                        .thenComparing(Comparator.comparing(ResultatKpi::getVariationRelative, Comparator.nullsLast(Comparator.reverseOrder())))
+                )
                 .limit(5)
                 .map(resultat -> KpiDegrade.builder()
                         .kpiNom(safeKpiNom(resultat))
