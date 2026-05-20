@@ -1784,6 +1784,112 @@
 }
 .trace-item strong { color: var(--navy-soft); }
 
+/* ── Material Tab group overrides ── */
+.ia-tabs-container {
+  margin-top: 8px;
+}
+
+.ia-tab-group {
+  background: transparent;
+}
+
+.ia-tab-group ::ng-deep .mat-mdc-tab-header {
+  background: var(--white);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  box-shadow: var(--shadow-card);
+  border-bottom: 1px solid var(--border);
+  padding: 0 8px;
+}
+
+.ia-tab-group ::ng-deep .mat-mdc-tab {
+  min-width: 120px;
+  padding: 0 20px;
+  height: 52px;
+  opacity: 1;
+}
+
+.ia-tab-group ::ng-deep .mat-mdc-tab .mdc-tab__text-label {
+  color: var(--ink-light);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: 'Inter', system-ui, sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: color .15s;
+}
+
+.ia-tab-group ::ng-deep .mat-mdc-tab.mdc-tab--active .mdc-tab__text-label {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.ia-tab-group ::ng-deep .mat-mdc-tab-indicator .mdc-tab-indicator__content--underline {
+  border-color: var(--primary);
+  border-top-width: 3px;
+  border-radius: 2px 2px 0 0;
+}
+
+.ia-tab-group ::ng-deep .mat-mdc-tab-body-wrapper {
+  background: var(--white);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+
+.ia-tab-group ::ng-deep .mat-mdc-tab-body-content {
+  overflow: visible;
+}
+
+.tab-icon {
+  font-size: 16px !important;
+  width: 16px !important;
+  height: 16px !important;
+}
+
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 6px;
+  background: var(--border);
+  color: var(--navy-soft);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+.tab-badge-danger { background: var(--red-bg);  color: var(--red); }
+.tab-badge-blue   { background: var(--blue-bg); color: var(--blue); }
+
+.tab-content {
+  padding: 28px 24px;
+}
+
+.tab-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 64px 24px;
+  color: var(--ink-muted);
+  text-align: center;
+}
+.tab-empty mat-icon {
+  font-size: 40px !important;
+  width: 40px !important;
+  height: 40px !important;
+  opacity: .3;
+}
+.tab-empty p {
+  margin: 0;
+  font-size: 14px;
+  max-width: 380px;
+  line-height: 1.6;
+}
+
 @media (max-width: 1280px) {
   .stats-strip { grid-template-columns: repeat(2, 1fr); }
   .hero-grid   { grid-template-columns: 140px 1fr; }

@@ -10,6 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatButtonModule } from '@angular/material/button';
+import { MatTabsModule } from '@angular/material/tabs';
 
 import { DashboardService } from '../../../../core/services/dashboard.service';
 import { AiAnalysisService } from '../../../../core/services/ai-analysis.service';
@@ -54,7 +55,7 @@ const CATEGORIES: CategorieInfo[] = [
   imports: [
     CommonModule,
     MatIconModule, MatProgressSpinnerModule, MatSnackBarModule,
-    MatTooltipModule, MatButtonModule,
+    MatTooltipModule, MatButtonModule, MatTabsModule,
   ],
   templateUrl: './analyse-ia.component.html',
   styleUrls: ['./analyse-ia.component.css'],
@@ -79,6 +80,7 @@ export class AnalyseIAComponent implements OnInit, OnDestroy {
   structured      = signal<AiAnalysisStructuredResponse | null>(null);
 
   expandedKpiId   = signal<number | null>(null);
+  activeTab       = signal(0);
 
   searchKpi       = signal('');
   niveauKpiFilter = signal('');
@@ -518,6 +520,7 @@ export class AnalyseIAComponent implements OnInit, OnDestroy {
   setCatFilter(code: string)   { this.catFilter.set(code); }
   setNiveauFilter(n: string)   { this.niveauKpiFilter.set(n); }
   setSearch(v: string)         { this.searchKpi.set(v); }
+  setActiveTab(index: number)  { this.activeTab.set(index); }
 
   catCountAll(code: string): number {
     return this.enrichedKpis().filter(k => k.categorieCode === code).length;
