@@ -97,6 +97,7 @@ public class KpiProcessingOrchestratorService {
 
 
 
+/*
     public ImportProcessingResponse processFromRawData(List<KpiRawDataDTO> mergedRaw, boolean allowPartialImport) {
         List<KpiRawDataDTO> rawData = cleaningAgent.clean(mergedRaw);
 
@@ -165,6 +166,7 @@ public class KpiProcessingOrchestratorService {
                 .qualityReport(qualityReport)
                 .build();
     }
+*/
 
     public ImportProcessingResponse preview(MultipartFile file, Map<String, Integer> mapping) {
         ExtractionAgent.ExtractionResult result = extractionAgent.extract(file, mapping);

@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { ColumnProfileDTO, DualFileProfileResponse, HistoriqueAnalysteResponse, ImportProcessingResponse } from '../models/import-session.model';
+import { ColumnProfileDTO, HistoriqueAnalysteResponse, ImportProcessingResponse } from '../models/import-session.model'; // DualFileProfileResponse excluded (DUAL disabled)
 
 @Injectable({ providedIn: 'root' })
 export class ImportService {
@@ -58,6 +58,7 @@ export class ImportService {
     return this.processManualImport(file, yearN, yearNMinus1, mapping, true, clientId);
   }
 
+  /* DUAL mode — disabled
   profileDualFiles(fileN1: File, fileN: File): Observable<DualFileProfileResponse> {
     const form = new FormData();
     form.append('fileN1', fileN1);
@@ -95,6 +96,7 @@ export class ImportService {
     }
     return this.http.post<ImportProcessingResponse>(url, form);
   }
+  */
 
   annuler(sessionId: number): Observable<{ message: string }> {
     return this.http.delete<{ message: string }>(`${this.importBase}/${sessionId}`);

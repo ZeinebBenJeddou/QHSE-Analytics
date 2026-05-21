@@ -23,9 +23,6 @@ public class ExtractionAgent {
     private final ExcelFileValidator excelFileValidator;
 
 
-    public static final String EXTRACTION_METHOD_CUSTOM   = "CUSTOM";
-
-
     public static final String MAPPING_KPI_NAME        = "kpiName";
     public static final String MAPPING_CATEGORY        = "category";
     public static final String MAPPING_UNIT            = "unit";

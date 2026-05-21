@@ -25,7 +25,7 @@ import {
   KpiCalculatedDTO,
   RejectedReasonSummary,
 } from '../../../../core/models/import-session.model';
-import { DualFileState } from '../../../../core/services/import-upload-state.service';
+// import { DualFileState } from '../../../../core/services/import-upload-state.service'; // DUAL disabled
 
 @Component({
   selector: 'app-import-mapping',
@@ -55,7 +55,7 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
   private uploadState = inject(ImportUploadStateService);
   private snackBar = inject(MatSnackBar);
 
-  // DUAL mode state
+  /* DUAL mode state — disabled
   isDualMode   = signal(false);
   dualState    = signal<DualFileState | null>(null);
   columnsN1    = signal<ColumnProfileDTO[]>([]);
@@ -64,6 +64,7 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
   valColN1     = signal<number | null>(null);
   kpiColN      = signal<number | null>(null);
   valColN      = signal<number | null>(null);
+  */
 
   uploadStateData = signal<{ file: File; yearN: number; yearNMinus1: number; headers: string[]; detectedHeaders?: string[] } | null>(null);
 
@@ -171,6 +172,7 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    /* DUAL mode — disabled
     const mode = this.route.snapshot.queryParamMap.get('mode');
     if (mode === 'DUAL') {
       const dual = this.uploadState.getDualState();
@@ -182,6 +184,7 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
       this.autoSelectDualMapping();
       return;
     }
+    */
 
     const state = this.uploadState.getUpload();
     if (!state) { this.router.navigate(['/analyste/import']); return; }
@@ -190,6 +193,7 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
     this.loadColumnProfiles(state.file);
   }
 
+  /* DUAL mode — disabled
   private autoSelectDualMapping(): void {
     if (this.columnsN1()?.length) {
       const kpiCol = this.columnsN1().find(c => c.likelySemantic === 'KPI_NAME');
@@ -198,7 +202,6 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
       const kpiIdx = kpiCol?.columnIndex ?? 0;
       this.kpiColN1.set(kpiIdx);
       this.valColN1.set(valCol?.columnIndex ?? (kpiIdx === 0 ? 1 : 0));
-      console.log('[DualMapping] N-1: kpi=', this.kpiColN1(), 'val=', this.valColN1());
     }
 
     if (this.columnsN()?.length) {
@@ -208,9 +211,9 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
       const kpiIdx = kpiCol?.columnIndex ?? 0;
       this.kpiColN.set(kpiIdx);
       this.valColN.set(valCol?.columnIndex ?? (kpiIdx === 0 ? 1 : 0));
-      console.log('[DualMapping] N:   kpi=', this.kpiColN(),  'val=', this.valColN());
     }
   }
+  */
 
   private async loadColumnProfiles(file: File): Promise<void> {
     this.profilingLoading.set(true);
@@ -527,6 +530,7 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
     return `${invalid} ligne(s) invalide(s) sur ${items.length} (${Math.round((invalid / items.length) * 100)}%)`;
   }
 
+  /* DUAL mode — disabled
   canConfirmDual(): boolean {
     return this.kpiColN1() !== null
       && this.valColN1() !== null
@@ -623,6 +627,7 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
       this.closeProgressStream();
     }
   }
+  */
 
   goBack() { this.router.navigate(['/analyste/import']); }
 

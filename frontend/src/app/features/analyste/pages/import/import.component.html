@@ -39,19 +39,21 @@
     </div>
   </div>
 
-  
+
+  <!--
   <div class="mode-selector">
     <button [class.active]="importMode() === 'SINGLE'" (click)="setMode('SINGLE')">
       <mat-icon>description</mat-icon>
-      1 fichier 
+      1 fichier
     </button>
     <button [class.active]="importMode() === 'DUAL'" (click)="setMode('DUAL')">
       <mat-icon>file_copy</mat-icon>
       2 fichiers séparés
     </button>
   </div>
+  -->
 
-  <div *ngIf="importMode() === 'SINGLE'">
+  <div>
     <div class="panel">
       <div class="upload-card">
         <div class="upload-info">
@@ -80,10 +82,10 @@
             
           </div>
 
-          <!--<div class="required-columns">
+          <div class="required-columns">
             <p>Champs obligatoires : Nom du KPI, Valeur N, Valeur N-1.</p>
             <p>Les colonnes supplémentaires seront ignorées.</p>
-          </div>-->
+          </div>
 
           <div class="year-error" *ngIf="yearError()">
             <mat-icon>error_outline</mat-icon>
@@ -112,7 +114,7 @@
   </div>
 
   
-  <div *ngIf="importMode() === 'DUAL'">
+  <!--<div *ngIf="importMode() === 'DUAL'">
     <div class="panel">
       <div class="dual-upload">
         <div class="file-zone n1-zone">
@@ -173,6 +175,6 @@
         <span>{{ errorMsg() }}</span>
       </div>
     </div>
-  </div>
+  </div>-->
 
 </div>

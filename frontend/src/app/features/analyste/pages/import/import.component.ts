@@ -42,14 +42,15 @@ export class ImportComponent implements OnInit, AfterViewInit, OnDestroy {
 
   readonly tableColumns = ['kpi', 'categorieCode', 'valeurN1', 'valeurN', 'variationPercentage', 'classification', 'seuilFaible', 'seuilCritique'];
 
-  importMode = signal<'SINGLE' | 'DUAL'>('SINGLE');
+  // importMode = signal<'SINGLE' | 'DUAL'>('SINGLE'); // DUAL disabled
 
   // SINGLE mode
   selectedFile = signal<File | null>(null);
 
-  // DUAL mode
+  /* DUAL mode — disabled
   fileN1 = signal<File | null>(null);
   fileN  = signal<File | null>(null);
+  */
 
   yearN = signal<number | null>(null);
   yearNMinus1 = signal<number | null>(null);
@@ -240,6 +241,7 @@ export class ImportComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  /* DUAL mode — disabled
   setMode(mode: 'SINGLE' | 'DUAL') {
     this.importMode.set(mode);
     this.fileN1.set(null);
@@ -307,15 +309,16 @@ export class ImportComponent implements OnInit, AfterViewInit, OnDestroy {
       this.isSubmitting.set(false);
     }
   }
+  */
 
   clear() {
     this.selectedFile.set(null);
-    this.fileN1.set(null);
-    this.fileN.set(null);
+    // this.fileN1.set(null); // DUAL disabled
+    // this.fileN.set(null);  // DUAL disabled
     this.result.set(null);
     this.errorMsg.set('');
     this.uploadState.clearUpload();
-    this.uploadState.clearDualState();
+    // this.uploadState.clearDualState(); // DUAL disabled
     this.uploadState.clearResponse();
     this.destroyCharts();
   }

@@ -5,7 +5,7 @@ import com.QHSEAnalytics.auth.exception.UserNotFoundException;
 import com.QHSEAnalytics.auth.repository.UserRepository;
 import com.QHSEAnalytics.shared.dto.request.ImportRequestDTO;
 import com.QHSEAnalytics.shared.dto.response.ColumnProfileDTO;
-import com.QHSEAnalytics.shared.dto.response.DualFileProfileResponse;
+// import com.QHSEAnalytics.shared.dto.response.DualFileProfileResponse; // DUAL disabled
 import com.QHSEAnalytics.shared.dto.response.ImportProcessingResponse;
 import com.QHSEAnalytics.shared.exception.ImportValidationException;
 import com.QHSEAnalytics.importer.service.ImportProgressService;
@@ -32,7 +32,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.util.List;
 import java.util.Map;
 
-@Tag(name = "Import", description = "Gestion de l'import des données QHSE (Single File et Dual File)")
+@Tag(name = "Import", description = "Gestion de l'import des données QHSE ")
 @RestController
 @RequestMapping("/api/import/manual")
 @RequiredArgsConstructor
@@ -111,6 +111,7 @@ public class ImportProcessingController {
         return ResponseEntity.ok(importProcessingService.processManualImport(request, user));
     }
 
+    /* DUAL mode — disabled
     @Operation(summary = "Prévisualiser un import dual", description = "Fusionne les deux fichiers et retourne la prévisualisation")
     @PostMapping(value = "/dual/preview", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ANALYSTE') or hasRole('ADMIN')")
@@ -170,6 +171,7 @@ public class ImportProcessingController {
                         fileN1, fileN, yearN1, yearN, mappingN1, mappingN, allowPartial, clientId, user)
         );
     }
+    */
 
     private Map<String, Integer> parseMapping(String mappingJson) {
         if (mappingJson == null || mappingJson.isBlank()) {
