@@ -39,8 +39,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -54,7 +52,6 @@ import java.util.stream.Collectors;
 public class ImportProcessingService {
 
     private final KpiProcessingOrchestratorService orchestrator;
-    private final DualFileImportService dualFileImportService;
     private final CalculationAgent calculationAgent;
     private final ImportSessionRepository importSessionRepository;
     private final ResultatKpiRepository resultatKpiRepository;
@@ -230,199 +227,9 @@ public class ImportProcessingService {
                 .build();
     }
 
-    @Transactional
-    public ImportProcessingResponse processDualFileImport(
-            MultipartFile fileN1,
-            MultipartFile fileN,
-            int anneeN1,
-            int anneeN,
-            Map<String, Integer> mappingN1,
-            Map<String, Integer> mappingN,
-            boolean allowPartialImport,
-            String clientId,
-            User user
-    ) {
-        validateYearInputs(anneeN, anneeN1);
-
-        importProgressService.push(clientId, "INITIALISATION", 5, "Création de la session d'import dual…");
-        DualFileImportService.MergeResult merged = dualFileImportService.mergeFiles(
-                fileN1, fileN, anneeN1, anneeN, mappingN1, mappingN);
-
-        ImportSession session = buildImportSessionDual(fileN1, fileN, user, anneeN, anneeN1);
-        ImportSession initialSession = importSessionRepository.save(session);
-        ImportSession processingSession = advanceStatus(initialSession, ImportStatut.processing());
-
-        importProgressService.push(clientId, "TRAITEMENT", 20, "Fusion et nettoyage des fichiers…");
-        ImportProcessingResponse processingResponse =
-                orchestrator.processFromRawData(merged.getRows(), allowPartialImport);
-        ImportQualityReport qualityReport = processingResponse.getQualityReport();
-
-        importProgressService.push(clientId, "VALIDATION", 40, "Contrôle qualité des données…");
-
-        if (qualityReport != null && qualityReport.isBlocking()) {
-            ImportSession erreurSession = advanceStatus(processingSession, ImportStatut.ERREUR);
-            String reason = qualityReport.getBlockingReason() != null
-                    ? qualityReport.getBlockingReason()
-                    : "Import dual refusé : des erreurs bloquantes ont été détectées.";
-            erreurSession.setMessageErreur(reason);
-            importSessionRepository.save(erreurSession);
-            importProgressService.pushError(clientId, reason);
-            return ImportProcessingResponse.builder()
-                    .importSessionId(erreurSession.getId())
-                    .rawData(processingResponse.getRawData())
-                    .calculatedData(processingResponse.getCalculatedData())
-                    .extractionMethod("DUAL_FILE")
-                    .qualityScore(qualityReport.getQualityScore())
-                    .qualityReport(qualityReport)
-                    .build();
-        }
-
-        List<com.QHSEAnalytics.shared.dto.request.KpiRawDataDTO> rawToProcess = processingResponse.getRawData();
-        List<com.QHSEAnalytics.shared.dto.response.KpiCalculatedDTO> calcToProcess = processingResponse.getCalculatedData();
-
-        if (allowPartialImport && qualityReport != null && qualityReport.isSoftBlocking()) {
-            java.util.Set<Integer> rejectedIndexes = qualityReport.getRejectedRowIndexes() == null
-                    ? java.util.Collections.emptySet()
-                    : new java.util.HashSet<>(qualityReport.getRejectedRowIndexes());
-            rawToProcess = processingResponse.getRawData() == null ? List.of() :
-                    processingResponse.getRawData().stream()
-                            .filter(r -> r.isValid() && !rejectedIndexes.contains(r.getRowIndex()))
-                            .collect(Collectors.toList());
-            if (calcToProcess != null && !calcToProcess.isEmpty()) {
-                java.util.Set<String> validKpiNames = rawToProcess.stream()
-                        .map(com.QHSEAnalytics.shared.dto.request.KpiRawDataDTO::getKpiName)
-                        .filter(Objects::nonNull).collect(java.util.stream.Collectors.toSet());
-                calcToProcess = calcToProcess.stream()
-                        .filter(k -> validKpiNames.contains(k.getKpiName()))
-                        .collect(Collectors.toList());
-            }
-            log.info("[ImportProcessing] Mode PARTIAL dual: {} valides pour session {}",
-                    rawToProcess.size(), processingSession.getId());
-        }
-
-        importProgressService.push(clientId, "PERSISTANCE", 60, "Sauvegarde des données brutes…");
-        persistRawRows(processingSession, rawToProcess);
-        persistPreviewRows(processingSession, calcToProcess);
-
-        importProgressService.push(clientId, "CALCUL", 75, "Enregistrement des résultats KPI…");
-
-        List<Long> matchedIds = calcToProcess.stream()
-                .map(KpiCalculatedDTO::getMatchedKpiId)
-                .filter(Objects::nonNull).distinct().collect(Collectors.toList());
-        Map<Long, Kpi> kpiCache = kpiRepository.findAllById(matchedIds)
-                .stream().collect(Collectors.toMap(Kpi::getId, k -> k));
-
-        List<ResultatKpi> results = calcToProcess.stream()
-                .map(dto -> mapToResultatKpi(dto, processingSession, user, kpiCache))
-                .filter(Objects::nonNull).collect(Collectors.toList());
-
-        ImportSession finalSession;
-        if (results.isEmpty()) {
-            if (allowPartialImport && qualityReport != null && qualityReport.isSoftBlocking()) {
-                ImportSession erreurSession = advanceStatus(processingSession, ImportStatut.ERREUR);
-                erreurSession.setMessageErreur("Import partiel dual : aucune ligne valide n'a pu être importée.");
-                importSessionRepository.save(erreurSession);
-                finalSession = erreurSession;
-            } else {
-                finalSession = advanceStatus(processingSession, ImportStatut.ERREUR);
-                finalSession.setMessageErreur("Aucun KPI valide n'a pu être traité.");
-                importSessionRepository.save(finalSession);
-            }
-        } else {
-            ImportSession calculatedSession = advanceStatus(processingSession, ImportStatut.CALCULATED);
-            resultatKpiRepository.saveAll(results);
-            if (processingResponse.getAiResponse() != null && processingResponse.getAiResponse().getKpis() != null) {
-                persistKpiAnalysis(processingSession, processingResponse.getAiResponse(), calcToProcess);
-            }
-            kpiRawDataRepository.deleteByImportSessionId(processingSession.getId());
-            kpiImportPreviewRepository.deleteByImportSessionId(processingSession.getId());
-            fileStorageService.delete(processingSession.getFileStoragePath());
-            log.info("[ImportProcessing] Données brutes et fichier supprimés après persistance (dual) — session {}",
-                    processingSession.getId());
-            finalSession = advanceStatus(calculatedSession, ImportStatut.READY_FOR_AI);
-
-            int totalKpis = calcToProcess.size();
-            int validKpis = results.size();
-            int rejectedKpis = totalKpis - validKpis;
-            int indetermines = (int) calcToProcess.stream()
-                    .filter(k -> "INDETERMINE".equals(k.getClassification()))
-                    .count();
-            if (rejectedKpis > 0 || indetermines > 0) {
-                String message = String.format(
-                        "Import dual terminé : %d KPIs traités, %d valides, %d INDETERMINE (absents d'un fichier).",
-                        totalKpis, validKpis, indetermines);
-                finalSession.setMessageErreur(message);
-                importSessionRepository.save(finalSession);
-                log.info("[ImportProcessing] Import dual partiel — session {} : {}", finalSession.getId(), message);
-            }
-        }
-
-        importProgressService.push(clientId, "TERMINÉ", 100, "Import dual finalisé — analyse IA en cours de déclenchement…");
-
-        List<CategoryScoreDTO> categoryScores = calculationAgent.computeCategoryScores(calcToProcess);
-
-        if (finalSession.getStatut() == ImportStatut.READY_FOR_AI) {
-            Long importId = finalSession.getId();
-            Long ownerId  = finalSession.getUser().getId();
-            log.info("[ImportProcessing] Enregistrement déclenchement async après commit — session {} user {} (dual)", importId, ownerId);
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    applicationContext.getBean(AnalyseIaService.class).triggerAnalyseAsync(importId, ownerId);
-                }
-            });
-        }
-
-        return ImportProcessingResponse.builder()
-                .importSessionId(finalSession.getId())
-                .calculatedData(calcToProcess)
-                .rawData(rawToProcess)
-                .extractionMethod("DUAL_FILE")
-                .qualityScore(processingResponse.getQualityScore())
-                .detectedHeaders(List.of())
-                .charts(processingResponse.getCharts())
-                .analyseIa(processingResponse.getAnalyseIa())
-                .qualityReport(qualityReport)
-                .categoryScores(categoryScores)
-                .build();
-    }
-
     public ImportProcessingResponse previewImport(ImportRequestDTO request) {
         validateYearInputs(request.getYearN(), request.getYearN1());
         return orchestrator.preview(request.getFile(), request.getMappingIndexes());
-    }
-
-    public ImportProcessingResponse previewDualFileImport(
-            MultipartFile fileN1,
-            MultipartFile fileN,
-            int anneeN1,
-            int anneeN,
-            Map<String, Integer> mappingN1,
-            Map<String, Integer> mappingN
-    ) {
-        validateYearInputs(anneeN, anneeN1);
-        DualFileImportService.MergeResult merged = dualFileImportService.mergeFiles(
-                fileN1, fileN, anneeN1, anneeN, mappingN1, mappingN);
-        return orchestrator.previewFromRawData(merged.getRows());
-    }
-
-    private ImportSession buildImportSessionDual(MultipartFile fileN1, MultipartFile fileN, User user, int yearN, int yearNMinus1) {
-        String combinedName = fileN.getOriginalFilename() + " + " + fileN1.getOriginalFilename();
-        FileStorageService.StoredFile stored = fileStorageService.store(fileN, user.getId(), yearN);
-        return ImportSession.builder()
-                .user(user)
-                .mode(ImportMode.MANUAL)
-                .nomFichier(combinedName)
-                .templateVersion(null)
-                .fileStoragePath(stored.path())
-                .fileStorageBucket(stored.bucket())
-                .fileSizeBytes(stored.sizeBytes())
-                .fileChecksum(stored.checksum())
-                .periodeN1(yearNMinus1)
-                .periodeN(yearN)
-                .statut(ImportStatut.initial())
-                .messageErreur(null)
-                .build();
     }
 
     private ImportSession buildImportSession(MultipartFile file, User user, int yearN, int yearNMinus1) {

@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { ColumnProfileDTO, HistoriqueAnalysteResponse, ImportProcessingResponse } from '../models/import-session.model'; // DualFileProfileResponse excluded (DUAL disabled)
+import { ColumnProfileDTO, HistoriqueAnalysteResponse, ImportProcessingResponse } from '../models/import-session.model';
 
 @Injectable({ providedIn: 'root' })
 export class ImportService {
@@ -57,46 +57,6 @@ export class ImportService {
   confirmPartial(file: File, yearN: number, yearNMinus1: number, mapping: Record<string, number>, clientId?: string): Observable<ImportProcessingResponse> {
     return this.processManualImport(file, yearN, yearNMinus1, mapping, true, clientId);
   }
-
-  /* DUAL mode — disabled
-  profileDualFiles(fileN1: File, fileN: File): Observable<DualFileProfileResponse> {
-    const form = new FormData();
-    form.append('fileN1', fileN1);
-    form.append('fileN', fileN);
-    return this.http.post<DualFileProfileResponse>(`${this.manualBase}/dual/profile`, form);
-  }
-
-  previewDualFiles(
-    fileN1: File, fileN: File,
-    yearN1: number, yearN: number,
-    kpiColN1: number, valColN1: number,
-    kpiColN: number, valColN: number
-  ): Observable<ImportProcessingResponse> {
-    const form = new FormData();
-    form.append('fileN1', fileN1);
-    form.append('fileN', fileN);
-    const url = `${this.manualBase}/dual/preview?yearN1=${yearN1}&yearN=${yearN}&kpiColN1=${kpiColN1}&valColN1=${valColN1}&kpiColN=${kpiColN}&valColN=${valColN}`;
-    return this.http.post<ImportProcessingResponse>(url, form);
-  }
-
-  importDualFiles(
-    fileN1: File, fileN: File,
-    yearN1: number, yearN: number,
-    kpiColN1: number, valColN1: number,
-    kpiColN: number, valColN: number,
-    allowPartial = false,
-    clientId?: string
-  ): Observable<ImportProcessingResponse> {
-    const form = new FormData();
-    form.append('fileN1', fileN1);
-    form.append('fileN', fileN);
-    let url = `${this.manualBase}/dual?yearN1=${yearN1}&yearN=${yearN}&kpiColN1=${kpiColN1}&valColN1=${valColN1}&kpiColN=${kpiColN}&valColN=${valColN}&allowPartial=${allowPartial}`;
-    if (clientId) {
-      url += `&clientId=${encodeURIComponent(clientId)}`;
-    }
-    return this.http.post<ImportProcessingResponse>(url, form);
-  }
-  */
 
   annuler(sessionId: number): Observable<{ message: string }> {
     return this.http.delete<{ message: string }>(`${this.importBase}/${sessionId}`);

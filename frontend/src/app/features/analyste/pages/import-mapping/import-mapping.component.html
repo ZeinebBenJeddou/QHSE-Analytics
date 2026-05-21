@@ -1,4 +1,4 @@
-<div class="import-page">
+﻿<div class="import-page">
 
   <div class="header-row">
     <div class="header-left">
@@ -12,7 +12,7 @@
     </div>
     <button mat-stroked-button class="back-header-btn" (click)="goBack()">
       <mat-icon>arrow_back</mat-icon>
-      Retour à l'import
+      Retour Ã  l'import
     </button>
   </div>
 
@@ -20,8 +20,8 @@
     <div class="step active">
       <span class="step-number">1</span>
       <div>
-        <div class="step-title">Téléversement</div>
-        <div class="step-subtitle">Fichier sélectionné</div>
+        <div class="step-title">TÃ©lÃ©versement</div>
+        <div class="step-subtitle">Fichier sÃ©lectionnÃ©</div>
       </div>
     </div>
     <div class="step active">
@@ -41,337 +41,6 @@
   </div>
 
 
-  <!--DUAL mode disabled
-  <div *ngIf="isDualMode()">
-
-   
-    <div class="panel" *ngIf="!previewResponse()">
-      <div class="panel-inline-header">
-        <div class="panel-icon-wrap"><mat-icon>file_copy</mat-icon></div>
-        <div>
-          <div class="panel-title-text">Associez les colonnes de chaque fichier séparément</div>
-          
-        </div>
-      </div>
-      <div class="panel-divider"></div>
-
-      <div class="dual-mapping" style="margin-top: 20px;">
-
-       
-        <div class="mapping-section n1-section">
-          <h3 class="dual-section-title n1-title">
-            <mat-icon>history</mat-icon>
-            Fichier N-1 ({{ dualState()?.yearNMinus1 }})
-            <span class="dual-file-name">{{ dualState()?.fileN1?.name }}</span>
-          </h3>
-
-          <mat-form-field appearance="outline" style="width:100%;margin-top:12px;">
-            <mat-label>Colonne Nom du KPI</mat-label>
-            <mat-select [value]="kpiColN1()" (selectionChange)="kpiColN1.set($event.value)">
-              <mat-option *ngFor="let col of columnsN1()" [value]="col.columnIndex">
-                {{ col.columnIndex }} — {{ col.detectedHeader }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" style="width:100%;">
-            <mat-label>Colonne Valeur N-1</mat-label>
-            <mat-select [value]="valColN1()" (selectionChange)="valColN1.set($event.value)">
-              <mat-option *ngFor="let col of columnsN1()" [value]="col.columnIndex">
-                {{ col.columnIndex }} — {{ col.detectedHeader }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-        </div>
-
-      
-        <div class="mapping-section n-section">
-          <h3 class="dual-section-title n-title">
-            <mat-icon>trending_up</mat-icon>
-            Fichier N ({{ dualState()?.yearN }})
-            <span class="dual-file-name">{{ dualState()?.fileN?.name }}</span>
-          </h3>
-
-          <mat-form-field appearance="outline" style="width:100%;margin-top:12px;">
-            <mat-label>Colonne Nom du KPI</mat-label>
-            <mat-select [value]="kpiColN()" (selectionChange)="kpiColN.set($event.value)">
-              <mat-option *ngFor="let col of columnsN()" [value]="col.columnIndex">
-                {{ col.columnIndex }} — {{ col.detectedHeader }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" style="width:100%;">
-            <mat-label>Colonne Valeur N</mat-label>
-            <mat-select [value]="valColN()" (selectionChange)="valColN.set($event.value)">
-              <mat-option *ngFor="let col of columnsN()" [value]="col.columnIndex">
-                {{ col.columnIndex }} — {{ col.detectedHeader }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-        </div>
-      </div>
-
-      <div class="error-msg" *ngIf="errorMsg()" style="margin-top:12px;">
-        <mat-icon>error_outline</mat-icon>
-        <span>{{ errorMsg() }}</span>
-      </div>
-
-      <div *ngIf="processing()" style="margin-top:16px;">
-        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-      </div>
-
-      <div style="margin-top: 20px; display:flex; gap:12px; flex-wrap:wrap;">
-        <button mat-flat-button class="submit-btn"
-                [disabled]="!canConfirmDual() || processing()"
-                (click)="genererPrevisualisationDual()">
-          <mat-spinner *ngIf="processing()" diameter="16"></mat-spinner>
-          <mat-icon *ngIf="!processing()">visibility</mat-icon>
-          {{ processing() ? 'Analyse…' : 'Générer la prévisualisation →' }}
-        </button>
-      </div>
-    </div>
-
-    
-    <div *ngIf="previewResponse()">
-
-      <div class="quality-report-section" *ngIf="qualityReport">
-
-        <div class="warning-banner" *ngIf="!qualityReport.blocking && (qualityReport.warnings.length || qualityReport.infos.length)">
-          <mat-icon>warning_amber</mat-icon>
-          <div>
-            <strong>Avertissements détectés</strong>
-            <p>Des avertissements ont été détectés mais n'empêchent pas la confirmation de l'import.</p>
-          </div>
-        </div>
-
-        <div class="quality-header">
-          <div class="quality-title-row">
-            <mat-icon>verified</mat-icon>
-            <span class="quality-title">Rapport qualité de l'import</span>
-          </div>
-          <div class="quality-score-row">
-            <div class="score-badge" [ngClass]="qualityScoreClass()">{{ qualityScorePercent() }}%</div>
-            <span class="score-label">Score qualité global</span>
-          </div>
-        </div>
-
-        <div class="quality-stats-grid">
-          <div class="quality-stat">
-            <mat-icon class="stat-icon icon-total">format_list_numbered</mat-icon>
-            <div>
-              <div class="stat-value">{{ qualityReport.totalRows }}</div>
-              <div class="stat-label">Lignes lues</div>
-            </div>
-          </div>
-          <div class="quality-stat">
-            <mat-icon class="stat-icon icon-valid">check_circle</mat-icon>
-            <div>
-              <div class="stat-value text-up">{{ qualityReport.validRows }}</div>
-              <div class="stat-label">Lignes valides</div>
-            </div>
-          </div>
-          <div class="quality-stat">
-            <mat-icon class="stat-icon icon-invalid">cancel</mat-icon>
-            <div>
-              <div class="stat-value text-down">{{ qualityReport.invalidRows }}</div>
-              <div class="stat-label">Lignes invalides</div>
-            </div>
-          </div>
-          <div class="quality-stat">
-            <mat-icon class="stat-icon icon-warning">warning</mat-icon>
-            <div>
-              <div class="stat-value">{{ qualityReport.warningRows }}</div>
-              <div class="stat-label">Avec avertissements</div>
-            </div>
-          </div>
-          <div class="quality-stat" matTooltip="Nombre d'occurrences de doublons écartées">
-            <mat-icon class="stat-icon icon-duplicate">content_copy</mat-icon>
-            <div>
-              <div class="stat-value">{{ qualityReport.duplicateRows }}</div>
-              <div class="stat-label">Doublons écartés (occurrences)</div>
-            </div>
-          </div>
-          <div class="quality-stat">
-            <mat-icon class="stat-icon icon-outlier">show_chart</mat-icon>
-            <div>
-              <div class="stat-value">{{ qualityReport.outlierRows }}</div>
-              <div class="stat-label">Valeurs aberrantes</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="issues-table-wrap" *ngIf="allIssues.length > 0">
-          <p class="section-label">Détail des anomalies ({{ allIssues.length }})</p>
-          <div class="table-scroll">
-            <table mat-table [dataSource]="allIssues" class="issues-table">
-              <ng-container matColumnDef="severity">
-                <th mat-header-cell *matHeaderCellDef>Sévérité</th>
-                <td mat-cell *matCellDef="let issue">
-                  <span [ngClass]="severityClass(issue.severity)" class="severity-chip">
-                    <mat-icon>{{ severityIcon(issue.severity) }}</mat-icon>
-                    {{ severityLabel(issue.severity) }}
-                  </span>
-                </td>
-              </ng-container>
-              <ng-container matColumnDef="row">
-                <th mat-header-cell *matHeaderCellDef>Ligne</th>
-                <td mat-cell *matCellDef="let issue">{{ issueRowLabel(issue) }}</td>
-              </ng-container>
-              <ng-container matColumnDef="column">
-                <th mat-header-cell *matHeaderCellDef>Colonne</th>
-                <td mat-cell *matCellDef="let issue">{{ issue.column ?? '—' }}</td>
-              </ng-container>
-              <ng-container matColumnDef="message">
-                <th mat-header-cell *matHeaderCellDef>Message</th>
-                <td mat-cell *matCellDef="let issue">
-                  <span class="issue-message">{{ issue.message }}</span>
-                  <span class="issue-correction" *ngIf="issue.cleanedValue">→ {{ issue.cleanedValue }}</span>
-                </td>
-              </ng-container>
-              <tr mat-header-row *matHeaderRowDef="issueColumns"></tr>
-              <tr mat-row *matRowDef="let row; columns: issueColumns;" [ngClass]="severityClass(row.severity) + '-row'"></tr>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      
-      <div class="preview-table" *ngIf="previewResponse()?.calculatedData?.length">
-        <h3>Aperçu des données </h3>
-        <div class="table-scroll">
-          <table mat-table [dataSource]="previewResponse()?.calculatedData ?? []" class="kpi-table">
-
-            <ng-container matColumnDef="rowStatus">
-              <th mat-header-cell *matHeaderCellDef></th>
-              <td mat-cell *matCellDef="let row">
-                <mat-icon *ngIf="rowHasError(row.rowIndex)" class="row-status-icon icon-error" [matTooltip]="rowIssueTooltip(row.rowIndex)">error</mat-icon>
-                <mat-icon *ngIf="!rowHasError(row.rowIndex) && rowHasWarning(row.rowIndex)" class="row-status-icon icon-warn" [matTooltip]="rowIssueTooltip(row.rowIndex)">warning</mat-icon>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="kpiName">
-              <th mat-header-cell *matHeaderCellDef>KPI</th>
-              <td mat-cell *matCellDef="let row"><div class="kpi-name-cell"><strong>{{ row.kpiName }}</strong></div></td>
-            </ng-container>
-
-            <ng-container matColumnDef="categorie">
-              <th mat-header-cell *matHeaderCellDef>Catégorie </th>
-              <td mat-cell *matCellDef="let row"><span class="cat-badge">{{ row.categorie || 'En recherche...' }}</span></td>
-            </ng-container>
-
-            <ng-container matColumnDef="unite">
-              <th mat-header-cell *matHeaderCellDef>Unité </th>
-              <td mat-cell *matCellDef="let row"><span class="unit-badge">{{ row.unite || '...' }}</span></td>
-            </ng-container>
-
-
-
-            <ng-container matColumnDef="valeurN">
-              <th mat-header-cell *matHeaderCellDef>Valeur ({{ dualState()?.yearN }})</th>
-              <td mat-cell *matCellDef="let row">
-                <ng-container *ngIf="row.valeurN !== null; else dualNoValueN">{{ row.valeurN }}</ng-container>
-                <ng-template #dualNoValueN>—</ng-template>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="valeurN1">
-              <th mat-header-cell *matHeaderCellDef>Valeur ({{ dualState()?.yearNMinus1 }})</th>
-              <td mat-cell *matCellDef="let row">
-                <ng-container *ngIf="row.valeurN1 !== null; else dualNoValueN1">{{ row.valeurN1 }}</ng-container>
-                <ng-template #dualNoValueN1>—</ng-template>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="status">
-              <th mat-header-cell *matHeaderCellDef>Statut</th>
-              <td mat-cell *matCellDef="let row">
-                <span [ngClass]="getStatusClass(row.statusColor)">
-                  <mat-icon *ngIf="row.statusColor === 'green'">check_circle</mat-icon>
-                  <mat-icon *ngIf="row.statusColor === 'red'">error</mat-icon>
-                  <mat-icon *ngIf="row.statusColor === 'yellow'">remove_circle</mat-icon>
-                  <mat-icon *ngIf="row.statusColor === 'blue'">new_releases</mat-icon>
-                  {{ row.status }}
-                </span>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="commentaire">
-              <th mat-header-cell *matHeaderCellDef>Commentaire</th>
-              <td mat-cell *matCellDef="let row"><span class="comment-text">{{ row.commentaire }}</span></td>
-            </ng-container>
-
-            <ng-container matColumnDef="variation">
-              <th mat-header-cell *matHeaderCellDef>Variation %</th>
-              <td mat-cell *matCellDef="let row">
-                <span *ngIf="row.variationPercentage !== null" class="text-stable">{{ row.variationPercentage | number:'1.1-1' }}%</span>
-                <span *ngIf="row.variationPercentage === null" class="text-stable">—</span>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="absoluteGap">
-              <th mat-header-cell *matHeaderCellDef>Écart</th>
-              <td mat-cell *matCellDef="let row">
-                <span class="text-stable">{{ row.absoluteGap > 0 ? '+' : '' }}{{ row.absoluteGap | number:'1.0-2' }}</span>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="meta">
-              <th mat-header-cell *matHeaderCellDef></th>
-              <td mat-cell *matCellDef="let row">
-                <div class="meta-cell">
-                  <span *ngIf="row.reviewRequired" class="review-badge" matTooltip="Validation analyste recommandée">À vérifier</span>
-                  <span *ngIf="row.classificationReason" class="reason" matTooltip="{{ row.classificationReason }}">{{ row.classificationReason }}</span>
-                  <mat-progress-bar *ngIf="row.calcConfidence !== undefined" [value]="row.calcConfidence" mode="determinate" color="primary" class="confidence-bar"></mat-progress-bar>
-                </div>
-              </td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="previewColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: previewColumns"
-                [class.row-has-error]="rowHasError(row.rowIndex)"
-                [class.row-has-warning]="!rowHasError(row.rowIndex) && rowHasWarning(row.rowIndex)">
-            </tr>
-          </table>
-        </div>
-      </div>
-
-      
-      <div class="actions-row" style="margin-top: 20px;">
-        <button mat-stroked-button class="back-btn" (click)="previewResponse.set(null)">
-          <mat-icon>arrow_back</mat-icon>
-          Modifier le mapping
-        </button>
-        <div class="actions-right">
-          <button *ngIf="isHardBlocking()" mat-flat-button class="confirm-btn confirm-btn-blocked" disabled>
-            <mat-icon>block</mat-icon>
-            Import bloqué
-          </button>
-          <button *ngIf="canConfirmDualPartial()" mat-flat-button class="confirm-partial-btn"
-                  (click)="confirmerImportDual(true)" [disabled]="processing()">
-            <mat-icon>partial_tick</mat-icon>
-            Continuer avec lignes valides
-          </button>
-          <button *ngIf="canConfirmDualStrict()" mat-flat-button class="confirm-btn"
-                  (click)="confirmerImportDual(false)" [disabled]="processing()">
-            <mat-icon>check_circle</mat-icon>
-            {{ processing() ? 'Traitement…' : 'Confirmer l\'import' }}
-          </button>
-        </div>
-      </div>
-
-      <div *ngIf="processing()" style="margin-top:16px;">
-        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-      </div>
-
-      <div class="error-msg" *ngIf="errorMsg()" style="margin-top:12px;">
-        <mat-icon>error_outline</mat-icon>
-        <span>{{ errorMsg() }}</span>
-      </div>
-    </div>
-
-  </div>
-  DUAL mode disabled-->
 
   <div>
   <div class="panel">
@@ -382,7 +51,7 @@
       </div>
       <div>
         <div class="panel-title-text">Configuration de la correspondance</div>
-        <div class="panel-subtitle-text">Sélectionnez quelle colonne correspond à chaque champ</div>
+        <div class="panel-subtitle-text">SÃ©lectionnez quelle colonne correspond Ã  chaque champ</div>
       </div>
     </div>
     <div class="panel-divider"></div>
@@ -396,13 +65,13 @@
       <span class="summary-sep">|</span>
       <div class="summary-chip">
         <mat-icon>calendar_today</mat-icon>
-        <span>Période N :</span>
+        <span>PÃ©riode N :</span>
         <strong>{{ uploadStateData()?.yearN }}</strong>
       </div>
       <span class="summary-sep">|</span>
       <div class="summary-chip">
         <mat-icon>history</mat-icon>
-        <span>Période N-1 :</span>
+        <span>PÃ©riode N-1 :</span>
         <strong>{{ uploadStateData()?.yearNMinus1 }}</strong>
       </div>
     </div>
@@ -410,7 +79,7 @@
     <div class="instructions-box" style="margin-top: 16px;">
       <mat-icon>info_outline</mat-icon>
       <div class="instructions-content">
-        <strong>Champs obligatoires à mapper</strong>
+        <strong>Champs obligatoires Ã  mapper</strong>
         <div class="field-chips">
           <span class="field-chip"><mat-icon>label</mat-icon>Nom du KPI</span>
           <span class="field-chip"><mat-icon>trending_up</mat-icon>Valeur N</span>
@@ -420,7 +89,7 @@
     </div>
 
     <div *ngIf="uploadStateData()" style="margin-top: 20px;">
-      <p class="section-label">Structure du fichier détectée</p>
+      <p class="section-label">Structure du fichier dÃ©tectÃ©e</p>
       <div class="column-list">
         <div class="column-item" *ngFor="let header of uploadStateData()?.headers; let i = index">
           <span class="column-index">{{ i }}</span>
@@ -434,7 +103,7 @@
         <mat-label>Nom du KPI</mat-label>
         <mat-select [value]="kpiColumn()" (selectionChange)="kpiColumn.set($event.value)">
           <mat-option *ngFor="let index of indexes" [value]="index">
-            {{ index }} — {{ getHeaderLabel(index) }}
+            {{ index }} â€” {{ getHeaderLabel(index) }}
           </mat-option>
         </mat-select>
       </mat-form-field>
@@ -443,7 +112,7 @@
         <mat-label>Valeur N</mat-label>
         <mat-select [value]="valueNColumn()" (selectionChange)="valueNColumn.set($event.value)">
           <mat-option *ngFor="let index of indexes" [value]="index">
-            {{ index }} — {{ getHeaderLabel(index) }}
+            {{ index }} â€” {{ getHeaderLabel(index) }}
           </mat-option>
         </mat-select>
       </mat-form-field>
@@ -452,7 +121,7 @@
         <mat-label>Valeur N-1</mat-label>
         <mat-select [value]="valueNMinus1Column()" (selectionChange)="valueNMinus1Column.set($event.value)">
           <mat-option *ngFor="let index of indexes" [value]="index">
-            {{ index }} — {{ getHeaderLabel(index) }}
+            {{ index }} â€” {{ getHeaderLabel(index) }}
           </mat-option>
         </mat-select>
       </mat-form-field>
@@ -462,7 +131,7 @@
       <mat-icon>warning</mat-icon>
       <div>
         <strong>Mapping incertain</strong>
-        <p>Le système a détecté un mapping avec une faible confiance pour certaines colonnes. Veuillez vérifier vos sélections ci-dessus.</p>
+        <p>Le systÃ¨me a dÃ©tectÃ© un mapping avec une faible confiance pour certaines colonnes. Veuillez vÃ©rifier vos sÃ©lections ci-dessus.</p>
       </div>
     </div>
 
@@ -480,7 +149,7 @@
         <button mat-flat-button class="submit-btn" (click)="submitMapping()" [disabled]="processing()">
           <mat-spinner *ngIf="processing()" diameter="16"></mat-spinner>
           <mat-icon *ngIf="!processing()">visibility</mat-icon>
-          {{ processing() ? 'Analyse...' : 'Générer la prévisualisation' }}
+          {{ processing() ? 'Analyse...' : 'GÃ©nÃ©rer la prÃ©visualisation' }}
         </button>
         <button
           *ngIf="isHardBlocking()"
@@ -488,7 +157,7 @@
           class="confirm-btn confirm-btn-blocked"
           disabled>
           <mat-icon>block</mat-icon>
-          Import bloqué
+          Import bloquÃ©
         </button>
         <button
           *ngIf="canConfirmStrict()"
@@ -533,22 +202,22 @@
       <div class="warning-banner" *ngIf="!qualityReport.blocking && (qualityReport.warnings.length || qualityReport.infos.length)">
         <mat-icon>warning_amber</mat-icon>
         <div>
-          <strong>Avertissements détectés</strong>
-          <p>Des avertissements ont été détectés mais n'empêchent pas la confirmation de l'import.</p>
+          <strong>Avertissements dÃ©tectÃ©s</strong>
+          <p>Des avertissements ont Ã©tÃ© dÃ©tectÃ©s mais n'empÃªchent pas la confirmation de l'import.</p>
         </div>
       </div>
 
       <div class="quality-header">
         <div class="quality-title-row">
           <mat-icon>verified</mat-icon>
-          <span class="quality-title">Rapport qualité de l'import</span>
+          <span class="quality-title">Rapport qualitÃ© de l'import</span>
         </div>
 
         <div class="quality-score-row">
           <div class="score-badge" [ngClass]="qualityScoreClass()">
             {{ qualityScorePercent() }}%
           </div>
-          <span class="score-label">Score qualité global</span>
+          <span class="score-label">Score qualitÃ© global</span>
         </div>
       </div>
 
@@ -581,11 +250,11 @@
             <div class="stat-label">Avec avertissements</div>
           </div>
         </div>
-        <div class="quality-stat" matTooltip="Nombre d'occurrences de doublons écartées">
+        <div class="quality-stat" matTooltip="Nombre d'occurrences de doublons Ã©cartÃ©es">
           <mat-icon class="stat-icon icon-duplicate">content_copy</mat-icon>
           <div>
             <div class="stat-value">{{ qualityReport.duplicateRows }}</div>
-            <div class="stat-label">Doublons écartés (occurrences)</div>
+            <div class="stat-label">Doublons Ã©cartÃ©s (occurrences)</div>
           </div>
         </div>
         <div class="quality-stat">
@@ -598,12 +267,12 @@
       </div>
 
       <div class="issues-table-wrap" *ngIf="allIssues.length > 0">
-        <p class="section-label">Détail des anomalies ({{ allIssues.length }})</p>
+        <p class="section-label">DÃ©tail des anomalies ({{ allIssues.length }})</p>
         <div class="table-scroll">
           <table mat-table [dataSource]="allIssues" class="issues-table">
 
             <ng-container matColumnDef="severity">
-              <th mat-header-cell *matHeaderCellDef>Sévérité</th>
+              <th mat-header-cell *matHeaderCellDef>SÃ©vÃ©ritÃ©</th>
               <td mat-cell *matCellDef="let issue">
                 <span [ngClass]="severityClass(issue.severity)" class="severity-chip">
                   <mat-icon>{{ severityIcon(issue.severity) }}</mat-icon>
@@ -619,7 +288,7 @@
 
             <ng-container matColumnDef="column">
               <th mat-header-cell *matHeaderCellDef>Colonne</th>
-              <td mat-cell *matCellDef="let issue">{{ issue.column ?? '—' }}</td>
+              <td mat-cell *matCellDef="let issue">{{ issue.column ?? 'â€”' }}</td>
             </ng-container>
 
             <ng-container matColumnDef="message">
@@ -627,7 +296,7 @@
               <td mat-cell *matCellDef="let issue">
                 <span class="issue-message">{{ issue.message }}</span>
                 <span class="issue-correction" *ngIf="issue.cleanedValue">
-                  → {{ issue.cleanedValue }}
+                  â†’ {{ issue.cleanedValue }}
                 </span>
               </td>
             </ng-container>
@@ -640,7 +309,7 @@
     </div>
 
     <div class="preview-table" *ngIf="previewResponse()?.calculatedData?.length">
-      <h3>Aperçu des données </h3>
+      <h3>AperÃ§u des donnÃ©es </h3>
       <div class="table-scroll">
         <table mat-table [dataSource]="previewResponse()?.calculatedData ?? []" class="kpi-table">
 
@@ -670,24 +339,24 @@
           </ng-container>
 
           <ng-container matColumnDef="categorie">
-            <th mat-header-cell *matHeaderCellDef>Catégorie </th>
+            <th mat-header-cell *matHeaderCellDef>CatÃ©gorie </th>
             <td mat-cell *matCellDef="let row">
               <span class="cat-badge">{{ row.categorie || 'En recherche...' }}</span>
             </td>
           </ng-container>
 
           <!--<ng-container matColumnDef="unite">
-            <th mat-header-cell *matHeaderCellDef>Unité </th>
+            <th mat-header-cell *matHeaderCellDef>UnitÃ© </th>
             <td mat-cell *matCellDef="let row">
               <span class="unit-badge">{{ row.unite || '...' }}</span>
             </td>
           </ng-container>-->
 
           <!--<ng-container matColumnDef="definition">
-            <th mat-header-cell *matHeaderCellDef>Définition</th>
+            <th mat-header-cell *matHeaderCellDef>DÃ©finition</th>
             <td mat-cell *matCellDef="let row">
               <div class="definition-cell" [title]="row.definition">
-                {{ row.definition || 'Génération IA en cours...' }}
+                {{ row.definition || 'GÃ©nÃ©ration IA en cours...' }}
               </div>
             </td>
           </ng-container>-->
@@ -700,7 +369,7 @@
               <ng-container *ngIf="row.valeurN1 !== null; else noValueN1">
                 {{ row.isBoolean ? (row.valeurN1 === 1 ? 'Oui' : 'Non') : row.valeurN1 }}
               </ng-container>
-              <ng-template #noValueN1>—</ng-template>
+              <ng-template #noValueN1>â€”</ng-template>
             </td>
           </ng-container>
 
@@ -710,7 +379,7 @@
               <ng-container *ngIf="row.valeurN !== null; else noValueN">
                 {{ row.isBoolean ? (row.valeurN === 1 ? 'Oui' : 'Non') : row.valeurN }}
               </ng-container>
-              <ng-template #noValueN>—</ng-template>
+              <ng-template #noValueN>â€”</ng-template>
             </td>
           </ng-container>
           
@@ -741,13 +410,13 @@
                 {{ row.variationPercentage | number:'1.1-1' }}%
               </span>
               <span *ngIf="row.variationPercentage === null" class="text-stable">
-                {{ row.status === 'Nouveau' ? 'N/D' : '—' }}
+                {{ row.status === 'Nouveau' ? 'N/D' : 'â€”' }}
               </span>
             </td>
           </ng-container>
 
           <ng-container matColumnDef="absoluteGap">
-            <th mat-header-cell *matHeaderCellDef>Écart</th>
+            <th mat-header-cell *matHeaderCellDef>Ã‰cart</th>
             <td mat-cell *matCellDef="let row">
               <span class="text-stable">
                 {{ row.absoluteGap > 0 ? '+' : '' }}{{ row.absoluteGap | number:'1.0-2' }}
@@ -759,10 +428,10 @@
             <th mat-header-cell *matHeaderCellDef></th>
             <td mat-cell *matCellDef="let row">
               <div class="meta-cell">
-                <span *ngIf="row.reviewRequired" class="review-badge" matTooltip="Validation analyste recommandée">À vérifier</span>
+                <span *ngIf="row.reviewRequired" class="review-badge" matTooltip="Validation analyste recommandÃ©e">Ã€ vÃ©rifier</span>
                 <span *ngIf="row.classificationReason" class="reason" matTooltip="{{ row.classificationReason }}">{{ row.classificationReason }}</span>
                 <mat-progress-bar *ngIf="row.calcConfidence !== undefined" [value]="row.calcConfidence" mode="determinate" color="primary" class="confidence-bar"></mat-progress-bar>
-                <span *ngIf="row.dataFlags?.length" class="data-flags" matTooltip="{{ row.dataFlags.join(', ') }}">⚑</span>
+                <span *ngIf="row.dataFlags?.length" class="data-flags" matTooltip="{{ row.dataFlags.join(', ') }}">âš‘</span>
               </div>
             </td>
           </ng-container>-->
@@ -780,13 +449,13 @@
 
   <mat-card class="panel result-card" *ngIf="result()">
     <mat-card-header>
-      <mat-card-title>Importation Finalisée</mat-card-title>
+      <mat-card-title>Importation FinalisÃ©e</mat-card-title>
       <mat-card-subtitle>Analyse comparative N vs N-1</mat-card-subtitle>
     </mat-card-header>
     <mat-card-content>
       <div class="success-banner">
         <mat-icon>check_circle</mat-icon>
-        {{ result()?.calculatedData?.length }} indicateurs traités avec succès.
+        {{ result()?.calculatedData?.length }} indicateurs traitÃ©s avec succÃ¨s.
       </div>
       <div class="results-table-container">
         <table mat-table [dataSource]="result()?.calculatedData ?? []" class="kpi-table results-table">
@@ -799,7 +468,7 @@
                       fill="#CBD5E0" rx="2" [matTooltip]="'N-1: ' + (row.valeurN1 | number:'1.0-2')"/>
                 <rect x="18" [attr.y]="26 - sparkNHeight(row)" width="12" [attr.height]="sparkNHeight(row)"
                       [attr.fill]="sparkNColor(row)" rx="2" [matTooltip]="'N: ' + (row.valeurN | number:'1.0-2')"/>
-                <circle *ngIf="row.spcOutOfControl" cx="30" cy="4" r="3" fill="#E53E3E" matTooltip="Hors contrôle SPC"/>
+                <circle *ngIf="row.spcOutOfControl" cx="30" cy="4" r="3" fill="#E53E3E" matTooltip="Hors contrÃ´le SPC"/>
               </svg>
             </td>
           </ng-container>
@@ -809,11 +478,11 @@
             <td mat-cell *matCellDef="let row"><strong>{{ row.kpiName }}</strong></td>
           </ng-container>
           <ng-container matColumnDef="categorie">
-            <th mat-header-cell *matHeaderCellDef>Catégorie</th>
+            <th mat-header-cell *matHeaderCellDef>CatÃ©gorie</th>
             <td mat-cell *matCellDef="let row"><span class="cat-badge">{{ row.categorie }}</span></td>
           </ng-container>
           <ng-container matColumnDef="unite">
-            <th mat-header-cell *matHeaderCellDef>Unité</th>
+            <th mat-header-cell *matHeaderCellDef>UnitÃ©</th>
             <td mat-cell *matCellDef="let row"><span class="unit-badge">{{ row.unite }}</span></td>
           </ng-container>
           <ng-container matColumnDef="valeurN">
@@ -832,12 +501,12 @@
             <th mat-header-cell *matHeaderCellDef>Var %</th>
             <td mat-cell *matCellDef="let row">
               <span class="text-stable">
-                {{ row.variationPercentage !== null ? (row.variationPercentage | number:'1.0-1') + '%' : '—' }}
+                {{ row.variationPercentage !== null ? (row.variationPercentage | number:'1.0-1') + '%' : 'â€”' }}
               </span>
             </td>
           </ng-container>
           <ng-container matColumnDef="absoluteGap">
-            <th mat-header-cell *matHeaderCellDef>Écart</th>
+            <th mat-header-cell *matHeaderCellDef>Ã‰cart</th>
             <td mat-cell *matCellDef="let row">
               <span class="text-stable">{{ row.absoluteGap | number:'1.0-2' }}</span>
             </td>
@@ -853,7 +522,7 @@
             <th mat-header-cell *matHeaderCellDef>Risque</th>
             <td mat-cell *matCellDef="let row">
               <span *ngIf="row.riskLevel" [ngClass]="riskLevelClass(row.riskLevel)"
-                    [matTooltip]="'Score: ' + row.riskScore + ' | P×I: ' + row.riskProbability + '×' + row.riskImpact">
+                    [matTooltip]="'Score: ' + row.riskScore + ' | PÃ—I: ' + row.riskProbability + 'Ã—' + row.riskImpact">
                 {{ row.riskLevel }}
               </span>
             </td>
@@ -863,10 +532,10 @@
             <th mat-header-cell *matHeaderCellDef></th>
             <td mat-cell *matCellDef="let row">
               <div class="meta-cell">
-                <span *ngIf="row.reviewRequired" class="review-badge" matTooltip="Validation analyste recommandée">À vérifier</span>
+                <span *ngIf="row.reviewRequired" class="review-badge" matTooltip="Validation analyste recommandÃ©e">Ã€ vÃ©rifier</span>
                 <span *ngIf="row.classificationReason" class="reason" matTooltip="{{ row.classificationReason }}">{{ row.classificationReason }}</span>
                 <mat-progress-bar *ngIf="row.calcConfidence !== undefined" [value]="row.calcConfidence" mode="determinate" color="primary" class="confidence-bar"></mat-progress-bar>
-                <span *ngIf="row.dataFlags?.length" class="data-flags" matTooltip="{{ row.dataFlags.join(', ') }}">⚑</span>
+                <span *ngIf="row.dataFlags?.length" class="data-flags" matTooltip="{{ row.dataFlags.join(', ') }}">âš‘</span>
               </div>
             </td>
           </ng-container>
@@ -878,7 +547,7 @@
       <div class="cat-scores-section" *ngIf="categoryScores().length > 0">
         <p class="section-label" style="margin-top:20px;">
           <mat-icon style="font-size:16px;vertical-align:middle;">bar_chart</mat-icon>
-          Scores composites par catégorie
+          Scores composites par catÃ©gorie
         </p>
         <div class="cat-scores-grid">
           <div class="cat-score-card" *ngFor="let cs of categoryScores()">
@@ -890,12 +559,12 @@
             <div class="cat-score-bar-wrap">
               <div class="cat-score-bar" [style.width.%]="cs.compositeScore" [ngClass]="categoryScoreClass(cs.compositeScore)"></div>
             </div>
-            <div class="cat-score-value">{{ cs.compositeScore | number:'1.0-1' }}/100 · {{ cs.kpiCount }} KPIs</div>
+            <div class="cat-score-value">{{ cs.compositeScore | number:'1.0-1' }}/100 Â· {{ cs.kpiCount }} KPIs</div>
             <div class="cat-score-breakdown">
               <span class="cs-pill excellent" *ngIf="cs.excellentCount">{{ cs.excellentCount }} Exc.</span>
               <span class="cs-pill faible" *ngIf="cs.faibleCount">{{ cs.faibleCount }} Faible</span>
-              <span class="cs-pill modere" *ngIf="cs.modereCount">{{ cs.modereCount }} Modéré</span>
-              <span class="cs-pill pre-esc" *ngIf="cs.preEscaladeCount">{{ cs.preEscaladeCount }} Pré-esc.</span>
+              <span class="cs-pill modere" *ngIf="cs.modereCount">{{ cs.modereCount }} ModÃ©rÃ©</span>
+              <span class="cs-pill pre-esc" *ngIf="cs.preEscaladeCount">{{ cs.preEscaladeCount }} PrÃ©-esc.</span>
               <span class="cs-pill critique" *ngIf="cs.critiqueCount">{{ cs.critiqueCount }} Crit.</span>
             </div>
           </div>
@@ -905,11 +574,11 @@
       <div class="risk-matrix-section" *ngIf="riskKpis().length > 0">
         <p class="section-label" style="margin-top:20px;">
           <mat-icon style="font-size:16px;vertical-align:middle;">grid_on</mat-icon>
-          Matrice de risque (probabilité × impact)
+          Matrice de risque (probabilitÃ© Ã— impact)
         </p>
         <div class="risk-matrix-wrap">
           <div class="risk-matrix-grid">
-            <div class="risk-y-label">Impact ↑</div>
+            <div class="risk-y-label">Impact â†‘</div>
             <div class="risk-matrix-body">
               <div class="risk-matrix-row" *ngFor="let imp of riskRows">
                 <div class="risk-row-label">{{ imp }}</div>
@@ -930,8 +599,8 @@
           </div>
           <div class="risk-legend">
             <div class="risk-legend-item"><span class="risk-legend-dot low"></span>Faible</div>
-            <div class="risk-legend-item"><span class="risk-legend-dot medium"></span>Modéré</div>
-            <div class="risk-legend-item"><span class="risk-legend-dot high"></span>Élevé</div>
+            <div class="risk-legend-item"><span class="risk-legend-dot medium"></span>ModÃ©rÃ©</div>
+            <div class="risk-legend-item"><span class="risk-legend-dot high"></span>Ã‰levÃ©</div>
             <div class="risk-legend-item"><span class="risk-legend-dot critical"></span>Critique</div>
           </div>
         </div>
