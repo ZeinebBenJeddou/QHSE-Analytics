@@ -2,9 +2,7 @@
 
   <div class="header-row">
     <div class="header-left">
-      <div class="header-icon-wrap">
-        <mat-icon>account_tree</mat-icon>
-      </div>
+      
       <div>
         <h1>Correspondance des colonnes</h1>
         <p class="subtitle">Associez les colonnes de votre fichier aux champs obligatoires</p>
@@ -46,9 +44,7 @@
   <div class="panel">
 
     <div class="panel-inline-header">
-      <div class="panel-icon-wrap">
-        <mat-icon>tune</mat-icon>
-      </div>
+      
       <div>
         <div class="panel-title-text">Configuration de la correspondance</div>
         <div class="panel-subtitle-text">Sélectionnez quelle colonne correspond à chaque champ</div>
@@ -58,32 +54,32 @@
 
     <div class="summary-strip" *ngIf="uploadStateData()">
       <div class="summary-chip">
-        <mat-icon>insert_drive_file</mat-icon>
+        
         <span>Fichier :</span>
         <strong>{{ uploadStateData()?.file?.name }}</strong>
       </div>
       <span class="summary-sep">|</span>
       <div class="summary-chip">
-        <mat-icon>calendar_today</mat-icon>
+        
         <span>Période N :</span>
         <strong>{{ uploadStateData()?.yearN }}</strong>
       </div>
       <span class="summary-sep">|</span>
       <div class="summary-chip">
-        <mat-icon>history</mat-icon>
+        
         <span>Période N-1 :</span>
         <strong>{{ uploadStateData()?.yearNMinus1 }}</strong>
       </div>
     </div>
 
     <div class="instructions-box" style="margin-top: 16px;">
-      <mat-icon>info_outline</mat-icon>
+      
       <div class="instructions-content">
         <strong>Champs obligatoires à mapper</strong>
         <div class="field-chips">
-          <span class="field-chip"><mat-icon>label</mat-icon>Nom du KPI</span>
-          <span class="field-chip"><mat-icon>trending_up</mat-icon>Valeur N</span>
-          <span class="field-chip"><mat-icon>history</mat-icon>Valeur N-1</span>
+          <span class="field-chip">Nom du KPI</span>
+          <span class="field-chip">Valeur N</span>
+          <span class="field-chip">Valeur N-1</span>
         </div>
       </div>
     </div>
@@ -218,7 +214,7 @@
       <div class="actions-right">
         <button mat-flat-button class="submit-btn" (click)="submitMapping()" [disabled]="processing()">
           <mat-spinner *ngIf="processing()" diameter="16"></mat-spinner>
-          <mat-icon *ngIf="!processing()">visibility</mat-icon>
+          
           {{ processing() ? 'Analyse...' : 'Générer la prévisualisation' }}
         </button>
         <button
