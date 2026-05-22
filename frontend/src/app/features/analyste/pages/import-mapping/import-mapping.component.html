@@ -1,4 +1,4 @@
-﻿<div class="import-page">
+<div class="import-page">
 
   <div class="header-row">
     <div class="header-left">
@@ -12,7 +12,7 @@
     </div>
     <button mat-stroked-button class="back-header-btn" (click)="goBack()">
       <mat-icon>arrow_back</mat-icon>
-      Retour Ã  l'import
+      Retour à l'import
     </button>
   </div>
 
@@ -20,8 +20,8 @@
     <div class="step active">
       <span class="step-number">1</span>
       <div>
-        <div class="step-title">TÃ©lÃ©versement</div>
-        <div class="step-subtitle">Fichier sÃ©lectionnÃ©</div>
+        <div class="step-title">Téléversement</div>
+        <div class="step-subtitle">Fichier sélectionné</div>
       </div>
     </div>
     <div class="step active">
@@ -51,7 +51,7 @@
       </div>
       <div>
         <div class="panel-title-text">Configuration de la correspondance</div>
-        <div class="panel-subtitle-text">SÃ©lectionnez quelle colonne correspond Ã  chaque champ</div>
+        <div class="panel-subtitle-text">Sélectionnez quelle colonne correspond à chaque champ</div>
       </div>
     </div>
     <div class="panel-divider"></div>
@@ -65,13 +65,13 @@
       <span class="summary-sep">|</span>
       <div class="summary-chip">
         <mat-icon>calendar_today</mat-icon>
-        <span>PÃ©riode N :</span>
+        <span>Période N :</span>
         <strong>{{ uploadStateData()?.yearN }}</strong>
       </div>
       <span class="summary-sep">|</span>
       <div class="summary-chip">
         <mat-icon>history</mat-icon>
-        <span>PÃ©riode N-1 :</span>
+        <span>Période N-1 :</span>
         <strong>{{ uploadStateData()?.yearNMinus1 }}</strong>
       </div>
     </div>
@@ -79,7 +79,7 @@
     <div class="instructions-box" style="margin-top: 16px;">
       <mat-icon>info_outline</mat-icon>
       <div class="instructions-content">
-        <strong>Champs obligatoires Ã  mapper</strong>
+        <strong>Champs obligatoires à mapper</strong>
         <div class="field-chips">
           <span class="field-chip"><mat-icon>label</mat-icon>Nom du KPI</span>
           <span class="field-chip"><mat-icon>trending_up</mat-icon>Valeur N</span>
@@ -88,13 +88,73 @@
       </div>
     </div>
 
-    <div *ngIf="uploadStateData()" style="margin-top: 20px;">
-      <p class="section-label">Structure du fichier dÃ©tectÃ©e</p>
-      <div class="column-list">
-        <div class="column-item" *ngFor="let header of uploadStateData()?.headers; let i = index">
-          <span class="column-index">{{ i }}</span>
-          <span class="column-label">{{ header || 'Colonne ' + i }}</span>
+    <div style="margin-top: 20px;">
+      <div class="section-label-row">
+        <p class="section-label">Analyse des colonnes détectées</p>
+        <span class="profiling-badge" *ngIf="profilingLoading()">
+          <mat-icon class="spin-icon">sync</mat-icon> Analyse en cours...
+        </span>
+        <span class="profiling-badge profiling-badge-done" *ngIf="!profilingLoading() && columnProfiles().length">
+          {{ columnProfiles().length }} colonnes analysées
+        </span>
+      </div>
+
+      <div class="col-profile-loading" *ngIf="profilingLoading()">
+        <div class="col-profile-skeleton" *ngFor="let _ of [1,2,3,4]"></div>
+      </div>
+
+      <div class="col-profile-grid" *ngIf="!profilingLoading() && columnProfiles().length">
+        <div class="col-profile-card"
+             *ngFor="let p of columnProfiles()"
+             [class.card-selected-kpi]="kpiColumn() === p.columnIndex"
+             [class.card-selected-n]="valueNColumn() === p.columnIndex"
+             [class.card-selected-n1]="valueNMinus1Column() === p.columnIndex"
+             [ngClass]="getConfidenceClass(p)">
+
+          <div class="col-profile-top">
+            <span class="col-index-badge">#{{ p.columnIndex }}</span>
+            <span class="col-name" [title]="p.detectedHeader">{{ p.detectedHeader }}</span>
+            <span class="col-type-chip">
+              <mat-icon class="type-icon">{{ profileTypeIcon(p.inferredType) }}</mat-icon>
+              {{ p.inferredType }}
+            </span>
+            <span class="col-confidence-badge" [ngClass]="getConfidenceClass(p)">
+              {{ getConfidenceLabel(p) }}
+            </span>
+          </div>
+
+
+          <div class="col-stats-row">
+            <span class="col-stat">{{ p.totalRows }} lignes</span>
+            <span class="col-stat-sep">·</span>
+            <span class="col-stat" [class.stat-warn]="p.nullCount > 0">{{ profileNullRate(p) }} vides</span>
+          </div>
+
+
         </div>
+      </div>
+
+      <div class="col-profile-truncation-notice" *ngIf="!profilingLoading() && columnProfiles().length > 20 || columnProfiles()[0]?.warningMessage">
+        <mat-icon>info_outline</mat-icon>
+        <span>{{ columnProfiles()[0]?.warningMessage ?? 'Affichage limité aux ' + columnProfiles().length + ' premières colonnes.' }}
+          Si votre colonne n'apparaît pas, réorganisez votre fichier Excel.</span>
+      </div>
+
+      <div class="col-profile-fallback" *ngIf="!profilingLoading() && !columnProfiles().length && uploadStateData()?.headers?.length">
+        <div class="column-list">
+          <div class="column-item" *ngFor="let header of uploadStateData()?.headers; let i = index">
+            <span class="column-index">{{ i }}</span>
+            <span class="column-label">{{ header || 'Colonne ' + i }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="warning-banner" *ngIf="hasLowConfidenceMapping" style="margin-top: 16px;">
+      <mat-icon>warning</mat-icon>
+      <div>
+        <strong>Mapping incertain</strong>
+        <p>Le système a détecté un mapping avec une faible confiance pour certaines colonnes. Veuillez vérifier vos sélections ci-dessus.</p>
       </div>
     </div>
 
@@ -103,7 +163,7 @@
         <mat-label>Nom du KPI</mat-label>
         <mat-select [value]="kpiColumn()" (selectionChange)="kpiColumn.set($event.value)">
           <mat-option *ngFor="let index of indexes" [value]="index">
-            {{ index }} â€” {{ getHeaderLabel(index) }}
+            {{ index }} — {{ getHeaderLabel(index) }}
           </mat-option>
         </mat-select>
       </mat-form-field>
@@ -112,7 +172,7 @@
         <mat-label>Valeur N</mat-label>
         <mat-select [value]="valueNColumn()" (selectionChange)="valueNColumn.set($event.value)">
           <mat-option *ngFor="let index of indexes" [value]="index">
-            {{ index }} â€” {{ getHeaderLabel(index) }}
+            {{ index }} — {{ getHeaderLabel(index) }}
           </mat-option>
         </mat-select>
       </mat-form-field>
@@ -121,23 +181,33 @@
         <mat-label>Valeur N-1</mat-label>
         <mat-select [value]="valueNMinus1Column()" (selectionChange)="valueNMinus1Column.set($event.value)">
           <mat-option *ngFor="let index of indexes" [value]="index">
-            {{ index }} â€” {{ getHeaderLabel(index) }}
+            {{ index }} — {{ getHeaderLabel(index) }}
           </mat-option>
         </mat-select>
       </mat-form-field>
     </div>
 
-    <div class="warning-banner" *ngIf="hasLowConfidenceMapping" style="margin-top: 16px; margin-bottom: 0;">
-      <mat-icon>warning</mat-icon>
-      <div>
-        <strong>Mapping incertain</strong>
-        <p>Le systÃ¨me a dÃ©tectÃ© un mapping avec une faible confiance pour certaines colonnes. Veuillez vÃ©rifier vos sÃ©lections ci-dessus.</p>
-      </div>
-    </div>
-
     <div class="error-banner" *ngIf="errorMsg()" style="margin-top: 16px;">
       <mat-icon>error_outline</mat-icon>
       <span>{{ errorMsg() }}</span>
+    </div>
+
+    <div class="column-error-banner" *ngIf="isColumnMappingError()">
+      <strong>Colonnes non reconnues</strong>
+      <p>
+        L'application n'a pas réussi à identifier les colonnes de votre fichier.
+        Vérifiez que votre fichier contient au moins 3 colonnes avec des en-têtes clairs.
+      </p>
+      <p>Exemples d'en-têtes reconnus :</p>
+      <ul>
+        <li><strong>Noms des KPIs</strong> : Indicateur, Libellé, KPI</li>
+        <li><strong>Valeur actuelle</strong> : Réalisé N, Valeur 2026, N</li>
+        <li><strong>Valeur précédente</strong> : Réalisé N-1, Valeur 2025, N-1</li>
+      </ul>
+      <button mat-stroked-button class="template-dl-btn" type="button">
+        <mat-icon>download</mat-icon>
+        Télécharger un modèle de fichier
+      </button>
     </div>
 
     <div class="actions-row" style="margin-top: 20px;">
@@ -149,7 +219,7 @@
         <button mat-flat-button class="submit-btn" (click)="submitMapping()" [disabled]="processing()">
           <mat-spinner *ngIf="processing()" diameter="16"></mat-spinner>
           <mat-icon *ngIf="!processing()">visibility</mat-icon>
-          {{ processing() ? 'Analyse...' : 'GÃ©nÃ©rer la prÃ©visualisation' }}
+          {{ processing() ? 'Analyse...' : 'Générer la prévisualisation' }}
         </button>
         <button
           *ngIf="isHardBlocking()"
@@ -157,7 +227,7 @@
           class="confirm-btn confirm-btn-blocked"
           disabled>
           <mat-icon>block</mat-icon>
-          Import bloquÃ©
+          Import bloqué
         </button>
         <button
           *ngIf="canConfirmStrict()"
@@ -202,22 +272,22 @@
       <div class="warning-banner" *ngIf="!qualityReport.blocking && (qualityReport.warnings.length || qualityReport.infos.length)">
         <mat-icon>warning_amber</mat-icon>
         <div>
-          <strong>Avertissements dÃ©tectÃ©s</strong>
-          <p>Des avertissements ont Ã©tÃ© dÃ©tectÃ©s mais n'empÃªchent pas la confirmation de l'import.</p>
+          <strong>Avertissements détectés</strong>
+          <p>Des avertissements ont été détectés mais n'empêchent pas la confirmation de l'import.</p>
         </div>
       </div>
 
       <div class="quality-header">
         <div class="quality-title-row">
           <mat-icon>verified</mat-icon>
-          <span class="quality-title">Rapport qualitÃ© de l'import</span>
+          <span class="quality-title">Rapport qualité de l'import</span>
         </div>
 
         <div class="quality-score-row">
           <div class="score-badge" [ngClass]="qualityScoreClass()">
             {{ qualityScorePercent() }}%
           </div>
-          <span class="score-label">Score qualitÃ© global</span>
+          <span class="score-label">Score qualité global</span>
         </div>
       </div>
 
@@ -250,11 +320,11 @@
             <div class="stat-label">Avec avertissements</div>
           </div>
         </div>
-        <div class="quality-stat" matTooltip="Nombre d'occurrences de doublons Ã©cartÃ©es">
+        <div class="quality-stat" matTooltip="Nombre d'occurrences de doublons écartées">
           <mat-icon class="stat-icon icon-duplicate">content_copy</mat-icon>
           <div>
             <div class="stat-value">{{ qualityReport.duplicateRows }}</div>
-            <div class="stat-label">Doublons Ã©cartÃ©s (occurrences)</div>
+            <div class="stat-label">Doublons écartés (occurrences)</div>
           </div>
         </div>
         <div class="quality-stat">
@@ -267,12 +337,12 @@
       </div>
 
       <div class="issues-table-wrap" *ngIf="allIssues.length > 0">
-        <p class="section-label">DÃ©tail des anomalies ({{ allIssues.length }})</p>
+        <p class="section-label">Détail des anomalies ({{ allIssues.length }})</p>
         <div class="table-scroll">
           <table mat-table [dataSource]="allIssues" class="issues-table">
 
             <ng-container matColumnDef="severity">
-              <th mat-header-cell *matHeaderCellDef>SÃ©vÃ©ritÃ©</th>
+              <th mat-header-cell *matHeaderCellDef>Sévérité</th>
               <td mat-cell *matCellDef="let issue">
                 <span [ngClass]="severityClass(issue.severity)" class="severity-chip">
                   <mat-icon>{{ severityIcon(issue.severity) }}</mat-icon>
@@ -288,7 +358,7 @@
 
             <ng-container matColumnDef="column">
               <th mat-header-cell *matHeaderCellDef>Colonne</th>
-              <td mat-cell *matCellDef="let issue">{{ issue.column ?? 'â€”' }}</td>
+              <td mat-cell *matCellDef="let issue">{{ issue.column ?? '—' }}</td>
             </ng-container>
 
             <ng-container matColumnDef="message">
@@ -296,7 +366,7 @@
               <td mat-cell *matCellDef="let issue">
                 <span class="issue-message">{{ issue.message }}</span>
                 <span class="issue-correction" *ngIf="issue.cleanedValue">
-                  â†’ {{ issue.cleanedValue }}
+                  → {{ issue.cleanedValue }}
                 </span>
               </td>
             </ng-container>
@@ -309,7 +379,7 @@
     </div>
 
     <div class="preview-table" *ngIf="previewResponse()?.calculatedData?.length">
-      <h3>AperÃ§u des donnÃ©es </h3>
+      <h3>Aperçu des données </h3>
       <div class="table-scroll">
         <table mat-table [dataSource]="previewResponse()?.calculatedData ?? []" class="kpi-table">
 
@@ -339,24 +409,24 @@
           </ng-container>
 
           <ng-container matColumnDef="categorie">
-            <th mat-header-cell *matHeaderCellDef>CatÃ©gorie </th>
+            <th mat-header-cell *matHeaderCellDef>Catégorie </th>
             <td mat-cell *matCellDef="let row">
               <span class="cat-badge">{{ row.categorie || 'En recherche...' }}</span>
             </td>
           </ng-container>
 
           <!--<ng-container matColumnDef="unite">
-            <th mat-header-cell *matHeaderCellDef>UnitÃ© </th>
+            <th mat-header-cell *matHeaderCellDef>Unité </th>
             <td mat-cell *matCellDef="let row">
               <span class="unit-badge">{{ row.unite || '...' }}</span>
             </td>
           </ng-container>-->
 
           <!--<ng-container matColumnDef="definition">
-            <th mat-header-cell *matHeaderCellDef>DÃ©finition</th>
+            <th mat-header-cell *matHeaderCellDef>Définition</th>
             <td mat-cell *matCellDef="let row">
               <div class="definition-cell" [title]="row.definition">
-                {{ row.definition || 'GÃ©nÃ©ration IA en cours...' }}
+                {{ row.definition || 'Génération IA en cours...' }}
               </div>
             </td>
           </ng-container>-->
@@ -369,7 +439,7 @@
               <ng-container *ngIf="row.valeurN1 !== null; else noValueN1">
                 {{ row.isBoolean ? (row.valeurN1 === 1 ? 'Oui' : 'Non') : row.valeurN1 }}
               </ng-container>
-              <ng-template #noValueN1>â€”</ng-template>
+              <ng-template #noValueN1>—</ng-template>
             </td>
           </ng-container>
 
@@ -379,7 +449,7 @@
               <ng-container *ngIf="row.valeurN !== null; else noValueN">
                 {{ row.isBoolean ? (row.valeurN === 1 ? 'Oui' : 'Non') : row.valeurN }}
               </ng-container>
-              <ng-template #noValueN>â€”</ng-template>
+              <ng-template #noValueN>—</ng-template>
             </td>
           </ng-container>
           
@@ -410,13 +480,13 @@
                 {{ row.variationPercentage | number:'1.1-1' }}%
               </span>
               <span *ngIf="row.variationPercentage === null" class="text-stable">
-                {{ row.status === 'Nouveau' ? 'N/D' : 'â€”' }}
+                {{ row.status === 'Nouveau' ? 'N/D' : '—' }}
               </span>
             </td>
           </ng-container>
 
           <ng-container matColumnDef="absoluteGap">
-            <th mat-header-cell *matHeaderCellDef>Ã‰cart</th>
+            <th mat-header-cell *matHeaderCellDef>Écart</th>
             <td mat-cell *matCellDef="let row">
               <span class="text-stable">
                 {{ row.absoluteGap > 0 ? '+' : '' }}{{ row.absoluteGap | number:'1.0-2' }}
@@ -428,10 +498,10 @@
             <th mat-header-cell *matHeaderCellDef></th>
             <td mat-cell *matCellDef="let row">
               <div class="meta-cell">
-                <span *ngIf="row.reviewRequired" class="review-badge" matTooltip="Validation analyste recommandÃ©e">Ã€ vÃ©rifier</span>
+                <span *ngIf="row.reviewRequired" class="review-badge" matTooltip="Validation analyste recommandée">À vérifier</span>
                 <span *ngIf="row.classificationReason" class="reason" matTooltip="{{ row.classificationReason }}">{{ row.classificationReason }}</span>
                 <mat-progress-bar *ngIf="row.calcConfidence !== undefined" [value]="row.calcConfidence" mode="determinate" color="primary" class="confidence-bar"></mat-progress-bar>
-                <span *ngIf="row.dataFlags?.length" class="data-flags" matTooltip="{{ row.dataFlags.join(', ') }}">âš‘</span>
+                <span *ngIf="row.dataFlags?.length" class="data-flags" matTooltip="{{ row.dataFlags.join(', ') }}">⚑</span>
               </div>
             </td>
           </ng-container>-->
@@ -449,13 +519,13 @@
 
   <mat-card class="panel result-card" *ngIf="result()">
     <mat-card-header>
-      <mat-card-title>Importation FinalisÃ©e</mat-card-title>
+      <mat-card-title>Importation Finalisée</mat-card-title>
       <mat-card-subtitle>Analyse comparative N vs N-1</mat-card-subtitle>
     </mat-card-header>
     <mat-card-content>
       <div class="success-banner">
         <mat-icon>check_circle</mat-icon>
-        {{ result()?.calculatedData?.length }} indicateurs traitÃ©s avec succÃ¨s.
+        {{ result()?.calculatedData?.length }} indicateurs traités avec succès.
       </div>
       <div class="results-table-container">
         <table mat-table [dataSource]="result()?.calculatedData ?? []" class="kpi-table results-table">
@@ -468,7 +538,7 @@
                       fill="#CBD5E0" rx="2" [matTooltip]="'N-1: ' + (row.valeurN1 | number:'1.0-2')"/>
                 <rect x="18" [attr.y]="26 - sparkNHeight(row)" width="12" [attr.height]="sparkNHeight(row)"
                       [attr.fill]="sparkNColor(row)" rx="2" [matTooltip]="'N: ' + (row.valeurN | number:'1.0-2')"/>
-                <circle *ngIf="row.spcOutOfControl" cx="30" cy="4" r="3" fill="#E53E3E" matTooltip="Hors contrÃ´le SPC"/>
+                <circle *ngIf="row.spcOutOfControl" cx="30" cy="4" r="3" fill="#E53E3E" matTooltip="Hors contrôle SPC"/>
               </svg>
             </td>
           </ng-container>
@@ -478,11 +548,11 @@
             <td mat-cell *matCellDef="let row"><strong>{{ row.kpiName }}</strong></td>
           </ng-container>
           <ng-container matColumnDef="categorie">
-            <th mat-header-cell *matHeaderCellDef>CatÃ©gorie</th>
+            <th mat-header-cell *matHeaderCellDef>Catégorie</th>
             <td mat-cell *matCellDef="let row"><span class="cat-badge">{{ row.categorie }}</span></td>
           </ng-container>
           <ng-container matColumnDef="unite">
-            <th mat-header-cell *matHeaderCellDef>UnitÃ©</th>
+            <th mat-header-cell *matHeaderCellDef>Unité</th>
             <td mat-cell *matCellDef="let row"><span class="unit-badge">{{ row.unite }}</span></td>
           </ng-container>
           <ng-container matColumnDef="valeurN">
@@ -501,12 +571,12 @@
             <th mat-header-cell *matHeaderCellDef>Var %</th>
             <td mat-cell *matCellDef="let row">
               <span class="text-stable">
-                {{ row.variationPercentage !== null ? (row.variationPercentage | number:'1.0-1') + '%' : 'â€”' }}
+                {{ row.variationPercentage !== null ? (row.variationPercentage | number:'1.0-1') + '%' : '—' }}
               </span>
             </td>
           </ng-container>
           <ng-container matColumnDef="absoluteGap">
-            <th mat-header-cell *matHeaderCellDef>Ã‰cart</th>
+            <th mat-header-cell *matHeaderCellDef>Écart</th>
             <td mat-cell *matCellDef="let row">
               <span class="text-stable">{{ row.absoluteGap | number:'1.0-2' }}</span>
             </td>
@@ -522,7 +592,7 @@
             <th mat-header-cell *matHeaderCellDef>Risque</th>
             <td mat-cell *matCellDef="let row">
               <span *ngIf="row.riskLevel" [ngClass]="riskLevelClass(row.riskLevel)"
-                    [matTooltip]="'Score: ' + row.riskScore + ' | PÃ—I: ' + row.riskProbability + 'Ã—' + row.riskImpact">
+                    [matTooltip]="'Score: ' + row.riskScore + ' | P×I: ' + row.riskProbability + '×' + row.riskImpact">
                 {{ row.riskLevel }}
               </span>
             </td>
@@ -532,10 +602,10 @@
             <th mat-header-cell *matHeaderCellDef></th>
             <td mat-cell *matCellDef="let row">
               <div class="meta-cell">
-                <span *ngIf="row.reviewRequired" class="review-badge" matTooltip="Validation analyste recommandÃ©e">Ã€ vÃ©rifier</span>
+                <span *ngIf="row.reviewRequired" class="review-badge" matTooltip="Validation analyste recommandée">À vérifier</span>
                 <span *ngIf="row.classificationReason" class="reason" matTooltip="{{ row.classificationReason }}">{{ row.classificationReason }}</span>
                 <mat-progress-bar *ngIf="row.calcConfidence !== undefined" [value]="row.calcConfidence" mode="determinate" color="primary" class="confidence-bar"></mat-progress-bar>
-                <span *ngIf="row.dataFlags?.length" class="data-flags" matTooltip="{{ row.dataFlags.join(', ') }}">âš‘</span>
+                <span *ngIf="row.dataFlags?.length" class="data-flags" matTooltip="{{ row.dataFlags.join(', ') }}">⚑</span>
               </div>
             </td>
           </ng-container>
@@ -547,7 +617,7 @@
       <div class="cat-scores-section" *ngIf="categoryScores().length > 0">
         <p class="section-label" style="margin-top:20px;">
           <mat-icon style="font-size:16px;vertical-align:middle;">bar_chart</mat-icon>
-          Scores composites par catÃ©gorie
+          Scores composites par catégorie
         </p>
         <div class="cat-scores-grid">
           <div class="cat-score-card" *ngFor="let cs of categoryScores()">
@@ -559,12 +629,12 @@
             <div class="cat-score-bar-wrap">
               <div class="cat-score-bar" [style.width.%]="cs.compositeScore" [ngClass]="categoryScoreClass(cs.compositeScore)"></div>
             </div>
-            <div class="cat-score-value">{{ cs.compositeScore | number:'1.0-1' }}/100 Â· {{ cs.kpiCount }} KPIs</div>
+            <div class="cat-score-value">{{ cs.compositeScore | number:'1.0-1' }}/100 · {{ cs.kpiCount }} KPIs</div>
             <div class="cat-score-breakdown">
               <span class="cs-pill excellent" *ngIf="cs.excellentCount">{{ cs.excellentCount }} Exc.</span>
               <span class="cs-pill faible" *ngIf="cs.faibleCount">{{ cs.faibleCount }} Faible</span>
-              <span class="cs-pill modere" *ngIf="cs.modereCount">{{ cs.modereCount }} ModÃ©rÃ©</span>
-              <span class="cs-pill pre-esc" *ngIf="cs.preEscaladeCount">{{ cs.preEscaladeCount }} PrÃ©-esc.</span>
+              <span class="cs-pill modere" *ngIf="cs.modereCount">{{ cs.modereCount }} Modéré</span>
+              <span class="cs-pill pre-esc" *ngIf="cs.preEscaladeCount">{{ cs.preEscaladeCount }} Pré-esc.</span>
               <span class="cs-pill critique" *ngIf="cs.critiqueCount">{{ cs.critiqueCount }} Crit.</span>
             </div>
           </div>
@@ -574,11 +644,11 @@
       <div class="risk-matrix-section" *ngIf="riskKpis().length > 0">
         <p class="section-label" style="margin-top:20px;">
           <mat-icon style="font-size:16px;vertical-align:middle;">grid_on</mat-icon>
-          Matrice de risque (probabilitÃ© Ã— impact)
+          Matrice de risque (probabilité × impact)
         </p>
         <div class="risk-matrix-wrap">
           <div class="risk-matrix-grid">
-            <div class="risk-y-label">Impact â†‘</div>
+            <div class="risk-y-label">Impact ↑</div>
             <div class="risk-matrix-body">
               <div class="risk-matrix-row" *ngFor="let imp of riskRows">
                 <div class="risk-row-label">{{ imp }}</div>
@@ -599,8 +669,8 @@
           </div>
           <div class="risk-legend">
             <div class="risk-legend-item"><span class="risk-legend-dot low"></span>Faible</div>
-            <div class="risk-legend-item"><span class="risk-legend-dot medium"></span>ModÃ©rÃ©</div>
-            <div class="risk-legend-item"><span class="risk-legend-dot high"></span>Ã‰levÃ©</div>
+            <div class="risk-legend-item"><span class="risk-legend-dot medium"></span>Modéré</div>
+            <div class="risk-legend-item"><span class="risk-legend-dot high"></span>Élevé</div>
             <div class="risk-legend-item"><span class="risk-legend-dot critical"></span>Critique</div>
           </div>
         </div>

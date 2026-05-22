@@ -37,19 +37,6 @@ public class ExtractionAgent {
     private static final double LOW_CONFIDENCE_THRESHOLD = 0.4;
 
 
-    private static final Set<String> KPI_SYNONYMS = Set.of(
-            "kpi","indicateur","indicateur qhse","libelle",
-            "nom indicateur","metric","nom kpi","designation");
-    private static final Set<String> VALUE_N_SYNONYMS = Set.of(
-            "n","annee n","valeur n","resultat n","current","annee actuelle",
-            "valeur actuelle","n courant");
-    private static final Set<String> VALUE_N1_SYNONYMS = Set.of(
-            "n-1","annee n-1","valeur n-1","resultat n-1","previous",
-            "annee precedente","valeur precedente","n1","n moins 1");
-    private static final Set<String> CATEGORY_SYNONYMS = Set.of(
-            "categorie","domaine","famille","axe","qhse","type");
-    private static final Set<String> UNIT_SYNONYMS = Set.of(
-            "unite","unit","mesure","unites");
 
 
     private static final Pattern AMBIGUOUS_PATTERN = Pattern.compile(
@@ -80,7 +67,14 @@ public class ExtractionAgent {
                     sheet, normalizedMapping, headerRowIndex, evaluator, formatter, method);
 
             if (mappingResult.hasMissingCritical) {
-                throw new ImportValidationException("Colonnes obligatoires (KPI, Valeur N, Valeur N-1) introuvables et fichier trop petit pour appliquer les index par défaut.");
+                throw new ImportValidationException(
+                    "Colonnes non reconnues\n" +
+                    "L'application n'a pas réussi à identifier les colonnes de votre fichier. " +
+                    "Vérifiez que votre fichier contient au moins 3 colonnes avec des en-têtes clairs.\n" +
+                    "Exemples d'en-têtes reconnus :\n" +
+                    "  - Noms des KPIs : Indicateur, Libellé, KPI\n" +
+                    "  - Valeur actuelle : Réalisé N, Valeur 2026, N\n" +
+                    "  - Valeur précédente : Réalisé N-1, Valeur 2025, N-1");
             }
 
             Map<String, Integer> effectiveMapping = mappingResult.effectiveMapping;
@@ -222,13 +216,26 @@ public class ExtractionAgent {
                 if (effective.get(MAPPING_VALUE_N1_INDEX) == null || effective.get(MAPPING_VALUE_N1_INDEX) < 0) effective.put(MAPPING_VALUE_N1_INDEX,  r.getValeurN1ColumnIndex());
                 if (r.getCategoryColumnIndex() != null && (effective.get(MAPPING_CATEGORY_INDEX) == null || effective.get(MAPPING_CATEGORY_INDEX) < 0))
                     effective.put(MAPPING_CATEGORY_INDEX, r.getCategoryColumnIndex());
+                if (r.isPositionalFallback()) {
+                    issues.add(ImportIssue.builder()
+                            .rowIndex(headerRowIndex + 1)
+                            .column("Valeur N / Valeur N-1")
+                            .code(ImportIssue.CODE_LOW_CONFIDENCE)
+                            .severity(ImportIssue.Severity.WARNING)
+                            .message("Ordre des colonnes incertain — vérifiez le mapping manuellement")
+                            .build());
+                }
             }
 
-            findColumnBySynonyms(effective, MAPPING_KPI_NAME_INDEX, KPI_SYNONYMS, normalizedHeaders, issues, headerRowIndex);
-            findColumnBySynonyms(effective, MAPPING_VALUE_N_INDEX, VALUE_N_SYNONYMS, normalizedHeaders, issues, headerRowIndex);
-            findColumnBySynonyms(effective, MAPPING_VALUE_N1_INDEX, VALUE_N1_SYNONYMS, normalizedHeaders, issues, headerRowIndex);
-            findColumnBySynonyms(effective, MAPPING_CATEGORY_INDEX, CATEGORY_SYNONYMS, normalizedHeaders, issues, headerRowIndex);
-            findColumnBySynonyms(effective, MAPPING_UNIT_INDEX, UNIT_SYNONYMS, normalizedHeaders, issues, headerRowIndex);
+            findColumnBySynonyms(effective, MAPPING_KPI_NAME_INDEX,  ColumnSemanticResolver.synonymsFor(ColumnSemanticResolver.Semantic.KPI_NAME),  normalizedHeaders, issues, headerRowIndex);
+            findColumnBySynonyms(effective, MAPPING_VALUE_N_INDEX,   ColumnSemanticResolver.synonymsFor(ColumnSemanticResolver.Semantic.VALUE_N),   normalizedHeaders, issues, headerRowIndex);
+            findColumnBySynonyms(effective, MAPPING_VALUE_N1_INDEX,  ColumnSemanticResolver.synonymsFor(ColumnSemanticResolver.Semantic.VALUE_N1),  normalizedHeaders, issues, headerRowIndex);
+            findColumnBySynonyms(effective, MAPPING_CATEGORY_INDEX,  ColumnSemanticResolver.synonymsFor(ColumnSemanticResolver.Semantic.CATEGORY),  normalizedHeaders, issues, headerRowIndex);
+            findColumnBySynonyms(effective, MAPPING_UNIT_INDEX,      ColumnSemanticResolver.synonymsFor(ColumnSemanticResolver.Semantic.UNIT),      normalizedHeaders, issues, headerRowIndex);
+        }
+
+        if (hasRequiredIndexes(mapping) && issues.isEmpty()) {
+            emitLowConfidenceIfNeeded(effective, normalizedHeaders, headerRowIndex, issues);
         }
 
         boolean kpiFound = effective.get(MAPPING_KPI_NAME_INDEX) != null && effective.get(MAPPING_KPI_NAME_INDEX) >= 0;
@@ -309,6 +316,30 @@ public class ExtractionAgent {
                         .build());
             }
         }
+    }
+
+    private void emitLowConfidenceIfNeeded(Map<String, Integer> effective,
+                                            Map<Integer, String> normalizedHeaders,
+                                            int headerRowIndex,
+                                            List<ImportIssue> issues) {
+        int[] critical = {
+            effective.getOrDefault(MAPPING_KPI_NAME_INDEX, -1),
+            effective.getOrDefault(MAPPING_VALUE_N_INDEX,  -1),
+            effective.getOrDefault(MAPPING_VALUE_N1_INDEX, -1)
+        };
+        for (int colIdx : critical) {
+            if (colIdx < 0) return;
+            String header = normalizedHeaders.get(colIdx);
+            if (header == null) return;
+            if (ColumnSemanticResolver.resolve(header).confidence() >= 0.70) return;
+        }
+        issues.add(ImportIssue.builder()
+                .rowIndex(headerRowIndex + 1)
+                .column("Valeur N / Valeur N-1")
+                .code(ImportIssue.CODE_LOW_CONFIDENCE)
+                .severity(ImportIssue.Severity.WARNING)
+                .message("Mapping incertain — en-têtes non reconnus, vérifiez la correspondance des colonnes")
+                .build());
     }
 
     private int optionalIndex(Map<String, Integer> mapping, String key, int fallback) {

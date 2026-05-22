@@ -21,7 +21,9 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           break;
 
         case 400:
-          notify.warning(serverMessage ?? 'Requête invalide. Vérifiez les données saisies.');
+          if (!serverMessage?.startsWith('Colonnes non reconnues')) {
+            notify.warning(serverMessage ?? 'Requête invalide. Vérifiez les données saisies.');
+          }
           break;
 
         case 404:

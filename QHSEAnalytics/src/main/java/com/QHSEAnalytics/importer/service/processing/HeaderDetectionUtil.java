@@ -7,19 +7,19 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class HeaderDetectionUtil {
 
-    private static final List<String> KPI_KEYWORDS = List.of("kpi", "indicateur", "libelle", "libellé", "intitule", "nom");
-    private static final List<String> VALUE_N1_KEYWORDS = List.of("n-1", "n1", "valeur n-1", "valeur n1", "precedent", "anterieur", "2023", "2022");
-    private static final List<String> VALUE_N_KEYWORDS = List.of("valeur n", "valeur n ", "n ", "actuel", "courant", "2024", "2025", "en cours");
-    private static final Pattern YEAR_PATTERN = Pattern.compile("\\b(19|20)\\d{2}\\b");
+    private static final Pattern YEAR_PATTERN = Pattern.compile("\\b(19|20)(\\d{2})\\b");
     private static final List<String> METADATA_MARKERS = List.of("qhse_analytics_template_v1", "template_v1", "template");
 
     private HeaderDetectionUtil() {
@@ -77,7 +77,7 @@ public final class HeaderDetectionUtil {
             int secondValueIndex = findFirstNonEmptyCell(row, formatter, evaluator, firstValueIndex + 1);
 
             if (kpiIndex >= 0 && firstValueIndex >= 0 && secondValueIndex >= 0) {
-                return Optional.of(new HeaderDetectionResult(rowIndex, kpiIndex, secondValueIndex, firstValueIndex, null));
+                return Optional.of(new HeaderDetectionResult(rowIndex, kpiIndex, secondValueIndex, firstValueIndex, null, true));
             }
         }
 
@@ -157,29 +157,36 @@ public final class HeaderDetectionUtil {
                 roles.put(cell.getColumnIndex(), role);
             }
         }
+        resolveYearRoles(roles, row, formatter, evaluator);
         return roles;
     }
 
+    private static void resolveYearRoles(Map<Integer, ColumnRole> roles, Row row,
+                                          DataFormatter formatter, FormulaEvaluator evaluator) {
+        List<Map.Entry<Integer, Integer>> yearCols = new ArrayList<>();
+        for (Cell cell : row) {
+            String value = ExcelParserUtil.getCellValue(cell, evaluator, formatter);
+            String normalized = ExcelParserUtil.normalizeText(value);
+            if (normalized == null || normalized.isBlank()) continue;
+            Matcher m = YEAR_PATTERN.matcher(normalized);
+            if (m.find()) {
+                int year = Integer.parseInt(m.group());
+                yearCols.add(Map.entry(cell.getColumnIndex(), year));
+            }
+        }
+        if (yearCols.size() < 2) return;
+        yearCols.sort(Comparator.<Map.Entry<Integer, Integer>, Integer>comparing(Map.Entry::getValue).reversed());
+        roles.put(yearCols.get(0).getKey(), ColumnRole.VALUE_N);
+        roles.put(yearCols.get(1).getKey(), ColumnRole.VALUE_N1);
+    }
+
     private static ColumnRole classifyHeaderValue(String normalizedValue) {
-        for (String keyword : KPI_KEYWORDS) {
-            if (normalizedValue.contains(keyword)) {
-                return ColumnRole.KPI;
-            }
-        }
-        for (String keyword : VALUE_N1_KEYWORDS) {
-            if (normalizedValue.contains(keyword)) {
-                return ColumnRole.VALUE_N1;
-            }
-        }
-        for (String keyword : VALUE_N_KEYWORDS) {
-            if (normalizedValue.contains(keyword)) {
-                return ColumnRole.VALUE_N;
-            }
-        }
-        if (YEAR_PATTERN.matcher(normalizedValue).find()) {
-            return normalizedValue.contains("2024") || normalizedValue.contains("2025") ? ColumnRole.VALUE_N : ColumnRole.VALUE_N1;
-        }
-        return ColumnRole.UNKNOWN;
+        return switch (ColumnSemanticResolver.resolve(normalizedValue).semantic()) {
+            case KPI_NAME -> ColumnRole.KPI;
+            case VALUE_N  -> ColumnRole.VALUE_N;
+            case VALUE_N1 -> ColumnRole.VALUE_N1;
+            default       -> ColumnRole.UNKNOWN;
+        };
     }
 
     private static HeaderDetectionResult buildResult(int rowIndex, Map<Integer, ColumnRole> labels) {
@@ -221,17 +228,28 @@ public final class HeaderDetectionUtil {
         private final int valeurNColumnIndex;
         private final int valeurN1ColumnIndex;
         private final Integer categoryColumnIndex;
+        private final boolean positionalFallback;
 
         public HeaderDetectionResult(int headerRowIndex,
                                      int kpiColumnIndex,
                                      int valeurNColumnIndex,
                                      int valeurN1ColumnIndex,
                                      Integer categoryColumnIndex) {
+            this(headerRowIndex, kpiColumnIndex, valeurNColumnIndex, valeurN1ColumnIndex, categoryColumnIndex, false);
+        }
+
+        public HeaderDetectionResult(int headerRowIndex,
+                                     int kpiColumnIndex,
+                                     int valeurNColumnIndex,
+                                     int valeurN1ColumnIndex,
+                                     Integer categoryColumnIndex,
+                                     boolean positionalFallback) {
             this.headerRowIndex = headerRowIndex;
             this.kpiColumnIndex = kpiColumnIndex;
             this.valeurNColumnIndex = valeurNColumnIndex;
             this.valeurN1ColumnIndex = valeurN1ColumnIndex;
             this.categoryColumnIndex = categoryColumnIndex;
+            this.positionalFallback = positionalFallback;
         }
 
         public int getHeaderRowIndex() {
@@ -252,6 +270,10 @@ public final class HeaderDetectionUtil {
 
         public Integer getCategoryColumnIndex() {
             return categoryColumnIndex;
+        }
+
+        public boolean isPositionalFallback() {
+            return positionalFallback;
         }
     }
 

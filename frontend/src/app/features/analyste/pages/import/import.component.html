@@ -97,6 +97,17 @@
         <mat-icon>error_outline</mat-icon>
         <span>{{ errorMsg() }}</span>
       </div>
+
+      <div class="column-error-banner" *ngIf="isColumnMappingError()">
+        <strong>Colonnes non reconnues</strong>
+        <p>L'application n'a pas réussi à identifier les colonnes de votre fichier. Vérifiez que votre fichier contient au moins 3 colonnes avec des en-têtes clairs.</p>
+        <p>Exemples d'en-têtes reconnus :</p>
+        <ul>
+          <li>Noms des KPIs : Indicateur, Libellé, KPI</li>
+          <li>Valeur actuelle : Réalisé N, Valeur 2026, N</li>
+          <li>Valeur précédente : Réalisé N-1, Valeur 2025, N-1</li>
+        </ul>
+      </div>
     </div>
   </div>
 

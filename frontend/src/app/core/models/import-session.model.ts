@@ -65,12 +65,9 @@ export interface ColumnProfileDTO {
   sampleValues: string[];
   totalRows: number;
   nullCount: number;
-  uniqueCount: number;
-  numericMin?: number | null;
-  numericMax?: number | null;
-  numericMean?: number | null;
   likelySemantic: 'KPI_NAME' | 'VALUE_N' | 'VALUE_N1' | 'CATEGORY' | 'UNIT' | 'UNKNOWN';
-  semanticConfidence: number; // 0–1
+  confidenceScore: number;
+  warningMessage?: string;
 }
 
 export interface CategoryScoreDTO {

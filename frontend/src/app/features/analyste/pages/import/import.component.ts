@@ -50,6 +50,7 @@ export class ImportComponent implements OnInit, AfterViewInit, OnDestroy {
   isSubmitting = signal(false);
   result = signal<ImportProcessingResponse | null>(null);
   errorMsg = signal('');
+  isColumnMappingError = signal(false);
 
   @ViewChild('barCanvas', { read: ElementRef }) barCanvas?: ElementRef<HTMLCanvasElement>;
   @ViewChild('lineCanvas', { read: ElementRef }) lineCanvas?: ElementRef<HTMLCanvasElement>;
@@ -207,6 +208,7 @@ export class ImportComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.isSubmitting.set(true);
     this.errorMsg.set('');
+    this.isColumnMappingError.set(false);
 
     try {
       const response = await firstValueFrom(
@@ -226,8 +228,13 @@ export class ImportComponent implements OnInit, AfterViewInit, OnDestroy {
       });
       this.router.navigate(['/analyste/import/mapping']);
     } catch (error: any) {
-      this.errorMsg.set(error?.error?.message ?? 'Erreur lors de la détection des en-têtes.');
-      this.snackBar.open(this.errorMsg(), 'OK', { duration: 5000 });
+      const msg: string = error?.error?.message ?? 'Erreur lors de la détection des en-têtes.';
+      if (msg.includes('Colonnes non reconnues')) {
+        this.isColumnMappingError.set(true);
+      } else {
+        this.errorMsg.set(msg);
+        this.snackBar.open(msg, 'OK', { duration: 5000 });
+      }
     } finally {
       this.isSubmitting.set(false);
     }
@@ -237,6 +244,7 @@ export class ImportComponent implements OnInit, AfterViewInit, OnDestroy {
     this.selectedFile.set(null);
     this.result.set(null);
     this.errorMsg.set('');
+    this.isColumnMappingError.set(false);
     this.uploadState.clearUpload();
     this.uploadState.clearResponse();
     this.destroyCharts();

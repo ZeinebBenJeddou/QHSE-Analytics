@@ -60,6 +60,7 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
   valueNMinus1Column = signal<number | null>(null);
 
   errorMsg = signal('');
+  isColumnMappingError = signal(false);
   processing = signal(false);
   progressPercent = signal(0);
   progressStage = signal('');
@@ -72,6 +73,11 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
   profilingLoading = signal(false);
 
   private eventSource: EventSource | null = null;
+  private profileCache = new Map<string, ColumnProfileDTO[]>();
+
+  private fileKey(file: File): string {
+    return `${file.name}_${file.size}_${file.lastModified}`;
+  }
 
   
   private mappingKey(headers: string[]): string {
@@ -167,10 +173,20 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
   }
 
   private async loadColumnProfiles(file: File): Promise<void> {
+    const key = this.fileKey(file);
+    const cached = this.profileCache.get(key);
+    if (cached) {
+      this.columnProfiles.set(cached);
+      this.autoSelectFromProfiles(cached);
+      return;
+    }
     this.profilingLoading.set(true);
     try {
       const profiles = await firstValueFrom(this.importService.profileColumns(file));
-      this.columnProfiles.set(profiles ?? []);
+      const result = profiles ?? [];
+      this.profileCache.set(key, result);
+      this.columnProfiles.set(result);
+      this.autoSelectFromProfiles(result);
     } catch {
       this.columnProfiles.set([]);
     } finally {
@@ -178,8 +194,32 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
     }
   }
 
+  private autoSelectFromProfiles(profiles: ColumnProfileDTO[]): void {
+    this.kpiColumn.set(null);
+    this.valueNColumn.set(null);
+    this.valueNMinus1Column.set(null);
+
+    const kpi    = profiles.find(p => p.likelySemantic === 'KPI_NAME');
+    const yearN  = this.uploadStateData()?.yearN;
+    const yearN1 = this.uploadStateData()?.yearNMinus1;
+
+    const byYear = (year: number | undefined, fallbackSemantic: string): ColumnProfileDTO | undefined =>
+      year != null
+        ? (profiles.find(p => p.detectedHeader.includes(String(year))) ??
+           profiles.find(p => p.likelySemantic === fallbackSemantic))
+        : profiles.find(p => p.likelySemantic === fallbackSemantic);
+
+    const valN  = byYear(yearN,  'VALUE_N');
+    const valN1 = byYear(yearN1, 'VALUE_N1');
+
+    if (kpi)   this.kpiColumn.set(kpi.columnIndex);
+    if (valN)  this.valueNColumn.set(valN.columnIndex);
+    if (valN1) this.valueNMinus1Column.set(valN1.columnIndex);
+  }
+
   ngOnDestroy() {
     this.closeProgressStream();
+    this.profileCache.clear();
   }
 
   private openProgressStream(clientId: string): void {
@@ -234,16 +274,17 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
     const state = this.uploadStateData();
     if (!state) { this.errorMsg.set("État d'import manquant. Revenez à l'étape précédente."); return; }
 
-    const mapping = { kpiNameIndex: this.kpiColumn()!, unitIndex: -1, valueNIndex: this.valueNColumn()!, valueN1Index: this.valueNMinus1Column()!, categoryIndex: -1 };
+    const mapping = { kpiNameIndex: this.kpiColumn()!, valueNIndex: this.valueNColumn()!, valueN1Index: this.valueNMinus1Column()! };
     this.processing.set(true);
     this.errorMsg.set('');
+    this.isColumnMappingError.set(false);
     this.previewResponse.set(null);
 
     try {
       const response = await firstValueFrom(this.importService.previewImport(state.file, state.yearN, state.yearNMinus1, mapping));
       this.previewResponse.set(response);
       this.uploadState.saveResponse(response);
-      this.saveMapping(state.headers); 
+      this.saveMapping(state.headers);
       if (response.qualityReport?.hardBlocking) {
         this.snackBar.open('Erreur structurelle bloquante.', 'OK', { duration: 7000 });
       } else if (response.qualityReport?.softBlocking) {
@@ -254,8 +295,13 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
         this.snackBar.open('Prévisualisation prête.', 'OK', { duration: 3000 });
       }
     } catch (err: any) {
-      this.errorMsg.set(err?.error?.message ?? 'Erreur lors de la prévisualisation.');
-      this.snackBar.open(this.errorMsg(), 'OK', { duration: 5000 });
+      const msg: string = err?.error?.message ?? 'Erreur lors de la prévisualisation.';
+      if (msg.startsWith('Colonnes non reconnues')) {
+        this.isColumnMappingError.set(true);
+      } else {
+        this.errorMsg.set(msg);
+        this.snackBar.open(msg, 'OK', { duration: 5000 });
+      }
     } finally {
       this.processing.set(false);
     }
@@ -271,7 +317,7 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
     if (this.isImportBlocking()) { this.errorMsg.set("Corrigez les erreurs bloquantes avant de confirmer l'import."); return; }
 
     const clientId = crypto.randomUUID();
-    const mapping = { kpiNameIndex: this.kpiColumn()!, unitIndex: -1, valueNIndex: this.valueNColumn()!, valueN1Index: this.valueNMinus1Column()!, categoryIndex: -1 };
+    const mapping = { kpiNameIndex: this.kpiColumn()!, valueNIndex: this.valueNColumn()!, valueN1Index: this.valueNMinus1Column()! };
     this.progressPercent.set(0);
     this.progressStage.set('INITIALISATION');
     this.progressMessage.set('Démarrage du traitement...');
@@ -306,7 +352,7 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
     if (this.isHardBlocking()) { this.errorMsg.set('Erreur structurelle bloquante. Impossible d\'importer même partiellement.'); return; }
 
     const clientId = crypto.randomUUID();
-    const mapping = { kpiNameIndex: this.kpiColumn()!, unitIndex: -1, valueNIndex: this.valueNColumn()!, valueN1Index: this.valueNMinus1Column()!, categoryIndex: -1 };
+    const mapping = { kpiNameIndex: this.kpiColumn()!, valueNIndex: this.valueNColumn()!, valueN1Index: this.valueNMinus1Column()! };
     this.progressPercent.set(0);
     this.progressStage.set('INITIALISATION');
     this.progressMessage.set('Démarrage du traitement partiel...');
@@ -395,7 +441,12 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
   }
 
   get hasLowConfidenceMapping(): boolean {
-    return this.allIssues.some(i => i.code === 'LOW_CONFIDENCE_EXTRACTION');
+    if (this.allIssues.some(i => i.code === 'LOW_CONFIDENCE_EXTRACTION')) return true;
+    const selected = [this.kpiColumn(), this.valueNColumn(), this.valueNMinus1Column()]
+      .filter((v): v is number => v !== null)
+      .map(idx => this.columnProfiles().find(p => p.columnIndex === idx))
+      .filter((p): p is ColumnProfileDTO => p !== undefined);
+    return selected.length > 0 && selected.every(p => (p.confidenceScore ?? 0) < 0.70);
   }
 
   severityClass(severity: string): string {
@@ -443,15 +494,27 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
     return icons[type] ?? 'help_outline';
   }
 
-  profileSemanticClass(semantic: ColumnProfileDTO['likelySemantic']): string {
-    const cls: Record<string, string> = { KPI_NAME: 'sem-kpi', VALUE_N: 'sem-n', VALUE_N1: 'sem-n1', CATEGORY: 'sem-cat', UNIT: 'sem-unit', UNKNOWN: 'sem-unknown' };
-    return cls[semantic] ?? 'sem-unknown';
-  }
 
   profileNullRate(p: ColumnProfileDTO): string {
     if (!p.totalRows) return '0%';
     return `${Math.round((p.nullCount / p.totalRows) * 100)}%`;
   }
+
+  getConfidenceClass(p: ColumnProfileDTO): string {
+    const s = p.confidenceScore ?? 0;
+    if (s >= 0.85) return 'confidence-high';
+    if (s >= 0.70) return 'confidence-medium';
+    return 'confidence-low';
+  }
+
+  getConfidenceLabel(p: ColumnProfileDTO): string {
+    const s = p.confidenceScore ?? 0;
+    if (s >= 0.85) return 'Sûr';
+    if (s >= 0.70) return 'Douteux';
+    return 'Inconnu';
+  }
+
+
 
   
 

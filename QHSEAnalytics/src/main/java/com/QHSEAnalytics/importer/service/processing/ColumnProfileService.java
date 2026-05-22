@@ -8,9 +8,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
-import java.text.Normalizer;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -19,22 +19,7 @@ public class ColumnProfileService {
 
     private final ExcelFileValidator excelFileValidator;
 
-    private static final int MAX_SAMPLE = 5;
-
-
-    private static final Set<String> KPI_NAME_SYNONYMS = Set.of(
-            "kpi", "indicateur", "indicateur qhse", "libelle",
-            "nom indicateur", "metric", "nom kpi", "designation");
-    private static final Set<String> VALUE_N_SYNONYMS = Set.of(
-            "n", "annee n", "valeur n", "resultat n", "current", "annee actuelle",
-            "valeur actuelle", "n courant");
-    private static final Set<String> VALUE_N1_SYNONYMS = Set.of(
-            "n-1", "annee n-1", "valeur n-1", "resultat n-1", "previous",
-            "annee precedente", "valeur precedente", "n1", "n moins 1");
-    private static final Set<String> CATEGORY_SYNONYMS = Set.of(
-            "categorie", "domaine", "famille", "axe", "qhse", "type");
-    private static final Set<String> UNIT_SYNONYMS = Set.of(
-            "unite", "unit", "mesure", "unites");
+    private static final int MAX_COLUMNS_TO_PROFILE = 50;
 
     private static final Pattern DATE_PATTERN = Pattern.compile(
             "\\d{1,4}[./-]\\d{1,2}[./-]\\d{1,4}");
@@ -68,10 +53,20 @@ public class ColumnProfileService {
 
             int colCount = headerRow.getLastCellNum();
             List<ColumnProfileDTO> profiles = new ArrayList<>();
+            int profiledCount = 0;
+            String truncationWarning = null;
 
             for (int col = 0; col < colCount; col++) {
                 String header = cellStr(headerRow.getCell(col), formatter, evaluator);
                 if (header == null || header.isBlank()) continue;
+                if (profiledCount >= MAX_COLUMNS_TO_PROFILE) {
+                    if (truncationWarning == null) {
+                        truncationWarning = "Le fichier contient " + colCount +
+                                " colonnes — seules les " + MAX_COLUMNS_TO_PROFILE +
+                                " premières ont été analysées";
+                    }
+                    continue;
+                }
 
 
                 List<String> allValues = new ArrayList<>();
@@ -86,48 +81,40 @@ public class ColumnProfileService {
                 List<String> nonNull = allValues.stream()
                         .filter(v -> v != null && !v.isBlank())
                         .toList();
-                long uniqueCount = nonNull.stream().map(String::trim).distinct().count();
-
-
                 String inferredType = inferType(nonNull);
 
 
-                Double numMin = null, numMax = null, numMean = null;
-                if ("NUMERIC".equals(inferredType)) {
-                    List<Double> nums = nonNull.stream()
-                            .map(this::parseDouble)
-                            .filter(Objects::nonNull)
-                            .toList();
-                    if (!nums.isEmpty()) {
-                        numMin = nums.stream().mapToDouble(Double::doubleValue).min().orElse(0);
-                        numMax = nums.stream().mapToDouble(Double::doubleValue).max().orElse(0);
-                        numMean = nums.stream().mapToDouble(Double::doubleValue).average().orElse(0);
-                        numMean = Math.round(numMean * 1000.0) / 1000.0;
-                    }
-                }
-
-
-                List<String> samples = nonNull.stream()
-                        .limit(MAX_SAMPLE)
-                        .toList();
-
-
                 String normalizedHeader = normalize(header);
-                String[] semanticAndConf = inferSemantic(normalizedHeader);
+                ColumnSemanticResolver.Result semanticResult = ColumnSemanticResolver.resolve(normalizedHeader);
 
                 profiles.add(ColumnProfileDTO.builder()
                         .columnIndex(col)
                         .detectedHeader(header.trim())
                         .inferredType(inferredType)
-                        .sampleValues(samples)
                         .totalRows(totalRows)
                         .nullCount((int) nullCount)
-                        .uniqueCount((int) uniqueCount)
-                        .numericMin(numMin)
-                        .numericMax(numMax)
-                        .numericMean(numMean)
-                        .likelySemantic(semanticAndConf[0])
-                        .semanticConfidence(Double.parseDouble(semanticAndConf[1]))
+                        .likelySemantic(semanticResult.semantic().name())
+                        .confidenceScore(semanticResult.confidence())
+                        .build());
+                profiledCount++;
+            }
+
+            resolveYearColumns(profiles);
+
+            String duplicateWarning = buildDuplicateHeaderWarning(headerRow, formatter, evaluator);
+            String combinedWarning = combineWarnings(truncationWarning, duplicateWarning);
+
+            if (combinedWarning != null && !profiles.isEmpty()) {
+                ColumnProfileDTO first = profiles.get(0);
+                profiles.set(0, ColumnProfileDTO.builder()
+                        .columnIndex(first.getColumnIndex())
+                        .detectedHeader(first.getDetectedHeader())
+                        .inferredType(first.getInferredType())
+                        .totalRows(first.getTotalRows())
+                        .nullCount(first.getNullCount())
+                        .likelySemantic(first.getLikelySemantic())
+                        .confidenceScore(first.getConfidenceScore())
+                        .warningMessage(combinedWarning)
                         .build());
             }
 
@@ -140,6 +127,30 @@ public class ColumnProfileService {
     }
 
 
+
+
+    private String buildDuplicateHeaderWarning(Row headerRow, DataFormatter formatter, FormulaEvaluator evaluator) {
+        Map<String, Long> counts = new LinkedHashMap<>();
+        for (Cell cell : headerRow) {
+            String raw = cellStr(cell, formatter, evaluator);
+            if (raw == null || raw.isBlank()) continue;
+            String key = normalize(raw);
+            counts.merge(key, 1L, Long::sum);
+        }
+        List<String> duplicates = counts.entrySet().stream()
+                .filter(e -> e.getValue() > 1)
+                .map(Map.Entry::getKey)
+                .toList();
+        if (duplicates.isEmpty()) return null;
+        return "Headers dupliqués détectés : " + String.join(", ", duplicates) +
+               ". Renommez les colonnes pour un mapping précis.";
+    }
+
+    private String combineWarnings(String a, String b) {
+        if (a == null) return b;
+        if (b == null) return a;
+        return a + " | " + b;
+    }
 
     private Sheet selectSheet(Workbook wb) {
         if (wb.getNumberOfSheets() == 0) return null;
@@ -178,31 +189,6 @@ public class ColumnProfileService {
         return "TEXT";
     }
 
-    private String[] inferSemantic(String normalizedHeader) {
-        if (KPI_NAME_SYNONYMS.contains(normalizedHeader)
-                || normalizedHeader.contains("kpi") || normalizedHeader.contains("indicateur")) {
-            return new String[]{"KPI_NAME", "0.95"};
-        }
-        if (VALUE_N1_SYNONYMS.contains(normalizedHeader)
-                || normalizedHeader.contains("n1") || normalizedHeader.contains("n-1")
-                || normalizedHeader.contains("precedent") || normalizedHeader.contains("previous")) {
-            return new String[]{"VALUE_N1", "0.90"};
-        }
-        if (VALUE_N_SYNONYMS.contains(normalizedHeader)
-                || normalizedHeader.equals("n") || normalizedHeader.contains("actuel")
-                || normalizedHeader.contains("current")) {
-            return new String[]{"VALUE_N", "0.85"};
-        }
-        if (CATEGORY_SYNONYMS.contains(normalizedHeader)
-                || normalizedHeader.contains("categor") || normalizedHeader.contains("domain")) {
-            return new String[]{"CATEGORY", "0.88"};
-        }
-        if (UNIT_SYNONYMS.contains(normalizedHeader) || normalizedHeader.contains("unit")) {
-            return new String[]{"UNIT", "0.85"};
-        }
-        return new String[]{"UNKNOWN", "0.30"};
-    }
-
     private Double parseDouble(String v) {
         if (v == null || v.isBlank()) return null;
         try {
@@ -213,11 +199,67 @@ public class ColumnProfileService {
     }
 
     private String normalize(String value) {
-        if (value == null) return "";
-        return Normalizer.normalize(value.trim().toLowerCase(Locale.ROOT), Normalizer.Form.NFD)
-                .replaceAll("\\p{M}", "")
-                .replaceAll("[^a-z0-9\\s-]", " ")
-                .replaceAll("\\s+", " ")
-                .trim();
+        return ColumnSemanticResolver.normalize(value);
+    }
+
+    private static final Pattern YEAR_PATTERN = Pattern.compile("^(19|20)\\d{2}$");
+
+    private void resolveYearColumns(List<ColumnProfileDTO> profiles) {
+        // Pass 1 : colonnes dont le header est une année (ex: 2023, 2024)
+        List<ColumnProfileDTO> yearCols = profiles.stream()
+                .filter(p -> "UNKNOWN".equals(p.getLikelySemantic()))
+                .filter(p -> YEAR_PATTERN.matcher(p.getDetectedHeader().trim()).matches())
+                .sorted(Comparator.comparingInt(p -> Integer.parseInt(p.getDetectedHeader().trim())))
+                .toList();
+
+        if (yearCols.size() >= 2) {
+            ColumnProfileDTO colN  = yearCols.get(yearCols.size() - 1);
+            ColumnProfileDTO colN1 = yearCols.get(yearCols.size() - 2);
+            setSemanticOnProfile(profiles, colN.getColumnIndex(),  "VALUE_N");
+            setSemanticOnProfile(profiles, colN1.getColumnIndex(), "VALUE_N1");
+            return;
+        }
+
+        // Pass 2 : fallback — si VALUE_N et VALUE_N1 toujours UNKNOWN,
+        // prendre les 2 premières colonnes NUMERIC dans l'ordre du fichier
+        boolean valueNFound  = profiles.stream().anyMatch(p -> "VALUE_N".equals(p.getLikelySemantic()));
+        boolean valueN1Found = profiles.stream().anyMatch(p -> "VALUE_N1".equals(p.getLikelySemantic()));
+
+        if (!valueNFound || !valueN1Found) {
+            List<ColumnProfileDTO> numericCols = profiles.stream()
+                    .filter(p -> "UNKNOWN".equals(p.getLikelySemantic()))
+                    .filter(p -> "NUMERIC".equals(p.getInferredType()))
+                    .sorted(Comparator.comparingInt(ColumnProfileDTO::getColumnIndex))
+                    .toList();
+
+            if (numericCols.size() >= 2) {
+                // premier NUMERIC → VALUE_N1, deuxième → VALUE_N (ordre naturel du fichier)
+                setSemanticOnProfile(profiles, numericCols.get(0).getColumnIndex(), "VALUE_N1");
+                setSemanticOnProfile(profiles, numericCols.get(1).getColumnIndex(), "VALUE_N");
+            } else if (numericCols.size() == 1) {
+                setSemanticOnProfile(profiles, numericCols.get(0).getColumnIndex(), "VALUE_N");
+            }
+        }
+    }
+
+    private void setSemanticOnProfile(List<ColumnProfileDTO> profiles, int colIndex, String semantic) {
+        for (int i = 0; i < profiles.size(); i++) {
+            if (profiles.get(i).getColumnIndex() == colIndex) {
+                ColumnProfileDTO existing = profiles.get(i);
+                double score = existing.getConfidenceScore() >= 0.50
+                        ? existing.getConfidenceScore()
+                        : 0.50;
+                profiles.set(i, ColumnProfileDTO.builder()
+                        .columnIndex(existing.getColumnIndex())
+                        .detectedHeader(existing.getDetectedHeader())
+                        .inferredType(existing.getInferredType())
+                        .totalRows(existing.getTotalRows())
+                        .nullCount(existing.getNullCount())
+                        .likelySemantic(semantic)
+                        .confidenceScore(score)
+                        .build());
+                return;
+            }
+        }
     }
 }
