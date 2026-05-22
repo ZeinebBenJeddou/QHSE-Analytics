@@ -3,6 +3,7 @@ package com.QHSEAnalytics.importer.service.processing;
 import com.QHSEAnalytics.shared.dto.request.KpiRawDataDTO;
 import com.QHSEAnalytics.shared.dto.response.ImportIssue;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -13,7 +14,23 @@ import java.util.stream.Collectors;
 @Slf4j
 public class CleaningAgent {
 
-    private static final double OUTLIER_THRESHOLD_PERCENT = 500.0;
+    @Value("${import.cleaning.outlier.threshold.percent:500.0}")
+    private double outlierThresholdPercent;
+
+    @Value("${import.cleaning.score.base:100}")
+    private int scoreBase;
+
+    @Value("${import.cleaning.score.penalty.invalid:50}")
+    private int penaltyInvalid;
+
+    @Value("${import.cleaning.score.penalty.error:30}")
+    private int penaltyError;
+
+    @Value("${import.cleaning.score.penalty.warning:10}")
+    private int penaltyWarning;
+
+    @Value("${import.cleaning.score.penalty.info:5}")
+    private int penaltyInfo;
 
     public List<KpiRawDataDTO> clean(List<KpiRawDataDTO> rawData) {
         if (rawData == null || rawData.isEmpty()) return new ArrayList<>();
@@ -34,29 +51,32 @@ public class CleaningAgent {
 
     private KpiRawDataDTO sanitizeRow(KpiRawDataDTO row) {
 
-        row.setKpiName(trimAndNormalize(row.getKpiName()));
-        row.setCategorie(trimAndNormalize(row.getCategorie()));
-        row.setUnite(trimAndNormalize(row.getUnite()));
+        String cleanedName     = toTitleCaseIfAllCaps(trimAndNormalize(row.getKpiName()));
+        String cleanedCategorie = trimAndNormalize(row.getCategorie());
+        String cleanedUnite    = trimAndNormalize(row.getUnite());
 
-        if (row.getNormalizedKpiName() == null && row.getKpiName() != null) {
-            row.setNormalizedKpiName(ExtractionAgent.normalizeForMatching(row.getKpiName()));
-        }
+        // normalizedKpiName calculé sur le nom déjà nettoyé, pas sur l'original
+        String normalizedName = (row.getNormalizedKpiName() != null)
+                ? row.getNormalizedKpiName()
+                : (cleanedName != null ? ExtractionAgent.normalizeForMatching(cleanedName) : null);
 
+        // Copie défensive de la liste d'issues — ne jamais toucher l'original
+        List<ImportIssue> issues = new ArrayList<>(
+                row.getIssues() == null ? List.of() : row.getIssues());
+
+        String validationMessage = row.getValidationMessage();
 
         if (row.isValid() && row.getValeurN1() != null && row.getValeurN() != null) {
             double v1 = row.getValeurN1();
             double v  = row.getValeurN();
             if (v1 != 0) {
                 double variation = Math.abs((v - v1) / v1) * 100;
-                if (variation > OUTLIER_THRESHOLD_PERCENT) {
+                if (variation > outlierThresholdPercent) {
                     String msg = String.format(
                             "Variation extrême détectée pour '%s' (%.1f%%). Vérifiez les données.",
-                            row.getKpiName(), variation);
+                            cleanedName, variation);
                     log.warn("CleaningAgent: outlier détecté — {}", msg);
 
-
-                    List<ImportIssue> issues = new ArrayList<>(
-                            row.getIssues() == null ? List.of() : row.getIssues());
                     issues.add(ImportIssue.builder()
                             .rowIndex(row.getRowIndex())
                             .column("Valeur N / Valeur N-1")
@@ -64,14 +84,41 @@ public class CleaningAgent {
                             .severity(ImportIssue.Severity.WARNING)
                             .message(msg)
                             .build());
-                    row.setIssues(issues);
 
-
-                    row.setValidationMessage(msg);
+                    validationMessage = msg;
                 }
             }
         }
-        return row;
+
+        int score = scoreBase;
+        if (!row.isValid()) score -= penaltyInvalid;
+        for (ImportIssue issue : issues) {
+            switch (issue.getSeverity()) {
+                case ERROR   -> score -= penaltyError;
+                case WARNING -> score -= penaltyWarning;
+                case INFO    -> score -= penaltyInfo;
+            }
+        }
+        score = Math.max(0, score);
+
+        return KpiRawDataDTO.builder()
+                .rowIndex(row.getRowIndex())
+                .kpiName(cleanedName)
+                .originalKpiName(row.getOriginalKpiName())
+                .normalizedKpiName(normalizedName)
+                .categorie(cleanedCategorie)
+                .unite(cleanedUnite)
+                .valeurN1(row.getValeurN1())
+                .valeurN(row.getValeurN())
+                .valeurN1Raw(row.getValeurN1Raw())
+                .valeurNRaw(row.getValeurNRaw())
+                .valid(row.isValid())
+                .validationMessage(validationMessage)
+                .methodeExtraction(row.getMethodeExtraction())
+                .scoreConfiance(row.getScoreConfiance())
+                .rowQualityScore(score)
+                .issues(issues)
+                .build();
     }
 
 
@@ -152,5 +199,16 @@ public class CleaningAgent {
     private String trimAndNormalize(String value) {
         if (value == null) return null;
         return value.trim().replaceAll("\\s+", " ");
+    }
+
+    private String toTitleCaseIfAllCaps(String value) {
+        if (value == null || value.isBlank()) return value;
+        String letters = value.replaceAll("[^a-zA-ZÀ-ÿ]", "");
+        if (letters.isEmpty()) return value;
+        if (!letters.equals(letters.toUpperCase())) return value;
+        return Arrays.stream(value.split("\\s+"))
+                .map(word -> word.isEmpty() ? word :
+                        Character.toUpperCase(word.charAt(0)) + word.substring(1).toLowerCase())
+                .collect(Collectors.joining(" "));
     }
 }

@@ -407,12 +407,13 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
     return !!this.previewResponse() && this.isSoftBlocking() && !this.isHardBlocking();
   }
 
-  qualityScorePercent(): number {
-    return Math.round(this.qualityReport?.qualityScore ?? 0);
+  qualityScorePercent(): string {
+    const score = this.qualityReport?.qualityScore ?? 0;
+    return (+score.toFixed(1)).toString();
   }
 
   qualityScoreClass(): string {
-    const s = this.qualityScorePercent();
+    const s = this.qualityReport?.qualityScore ?? 0;
     if (s >= 80) return 'score-good';
     if (s >= 50) return 'score-warn';
     return 'score-bad';

@@ -31,7 +31,7 @@ public class KpiRawDataDTO {
     private String normalizedKpiName;
 
 
-    private Integer rowQualityScore;
+    private int rowQualityScore;
 
 
     @Singular

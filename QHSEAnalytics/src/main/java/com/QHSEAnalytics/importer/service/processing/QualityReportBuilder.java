@@ -3,6 +3,7 @@ package com.QHSEAnalytics.importer.service.processing;
 import com.QHSEAnalytics.shared.dto.request.KpiRawDataDTO;
 import com.QHSEAnalytics.shared.dto.response.ImportIssue;
 import com.QHSEAnalytics.shared.dto.response.ImportQualityReport;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -13,6 +14,17 @@ import java.util.Map;
 @Service
 public class QualityReportBuilder {
 
+    @Value("${import.quality.score.valid:100}")
+    private int scoreValid;
+
+    @Value("${import.quality.score.warning:70}")
+    private int scoreWarning;
+
+    @Value("${import.quality.score.invalid:0}")
+    private int scoreInvalid;
+
+    @Value("${import.quality.max.issues.per.severity:200}")
+    private int maxIssuesPerSeverity;
 
     public ImportQualityReport build(List<KpiRawDataDTO> rawData, boolean allowPartialImport) {
         String importMode = allowPartialImport ? "PARTIAL" : "STRICT";
@@ -50,13 +62,13 @@ public class QualityReportBuilder {
 
                 int rowScore;
                 if (!row.isValid() || hasError) {
-                    rowScore = 0;
+                    rowScore = scoreInvalid;
                     invalidRows++;
                 } else if (hasWarning) {
-                    rowScore = 70;
+                    rowScore = scoreWarning;
                     warningRows++;
                 } else {
-                    rowScore = 100;
+                    rowScore = scoreValid;
                 }
 
                 row.setRowQualityScore(rowScore);
@@ -85,6 +97,27 @@ public class QualityReportBuilder {
         List<com.QHSEAnalytics.shared.dto.response.RejectedReasonSummary> rejectedReasons = rejectedReasonsMap.entrySet().stream()
                 .map(e -> new com.QHSEAnalytics.shared.dto.response.RejectedReasonSummary(e.getKey(), e.getValue()))
                 .toList();
+
+        boolean errorsTruncated   = allErrors.size()   > maxIssuesPerSeverity;
+        boolean warningsTruncated = allWarnings.size() > maxIssuesPerSeverity;
+        boolean infosTruncated    = allInfos.size()    > maxIssuesPerSeverity;
+        boolean issuesTruncated   = errorsTruncated || warningsTruncated || infosTruncated;
+
+        List<ImportIssue> cappedErrors   = errorsTruncated
+                ? new ArrayList<>(allErrors.subList(0, maxIssuesPerSeverity))   : allErrors;
+        List<ImportIssue> cappedWarnings = warningsTruncated
+                ? new ArrayList<>(allWarnings.subList(0, maxIssuesPerSeverity)) : allWarnings;
+        List<ImportIssue> cappedInfos    = infosTruncated
+                ? new ArrayList<>(allInfos.subList(0, maxIssuesPerSeverity))    : allInfos;
+
+        if (issuesTruncated) {
+            cappedInfos.add(ImportIssue.builder()
+                    .code("ISSUES_TRUNCATED")
+                    .severity(ImportIssue.Severity.INFO)
+                    .message("Le nombre d'anomalies dépasse " + maxIssuesPerSeverity
+                            + " par catégorie — seules les premières sont affichées.")
+                    .build());
+        }
 
         int uniqueRows = rawData == null ? 0 : rawData.size();
         int totalRows = uniqueRows + duplicateRows;
@@ -135,9 +168,10 @@ public class QualityReportBuilder {
                 .outlierRows(outlierRows)
                 .qualityScore(qualityScore)
                 .blocking(blocking)
-                .errors(allErrors)
-                .warnings(allWarnings)
-                .infos(allInfos)
+                .errors(cappedErrors)
+                .warnings(cappedWarnings)
+                .infos(cappedInfos)
+                .issuesTruncated(issuesTruncated)
                 .build();
     }
 

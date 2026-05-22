@@ -54,4 +54,6 @@ public class ImportQualityReport {
 
 
     private List<ImportIssue> extractionIssues;
+
+    private boolean issuesTruncated;
 }

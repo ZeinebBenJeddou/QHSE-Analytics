@@ -275,7 +275,7 @@
 
       <div class="quality-header">
         <div class="quality-title-row">
-          <mat-icon>verified</mat-icon>
+          
           <span class="quality-title">Rapport qualité de l'import</span>
         </div>
 
@@ -370,6 +370,10 @@
             <tr mat-header-row *matHeaderRowDef="issueColumns"></tr>
             <tr mat-row *matRowDef="let row; columns: issueColumns;" [ngClass]="severityClass(row.severity) + '-row'"></tr>
           </table>
+        </div>
+        <div class="issues-truncated-banner" *ngIf="qualityReport.issuesTruncated">
+          <mat-icon>info</mat-icon>
+          Affichage limité aux 200 premières anomalies par catégorie. Corrigez votre fichier source pour voir toutes les erreurs.
         </div>
       </div>
     </div>

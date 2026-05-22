@@ -6,6 +6,7 @@ import com.QHSEAnalytics.importer.service.processing.ExcelFileValidator;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.util.ReflectionTestUtils;
 import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -89,6 +90,8 @@ class ExtractionAgentTest {
         );
 
         ExtractionAgent agent = new ExtractionAgent(new ExcelFileValidator());
+        ReflectionTestUtils.setField(agent, "mappingGoodThreshold", 0.70);
+        ReflectionTestUtils.setField(agent, "lowConfidenceThreshold", 0.4);
         ExtractionAgent.ExtractionResult result = agent.extract(file, mapping);
 
         assertTrue(
@@ -99,10 +102,124 @@ class ExtractionAgentTest {
         );
     }
 
+    // ── Tests MISSING_VALUE_TOKENS ──────────────────────────────────────────
+
+    @Test
+    void parseNumberRobust_NA_retourneNullSansIssue() throws Exception {
+        ExtractionAgent agent = new ExtractionAgent(new ExcelFileValidator());
+        Method method = ExtractionAgent.class.getDeclaredMethod(
+                "parseNumberRobust", String.class, int.class, String.class, List.class);
+        method.setAccessible(true);
+
+        List<ImportIssue> issues = new ArrayList<>();
+        Object result = method.invoke(agent, "N/A", 1, "Valeur N-1", issues);
+
+        assertNull(getResultValue(result), "N/A doit retourner null");
+        assertFalse(getResultIssueAdded(result), "N/A ne doit pas marquer issueAdded");
+        assertTrue(issues.isEmpty(), "N/A ne doit produire aucune issue CODE_INVALID_NUMBER");
+    }
+
+    @Test
+    void parseNumberRobust_tiretLong_retourneNullSansIssue() throws Exception {
+        ExtractionAgent agent = new ExtractionAgent(new ExcelFileValidator());
+        Method method = ExtractionAgent.class.getDeclaredMethod(
+                "parseNumberRobust", String.class, int.class, String.class, List.class);
+        method.setAccessible(true);
+
+        List<ImportIssue> issues = new ArrayList<>();
+        Object result = method.invoke(agent, "—", 1, "Valeur N-1", issues); // U+2014 —
+
+        assertNull(getResultValue(result), "— (tiret long) doit retourner null");
+        assertFalse(getResultIssueAdded(result), "— ne doit pas marquer issueAdded");
+        assertTrue(issues.isEmpty(), "— ne doit produire aucune issue");
+    }
+
+    @Test
+    void parseNumberRobust_nd_retourneNullSansIssue() throws Exception {
+        ExtractionAgent agent = new ExtractionAgent(new ExcelFileValidator());
+        Method method = ExtractionAgent.class.getDeclaredMethod(
+                "parseNumberRobust", String.class, int.class, String.class, List.class);
+        method.setAccessible(true);
+
+        List<ImportIssue> issues = new ArrayList<>();
+        Object result = method.invoke(agent, "nd", 2, "Valeur N", issues);
+
+        assertNull(getResultValue(result), "nd doit retourner null");
+        assertFalse(getResultIssueAdded(result), "nd ne doit pas marquer issueAdded");
+        assertTrue(issues.isEmpty(), "nd ne doit produire aucune issue");
+    }
+
+    @Test
+    void parseNumberRobust_neant_retourneNullSansIssue() throws Exception {
+        ExtractionAgent agent = new ExtractionAgent(new ExcelFileValidator());
+        Method method = ExtractionAgent.class.getDeclaredMethod(
+                "parseNumberRobust", String.class, int.class, String.class, List.class);
+        method.setAccessible(true);
+
+        List<ImportIssue> issues = new ArrayList<>();
+        Object result = method.invoke(agent, "néant", 3, "Valeur N-1", issues);
+
+        assertNull(getResultValue(result), "néant doit retourner null");
+        assertFalse(getResultIssueAdded(result), "néant ne doit pas marquer issueAdded");
+        assertTrue(issues.isEmpty(), "néant ne doit produire aucune issue");
+    }
+
+    @Test
+    void parseNumberRobust_texteInconnu_retourneNullAvecIssueInvalidNumber() throws Exception {
+        ExtractionAgent agent = new ExtractionAgent(new ExcelFileValidator());
+        Method method = ExtractionAgent.class.getDeclaredMethod(
+                "parseNumberRobust", String.class, int.class, String.class, List.class);
+        method.setAccessible(true);
+
+        List<ImportIssue> issues = new ArrayList<>();
+        Object result = method.invoke(agent, "abc123", 4, "Valeur N", issues);
+
+        assertNull(getResultValue(result), "abc123 doit retourner null");
+        assertTrue(getResultIssueAdded(result), "abc123 doit marquer issueAdded");
+        assertFalse(issues.isEmpty(), "abc123 doit produire une issue d'erreur");
+    }
+
+    @Test
+    void parseNumberRobust_virguleDecimale_retourne8point5() throws Exception {
+        ExtractionAgent agent = new ExtractionAgent(new ExcelFileValidator());
+        Method method = ExtractionAgent.class.getDeclaredMethod(
+                "parseNumberRobust", String.class, int.class, String.class, List.class);
+        method.setAccessible(true);
+
+        List<ImportIssue> issues = new ArrayList<>();
+        Object result = method.invoke(agent, "8,5", 5, "Valeur N", issues);
+
+        assertEquals(8.5, getResultValue(result), "8,5 (virgule française) doit retourner 8.5");
+        assertFalse(getResultIssueAdded(result));
+    }
+
+    @Test
+    void parseNumberRobust_tiretCourt_retourneNullSansIssue() throws Exception {
+        ExtractionAgent agent = new ExtractionAgent(new ExcelFileValidator());
+        Method method = ExtractionAgent.class.getDeclaredMethod(
+                "parseNumberRobust", String.class, int.class, String.class, List.class);
+        method.setAccessible(true);
+
+        List<ImportIssue> issues = new ArrayList<>();
+        Object result = method.invoke(agent, "-", 6, "Valeur N-1", issues);
+
+        assertNull(getResultValue(result), "- (tiret court seul) doit retourner null");
+        assertFalse(getResultIssueAdded(result), "- ne doit pas marquer issueAdded");
+        assertTrue(issues.isEmpty(), "- ne doit produire aucune issue");
+    }
+
+    // ── Helpers réflexion ────────────────────────────────────────────────────
+
     private Double getResultValue(Object parseResult) throws Exception {
         if (parseResult == null) return null;
         Field valueField = parseResult.getClass().getDeclaredField("value");
         valueField.setAccessible(true);
         return (Double) valueField.get(parseResult);
+    }
+
+    private boolean getResultIssueAdded(Object parseResult) throws Exception {
+        Field field = parseResult.getClass().getDeclaredField("issueAdded");
+        field.setAccessible(true);
+        return (boolean) field.get(parseResult);
     }
 }

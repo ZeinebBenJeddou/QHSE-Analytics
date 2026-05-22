@@ -7,6 +7,7 @@ import com.QHSEAnalytics.shared.exception.InvalidFileFormatException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -34,7 +35,11 @@ public class ExtractionAgent {
     public static final String MAPPING_VALUE_N_INDEX   = "valueNIndex";
     public static final String MAPPING_VALUE_N1_INDEX  = "valueN1Index";
 
-    private static final double LOW_CONFIDENCE_THRESHOLD = 0.4;
+    @Value("${import.extraction.confidence.threshold:0.4}")
+    private double lowConfidenceThreshold;
+
+    @Value("${import.extraction.mapping.good.threshold:0.70}")
+    private double mappingGoodThreshold;
 
 
 
@@ -331,7 +336,7 @@ public class ExtractionAgent {
             if (colIdx < 0) return;
             String header = normalizedHeaders.get(colIdx);
             if (header == null) return;
-            if (ColumnSemanticResolver.resolve(header).confidence() >= 0.70) return;
+            if (ColumnSemanticResolver.resolve(header).confidence() >= mappingGoodThreshold) return;
         }
         issues.add(ImportIssue.builder()
                 .rowIndex(headerRowIndex + 1)
@@ -432,7 +437,7 @@ public class ExtractionAgent {
 
             String cleanedKpiName = safeTrim(kpiName);
             double confidence = KpiMatchingUtil.computeConfidence(cleanedKpiName);
-            if (valid && confidence < LOW_CONFIDENCE_THRESHOLD) {
+            if (valid && confidence < lowConfidenceThreshold) {
                 issues.add(ImportIssue.builder()
                         .rowIndex(displayRow).column("KPI")
                         .code(ImportIssue.CODE_LOW_CONFIDENCE)
@@ -473,6 +478,14 @@ public class ExtractionAgent {
         ParseResult(Double value, boolean issueAdded) { this.value = value; this.issueAdded = issueAdded; }
     }
 
+    private static final Set<String> MISSING_VALUE_TOKENS = Set.of(
+            "n/a", "na", "nd", "nr", "nc",
+            "–", "—",
+            "/", "?", "x",
+            "néant", "neant", "aucun",
+            "none", "null", "empty"
+    );
+
     private ParseResult parseNumberRobust(String raw, int rowIndex, String column, List<ImportIssue> issues) {
         if (raw == null || raw.isBlank()) {
             return new ParseResult(null, false);
@@ -483,6 +496,10 @@ public class ExtractionAgent {
 
         if (Set.of("oui","true","vrai","yes","acquis").contains(lower)) return new ParseResult(1.0, false);
         if (Set.of("non","false","faux","no","perdu").contains(lower))   return new ParseResult(0.0, false);
+
+        if (MISSING_VALUE_TOKENS.contains(lower)) {
+            return new ParseResult(null, false);
+        }
 
 
         if (FRACTION_PATTERN.matcher(trimmed).matches()) {

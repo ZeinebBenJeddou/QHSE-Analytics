@@ -154,6 +154,7 @@ export interface ImportQualityReport {
   hardBlocking?: boolean;
   softBlocking?: boolean;
   blockingReason?: string;
+  issuesTruncated?: boolean;
 }
 
 

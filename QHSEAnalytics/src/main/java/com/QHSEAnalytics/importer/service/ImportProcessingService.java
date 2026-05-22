@@ -34,6 +34,7 @@ import com.QHSEAnalytics.analytics.service.AnalyseIaService;
 import com.QHSEAnalytics.importer.service.processing.CalculationAgent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -66,6 +67,12 @@ public class ImportProcessingService {
     private final ImportProgressService importProgressService;
     private final FileStorageService fileStorageService;
     private final ApplicationContext applicationContext;
+
+    @Value("${import.validation.year.min:1900}")
+    private int yearMin;
+
+    @Value("${import.validation.year.max:2100}")
+    private int yearMax;
 
     @Transactional
     public ImportProcessingResponse processManualImport(ImportRequestDTO request, User user) {
@@ -253,11 +260,11 @@ public class ImportProcessingService {
     }
 
     private void validateYearInputs(int yearN, int yearNMinus1) {
-        if (yearN < 1900 || yearN > 2100) {
-            throw new ImportValidationException("Année N doit être comprise entre 1900 et 2100.");
+        if (yearN < yearMin || yearN > yearMax) {
+            throw new ImportValidationException("Année N doit être comprise entre " + yearMin + " et " + yearMax + ".");
         }
-        if (yearNMinus1 < 1900 || yearNMinus1 > 2100) {
-            throw new ImportValidationException("Année N-1 doit être comprise entre 1900 et 2100.");
+        if (yearNMinus1 < yearMin || yearNMinus1 > yearMax) {
+            throw new ImportValidationException("Année N-1 doit être comprise entre " + yearMin + " et " + yearMax + ".");
         }
         if (yearNMinus1 != yearN - 1) {
             throw new ImportValidationException("L'année N-1 doit être exactement l'année N moins 1.");
