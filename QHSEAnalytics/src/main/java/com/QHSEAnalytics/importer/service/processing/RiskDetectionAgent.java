@@ -34,7 +34,7 @@ public class RiskDetectionAgent {
 
     private List<KpiCalculatedDTO> filterCriticalRisks(List<KpiCalculatedDTO> enrichedData) {
         return enrichedData.stream()
-            .filter(kpi -> isCriticalRisk(kpi))
+            .filter(this::isCriticalRisk)
             .collect(Collectors.toList());
     }
 

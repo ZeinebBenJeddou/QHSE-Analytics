@@ -1,8 +1,7 @@
 package com.QHSEAnalytics.importer.controller;
 
 import com.QHSEAnalytics.auth.entity.User;
-import com.QHSEAnalytics.auth.exception.UserNotFoundException;
-import com.QHSEAnalytics.auth.repository.UserRepository;
+import com.QHSEAnalytics.auth.service.SecurityUtils;
 import com.QHSEAnalytics.shared.dto.request.ImportRequestDTO;
 import com.QHSEAnalytics.shared.dto.response.ColumnProfileDTO;
 import com.QHSEAnalytics.shared.dto.response.ImportProcessingResponse;
@@ -18,7 +17,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -40,7 +38,7 @@ public class ImportProcessingController {
     private final ImportProcessingService importProcessingService;
     private final ImportProgressService importProgressService;
     private final ColumnProfileService columnProfileService;
-    private final UserRepository userRepository;
+    private final SecurityUtils securityUtils;
     private final ObjectMapper objectMapper;
 
 
@@ -98,7 +96,7 @@ public class ImportProcessingController {
 
         boolean allowPartial = Boolean.parseBoolean(allowPartialStr);
         Map<String, Integer> mapping = parseMapping(mappingJson);
-        User user = getCurrentUser();
+        User user = securityUtils.getCurrentUser();
         ImportRequestDTO request = ImportRequestDTO.builder()
                 .file(file)
                 .yearN(n)
@@ -145,9 +143,4 @@ public class ImportProcessingController {
         }
     }
 
-    private User getCurrentUser() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("Utilisateur introuvable"));
-    }
 }

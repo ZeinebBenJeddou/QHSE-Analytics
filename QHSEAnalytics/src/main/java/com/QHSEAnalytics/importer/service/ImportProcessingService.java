@@ -19,8 +19,11 @@ import com.QHSEAnalytics.shared.enums.QualityStatus;
 import com.QHSEAnalytics.shared.enums.Tendance;
 import com.QHSEAnalytics.shared.enums.Direction;
 import com.QHSEAnalytics.shared.enums.UniteKpi;
+import com.QHSEAnalytics.shared.exception.ImportNotFoundException;
 import com.QHSEAnalytics.shared.exception.ImportTransitionException;
 import com.QHSEAnalytics.shared.exception.ImportValidationException;
+import com.QHSEAnalytics.shared.repository.AnalyseCategorieRepository;
+import com.QHSEAnalytics.shared.repository.AnalyseGlobaleRepository;
 import com.QHSEAnalytics.shared.repository.CategorieKpiRepository;
 import com.QHSEAnalytics.shared.repository.ImportSessionRepository;
 import com.QHSEAnalytics.shared.repository.KpiAnalysisRepository;
@@ -28,6 +31,7 @@ import com.QHSEAnalytics.shared.repository.KpiImportPreviewRepository;
 import com.QHSEAnalytics.shared.repository.KpiRawDataRepository;
 import com.QHSEAnalytics.shared.repository.KpiRepository;
 import com.QHSEAnalytics.shared.repository.ResultatKpiRepository;
+import com.QHSEAnalytics.shared.repository.StagingDonneeRepository;
 import com.QHSEAnalytics.analytics.service.AnalyseIaService;
 import com.QHSEAnalytics.importer.service.processing.CalculationAgent;
 import lombok.RequiredArgsConstructor;
@@ -60,6 +64,9 @@ public class ImportProcessingService {
     private final KpiRepository kpiRepository;
     private final KpiAnalysisRepository kpiAnalysisRepository;
     private final CategorieKpiRepository categorieKpiRepository;
+    private final AnalyseCategorieRepository analyseCategorieRepository;
+    private final AnalyseGlobaleRepository analyseGlobaleRepository;
+    private final StagingDonneeRepository stagingDonneeRepository;
     private final ImportProgressService importProgressService;
     private final FileStorageService fileStorageService;
     private final ApplicationContext applicationContext;
@@ -69,6 +76,15 @@ public class ImportProcessingService {
 
     @Value("${import.validation.year.max:2100}")
     private int yearMax;
+
+    @Value("${import.kpi.default.seuil.faible:10.0}")
+    private double defaultSeuilFaible;
+
+    @Value("${import.kpi.default.seuil.modere:25.0}")
+    private double defaultSeuilModere;
+
+    @Value("${import.kpi.default.seuil.critique:50.0}")
+    private double defaultSeuilCritique;
 
     @Transactional
     public ImportProcessingResponse processManualImport(ImportRequestDTO request, User user) {
@@ -235,6 +251,25 @@ public class ImportProcessingService {
     public ImportProcessingResponse previewImport(ImportRequestDTO request) {
         validateYearInputs(request.getYearN(), request.getYearN1());
         return orchestrator.preview(request.getFile(), request.getMappingIndexes());
+    }
+
+    @Transactional
+    public void deleteImport(Long importId, Long userId) {
+        ImportSession session = importSessionRepository
+                .findByIdAndUserId(importId, userId)
+                .orElseThrow(() -> new ImportNotFoundException("Import introuvable"));
+
+        // IMPORTANT : ordre de suppression à respecter
+        // Toutes les tables FK vers import_sessions
+        // Si nouvelle table ajoutée → ajouter ici AVANT importSessionRepository.delete()
+        analyseCategorieRepository.deleteByImportSessionId(importId);
+        analyseGlobaleRepository.deleteByImportSessionId(importId);
+        resultatKpiRepository.deleteByImportSessionId(importId);
+        kpiAnalysisRepository.deleteByImportSessionId(importId);
+        stagingDonneeRepository.deleteByImportSessionId(importId);
+        kpiImportPreviewRepository.deleteByImportSessionId(importId);
+        kpiRawDataRepository.deleteByImportSessionId(importId);
+        importSessionRepository.delete(session);
     }
 
     private ImportSession buildImportSession(MultipartFile file, User user, int yearN, int yearNMinus1) {
@@ -504,9 +539,9 @@ public class ImportProcessingService {
                     .definition("KPI auto-créé à partir d'un import. Catégorie détectée: " + dto.getCategorie())
                     .unite(parseUnite(dto.getUnite()))
                     .categorieKpi(categorie)
-                    .seuilFaible(dto.getSeuilFaible() != null ? dto.getSeuilFaible() : 10.0)
-                    .seuilModere(dto.getSeuilModere() != null ? dto.getSeuilModere() : 25.0)
-                    .seuilCritique(dto.getSeuilCritique() != null ? dto.getSeuilCritique() : 50.0)
+                    .seuilFaible(dto.getSeuilFaible() != null ? dto.getSeuilFaible() : defaultSeuilFaible)
+                    .seuilModere(dto.getSeuilModere() != null ? dto.getSeuilModere() : defaultSeuilModere)
+                    .seuilCritique(dto.getSeuilCritique() != null ? dto.getSeuilCritique() : defaultSeuilCritique)
                     .direction(parseDirection(dto.getDirection()))
                     .ordre(999)
                     .isActive(true)

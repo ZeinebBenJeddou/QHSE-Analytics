@@ -88,6 +88,7 @@ public class MetadataEnrichmentAgent {
         sb.append("- For BOOLEAN KPIs (Yes/No, True/False): —\n");
         sb.append("KPIs: ");
         data.forEach(k -> sb.append(k.getKpiName()).append(", "));
+        sb.append("\nRéponds UNIQUEMENT en français pour les champs category et definition.");
         sb.append("\nReturn ONLY a valid JSON object with exactly this structure: {\"items\":[{\"name\":string,\"category\":string,\"definition\":string,\"unite\":string}]}. No other text.");
         return sb.toString();
     }

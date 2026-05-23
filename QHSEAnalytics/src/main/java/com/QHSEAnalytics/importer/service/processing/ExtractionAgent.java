@@ -65,11 +65,10 @@ public class ExtractionAgent {
             Sheet sheet = selectDataSheet(workbook, formatter, evaluator)
                     .orElseThrow(() -> new ImportValidationException("Aucune feuille exploitable trouvée."));
 
-            ExtractionMethod method = determineExtractionMethod();
             Map<String, Integer> normalizedMapping = normalizeMapping(mapping);
-            int headerRowIndex = determineHeaderRow(sheet, normalizedMapping, evaluator, formatter, method);
+            int headerRowIndex = determineHeaderRow(sheet, normalizedMapping, evaluator, formatter);
             MappingResult mappingResult = buildEffectiveMapping(
-                    sheet, normalizedMapping, headerRowIndex, evaluator, formatter, method);
+                    sheet, normalizedMapping, headerRowIndex, evaluator, formatter);
 
             if (mappingResult.hasMissingCritical) {
                 throw new ImportValidationException(
@@ -86,20 +85,20 @@ public class ExtractionAgent {
             List<ImportIssue> extractionIssues = new ArrayList<>(mappingResult.mappingIssues);
 
             log.info("ExtractionAgent démarré : méthode={}, feuille={}, headerRow={}, mapping={}",
-                    method, sheet.getSheetName(), headerRowIndex, effectiveMapping);
+                    "MANUAL", sheet.getSheetName(), headerRowIndex, effectiveMapping);
 
             int lastDataRow = sheet.getLastRowNum();
             if (lastDataRow <= headerRowIndex) {
                 throw new ImportValidationException("Le fichier ne contient aucune ligne de données après l'en-tête.");
             }
 
-            List<KpiRawDataDTO> rows = extractRows(sheet, effectiveMapping, headerRowIndex, evaluator, formatter, method);
+            List<KpiRawDataDTO> rows = extractRows(sheet, effectiveMapping, headerRowIndex, evaluator, formatter);
             List<String> detectedHeaders = buildDetectedHeaders(sheet, headerRowIndex, effectiveMapping, evaluator, formatter);
 
             log.info("ExtractionAgent terminé : totalRows={}, validRows={}",
                     rows.size(), rows.stream().filter(KpiRawDataDTO::isValid).count());
 
-            return new ExtractionResult(rows, method.name(), detectedHeaders, extractionIssues);
+            return new ExtractionResult(rows, "MANUAL", detectedHeaders, extractionIssues);
 
         } catch (ImportValidationException | InvalidFileFormatException ex) {
             throw ex;
@@ -123,10 +122,6 @@ public class ExtractionAgent {
         return Optional.ofNullable(workbook.getNumberOfSheets() > 0 ? workbook.getSheetAt(0) : null);
     }
 
-
-    private ExtractionMethod determineExtractionMethod() {
-        return ExtractionMethod.CUSTOM;
-    }
 
     private boolean hasRequiredIndexes(Map<String, Integer> mapping) {
         return mapping.containsKey(MAPPING_KPI_NAME_INDEX)
@@ -158,26 +153,9 @@ public class ExtractionAgent {
 
 
     private int determineHeaderRow(Sheet sheet, Map<String, Integer> mapping,
-                                   FormulaEvaluator evaluator, DataFormatter formatter, ExtractionMethod method) {
-        if (method == ExtractionMethod.CUSTOM) {
-            int row = findHeaderRow(sheet, mapping, evaluator, formatter);
-            log.info("ExtractionAgent CUSTOM headerRow détecté = {}", row);
-            return row;
-        }
-        Optional<HeaderDetectionUtil.HeaderDetectionResult> result =
-                HeaderDetectionUtil.detectHeaderRow(sheet, formatter, evaluator);
-        if (result.isPresent()) {
-            log.info("ExtractionAgent header détecté = {} via détecteur avancé", result.get().getHeaderRowIndex());
-            return result.get().getHeaderRowIndex();
-        }
-        Optional<HeaderDetectionUtil.HeaderDetectionResult> fallback =
-                HeaderDetectionUtil.buildFallbackHeader(sheet, formatter, evaluator);
-        if (fallback.isPresent()) {
-            log.info("ExtractionAgent header fallback = {}", fallback.get().getHeaderRowIndex());
-            return fallback.get().getHeaderRowIndex();
-        }
+                                   FormulaEvaluator evaluator, DataFormatter formatter) {
         int row = findHeaderRow(sheet, mapping, evaluator, formatter);
-        log.warn("ExtractionAgent header non reconnu, utilisation première ligne valide = {}", row);
+        log.info("ExtractionAgent headerRow détecté = {}", row);
         return row;
     }
 
@@ -194,7 +172,7 @@ public class ExtractionAgent {
 
     private MappingResult buildEffectiveMapping(Sheet sheet, Map<String, Integer> mapping,
                                                 int headerRowIndex, FormulaEvaluator evaluator,
-                                                DataFormatter formatter, ExtractionMethod method) {
+                                                DataFormatter formatter) {
         Map<String, Integer> effective = new HashMap<>(mapping);
         List<ImportIssue> issues = new ArrayList<>();
 
@@ -372,7 +350,7 @@ public class ExtractionAgent {
 
     private List<KpiRawDataDTO> extractRows(Sheet sheet, Map<String, Integer> mapping,
                                              int headerRowIndex, FormulaEvaluator evaluator,
-                                             DataFormatter formatter, ExtractionMethod method) {
+                                             DataFormatter formatter) {
         List<KpiRawDataDTO> rows = new ArrayList<>();
         for (int rowIndex = headerRowIndex + 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
             Row row = sheet.getRow(rowIndex);
@@ -461,7 +439,7 @@ public class ExtractionAgent {
                     .valeurNRaw(safeTrim(nRaw))
                     .valid(valid)
                     .validationMessage(validationMessage)
-                    .methodeExtraction(method.name())
+                    .methodeExtraction("MANUAL")
                     .scoreConfiance(confidence)
                     .issues(issues)
                     .build();
@@ -655,5 +633,4 @@ public class ExtractionAgent {
         public List<ImportIssue> getExtractionIssues()   { return extractionIssues; }
     }
 
-    private enum ExtractionMethod { CUSTOM }
 }
