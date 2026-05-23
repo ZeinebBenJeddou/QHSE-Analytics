@@ -137,8 +137,8 @@ export class AdminService {
     return this.http.put<KpiResponse>(`${this.kpiBase}/${id}`, request);
   }
 
-  deleteKpi(id: number): Observable<any> {
-    return this.http.delete<any>(`${this.kpiBase}/${id}`);
+  deleteKpi(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.kpiBase}/${id}`);
   }
 
   restoreKpi(id: number): Observable<KpiResponse> {

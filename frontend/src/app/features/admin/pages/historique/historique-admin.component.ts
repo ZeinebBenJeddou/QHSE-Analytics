@@ -8,7 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { AdminService } from '../../../../core/services/admin.service';
-import { HistoriqueItemResponse } from '../../../../core/models/import-session.model';
+import { HistoriqueAnalysteResponse, HistoriqueItemResponse } from '../../../../core/models/import-session.model';
  
 @Component({
   selector: 'app-admin-historique',
@@ -60,7 +60,7 @@ export class AdminHistoriqueComponent implements OnInit {
     });
   }
  
-  private applyResponse(response: any): void {
+  private applyResponse(response: HistoriqueAnalysteResponse): void {
     this.items.set(response.items);
     this.totalImports.set(response.totalImports);
     this.totalTraites.set(response.totalTraites);

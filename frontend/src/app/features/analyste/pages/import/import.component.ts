@@ -1,6 +1,7 @@
 import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom, Subject, takeUntil } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
 import { MatCardModule } from '@angular/material/card';
@@ -227,8 +228,8 @@ export class ImportComponent implements OnInit, AfterViewInit, OnDestroy {
         detectedHeaders,
       });
       this.router.navigate(['/analyste/import/mapping']);
-    } catch (error: any) {
-      const msg: string = error?.error?.message ?? 'Erreur lors de la détection des en-têtes.';
+    } catch (error: unknown) {
+      const msg: string = (error instanceof HttpErrorResponse ? error.error?.message : null) ?? 'Erreur lors de la détection des en-têtes.';
       if (msg.includes('Colonnes non reconnues')) {
         this.isColumnMappingError.set(true);
       } else {

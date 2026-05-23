@@ -13,10 +13,6 @@ export class TokenService {
     sessionStorage.setItem(this.activeKey, 'true');
   }
 
-  getToken(): string | null {
-    return null;
-  }
-
   removeToken(): void {
     sessionStorage.removeItem(this.roleKey);
     sessionStorage.removeItem(this.activeKey);

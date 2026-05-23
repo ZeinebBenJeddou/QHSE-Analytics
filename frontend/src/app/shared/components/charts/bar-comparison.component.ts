@@ -1,16 +1,22 @@
 ﻿import {
-  AfterViewInit, Component, ElementRef, Input,
+  AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, Input,
   OnChanges, OnDestroy, SimpleChanges, ViewChild
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Chart, ChartConfiguration, Plugin, registerables } from 'chart.js';
 import { BarreGroupeeData } from '../../../core/models/dashboard.model';
 
+interface ChartWithContext extends Chart {
+  ctx: CanvasRenderingContext2D;
+  __deltaData?: BarreGroupeeData[];
+}
+
 Chart.register(...registerables);
 
 @Component({
   selector: 'app-bar-comparison',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `<div class="chart-wrapper"><canvas #chartCanvas></canvas></div>`,
   styles: [`
@@ -53,8 +59,9 @@ export class BarComparisonComponent implements AfterViewInit, OnChanges, OnDestr
     const deltaPlugin: Plugin<'bar'> = {
       id: 'deltaLabels',
       afterDatasetsDraw(chart) {
-        const { ctx } = chart as any;
-        const lignes: BarreGroupeeData[] = (chart as any).__deltaData ?? [];
+        const c = chart as unknown as ChartWithContext;
+        const { ctx } = c;
+        const lignes: BarreGroupeeData[] = c.__deltaData ?? [];
         if (!lignes.length) return;
         ctx.save();
         lignes.forEach((d, i) => {
@@ -153,6 +160,6 @@ export class BarComparisonComponent implements AfterViewInit, OnChanges, OnDestr
 
     this.chart = new Chart(ctx, config);
    
-    (this.chart as any).__deltaData = this.data;
+    (this.chart as unknown as ChartWithContext).__deltaData = this.data;
   }
 }

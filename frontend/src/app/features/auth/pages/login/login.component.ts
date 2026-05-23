@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { HttpErrorResponse } from '@angular/common/http';
 import { AuthService } from '../../../../core/services/auth.service';
 import { finalize } from 'rxjs';
 
@@ -69,7 +70,7 @@ export class LoginPage implements OnInit {
         this.snackBar.open('OTP envoyé. Vérifiez votre email.', 'Fermer', { duration: 4000 });
         this.router.navigate(['/auth/otp'], { queryParams: { email } });
       },
-      error: (err: any) => {
+      error: (err: HttpErrorResponse) => {
         this.isLoading = false;
         const msg = err.error?.message || 'Identifiants incorrects. Veuillez réessayer.';
         this.snackBar.open(msg, 'Fermer', { duration: 5000 });
@@ -89,7 +90,7 @@ export class LoginPage implements OnInit {
         this.forgotSuccess = true;
         this.snackBar.open('Lien envoyé. Vérifiez votre email.', 'Fermer', { duration: 5000 });
       },
-      error: (err: any) => {
+      error: (err: HttpErrorResponse) => {
         const msg = err.error?.message || 'Une erreur est survenue. Veuillez réessayer.';
         this.snackBar.open(msg, 'Fermer', { duration: 5000 });
       }

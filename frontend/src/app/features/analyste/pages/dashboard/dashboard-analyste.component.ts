@@ -1,10 +1,12 @@
 ﻿import {
-  Component, inject, OnInit, signal, computed
+  Component, inject, OnInit, OnDestroy, signal, computed
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
-import { catchError, finalize, of } from 'rxjs';
+import { Subject, catchError, finalize, of } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -38,7 +40,7 @@ import { AnalyseCompleteResponse, AiAnalysisStructuredResponse, ResultatKpiIaRes
 
 import { BarComparisonComponent } from '../../../../shared/components/charts/bar-comparison.component';
 import { PieDistributionComponent } from '../../../../shared/components/charts/pie-distribution.component';
-import * as XLSX from 'xlsx';
+
 
 interface CategorieInfo {
   code: string;
@@ -86,7 +88,7 @@ interface InsightCardVm {
   templateUrl: './dashboard-analyste.component.html',
   styleUrls: ['./dashboard-analyste.component.css'],
 })
-export class DashboardAnalysteComponent implements OnInit {
+export class DashboardAnalysteComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private dashboardService = inject(DashboardService);
@@ -95,6 +97,7 @@ export class DashboardAnalysteComponent implements OnInit {
   private adminService = inject(AdminService);
   private snackBar = inject(MatSnackBar);
   private sessionState = inject(ImportSessionStateService);
+  private readonly destroy$ = new Subject<void>();
 
   importId = signal<number | null>(null);
   exporting = signal(false);
@@ -305,12 +308,14 @@ export class DashboardAnalysteComponent implements OnInit {
     const col = this.sortColumn();
     const dir = this.sortDir();
     return [...filtered].sort((a, b) => {
-      const aVal = (a as any)[col] ?? 0;
-      const bVal = (b as any)[col] ?? 0;
-      if (typeof aVal === 'string') {
+      const aVal = (a as unknown as Record<string, unknown>)[col] ?? 0;
+      const bVal = (b as unknown as Record<string, unknown>)[col] ?? 0;
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
         return dir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
       }
-      return dir === 'asc' ? aVal - bVal : bVal - aVal;
+      const aNum = Number(aVal);
+      const bNum = Number(bVal);
+      return dir === 'asc' ? aNum - bNum : bNum - aNum;
     });
   });
 
@@ -610,10 +615,10 @@ export class DashboardAnalysteComponent implements OnInit {
 
   ngOnInit() {
     this.adminService.getCurrentProfile()
-      .pipe(catchError(() => of(null)))
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(p => { if (p) this.profile.set(p); });
 
-    this.route.paramMap.subscribe(params => {
+    this.route.paramMap.pipe(takeUntil(this.destroy$)).subscribe(params => {
       const id = params.get('id');
       if (id) {
         this.importId.set(+id);
@@ -624,6 +629,11 @@ export class DashboardAnalysteComponent implements OnInit {
     });
 
     this.loadSavedFilters();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   loadResume() {
@@ -878,11 +888,14 @@ export class DashboardAnalysteComponent implements OnInit {
 
   
 
-  private extractErrorMessage(err: any, fallback: string): string {
+  private extractErrorMessage(err: unknown, fallback: string): string {
     if (!err) return fallback;
-    if (err.error && typeof err.error === 'object' && err.error.message) return err.error.message;
-    if (typeof err.error === 'string') return err.error;
-    if (err.message) return err.message;
+    if (err instanceof HttpErrorResponse) {
+      if (err.error && typeof err.error === 'object' && (err.error as { message?: string }).message)
+        return (err.error as { message: string }).message;
+      if (typeof err.error === 'string') return err.error;
+      if (err.message) return err.message;
+    }
     return fallback;
   }
 
@@ -951,7 +964,8 @@ export class DashboardAnalysteComponent implements OnInit {
     });
   }
 
-  exportExcel() {
+  async exportExcel(): Promise<void> {
+    const XLSX = await import('xlsx');
     const rows = this.filteredLignes().map(r => ({
       'Indicateur': r.kpiNom,
       'Catégorie': r.categorieLibelle,

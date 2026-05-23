@@ -1,5 +1,5 @@
 import {
-  AfterViewInit, Component, ElementRef, Input,
+  AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, Input,
   OnChanges, OnDestroy, SimpleChanges, ViewChild, signal
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -11,6 +11,7 @@ Chart.register(...registerables);
 @Component({
   selector: 'app-pie-distribution',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, MatIconModule],
   template: `
     <div class="chart-wrapper">

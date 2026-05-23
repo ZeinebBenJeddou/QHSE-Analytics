@@ -604,7 +604,7 @@
               <div class="meta-cell">
                 <span *ngIf="row.reviewRequired" class="review-badge" matTooltip="Validation analyste recommandée">À vérifier</span>
                 <span *ngIf="row.classificationReason" class="reason" matTooltip="{{ row.classificationReason }}">{{ row.classificationReason }}</span>
-                <mat-progress-bar *ngIf="row.calcConfidence !== undefined" [value]="row.calcConfidence" mode="determinate" color="primary" class="confidence-bar"></mat-progress-bar>
+                <mat-progress-bar *ngIf="row.calcConfidence !== undefined" [value]="clampConfidence(row.calcConfidence)" mode="determinate" color="primary" class="confidence-bar"></mat-progress-bar>
                 <span *ngIf="row.dataFlags?.length" class="data-flags" matTooltip="{{ row.dataFlags.join(', ') }}">⚑</span>
               </div>
             </td>

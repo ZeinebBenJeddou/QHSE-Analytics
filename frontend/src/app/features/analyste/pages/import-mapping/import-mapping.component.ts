@@ -1,6 +1,7 @@
 import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -294,8 +295,8 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
       } else {
         this.snackBar.open('Prévisualisation prête.', 'OK', { duration: 3000 });
       }
-    } catch (err: any) {
-      const msg: string = err?.error?.message ?? 'Erreur lors de la prévisualisation.';
+    } catch (err: unknown) {
+      const msg: string = (err instanceof HttpErrorResponse ? err.error?.message : null) ?? 'Erreur lors de la prévisualisation.';
       if (msg.startsWith('Colonnes non reconnues')) {
         this.isColumnMappingError.set(true);
       } else {
@@ -335,8 +336,8 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
       } else {
         this.router.navigate(['/analyste/dashboard']);
       }
-    } catch (err: any) {
-      this.errorMsg.set(err?.error?.message ?? 'Erreur lors de la confirmation.');
+    } catch (err: unknown) {
+      this.errorMsg.set((err instanceof HttpErrorResponse ? err.error?.message : null) ?? 'Erreur lors de la confirmation.');
       this.snackBar.open(this.errorMsg(), 'OK', { duration: 5000 });
     } finally {
       this.processing.set(false);
@@ -372,8 +373,8 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
       } else {
         this.router.navigate(['/analyste/dashboard']);
       }
-    } catch (err: any) {
-      this.errorMsg.set(err?.error?.message ?? 'Erreur lors de l\'import partiel.');
+    } catch (err: unknown) {
+      this.errorMsg.set((err instanceof HttpErrorResponse ? err.error?.message : null) ?? 'Erreur lors de l\'import partiel.');
       this.snackBar.open(this.errorMsg(), 'OK', { duration: 5000 });
     } finally {
       this.processing.set(false);
@@ -513,6 +514,10 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
     if (s >= 0.85) return 'Sûr';
     if (s >= 0.70) return 'Douteux';
     return 'Inconnu';
+  }
+
+  clampConfidence(value: number | undefined): number {
+    return Math.max(0, Math.min(100, value ?? 0));
   }
 
 

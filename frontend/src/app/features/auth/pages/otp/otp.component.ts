@@ -146,7 +146,6 @@ export class OtpComponent {
         const fieldError = error?.error?.fieldErrors?.code;
         const message = error?.error?.message || fieldError || (typeof error?.error === 'string' ? error.error : null);
         this.backendError = message || 'Unable to verify OTP. Please try again.';
-        console.error('OTP verify error:', error);
       }
     });
   }

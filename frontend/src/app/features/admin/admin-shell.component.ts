@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, OnDestroy, inject } from '@angular/core';
 import { Router, RouterModule, RouterOutlet, NavigationEnd } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { MatSidenavModule } from '@angular/material/sidenav';
@@ -9,7 +9,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TokenService } from '../../core/services/token.service';
 import { AuthService } from '../../core/services/auth.service';
-import { filter } from 'rxjs/operators';
+import { Subject } from 'rxjs';
+import { filter, takeUntil } from 'rxjs/operators';
 
 @Component({
   selector: 'app-admin-shell',
@@ -28,10 +29,11 @@ import { filter } from 'rxjs/operators';
   templateUrl: './admin-shell.component.html',
   styleUrls: ['./admin-shell.component.css'],
 })
-export class AdminShellComponent {
+export class AdminShellComponent implements OnDestroy {
   private readonly tokenService = inject(TokenService);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly destroy$ = new Subject<void>();
 
   sidenavOpen = true;
   activeLabel = 'Overview';
@@ -47,7 +49,7 @@ export class AdminShellComponent {
 
   constructor() {
     this.router.events
-      .pipe(filter(e => e instanceof NavigationEnd))
+      .pipe(filter(e => e instanceof NavigationEnd), takeUntil(this.destroy$))
       .subscribe(() => {
         if (this.router.url.startsWith('/admin/analyses/')) {
           this.activeLabel = 'Analyse IA';
@@ -61,6 +63,11 @@ export class AdminShellComponent {
         );
         if (match) this.activeLabel = match.label;
       });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   logout(): void {

@@ -9,6 +9,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatIconModule } from '@angular/material/icon';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
 import { AdminService } from '../../../../core/services/admin.service';
 import { ChangePasswordRequest, ProfileResponse, UpdateProfilRequest } from '../../models/admin.models';
 import { TokenService } from '../../../../core/services/token.service';
@@ -118,7 +119,7 @@ export class AdminProfileComponent implements OnInit {
           error: ()  => { this.tokenService.removeToken(); this.router.navigate(['/auth/login']); }
         });
       },
-      error: (err: any) => {
+      error: (err: HttpErrorResponse) => {
         const message = err.error?.message || 'Impossible de changer le mot de passe.';
         this.snackBar.open(message, 'Fermer', { duration: 5000 });
       },

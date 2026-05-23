@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { Router, RouterModule, RouterOutlet, NavigationEnd } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { MatSidenavModule } from '@angular/material/sidenav';
@@ -11,7 +11,8 @@ import { MatBadgeModule } from '@angular/material/badge';
 import { TokenService } from '../../core/services/token.service';
 import { AuthService } from '../../core/services/auth.service';
 import { DashboardService } from '../../core/services/dashboard.service';
-import { filter } from 'rxjs/operators';
+import { Subject } from 'rxjs';
+import { filter, takeUntil } from 'rxjs/operators';
 
 @Component({
   selector: 'app-analyste-shell',
@@ -31,11 +32,12 @@ import { filter } from 'rxjs/operators';
   templateUrl: './analyste-shell.component.html',
   styleUrls: ['./analyste-shell.component.css'],
 })
-export class AnalysteShellComponent implements OnInit {
+export class AnalysteShellComponent implements OnInit, OnDestroy {
   private tokenService = inject(TokenService);
   private authService = inject(AuthService);
   private router = inject(Router);
   private dashboardService = inject(DashboardService);
+  private readonly destroy$ = new Subject<void>();
 
   sidenavOpen = true;
   activeLabel = 'Tableau de bord';
@@ -64,7 +66,7 @@ export class AnalysteShellComponent implements OnInit {
 
   constructor() {
     this.router.events
-      .pipe(filter(e => e instanceof NavigationEnd))
+      .pipe(filter(e => e instanceof NavigationEnd), takeUntil(this.destroy$))
       .subscribe(() => {
         const allItems = [
           ...this.dashItems, ...this.dataItems,
@@ -77,12 +79,17 @@ export class AnalysteShellComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.dashboardService.getAlertes().subscribe({
+    this.dashboardService.getAlertes().pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         this.notificationCount = res?.count ?? 0;
       },
       error: () => {},
     });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   logout(): void {
