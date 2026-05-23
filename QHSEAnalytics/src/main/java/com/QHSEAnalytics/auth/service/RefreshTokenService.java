@@ -64,15 +64,6 @@ public class RefreshTokenService {
     }
 
 
-    @Transactional(readOnly = true)
-    public RefreshToken validateRefreshToken(String token) {
-        return refreshTokenRepository
-                .findByTokenAndRevokedFalse(token)
-                .filter(rt -> !rt.isExpired())
-                .orElseThrow(() -> new RefreshTokenInvalidException("Refresh token invalide ou expiré"));
-    }
-
-
     @Transactional
     public void revokeAllForUser(User user) {
         refreshTokenRepository.revokeAllForUser(user);

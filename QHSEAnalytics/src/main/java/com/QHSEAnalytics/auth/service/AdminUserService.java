@@ -30,6 +30,7 @@ import com.QHSEAnalytics.shared.repository.ResultatKpiRepository;
 import com.QHSEAnalytics.shared.repository.StagingDonneeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -47,6 +48,9 @@ import java.util.List;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class AdminUserService {
+
+    @Value("${app.password-reset.expiration-hours:1}")
+    private int passwordResetExpirationHours;
 
     private static final String LOWER = "abcdefghijklmnopqrstuvwxyz";
     private static final String UPPER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -274,7 +278,7 @@ public class AdminUserService {
         EmailToken token = EmailToken.builder()
                 .user(user)
                 .type(EmailToken.EmailTokenType.PASSWORD_RESET)
-                .expiresAt(LocalDateTime.now().plusHours(1))
+                .expiresAt(LocalDateTime.now().plusHours(passwordResetExpirationHours))
                 .build();
 
         emailTokenRepository.save(token);

@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
-import java.nio.charset.StandardCharsets;
 
 @Service
 @RequiredArgsConstructor
@@ -65,21 +64,10 @@ public class EmailService {
 
     @Async
     public void sendWelcomeEmail(String to, String prenom, String tempPassword) {
-      String link = frontendUrl + "/auth/login";
-      String subject = "Bienvenue sur QHSE Analytics";
-      String body = buildWelcomeHtml(prenom, to, tempPassword, link);
-
-      try {
-        MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
-        helper.setFrom(from);
-        helper.setTo(to);
-        helper.setSubject(subject);
-        helper.setText(body, true);
-        mailSender.send(message);
-      } catch (MessagingException e) {
-        log.error("Erreur envoi email de bienvenue");
-      }
+        String link = frontendUrl + "/auth/login";
+        String subject = "Bienvenue sur QHSE Analytics";
+        String body = buildWelcomeHtml(prenom, to, tempPassword, link);
+        sendEmail(to, subject, body);
     }
 
 
