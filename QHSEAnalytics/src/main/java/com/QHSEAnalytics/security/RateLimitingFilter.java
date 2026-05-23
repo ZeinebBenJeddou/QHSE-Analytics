@@ -1,5 +1,6 @@
 package com.QHSEAnalytics.security;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.Set;
 
 
@@ -21,6 +23,7 @@ import java.util.Set;
 public class RateLimitingFilter extends OncePerRequestFilter {
 
     private final InMemoryRateLimiter rateLimiter;
+    private final ObjectMapper objectMapper;
 
     @Value("${app.rate-limit.trust-proxy:false}")
     private boolean trustProxy;
@@ -29,6 +32,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             "/api/auth/login",
             "/api/auth/verify-otp",
             "/api/auth/resend-otp",
+            "/api/auth/register",
             "/api/auth/forgot-password",
             "/api/auth/reset-password"
     );
@@ -50,10 +54,12 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             response.setStatus(429);
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.setCharacterEncoding("UTF-8");
-            response.getWriter().write(
-                "{\"status\":429,\"error\":\"Too Many Requests\"," +
-                "\"message\":\"Trop de tentatives. Veuillez réessayer dans quelques minutes.\"}"
+            Map<String, Object> body = Map.of(
+                "status", 429,
+                "error", "Too Many Requests",
+                "message", "Trop de tentatives. Veuillez réessayer dans quelques minutes."
             );
+            objectMapper.writeValue(response.getWriter(), body);
             return;
         }
 

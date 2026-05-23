@@ -100,7 +100,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private boolean isPublicPath(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return path.startsWith("/api/auth/")
+        return (path.startsWith("/api/auth/")
+                    && !path.equals("/api/auth/logout"))
                 || path.startsWith("/v3/api-docs")
                 || path.startsWith("/swagger-ui")
                 || path.equals("/swagger-ui.html");

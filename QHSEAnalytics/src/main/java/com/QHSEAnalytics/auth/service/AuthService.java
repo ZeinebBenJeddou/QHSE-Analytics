@@ -13,6 +13,7 @@ import com.QHSEAnalytics.auth.entity.User;
 import com.QHSEAnalytics.auth.exception.*;
 import com.QHSEAnalytics.auth.repository.EmailTokenRepository;
 import com.QHSEAnalytics.auth.repository.UserRepository;
+import com.QHSEAnalytics.security.InMemoryRateLimiter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -41,6 +42,7 @@ public class AuthService {
     private final RefreshTokenService refreshTokenService;
     private final EmailService emailService;
     private final AuthenticationManager authenticationManager;
+    private final InMemoryRateLimiter rateLimiter;
 
     @Value("${app.email-token.expiration-hours}")
     private int emailTokenExpirationHours;
@@ -176,7 +178,7 @@ public class AuthService {
 
 
     @Transactional
-    public AuthResponse verifyOtpAndLogin(VerifyOtpRequest request) {
+    public AuthResponse verifyOtpAndLogin(VerifyOtpRequest request, String clientIp) {
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new UserNotFoundException("Utilisateur introuvable."));
@@ -189,6 +191,9 @@ public class AuthService {
 
         String accessToken = jwtService.generateAccessToken(user);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user, request.isRememberMe());
+
+        rateLimiter.reset(clientIp, "/api/auth/verify-otp");
+        rateLimiter.reset(clientIp, "/api/auth/login");
 
         return AuthResponse.builder()
                 .accessToken(accessToken)

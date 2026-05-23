@@ -54,8 +54,10 @@ public class AuthController {
     @Operation(summary = "Valider l'OTP et obtenir les tokens", description = "Vérifie l'OTP et retourne JWT + refresh token")
     @PostMapping("/verify-otp")
     public ResponseEntity<?> verifyOtp(@Valid @RequestBody VerifyOtpRequest request,
+                                       HttpServletRequest httpRequest,
                                        HttpServletResponse response) {
-        AuthResponse auth = authService.verifyOtpAndLogin(request);
+        String clientIp = httpRequest.getRemoteAddr();
+        AuthResponse auth = authService.verifyOtpAndLogin(request, clientIp);
         cookieTokenService.setAccessTokenCookie(response, auth.getAccessToken());
         cookieTokenService.setRefreshTokenCookie(response, auth.getRefreshToken(), request.isRememberMe());
         return ResponseEntity.ok(auth);
