@@ -569,7 +569,7 @@
                         }
                         @if (alert.confidence != null) {
                           <span class="alert-conf">
-                            <mat-icon>verified</mat-icon>{{ (alert.confidence * 100).toFixed(0) }}%
+                            <mat-icon>verified</mat-icon>{{ clampConfidence(alert.confidence) }}%
                           </span>
                         }
                       </div>

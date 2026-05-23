@@ -29,4 +29,11 @@ public class SecurityUtils {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("Utilisateur introuvable: " + email));
     }
+
+    public boolean isAdmin() {
+        return SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+    }
 }

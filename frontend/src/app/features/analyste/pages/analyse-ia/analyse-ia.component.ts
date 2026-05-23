@@ -394,6 +394,10 @@ export class AnalyseIAComponent implements OnInit, OnDestroy {
     }
   }
 
+  clampConfidence(value: number): number {
+    return Math.max(0, Math.min(100, value ?? 0));
+  }
+
   formatDisplayText(value: string | null | undefined): string {
     if (!value) return '';
 

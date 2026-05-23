@@ -4,6 +4,7 @@ import com.QHSEAnalytics.analytics.service.processing.GroqPromptBuilder;
 import com.QHSEAnalytics.shared.exception.ProviderUnavailableException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -50,6 +51,13 @@ public class GroqService {
     @Value("${app.groq.temperature.text:0.5}")
     private double temperatureText;
 
+    private RestTemplate restTemplate;
+
+    @PostConstruct
+    public void init() {
+        this.restTemplate = buildRestTemplate();
+    }
+
     public String generate(String prompt) {
         String response = appelerJson(prompt, MAX_TOKENS);
         if (response == null || response.isBlank() || FALLBACK_MESSAGE.equals(response)) {
@@ -84,7 +92,6 @@ public class GroqService {
             throw new ProviderUnavailableException(PROVIDER_NAME, "no Groq models configured");
         }
 
-        RestTemplate restTemplate = buildRestTemplate();
         int attempts = Math.max(1, groqKeyRotator.keyCount());
 
         for (String candidateModel : candidateModels) {

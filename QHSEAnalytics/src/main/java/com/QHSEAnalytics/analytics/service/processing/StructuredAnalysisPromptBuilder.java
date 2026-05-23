@@ -288,8 +288,8 @@ public class StructuredAnalysisPromptBuilder {
         prompt.append("For each KPI showing a deteriorating trend (trendDirection DETERIORATING or 2+ consecutive negative variations), produce a predictiveAlert.\n");
         prompt.append("projection must describe what will happen if the trend continues (e.g. 'Si la tendance continue, le KPI X atteindra le seuil critique dans environ N mois').\n");
         prompt.append("estimatedHorizonMonths must be an integer between 1 and 24. Use null if trend is stable or improving.\n");
-        prompt.append("severity must be LOW (horizon > 12 months), MEDIUM (6-12 months) or HIGH (< 6 months).\n");
-        prompt.append("confidence must be a number between 0 and 100.\n");
+        prompt.append("severity doit être LOW (horizon > 12 mois), MEDIUM (6-12 mois) ou HIGH (< 6 mois).\n");
+        prompt.append("confidence doit être un entier entre 0 et 100.\n");
 
         prompt.append("Remember: the structured JSON is the single source of truth. Do not output other prose.\n");
 

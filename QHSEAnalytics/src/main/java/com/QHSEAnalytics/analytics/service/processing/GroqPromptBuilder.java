@@ -1,7 +1,5 @@
 package com.QHSEAnalytics.analytics.service.processing;
 
-import com.QHSEAnalytics.shared.enums.NiveauVariation;
-import com.QHSEAnalytics.shared.enums.Tendance;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,8 +23,6 @@ public class GroqPromptBuilder {
             double valeurN1,
             double valeurN,
             double variationRelative,
-            NiveauVariation niveau,
-            Tendance tendance,
             int periodeN1,
             int periodeN
     ) {

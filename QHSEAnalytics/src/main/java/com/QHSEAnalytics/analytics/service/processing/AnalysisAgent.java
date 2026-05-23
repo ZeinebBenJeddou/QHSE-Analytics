@@ -786,9 +786,9 @@ public class AnalysisAgent {
         )));
         prompt.append("\n");
 
-        prompt.append("You are a senior QHSE data analyst AI expert in ISO 9001, ISO 14001, and ISO 45001.\n\n");
-        prompt.append("Analyze the provided current results (N vs N-1) by cross-referencing them with the full indicator list and historical action plans provided above.\n");
-        prompt.append("Your goal is to identify trends, potential risks, and ensure compliance with ISO standards.\n\n");
+        prompt.append("Tu es un expert QHSE senior spécialisé en ISO 9001, ISO 14001 et ISO 45001.\n\n");
+        prompt.append("Analyse les résultats N vs N-1 fournis en les croisant avec les plans d'actions historiques ci-dessus.\n");
+        prompt.append("Ton objectif est d'identifier les tendances, les risques potentiels et d'assurer la conformité aux normes ISO.\n\n");
 
         prompt.append("=== DONNÉES KPI ACTUELLES (N vs N-1) ===\n");
         data.forEach(kpi -> {

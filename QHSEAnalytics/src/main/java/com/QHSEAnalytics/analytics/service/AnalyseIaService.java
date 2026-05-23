@@ -140,17 +140,16 @@ public class AnalyseIaService {
                 resultatKpiRepository.save(resultat);
             }
 
+            User user = loadUser(userId);
             AnalyseGlobale analyseGlobale = analyseGlobaleRepository.findByImportSessionId(importSessionId)
                     .orElseGet(AnalyseGlobale::new);
             analyseGlobale.setImportSession(session);
-            analyseGlobale.setUser(loadUser(userId));
+            analyseGlobale.setUser(user);
             analyseGlobale.setSynthese(globalSummary);
             analyseGlobale.setPlanActions(String.join("\n",
                     response.getRecommendations() == null ? List.of() : response.getRecommendations()));
             analyseGlobaleRepository.save(analyseGlobale);
 
-
-            User user = loadUser(userId);
             Map<String, List<ResultatKpi>> byCategorie = resultats.stream()
                     .filter(r -> r.getKpi().getCategorieKpi() != null)
                     .collect(Collectors.groupingBy(

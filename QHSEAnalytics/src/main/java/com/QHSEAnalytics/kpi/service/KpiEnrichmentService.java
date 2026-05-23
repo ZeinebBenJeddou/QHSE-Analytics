@@ -154,8 +154,6 @@ public class KpiEnrichmentService {
                 valeurN1,
                 valeurN,
                 variation,
-                null,
-                null,
                 periodeN1,
                 periodeN
         );
