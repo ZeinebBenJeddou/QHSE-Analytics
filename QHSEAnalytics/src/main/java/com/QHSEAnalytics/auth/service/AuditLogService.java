@@ -7,7 +7,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,10 +26,11 @@ public class AuditLogService {
     public static final String RESET_PASSWORD    = "REINITIALISER_MDP";
 
     private final AuditLogRepository auditLogRepository;
+    private final SecurityUtils securityUtils;
 
     @Transactional
     public void log(String action, Long targetUserId, String targetEmail, String details) {
-        String adminEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        String adminEmail = securityUtils.getCurrentUserEmail();
         auditLogRepository.save(AuditLog.builder()
                 .adminEmail(adminEmail)
                 .action(action)

@@ -9,6 +9,7 @@ import com.QHSEAnalytics.auth.dto.response.AuthResponse;
 import com.QHSEAnalytics.auth.dto.response.MessageResponse;
 import com.QHSEAnalytics.auth.service.AuthService;
 import com.QHSEAnalytics.auth.service.CookieTokenService;
+import com.QHSEAnalytics.auth.service.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,7 +18,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Authentification", description = "Inscription, connexion OTP, refresh token, reset mot de passe")
@@ -28,6 +28,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final CookieTokenService cookieTokenService;
+    private final SecurityUtils securityUtils;
 
     @Operation(summary = "Inscription d'un nouvel analyste", description = "Crée un compte non vérifié et envoie un email de confirmation")
     @PostMapping("/register")
@@ -96,8 +97,7 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletResponse response) {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        MessageResponse result = authService.logout(email);
+        MessageResponse result = authService.logout(securityUtils.getCurrentUserEmail());
         cookieTokenService.clearAuthCookies(response);
         return ResponseEntity.ok(result);
     }
