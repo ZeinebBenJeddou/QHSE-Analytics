@@ -15,6 +15,7 @@ import com.QHSEAnalytics.shared.exception.InvalidSeuilException;
 import com.QHSEAnalytics.shared.exception.KpiAlreadyExistsException;
 import com.QHSEAnalytics.shared.exception.KpiNotFoundException;
 import com.QHSEAnalytics.shared.exception.PdfGenerationException;
+import com.QHSEAnalytics.shared.exception.ProviderUnavailableException;
 import com.QHSEAnalytics.shared.exception.UserAlreadyActiveException;
 import com.QHSEAnalytics.shared.exception.UserAlreadyAdminException;
 import com.QHSEAnalytics.shared.exception.UserAlreadyAnalysteException;
@@ -168,6 +169,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(PdfGenerationException.class)
     public ResponseEntity<?> handlePdfGeneration(PdfGenerationException ex) {
         return buildError(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
+    }
+
+    @ExceptionHandler(ProviderUnavailableException.class)
+    public ResponseEntity<?> handleProviderUnavailable(ProviderUnavailableException ex) {
+        log.warn("[IA] Provider indisponible : {}", ex.getMessage());
+        return buildError(HttpStatus.SERVICE_UNAVAILABLE,
+                "L'analyse IA est temporairement indisponible. Réessayez dans quelques minutes.");
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

@@ -2,6 +2,7 @@ package com.QHSEAnalytics.shared.entity;
 
 import com.QHSEAnalytics.shared.enums.Direction;
 import com.QHSEAnalytics.shared.enums.UniteKpi;
+import com.QHSEAnalytics.shared.exception.InvalidSeuilException;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -90,7 +91,7 @@ public class Kpi {
         }
 
         if (!(seuilFaible < seuilModere && seuilModere < seuilCritique)) {
-            throw new IllegalStateException("Règle invalide: seuilFaible < seuilModere < seuilCritique");
+            throw new InvalidSeuilException("Règle invalide : seuilFaible < seuilModere < seuilCritique");
         }
     }
 }

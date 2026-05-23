@@ -28,7 +28,7 @@ public class CategorieKpi {
     @Column(length = 500)
     private String description;
 
-    @OneToMany(mappedBy = "categorieKpi", cascade = CascadeType.ALL, orphanRemoval = false)
+    @OneToMany(mappedBy = "categorieKpi", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @Builder.Default
     private List<Kpi> kpis = new ArrayList<>();
 }
