@@ -34,14 +34,6 @@ public class KpiService {
     private final KpiRepository kpiRepository;
     private final CategorieKpiRepository categorieKpiRepository;
 
-    public List<KpiResponse> getKpis(String categorie) {
-
-        if (categorie != null && !categorie.isBlank()) {
-            return getKpisByCategorie(categorie);
-        }
-        return getAllKpis();
-    }
-
     public Page<KpiResponse> getKpis(String categorie, Pageable pageable) {
         if (categorie != null && !categorie.isBlank()) {
             String normalizedCode = normalizeCode(categorie);

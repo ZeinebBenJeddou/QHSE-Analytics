@@ -122,7 +122,7 @@ public class KpiEnrichmentService {
         }
 
 
-        String prompt = buildEnrichmentPrompt(preview, null);
+        String prompt = buildEnrichmentPrompt(preview);
 
 
         String rawJson = llmProviderChain.generate(prompt);
@@ -137,7 +137,7 @@ public class KpiEnrichmentService {
         return toEnrichedResponse(preview, analysis);
     }
 
-    private String buildEnrichmentPrompt(KpiImportPreview preview, String ragContext) {
+    private String buildEnrichmentPrompt(KpiImportPreview preview) {
         double valeurN = preview.getValueN() == null ? 0d : preview.getValueN();
         double valeurN1 = preview.getValueN1() == null ? 0d : preview.getValueN1();
         double variation = preview.getVariationPercent() == null ? 0d : preview.getVariationPercent();
@@ -157,8 +157,7 @@ public class KpiEnrichmentService {
                 null,
                 null,
                 periodeN1,
-                periodeN,
-                ragContext
+                periodeN
         );
     }
 
@@ -247,24 +246,6 @@ public class KpiEnrichmentService {
         }
 
         return cleaned;
-    }
-
-    public Map<String, Object> debugAnalyseOne(Long previewId, boolean force) {
-        KpiImportPreview preview = previewRepository.findById(previewId).orElse(null);
-        if (preview == null) {
-            return Map.of("error", "preview not found");
-        }
-
-        String prompt = buildEnrichmentPrompt(preview, null);
-        String rawJson = llmProviderChain.generate(prompt);
-        KpiAnalysisResult parsed = parseAnalysisResult(rawJson, preview.getKpiName());
-
-        return Map.of(
-                "previewId", previewId,
-                "kpiName", preview.getKpiName(),
-                "rawResponse", rawJson,
-                "parsed", parsed
-        );
     }
 
     private KpiAnalysisResult buildFallbackResult(String kpiName) {
@@ -406,10 +387,6 @@ public class KpiEnrichmentService {
     private Double computeEcart(Double n, Double n1) {
         if (n == null || n1 == null) return null;
         return n - n1;
-    }
-
-    private String nullSafe(Object o) {
-        return o == null ? "N/A" : o.toString();
     }
 
     private String textOrNull(JsonNode node, String field) {

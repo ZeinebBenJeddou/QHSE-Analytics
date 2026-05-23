@@ -28,8 +28,7 @@ public class GroqPromptBuilder {
             NiveauVariation niveau,
             Tendance tendance,
             int periodeN1,
-            int periodeN,
-            String ragContext
+            int periodeN
     ) {
 
                 String safeName = safe(kpiNom);
@@ -57,13 +56,6 @@ public class GroqPromptBuilder {
                 sb.append("  \"noteFinale\": \"text\"\n");
                 sb.append("}\n\n");
 
-
-                if (ragContext != null && !ragContext.isBlank()) {
-                    sb.append("=== CONTEXTE QHSE (base de connaissances) ===\n");
-
-                    String trimmedRag = ragContext.length() > 1200 ? ragContext.substring(0, 1200) + "…" : ragContext;
-                    sb.append(trimmedRag).append("\n\n");
-                }
 
                 sb.append("Contexte KPI (seulement les champs suivants) :\n");
                 sb.append("- nom: ").append(safeName).append("\n");
