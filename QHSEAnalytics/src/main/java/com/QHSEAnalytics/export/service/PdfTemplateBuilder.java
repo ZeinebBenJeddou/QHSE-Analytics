@@ -484,8 +484,8 @@ public class PdfTemplateBuilder {
     }
 
     public String buildAdminTemplate(
-            int periodeN1,
-            int periodeN,
+            Integer periodeN1,
+            Integer periodeN,
             LocalDateTime dateGeneration,
             AdminStatsResponse stats,
             List<AdminAnalysteItemResponse> analystes,
@@ -496,7 +496,7 @@ public class PdfTemplateBuilder {
         appendDocumentStart(html, "Rapport Global QHSE Analytics");
 
         String dateFormatted = formatDateTime(dateGeneration);
-        String periodeLabel = (periodeN1 > 0 && periodeN > 0)
+        String periodeLabel = (periodeN1 != null && periodeN != null)
                 ? (periodeN1 + " vs " + periodeN)
                 : "Global consolide";
 

@@ -133,8 +133,8 @@ public class ExportService {
         AdminRepartitionResponse repartitionComplete = dashboardAdminService.getRepartitionComplete();
 
         String html = pdfTemplateBuilder.buildAdminTemplate(
-                0,
-                0,
+                null,
+                null,
                 LocalDateTime.now(),
                 stats,
                 analystes,
