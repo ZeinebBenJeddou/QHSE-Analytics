@@ -54,13 +54,17 @@ public class SecurityConfig {
                         .requestMatchers("/api/dashboard/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/export/analyste/**").hasRole("ANALYSTE")
                         .requestMatchers("/api/export/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/kpis/**").hasAnyRole("ADMIN", "ANALYSTE")
+                        .requestMatchers("/api/import/manual/**").hasRole("ANALYSTE")
+                        .requestMatchers("/api/ia/**").hasRole("ANALYSTE")
+                        .requestMatchers("/api/kpi-enrichment/**").hasAnyRole("ADMIN", "ANALYSTE")
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterAfter(jwtAuthFilter, RateLimitingFilter.class);
 
         return http.build();
     }

@@ -21,7 +21,8 @@ public class CacheConfig {
         SimpleCacheManager manager = new SimpleCacheManager();
         manager.setCaches(List.of(
                 caffeine("kpiAnalysis",  cacheTtlHours, TimeUnit.HOURS,   500),
-                caffeine("aiConfig",     60,            TimeUnit.SECONDS,  50)
+                caffeine("aiConfig",     60,            TimeUnit.SECONDS,  50),
+                caffeine("llmResponses", 2,             TimeUnit.HOURS,    200)
         ));
         return manager;
     }
