@@ -9,7 +9,5 @@ import java.util.List;
 public class IaHealthResponse {
     private List<ProviderStatusResponse> providers;
     private IaMetricsResponse metrics;
-    private boolean embeddingConfigured;
-    private long ragEntriesCount;
     private boolean llmCacheEnabled;
 }

@@ -1,7 +1,5 @@
 package com.QHSEAnalytics.service;
 
-import com.QHSEAnalytics.shared.exception.ProviderUnavailableException;
-import com.QHSEAnalytics.analytics.service.GeminiClientService;
 import com.QHSEAnalytics.analytics.service.GroqService;
 import com.QHSEAnalytics.analytics.service.LlmProviderChain;
 import com.QHSEAnalytics.analytics.service.ProviderCooldownManager;
@@ -23,9 +21,6 @@ class LlmProviderChainTest {
 
     @Mock
     private GroqService groqService;
-
-    @Mock
-    private GeminiClientService geminiService;
 
     @Mock
     private ProviderCooldownManager cooldownManager;
@@ -50,23 +45,9 @@ class LlmProviderChainTest {
     }
 
     @Test
-    void generate_shouldFallbackToGeminiWhenGroqFails() throws Exception {
+    void generate_shouldReturnNullResultWhenGroqFails() throws Exception {
         when(cooldownManager.isAvailable("groq")).thenReturn(true);
-        when(cooldownManager.isAvailable("gemini")).thenReturn(true);
-        when(groqService.generate("test prompt")).thenThrow(new ProviderUnavailableException("groq", "Groq down"));
-        when(geminiService.generateRaw("test prompt")).thenReturn("gemini response");
-
-        String result = llmProviderChain.generate("test prompt");
-
-        assertThat(result).isEqualTo("gemini response");
-    }
-
-    @Test
-    void generate_shouldReturnNullWhenAllProvidersFail() throws Exception {
-        when(cooldownManager.isAvailable("groq")).thenReturn(true);
-        when(cooldownManager.isAvailable("gemini")).thenReturn(true);
-        when(groqService.generate("test prompt")).thenThrow(new RuntimeException("Error"));
-        when(geminiService.generateRaw("test prompt")).thenThrow(new RuntimeException("Error"));
+        when(groqService.generate("test prompt")).thenThrow(new RuntimeException("Groq error"));
 
         String result = llmProviderChain.generate("test prompt");
 
@@ -74,14 +55,12 @@ class LlmProviderChainTest {
     }
 
     @Test
-    void generate_shouldSkipGroqWhenOnCooldown() throws Exception {
+    void generate_shouldReturnNullResultWhenGroqOnCooldown() throws Exception {
         when(cooldownManager.isAvailable("groq")).thenReturn(false);
-        when(cooldownManager.isAvailable("gemini")).thenReturn(true);
-        when(geminiService.generateRaw("test prompt")).thenReturn("gemini response");
 
         String result = llmProviderChain.generate("test prompt");
 
-        assertThat(result).isEqualTo("gemini response");
+        assertThat(result).isNull();
     }
 
     @Test

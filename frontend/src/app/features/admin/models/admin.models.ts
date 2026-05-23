@@ -186,34 +186,4 @@ export interface AuditPageResponse {
 }
 
 
-export interface RagKnowledgeResponse {
-  id: number;
-  kpiName: string;
-  definition: string | null;
-  thresholds: string | null;
-  category: string | null;
-  hasEmbedding: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface RagKnowledgeRequest {
-  kpiName: string;
-  definition: string;
-  thresholds: string | null;
-  category: string | null;
-}
-
-export interface RagSearchTestRequest {
-  query: string;
-  topK: number;
-  threshold: number;
-}
-
-export interface RagSearchTestResultItem {
-  id: number;
-  kpiName: string;
-  category: string | null;
-  definition: string | null;
-}
 

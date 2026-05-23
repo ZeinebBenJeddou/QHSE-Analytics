@@ -7,14 +7,12 @@ import com.QHSEAnalytics.shared.dto.response.KpiDeleteResponse;
 import com.QHSEAnalytics.shared.dto.response.KpiResponse;
 import com.QHSEAnalytics.shared.entity.CategorieKpi;
 import com.QHSEAnalytics.shared.entity.Kpi;
-import com.QHSEAnalytics.shared.entity.RagKnowledge;
 import com.QHSEAnalytics.shared.exception.CategorieNotFoundException;
 import com.QHSEAnalytics.shared.exception.InvalidSeuilException;
 import com.QHSEAnalytics.shared.exception.KpiAlreadyExistsException;
 import com.QHSEAnalytics.shared.exception.KpiNotFoundException;
 import com.QHSEAnalytics.shared.repository.CategorieKpiRepository;
 import com.QHSEAnalytics.shared.repository.KpiRepository;
-import com.QHSEAnalytics.shared.repository.RagKnowledgeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,15 +20,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 
-import com.QHSEAnalytics.analytics.service.EmbeddingService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 
 @Service
 @RequiredArgsConstructor
@@ -40,9 +33,6 @@ public class KpiService {
 
     private final KpiRepository kpiRepository;
     private final CategorieKpiRepository categorieKpiRepository;
-    private final RagKnowledgeRepository ragKnowledgeRepository;
-    private final EmbeddingService embeddingService;
-    private final JdbcTemplate jdbcTemplate;
 
     public List<KpiResponse> getKpis(String categorie) {
 
@@ -131,9 +121,6 @@ public class KpiService {
         Kpi saved = kpiRepository.save(kpi);
         log.info("KPI créé id={} catégorie={} nom={}", saved.getId(), normalizedCode, saved.getNom());
 
-        syncRagKnowledge(saved);
-        embedRagEntryAsync(saved.getNom());
-
         return toKpiResponse(saved);
     }
 
@@ -141,8 +128,6 @@ public class KpiService {
     public KpiResponse updateKpi(Long id, UpdateKpiRequest request) {
         Kpi kpi = kpiRepository.findById(id)
                 .orElseThrow(() -> new KpiNotFoundException("KPI introuvable avec id=" + id));
-
-        String oldName = kpi.getNom();
 
         CategorieKpi targetCategorie = kpi.getCategorieKpi();
         if (request.getCategorieCode() != null && !request.getCategorieCode().isBlank()) {
@@ -197,9 +182,6 @@ public class KpiService {
         Kpi saved = kpiRepository.save(kpi);
         log.info("KPI mis à jour id={}", saved.getId());
 
-        updateRagKnowledge(oldName, saved);
-        embedRagEntryAsync(saved.getNom());
-
         return toKpiResponse(saved);
     }
 
@@ -212,7 +194,6 @@ public class KpiService {
         if (!hasLinkedData) {
             kpiRepository.deleteById(id);
             log.info("KPI supprimé définitivement id={}", id);
-            deleteRagKnowledge(kpi.getNom());
             return KpiDeleteResponse.builder()
                     .message("KPI supprimé définitivement")
                     .deleted(true)
@@ -222,7 +203,6 @@ public class KpiService {
         kpi.setActive(false);
         kpiRepository.save(kpi);
         log.warn("KPI désactivé (données historiques) id={}", id);
-        deleteRagKnowledge(kpi.getNom());
         return KpiDeleteResponse.builder()
                 .message("KPI désactivé car il possède des données historiques")
                 .deleted(false)
@@ -241,8 +221,6 @@ public class KpiService {
         kpi.setActive(true);
         Kpi saved = kpiRepository.save(kpi);
         log.info("KPI restauré id={}", id);
-        syncRagKnowledge(saved);
-        embedRagEntryAsync(saved.getNom());
         return toKpiResponse(saved);
     }
 
@@ -296,85 +274,4 @@ public class KpiService {
                 .build();
     }
 
-    private void syncRagKnowledge(Kpi kpi) {
-        try {
-            // Check existence on the "full" chunk specifically to avoid matching correlation/benchmark chunks
-            if (ragKnowledgeRepository.findByKpiNameAndChunkType(kpi.getNom(), "full").isPresent()) {
-                return;
-            }
-            RagKnowledge rag = RagKnowledge.builder()
-                    .kpiName(kpi.getNom())
-                    .chunkType("full")
-                    .definition(kpi.getDefinition())
-                    .category(kpi.getCategorieKpi().getCode())
-                    .thresholds(buildThresholdJson(kpi))
-                    .build();
-            ragKnowledgeRepository.save(rag);
-            log.info("RAG knowledge synchronisé (créé) pour KPI: {}", kpi.getNom());
-        } catch (Exception ex) {
-            log.error("Erreur lors de la synchronisation RAG pour KPI {}", kpi.getNom(), ex);
-        }
-    }
-
-    private void updateRagKnowledge(String oldName, Kpi kpi) {
-        try {
-            List<RagKnowledge> allChunks = ragKnowledgeRepository.findAllByKpiName(oldName);
-            if (allChunks.isEmpty()) {
-                syncRagKnowledge(kpi);
-                return;
-            }
-            String newThresholds = buildThresholdJson(kpi);
-            for (RagKnowledge chunk : allChunks) {
-                chunk.setKpiName(kpi.getNom());
-                chunk.setCategory(kpi.getCategorieKpi().getCode());
-                // Only update definition and thresholds on the "full" chunk to preserve specialized chunks
-                if ("full".equals(chunk.getChunkType()) || chunk.getChunkType() == null) {
-                    chunk.setDefinition(kpi.getDefinition());
-                    chunk.setThresholds(newThresholds);
-                }
-            }
-            ragKnowledgeRepository.saveAll(allChunks);
-            log.info("RAG knowledge mis à jour ({} chunks) pour KPI: {} (ancien nom: {})",
-                allChunks.size(), kpi.getNom(), oldName);
-        } catch (Exception ex) {
-            log.error("Erreur lors de la mise à jour RAG pour KPI {}", kpi.getNom(), ex);
-        }
-    }
-
-    private void deleteRagKnowledge(String kpiName) {
-        try {
-            ragKnowledgeRepository.deleteAllByKpiName(kpiName);
-            log.info("RAG knowledge supprimé (tous chunks) pour KPI: {}", kpiName);
-        } catch (Exception ex) {
-            log.error("Erreur lors de la suppression RAG pour KPI {}", kpiName, ex);
-        }
-    }
-
-    private String buildThresholdJson(Kpi kpi) {
-        return String.format(Locale.US, "{\"faible\":%f, \"modere\":%f, \"critique\":%f}",
-                kpi.getSeuilFaible(), kpi.getSeuilModere(), kpi.getSeuilCritique());
-    }
-
-    private void embedRagEntryAsync(String kpiName) {
-        if (!embeddingService.isConfigured()) return;
-        CompletableFuture.runAsync(() -> {
-            try {
-                List<RagKnowledge> chunks = ragKnowledgeRepository.findAllByKpiName(kpiName);
-                for (RagKnowledge rag : chunks) {
-                    String text = kpiName + ". " + (rag.getDefinition() != null ? rag.getDefinition() : "")
-                            + (rag.getCategory() != null ? " Catégorie: " + rag.getCategory() + "." : "");
-                    float[] vector = embeddingService.embed(text);
-                    if (vector != null) {
-                        jdbcTemplate.update(
-                            "UPDATE rag_knowledge SET embedding = ?::vector WHERE id = ?",
-                            EmbeddingService.toVectorLiteral(vector), rag.getId()
-                        );
-                        log.debug("[Embed] RAG chunk embedded for KPI: {} chunkType={}", kpiName, rag.getChunkType());
-                    }
-                }
-            } catch (Exception ex) {
-                log.warn("[Embed] Failed to embed RAG entry for KPI '{}': {}", kpiName, ex.getMessage());
-            }
-        });
-    }
 }

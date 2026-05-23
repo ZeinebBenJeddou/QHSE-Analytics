@@ -3,14 +3,12 @@ package com.QHSEAnalytics.importer.service.processing;
 import com.QHSEAnalytics.shared.dto.request.KpiRawDataDTO;
 import com.QHSEAnalytics.shared.dto.response.CategoryScoreDTO;
 import com.QHSEAnalytics.shared.dto.response.KpiCalculatedDTO;
-import com.QHSEAnalytics.shared.entity.CategorieKpi;
 import com.QHSEAnalytics.shared.entity.Kpi;
 import com.QHSEAnalytics.shared.enums.UniteKpi;
 import com.QHSEAnalytics.shared.enums.Direction;
 import com.QHSEAnalytics.shared.enums.Tendance;
 import com.QHSEAnalytics.shared.repository.KpiRepository;
 import com.QHSEAnalytics.shared.repository.ResultatKpiRepository;
-import com.QHSEAnalytics.shared.service.KpiKnowledgeLookup;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -27,18 +25,15 @@ public class CalculationAgent {
     private final ResultatKpiRepository resultatKpiRepository;
     private final ComparativeCalculator comparativeCalculator;
     private final ClassificationEngine classificationEngine;
-    private final KpiKnowledgeLookup kpiKnowledgeLookup;
 
     public CalculationAgent(KpiRepository kpiRepository,
                             ResultatKpiRepository resultatKpiRepository,
                             ComparativeCalculator comparativeCalculator,
-                            ClassificationEngine classificationEngine,
-                            KpiKnowledgeLookup kpiKnowledgeLookup) {
+                            ClassificationEngine classificationEngine) {
         this.kpiRepository = kpiRepository;
         this.resultatKpiRepository = resultatKpiRepository;
         this.comparativeCalculator = comparativeCalculator;
         this.classificationEngine = classificationEngine;
-        this.kpiKnowledgeLookup = kpiKnowledgeLookup;
     }
 
     public List<KpiCalculatedDTO> calculate(List<KpiRawDataDTO> rawData) {
@@ -142,8 +137,7 @@ public class CalculationAgent {
 
         Double valN  = row.getValeurN();
         Double valN1 = row.getValeurN1();
-        String lookupCategoryCode = resolveLookupCategoryCode(matchedKpi, row.getCategorie());
-        Kpi effectiveKpi = resolveEffectiveKpi(matchedKpi, row.getKpiName(), lookupCategoryCode, valN, valN1);
+        Kpi effectiveKpi = matchedKpi;
 
         Double absoluteGap = null;
         Double variationPercentage = null;
@@ -443,76 +437,4 @@ public class CalculationAgent {
                 .toList();
     }
 
-    private String resolveLookupCategoryCode(Kpi matchedKpi, String dtoCategoryLabel) {
-        if (matchedKpi != null && matchedKpi.getCategorieKpi() != null && matchedKpi.getCategorieKpi().getCode() != null) {
-            return matchedKpi.getCategorieKpi().getCode();
-        }
-        if (dtoCategoryLabel != null) {
-            String trimmed = dtoCategoryLabel.trim();
-            if (trimmed.matches("^[A-Z][A-Z0-9]{0,9}$")) {
-                return trimmed;
-            }
-        }
-        return null;
-    }
-
-    private Kpi resolveEffectiveKpi(Kpi matchedKpi, String kpiName, String categoryCode, Double currentValue, Double previousValue) {
-        KpiKnowledgeLookup.KnowledgeMatch knowledgeMatch = kpiKnowledgeLookup
-                .findBestMatch(kpiName, categoryCode, currentValue, previousValue)
-                .orElse(null);
-
-        if (knowledgeMatch == null) {
-            return matchedKpi;
-        }
-
-        if (matchedKpi != null) {
-            return copyKpiWithKnowledge(matchedKpi, knowledgeMatch);
-        }
-
-        return buildKnowledgeOnlyKpi(kpiName, knowledgeMatch);
-    }
-
-    private Kpi copyKpiWithKnowledge(Kpi source, KpiKnowledgeLookup.KnowledgeMatch knowledgeMatch) {
-        return Kpi.builder()
-                .id(source.getId())
-                .nom(source.getNom())
-                .definition(firstNonBlank(source.getDefinition(), knowledgeMatch.definition()))
-                .unite(source.getUnite())
-                .categorieKpi(source.getCategorieKpi())
-                .seuilFaible(knowledgeMatch.seuilFaible() != null ? knowledgeMatch.seuilFaible() : source.getSeuilFaible())
-                .seuilModere(knowledgeMatch.seuilModere() != null ? knowledgeMatch.seuilModere() : source.getSeuilModere())
-                .seuilCritique(knowledgeMatch.seuilCritique() != null ? knowledgeMatch.seuilCritique() : source.getSeuilCritique())
-                .ordre(source.getOrdre())
-                .isActive(source.isActive())
-                .createdAt(source.getCreatedAt())
-                .updatedAt(source.getUpdatedAt())
-                .direction(knowledgeMatch.direction() != null ? knowledgeMatch.direction() : source.getDirection())
-                .targetValue(source.getTargetValue())
-                .build();
-    }
-
-    private Kpi buildKnowledgeOnlyKpi(String kpiName, KpiKnowledgeLookup.KnowledgeMatch knowledgeMatch) {
-        CategorieKpi categorie = null;
-        if (knowledgeMatch.categoryCode() != null && !knowledgeMatch.categoryCode().isBlank()) {
-            categorie = CategorieKpi.builder()
-                    .code(knowledgeMatch.categoryCode())
-                    .libelle(knowledgeMatch.categoryCode())
-                    .build();
-        }
-
-        return Kpi.builder()
-                .nom(knowledgeMatch.matchedKpiName() != null ? knowledgeMatch.matchedKpiName() : kpiName)
-                .definition(knowledgeMatch.definition())
-                .categorieKpi(categorie)
-                .seuilFaible(knowledgeMatch.seuilFaible())
-                .seuilModere(knowledgeMatch.seuilModere())
-                .seuilCritique(knowledgeMatch.seuilCritique())
-                .direction(knowledgeMatch.direction())
-                .isActive(true)
-                .build();
-    }
-
-    private String firstNonBlank(String primary, String fallback) {
-        return primary != null && !primary.isBlank() ? primary : fallback;
-    }
 }

@@ -3,7 +3,6 @@ package com.QHSEAnalytics.analytics.service;
 import com.QHSEAnalytics.shared.dto.response.IaHealthResponse;
 import com.QHSEAnalytics.shared.dto.response.IaMetricsResponse;
 import com.QHSEAnalytics.shared.dto.response.ProviderStatusResponse;
-import com.QHSEAnalytics.shared.repository.RagKnowledgeRepository;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
@@ -22,25 +21,19 @@ public class IaHealthService {
 
     private final MeterRegistry meterRegistry;
     private final ProviderCooldownManager cooldownManager;
-    private final EmbeddingService embeddingService;
-    private final RagKnowledgeRepository ragKnowledgeRepository;
     private final CacheManager cacheManager;
 
     public IaHealthResponse getHealth() {
         return IaHealthResponse.builder()
                 .providers(buildProviderStatuses())
                 .metrics(buildMetrics())
-                .embeddingConfigured(embeddingService.isConfigured())
-                .ragEntriesCount(ragKnowledgeRepository.count())
                 .llmCacheEnabled(cacheManager.getCache("kpiAnalysis") != null)
                 .build();
     }
 
     private List<ProviderStatusResponse> buildProviderStatuses() {
         return List.of(
-            buildStatus("groq"),
-            buildStatus("gemini"),
-            buildStatus("gemini-embedding")
+            buildStatus("groq")
         );
     }
 
@@ -65,7 +58,6 @@ public class IaHealthService {
                 .parseErrors(sumCounter("ai.parse.error.count", null, null))
                 .validationErrors(sumCounter("ai.validation.error.count", null, null))
                 .providerGroqCount(sumCounter("ai.provider.selected", "provider", "groq"))
-                .providerGeminiCount(sumCounter("ai.provider.selected", "provider", "gemini"))
                 .build();
     }
 

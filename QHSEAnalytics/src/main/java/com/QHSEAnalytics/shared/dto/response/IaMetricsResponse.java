@@ -15,5 +15,4 @@ public class IaMetricsResponse {
     private double parseErrors;
     private double validationErrors;
     private double providerGroqCount;
-    private double providerGeminiCount;
 }

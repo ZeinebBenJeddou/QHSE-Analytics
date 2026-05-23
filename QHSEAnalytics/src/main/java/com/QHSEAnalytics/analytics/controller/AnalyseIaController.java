@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@Tag(name = "Analyse IA", description = "Génération et consultation des analyses IA (Groq/Gemini)")
+@Tag(name = "Analyse IA", description = "Génération et consultation des analyses IA (Groq)")
 @RestController
 @RequestMapping("/api/ia")
 @RequiredArgsConstructor

@@ -111,9 +111,8 @@ public class StructuredAnalysisValidator {
     }
 
     private void validateTraceability(AiTraceabilityResponse trace, List<String> errors) {
-
-        if (trace.getContextSourcesUsed() == null) {
-            trace.setContextSourcesUsed(new ArrayList<>());
+        if (isBlank(trace.getModelName())) {
+            errors.add("traceability.modelName is mandatory.");
         }
     }
 
@@ -253,9 +252,7 @@ public class StructuredAnalysisValidator {
         if (response.getRecommendations() == null) response.setRecommendations(new ArrayList<>());
         if (response.getActionPlan() == null) response.setActionPlan(new ArrayList<>());
         if (response.getTraceability() == null) {
-            response.setTraceability(AiTraceabilityResponse.builder().contextSourcesUsed(new ArrayList<>()).build());
-        } else if (response.getTraceability().getContextSourcesUsed() == null) {
-            response.getTraceability().setContextSourcesUsed(new ArrayList<>());
+            response.setTraceability(AiTraceabilityResponse.builder().build());
         }
 
         AiConfidenceResponse confidence = response.getConfidence();

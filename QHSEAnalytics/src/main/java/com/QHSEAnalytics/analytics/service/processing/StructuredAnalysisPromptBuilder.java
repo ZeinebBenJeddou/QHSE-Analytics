@@ -1,8 +1,6 @@
 package com.QHSEAnalytics.analytics.service.processing;
 
 import com.QHSEAnalytics.shared.dto.response.KpiCalculatedDTO;
-import com.QHSEAnalytics.shared.entity.RagKnowledge;
-import com.QHSEAnalytics.analytics.service.RagSearchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -107,7 +105,6 @@ public class StructuredAnalysisPromptBuilder {
             "}\n\n" +
             "=== DONNÉES RÉELLES À ANALYSER (reproduis le même niveau de détail pour chaque KPI) ===\n";
 
-    private final RagSearchService ragSearchService;
     private final PromptSanitizer promptSanitizer;
 
     public String buildPrompt(List<KpiCalculatedDTO> kpis) {
@@ -138,9 +135,7 @@ public class StructuredAnalysisPromptBuilder {
         prompt.append(SYSTEM_PROMPT);
         prompt.append(String.format("Nombre exact d'objets kpiInsights attendus : %d.\n\n", orderedKpis.size()));
 
-        prompt.append("USER:\n");
-        prompt.append("You have the following targeted context sources and KPI results.\n");
-        prompt.append("Use the provided sources to answer. Do not use any external knowledge.\n\n");
+        prompt.append("=== ANALYSE QHSE — DONNÉES À ANALYSER ===\n\n");
 
         // Resolve actual years from KPI data
         String periodeN1Str = scoreSource.stream()
@@ -179,26 +174,6 @@ public class StructuredAnalysisPromptBuilder {
             List<String> allNames = allKpis.stream().map(k -> safeText(k.getKpiName())).collect(Collectors.toList());
             prompt.append(String.join(", ", allNames)).append("\n");
             prompt.append("Scores pré-calculés disponibles dans la section SCORES ci-dessus — utilise-les dans globalSummary.\n\n");
-        }
-
-        String combinedQuery = orderedKpis.stream()
-                .map(k -> safeText(k.getKpiName()))
-                .collect(Collectors.joining(", "));
-        List<RagKnowledge> ragResults = ragSearchService.findRelevant(combinedQuery, 15, null, 0.60);
-        if (!ragResults.isEmpty()) {
-            prompt.append("=== BASE DE CONNAISSANCES QHSE (RAG vectoriel) ===\n");
-            prompt.append("sourceId: rag_knowledge | sourceName: QHSE enriched definitions | relevanceScore: 0.95\n");
-            int ragCharsUsed = 0;
-            final int RAG_CHAR_CAP = 5000;
-            for (RagKnowledge r : ragResults) {
-                String chunkLabel = r.getChunkType() != null ? " [" + r.getChunkType() + "]" : "";
-                String entry = "• " + r.getKpiName() + chunkLabel + ": " + r.getDefinition()
-                    + (r.getThresholds() != null ? " | Seuils: " + r.getThresholds() : "") + "\n";
-                if (ragCharsUsed + entry.length() > RAG_CHAR_CAP) break;
-                prompt.append(entry);
-                ragCharsUsed += entry.length();
-            }
-            prompt.append("\n");
         }
 
         prompt.append("=== INSTRUCTIONS DE SORTIE ===\n");
@@ -284,26 +259,18 @@ public class StructuredAnalysisPromptBuilder {
         prompt.append("  ],\n");
         prompt.append("  \"traceability\": {\n");
         prompt.append("    \"modelName\": string,\n");
-        prompt.append("    \"generatedAt\": string,\n");
-        prompt.append("    \"contextSourcesUsed\": [\n");
-        prompt.append("      {\n");
-        prompt.append("        \"sourceId\": string,\n");
-        prompt.append("        \"sourceName\": string,\n");
-        prompt.append("        \"relevanceScore\": number\n");
-        prompt.append("      }\n");
-        prompt.append("    ]\n");
+        prompt.append("    \"generatedAt\": string\n");
         prompt.append("  }\n");
         prompt.append("}\n\n");
         prompt.append(FEW_SHOT_EXAMPLE);
-        prompt.append("=== KPI CONTEXT & RAG SOURCES ===\n");
-        prompt.append("⚠️ RÈGLE ABSOLUE : pour chaque KPI ci-dessous, le champ \"kpiId\" dans kpiInsights DOIT être exactement l'entier indiqué après KPI_ID=. Ne génère jamais 1, 2, 3... séquentiellement — utilise UNIQUEMENT les IDs fournis.\n\n");
+        prompt.append("=== KPIs À ANALYSER ===\n");
+        prompt.append("⚠️ RÈGLE ABSOLUE : le champ \"kpiId\" dans kpiInsights DOIT être exactement l'entier indiqué après KPI_ID=. Ne génère jamais 1, 2, 3... séquentiellement — utilise UNIQUEMENT les IDs fournis.\n\n");
         for (KpiCalculatedDTO kpi : orderedKpis) {
             String realId = safeId(kpi.getMatchedKpiId(), kpi.getKpiName());
-            prompt.append(String.format("sourceId: kpi_def_%s | sourceName: KPI definition for %s | relevanceScore: 0.85\n",
-                    realId, safeText(kpi.getKpiName())));
-            prompt.append(String.format("KPI_ID=%s | KPI: %s | Categorie: %s | Definition: %s | Seuils: Faible<%s, Modere<%s, Critique<%s | N-1=%s | N=%s | Variation=%s%% | Classification=%s\n",
+            prompt.append(String.format("KPI_ID=%s | KPI: %s | Categorie: %s | Definition: %s\n",
                     realId,
-                    safeText(kpi.getKpiName()), safeText(kpi.getCategorie()), safeText(kpi.getDefinition()),
+                    safeText(kpi.getKpiName()), safeText(kpi.getCategorie()), safeText(kpi.getDefinition())));
+            prompt.append(String.format("Seuils: Faible<%s, Modéré<%s, Critique<%s | N-1=%s | N=%s | Variation=%s%% | Niveau=%s\n",
                     safeNumber(kpi.getSeuilFaible()), safeNumber(kpi.getSeuilModere()), safeNumber(kpi.getSeuilCritique()),
                     safeNumber(kpi.getValeurN1()), safeNumber(kpi.getValeurN()), safeNumber(kpi.getVariationPercentage()),
                     safeText(kpi.getClassification())));
@@ -323,11 +290,6 @@ public class StructuredAnalysisPromptBuilder {
         prompt.append("estimatedHorizonMonths must be an integer between 1 and 24. Use null if trend is stable or improving.\n");
         prompt.append("severity must be LOW (horizon > 12 months), MEDIUM (6-12 months) or HIGH (< 6 months).\n");
         prompt.append("confidence must be a number between 0 and 100.\n");
-
-        prompt.append("=== ADDITIONAL CONTEXT SOURCES ===\n");
-        prompt.append("sourceId: historical_actions | sourceName: recent action plans | relevanceScore: 0.65\n");
-        prompt.append("Analyze current KPI variations against the most recent action plans provided.\n");
-        prompt.append("\n");
 
         prompt.append("Remember: the structured JSON is the single source of truth. Do not output other prose.\n");
 

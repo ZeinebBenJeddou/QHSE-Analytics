@@ -2,7 +2,6 @@ package com.QHSEAnalytics.kpi.service;
 
 import com.QHSEAnalytics.analytics.service.LlmProviderChain;
 import com.QHSEAnalytics.analytics.service.processing.GroqPromptBuilder;
-import com.QHSEAnalytics.analytics.service.RagSearchService;
 import com.QHSEAnalytics.shared.dto.response.KpiAnalysisResult;
 import com.QHSEAnalytics.shared.dto.response.KpiEnrichedResponse;
 import com.QHSEAnalytics.shared.entity.*;
@@ -31,13 +30,11 @@ public class KpiEnrichmentService {
     private final ImportSessionRepository importSessionRepository;
     private final KpiImportPreviewRepository previewRepository;
     private final KpiAnalysisRepository analysisRepository;
-    private final RagKnowledgeRepository ragKnowledgeRepository;
     private final KpiRepository kpiRepository;
     private final LlmProviderChain llmProviderChain;
     private final GroqPromptBuilder groqPromptBuilder;
     private final ObjectProvider<KpiEnrichmentService> selfProvider;
     private final ObjectMapper objectMapper;
-    private final RagSearchService ragSearchService;
 
 
     @Transactional
@@ -125,10 +122,7 @@ public class KpiEnrichmentService {
         }
 
 
-        String ragContext = buildRagContext(preview);
-
-
-        String prompt = buildGeminiPrompt(preview, ragContext);
+        String prompt = buildEnrichmentPrompt(preview, null);
 
 
         String rawJson = llmProviderChain.generate(prompt);
@@ -140,35 +134,10 @@ public class KpiEnrichmentService {
         KpiAnalysis analysis = saveAnalysis(preview.getImportSession(), preview.getKpiName(), result);
 
 
-        updateRagIfNeeded(preview, result);
-
         return toEnrichedResponse(preview, analysis);
     }
 
-    @Cacheable(value = "ragKnowledge", key = "#kpiName.toLowerCase().trim()", unless = "#result == null")
-    public RagKnowledge findRagKnowledge(String kpiName) {
-        return ragKnowledgeRepository.findBestByKpiName(kpiName).orElse(null);
-    }
-
-    private String buildRagContext(KpiImportPreview preview) {
-        List<RagKnowledge> results = ragSearchService.findRelevant(
-            preview.getKpiName(), 3, preview.getCategory(), 0.72);
-        if (results.isEmpty()) return null;
-
-        StringBuilder sb = new StringBuilder("Contexte QHSE pertinent:\n");
-        for (RagKnowledge knowledge : results) {
-            if (knowledge.getDefinition() != null) {
-                sb.append("• ").append(knowledge.getKpiName())
-                  .append(": ").append(knowledge.getDefinition()).append("\n");
-            }
-            if (knowledge.getThresholds() != null) {
-                sb.append("  Seuils: ").append(knowledge.getThresholds()).append("\n");
-            }
-        }
-        return sb.toString().trim();
-    }
-
-    private String buildGeminiPrompt(KpiImportPreview preview, String ragContext) {
+    private String buildEnrichmentPrompt(KpiImportPreview preview, String ragContext) {
         double valeurN = preview.getValueN() == null ? 0d : preview.getValueN();
         double valeurN1 = preview.getValueN1() == null ? 0d : preview.getValueN1();
         double variation = preview.getVariationPercent() == null ? 0d : preview.getVariationPercent();
@@ -286,8 +255,7 @@ public class KpiEnrichmentService {
             return Map.of("error", "preview not found");
         }
 
-        String ragContext = buildRagContext(preview);
-        String prompt = buildGeminiPrompt(preview, ragContext);
+        String prompt = buildEnrichmentPrompt(preview, null);
         String rawJson = llmProviderChain.generate(prompt);
         KpiAnalysisResult parsed = parseAnalysisResult(rawJson, preview.getKpiName());
 
@@ -389,40 +357,6 @@ public class KpiEnrichmentService {
                 .toLowerCase(Locale.ROOT);
         return normalized.isBlank() ? null : normalized;
     }
-
-    private void updateRagIfNeeded(KpiImportPreview preview, KpiAnalysisResult result) {
-
-        if (ragKnowledgeRepository.findByKpiNameAndChunkType(preview.getKpiName(), "full").isPresent()) {
-            return;
-        }
-
-
-        if ("Analyse IA indisponible.".equals(result.getRiskJustification())) {
-            return;
-        }
-
-        try {
-
-            String suggestedDef = preview.getDefinition() != null && !preview.getDefinition().isBlank()
-                    ? preview.getDefinition()
-                    : "KPI généré automatiquement via analyse IA pour la catégorie " + nullSafe(preview.getCategory());
-
-            RagKnowledge knowledge = RagKnowledge.builder()
-                    .kpiName(preview.getKpiName())
-                    .chunkType("full")
-                    .definition(suggestedDef)
-                    .category(preview.getCategory())
-                    .createdAt(LocalDateTime.now())
-                    .updatedAt(LocalDateTime.now())
-                    .build();
-            ragKnowledgeRepository.save(knowledge);
-            log.info("[KpiEnrichment] Created RAG entry for new KPI '{}'", preview.getKpiName());
-        } catch (Exception ex) {
-            log.warn("[KpiEnrichment] Could not create RAG entry for '{}': {}", preview.getKpiName(), ex.getMessage());
-        }
-    }
-
-
 
     private KpiEnrichedResponse toEnrichedResponse(KpiImportPreview preview, KpiAnalysis analysis) {
         KpiEnrichedResponse.KpiEnrichedResponseBuilder b = KpiEnrichedResponse.builder()

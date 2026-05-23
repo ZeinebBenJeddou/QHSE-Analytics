@@ -20,8 +20,6 @@ import { AdminHistoriqueComponent } from './features/admin/pages/historique/hist
 import { adminHistoriqueResolver } from './features/admin/pages/historique/historique-admin.resolver';
 import { AdminAuditComponent } from './features/admin/pages/audit/audit.component';
 import { adminAuditResolver } from './features/admin/pages/audit/audit.resolver';
-import { RagAdminComponent } from './features/admin/pages/rag/rag-admin.component';
-import { ragAdminResolver } from './features/admin/pages/rag/rag-admin.resolver';
 
 import { AnalysteShellComponent } from './features/analyste/analyste-shell.component';
 
@@ -56,8 +54,6 @@ export const routes: Routes = [
       { path: 'overview', component: AdminOverviewComponent, resolve: { data: adminOverviewResolver } },
       { path: 'historique', component: AdminHistoriqueComponent, resolve: { historique: adminHistoriqueResolver } },
       { path: 'audit', component: AdminAuditComponent, resolve: { audit: adminAuditResolver } },
-      { path: 'rag', component: RagAdminComponent, resolve: { entries: ragAdminResolver } },
-      
       { path: 'users', component: AdminUsersComponent, resolve: { users: adminUsersResolver } },
       { path: 'kpis', component: AdminKpisComponent, resolve: { kpis: adminKpisResolver } },
       { path: 'analyses/:userId/:id', component: AnalyseIAComponent },

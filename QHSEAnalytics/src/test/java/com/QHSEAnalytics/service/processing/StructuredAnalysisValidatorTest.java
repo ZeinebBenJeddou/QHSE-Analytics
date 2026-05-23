@@ -55,7 +55,6 @@ class StructuredAnalysisValidatorTest {
                 .traceability(AiTraceabilityResponse.builder()
                         .modelName("test")
                         .generatedAt("2023-01-01T00:00:00Z")
-                        .contextSourcesUsed(List.of())
                         .build())
                 .kpiInsights(List.of(AiKpiInsightResponse.builder()
                         .kpiName("Test KPI")
@@ -94,10 +93,6 @@ class StructuredAnalysisValidatorTest {
                 .traceability(AiTraceabilityResponse.builder()
                         .modelName("test")
                         .generatedAt("2023-01-01T00:00:00Z")
-                        .contextSourcesUsed(List.of(AiContextSourceResponse.builder()
-                                .sourceName("test")
-                                .relevanceScore(80.0)
-                                .build()))
                         .build())
                 .kpiInsights(List.of(AiKpiInsightResponse.builder()
                         .kpiName("")
@@ -124,7 +119,9 @@ class StructuredAnalysisValidatorTest {
                 "kpiInsights[0].actionImmediate is mandatory.",
                 "kpiInsights[0].urgency is mandatory.",
                 "kpiInsights[0].ownerRole is mandatory.",
-                "kpiInsights[0].dueHorizon is mandatory.",
+                "kpiInsights[0].dueHorizon is mandatory."
+        );
+        assertThat(errors).doesNotContain(
                 "kpiInsights[0].successMetric is mandatory.",
                 "kpiInsights[0].riskIfNotDone is mandatory."
         );
@@ -156,10 +153,6 @@ class StructuredAnalysisValidatorTest {
                 .traceability(AiTraceabilityResponse.builder()
                         .modelName("test-model")
                         .generatedAt("2023-01-01T00:00:00Z")
-                        .contextSourcesUsed(List.of(AiContextSourceResponse.builder()
-                                .sourceName("test-source")
-                                .relevanceScore(85.0)
-                                .build()))
                         .build())
                 .kpiInsights(List.of(AiKpiInsightResponse.builder()
                         .kpiName("Test KPI")
@@ -274,10 +267,6 @@ class StructuredAnalysisValidatorTest {
                 .traceability(AiTraceabilityResponse.builder()
                         .modelName("test-model")
                         .generatedAt("2023-01-01T00:00:00Z")
-                        .contextSourcesUsed(List.of(AiContextSourceResponse.builder()
-                                .sourceName("test-source")
-                                .relevanceScore(85.0)
-                                .build()))
                         .build())
                 .kpiInsights(insights)
                 .status("SUCCESS")

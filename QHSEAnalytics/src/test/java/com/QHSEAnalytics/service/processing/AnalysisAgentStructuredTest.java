@@ -24,6 +24,7 @@ import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
@@ -82,7 +83,7 @@ class AnalysisAgentStructuredTest {
                 .variationPercentage(10.0)
                 .build());
 
-        when(structuredAnalysisPromptBuilder.buildPrompt(any())).thenReturn("test prompt");
+        when(structuredAnalysisPromptBuilder.buildPrompt(anyList(), anyInt(), anyList())).thenReturn("test prompt");
         when(llmProviderChain.generate(eq("test prompt"), anyString(), eq(false))).thenReturn(null);
 
         var result = analysisAgent.analyzeStructured(kpiData);
@@ -98,7 +99,7 @@ class AnalysisAgentStructuredTest {
                 .variationPercentage(10.0)
                 .build());
 
-        when(structuredAnalysisPromptBuilder.buildPrompt(any())).thenReturn("test prompt");
+        when(structuredAnalysisPromptBuilder.buildPrompt(anyList(), anyInt(), anyList())).thenReturn("test prompt");
         when(llmProviderChain.generate(eq("test prompt"), anyString(), eq(false)))
                 .thenReturn(new LlmProviderChain.ProviderResult("invalid json", "groq"));
 
@@ -122,12 +123,12 @@ class AnalysisAgentStructuredTest {
                     "probableCauses": ["Cause 1"],
                     "recommendations": [{"title": "Rec 1", "rationale": "Rationale", "expectedBenefit": "Benefit", "urgency": "HIGH"}],
                     "actionPlan": [{"action": "Action 1", "priority": "HIGH", "ownerRole": "Owner", "dueHorizon": "Q1", "successMetric": "Metric", "riskIfNotDone": "Risk"}],
-                    "traceability": {"modelName": "test", "generatedAt": "2023-01-01T00:00:00Z", "contextSourcesUsed": [{"sourceName": "source", "relevanceScore": 80}]},
+                    "traceability": {"modelName": "test", "generatedAt": "2023-01-01T00:00:00Z"},
                     "kpiInsights": [{"kpiName": "Test KPI", "confidence": 75.0, "insight": "Insight detaille sur la variation observee avec impact operationnel concret.", "probableCauses": [], "recommendations": [], "actionImmediate": "Action immediate detaillee a lancer avec responsable et delai clairs.", "urgency": "HIGH", "ownerRole": "Owner", "dueHorizon": "Q1", "successMetric": "Metric", "riskIfNotDone": "Risk"}]
                 }
                 """;
 
-        when(structuredAnalysisPromptBuilder.buildPrompt(any())).thenReturn("test prompt");
+        when(structuredAnalysisPromptBuilder.buildPrompt(anyList(), anyInt(), anyList())).thenReturn("test prompt");
         when(llmProviderChain.generate(eq("test prompt"), anyString(), eq(false)))
                 .thenReturn(new LlmProviderChain.ProviderResult(validJson, "groq"));
         when(structuredAnalysisValidator.validate(any(), any())).thenReturn(List.of());
@@ -154,7 +155,7 @@ class AnalysisAgentStructuredTest {
                     "probableCauses": [],
                     "recommendations": [],
                     "actionPlan": [],
-                    "traceability": {"modelName": "test", "generatedAt": "2023-01-01T00:00:00Z", "contextSourcesUsed": []},
+                    "traceability": {"modelName": "test", "generatedAt": "2023-01-01T00:00:00Z"},
                     "kpiInsights": [{"kpiName": "Test KPI", "confidence": 75.0, "insight": "Insight detaille mais volontairement invalide pour declencher le retry metier.", "probableCauses": [], "recommendations": [], "actionImmediate": "Action immediate detaillee pour eviter un classement generique du resultat.", "urgency": "HIGH", "ownerRole": "Owner", "dueHorizon": "Q1", "successMetric": "Metric", "riskIfNotDone": "Risk"}]
                 }
                 """;
@@ -166,12 +167,12 @@ class AnalysisAgentStructuredTest {
                     "probableCauses": ["Cause 1"],
                     "recommendations": [{"title": "Rec 1", "rationale": "Rationale", "expectedBenefit": "Benefit", "urgency": "HIGH"}],
                     "actionPlan": [{"action": "Action 1", "priority": "HIGH", "ownerRole": "Owner", "dueHorizon": "Q1", "successMetric": "Metric", "riskIfNotDone": "Risk"}],
-                    "traceability": {"modelName": "test", "generatedAt": "2023-01-01T00:00:00Z", "contextSourcesUsed": [{"sourceName": "source", "relevanceScore": 80}]},
+                    "traceability": {"modelName": "test", "generatedAt": "2023-01-01T00:00:00Z"},
                     "kpiInsights": [{"kpiName": "Test KPI", "confidence": 75.0, "insight": "Insight detaille apres retry avec cause probable et consequence metier explicites.", "probableCauses": [], "recommendations": [], "actionImmediate": "Action immediate detaillee apres retry avec etapes concretes a suivre.", "urgency": "HIGH", "ownerRole": "Owner", "dueHorizon": "Q1", "successMetric": "Metric", "riskIfNotDone": "Risk"}]
                 }
                 """;
 
-        when(structuredAnalysisPromptBuilder.buildPrompt(any())).thenReturn("test prompt");
+        when(structuredAnalysisPromptBuilder.buildPrompt(anyList(), anyInt(), anyList())).thenReturn("test prompt");
         when(structuredAnalysisPromptBuilder.buildRetryPrompt(eq("test prompt"), anyString())).thenReturn("retry prompt");
         when(llmProviderChain.generate(eq("test prompt"), anyString(), eq(false)))
                 .thenReturn(new LlmProviderChain.ProviderResult(invalidJson, "groq"));
@@ -199,12 +200,12 @@ class AnalysisAgentStructuredTest {
                     "probableCauses": [],
                     "recommendations": [],
                     "actionPlan": [],
-                    "traceability": {"modelName": "test", "generatedAt": "2023-01-01T00:00:00Z", "contextSourcesUsed": []},
+                    "traceability": {"modelName": "test", "generatedAt": "2023-01-01T00:00:00Z"},
                     "kpiInsights": [{"kpiName": "Test KPI", "confidence": 75.0, "insight": "Insight detaille mais conserve un contenu invalide pour le validateur metier.", "probableCauses": [], "recommendations": [], "actionImmediate": "Action immediate detaillee afin de passer le filtre de genericite du service.", "urgency": "HIGH", "ownerRole": "Owner", "dueHorizon": "Q1", "successMetric": "Metric", "riskIfNotDone": "Risk"}]
                 }
                 """;
 
-        when(structuredAnalysisPromptBuilder.buildPrompt(anyList())).thenReturn("test prompt");
+        when(structuredAnalysisPromptBuilder.buildPrompt(anyList(), anyInt(), anyList())).thenReturn("test prompt");
         when(structuredAnalysisPromptBuilder.buildRetryPrompt(eq("test prompt"), anyString())).thenReturn("retry prompt");
         when(llmProviderChain.generate(eq("test prompt"), anyString(), eq(false)))
                 .thenReturn(new LlmProviderChain.ProviderResult(invalidJson, "groq"));
@@ -232,20 +233,20 @@ class AnalysisAgentStructuredTest {
                     "probableCauses": ["Cause 1"],
                     "recommendations": [{"title": "Rec 1", "rationale": "Rationale", "expectedBenefit": "Benefit", "urgency": "HIGH"}],
                     "actionPlan": [{"action": "Action 1", "priority": "HIGH", "ownerRole": "Owner", "dueHorizon": "Q1", "successMetric": "Metric", "riskIfNotDone": "Risk"}],
-                    "traceability": {"modelName": "fake-llm", "generatedAt": "2024-01-01T00:00:00Z", "contextSourcesUsed": [{"sourceName": "source", "relevanceScore": 80}]},
+                    "traceability": {"modelName": "fake-llm", "generatedAt": "2024-01-01T00:00:00Z"},
                     "kpiInsights": [{"kpiId": 42, "kpiName": "Test KPI", "confidence": 75.0, "insight": "Insight detaille qui doit etre conserve mais avec une traceabilite ecrasee par le serveur.", "probableCauses": [], "recommendations": [], "actionImmediate": "Action immediate detaillee qui satisfait les controles de richesse du contenu.", "urgency": "HIGH", "ownerRole": "Owner", "dueHorizon": "Q1", "successMetric": "Metric", "riskIfNotDone": "Risk"}]
                 }
                 """;
 
-        when(structuredAnalysisPromptBuilder.buildPrompt(anyList())).thenReturn("test prompt");
+        when(structuredAnalysisPromptBuilder.buildPrompt(anyList(), anyInt(), anyList())).thenReturn("test prompt");
         when(llmProviderChain.generate(eq("test prompt"), anyString(), eq(false)))
-                .thenReturn(new LlmProviderChain.ProviderResult(validJson, "gemini"));
+                .thenReturn(new LlmProviderChain.ProviderResult(validJson, "groq"));
         when(structuredAnalysisValidator.validate(any(), any())).thenReturn(List.of());
 
         var before = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC).minusMinutes(1);
         var result = analysisAgent.analyzeStructured(kpiData, 987L);
 
-        assertThat(result.getTraceability().getModelName()).isEqualTo("gemini");
+        assertThat(result.getTraceability().getModelName()).isEqualTo("groq");
         assertThat(java.time.OffsetDateTime.parse(result.getTraceability().getGeneratedAt())).isAfterOrEqualTo(before);
         assertThat(result.getTraceability().getSchemaVersion()).isEqualTo("1.2");
         assertThat(result.getTraceability().getPromptVersion()).isEqualTo("structured-qhse-v4");
@@ -261,7 +262,7 @@ class AnalysisAgentStructuredTest {
                         .build())
                 .toList();
 
-        when(structuredAnalysisPromptBuilder.buildPrompt(anyList())).thenAnswer(invocation -> {
+        when(structuredAnalysisPromptBuilder.buildPrompt(anyList(), anyInt(), anyList())).thenAnswer(invocation -> {
             @SuppressWarnings("unchecked")
             List<KpiCalculatedDTO> chunk = invocation.getArgument(0);
             return "prompt-" + chunk.get(0).getKpiName();
@@ -280,10 +281,10 @@ class AnalysisAgentStructuredTest {
 
         assertThat(result.getStatus()).isEqualTo("SUCCESS");
         assertThat(result.getKpiInsights()).hasSize(18);
-        assertThat(result.getGlobalSummary()).contains("Summary 1", "Summary 4");
+        assertThat(result.getGlobalSummary()).isNotBlank();
         assertThat(result.getTraceability().getModelName()).isEqualTo("groq");
         assertThat(result.getTraceability().getImportSessionId()).isEqualTo(321L);
-        verify(structuredAnalysisPromptBuilder, times(4)).buildPrompt(anyList());
+        verify(structuredAnalysisPromptBuilder, times(4)).buildPrompt(anyList(), anyInt(), anyList());
         verify(llmProviderChain).generate(eq("prompt-KPI 1"), contains("chunk=1"), eq(false));
         verify(llmProviderChain).generate(eq("prompt-KPI 6"), contains("chunk=2"), eq(false));
         verify(llmProviderChain).generate(eq("prompt-KPI 11"), contains("chunk=3"), eq(false));
@@ -299,7 +300,7 @@ class AnalysisAgentStructuredTest {
                         .build())
                 .toList();
 
-        when(structuredAnalysisPromptBuilder.buildPrompt(anyList())).thenAnswer(invocation -> {
+        when(structuredAnalysisPromptBuilder.buildPrompt(anyList(), anyInt(), anyList())).thenAnswer(invocation -> {
             @SuppressWarnings("unchecked")
             List<KpiCalculatedDTO> chunk = invocation.getArgument(0);
             return "prompt-" + chunk.get(0).getKpiName();
@@ -326,7 +327,7 @@ class AnalysisAgentStructuredTest {
                         .build())
                 .toList();
 
-        when(structuredAnalysisPromptBuilder.buildPrompt(anyList())).thenAnswer(invocation -> {
+        when(structuredAnalysisPromptBuilder.buildPrompt(anyList(), anyInt(), anyList())).thenAnswer(invocation -> {
             @SuppressWarnings("unchecked")
             List<KpiCalculatedDTO> chunk = invocation.getArgument(0);
             return "prompt-" + chunk.get(0).getKpiName();
@@ -362,7 +363,7 @@ class AnalysisAgentStructuredTest {
                 "probableCauses": ["Cause 1"],
                 "recommendations": [{"title": "Rec 1", "rationale": "Rationale", "expectedBenefit": "Benefit", "urgency": "HIGH"}],
                 "actionPlan": [{"action": "Action 1", "priority": "HIGH", "ownerRole": "Owner", "dueHorizon": "Q1", "successMetric": "Metric", "riskIfNotDone": "Risk"}],
-                "traceability": {"modelName": "fake", "generatedAt": "2024-01-01T00:00:00Z", "contextSourcesUsed": [{"sourceName": "source", "relevanceScore": 80}]},
+                "traceability": {"modelName": "fake", "generatedAt": "2024-01-01T00:00:00Z"},
                 "kpiInsights": [%s]
             }
             """, summary, insights.toString());

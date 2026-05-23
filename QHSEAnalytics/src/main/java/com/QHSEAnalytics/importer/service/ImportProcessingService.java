@@ -11,7 +11,6 @@ import com.QHSEAnalytics.shared.entity.CategorieKpi;
 import com.QHSEAnalytics.shared.entity.ImportSession;
 import com.QHSEAnalytics.shared.entity.Kpi;
 import com.QHSEAnalytics.shared.entity.KpiRawData;
-import com.QHSEAnalytics.shared.entity.RagKnowledge;
 import com.QHSEAnalytics.shared.entity.ResultatKpi;
 import com.QHSEAnalytics.shared.enums.ImportMode;
 import com.QHSEAnalytics.shared.enums.ImportStatut;
@@ -28,7 +27,6 @@ import com.QHSEAnalytics.shared.repository.KpiAnalysisRepository;
 import com.QHSEAnalytics.shared.repository.KpiImportPreviewRepository;
 import com.QHSEAnalytics.shared.repository.KpiRawDataRepository;
 import com.QHSEAnalytics.shared.repository.KpiRepository;
-import com.QHSEAnalytics.shared.repository.RagKnowledgeRepository;
 import com.QHSEAnalytics.shared.repository.ResultatKpiRepository;
 import com.QHSEAnalytics.analytics.service.AnalyseIaService;
 import com.QHSEAnalytics.importer.service.processing.CalculationAgent;
@@ -43,7 +41,6 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -63,7 +60,6 @@ public class ImportProcessingService {
     private final KpiRepository kpiRepository;
     private final KpiAnalysisRepository kpiAnalysisRepository;
     private final CategorieKpiRepository categorieKpiRepository;
-    private final RagKnowledgeRepository ragKnowledgeRepository;
     private final ImportProgressService importProgressService;
     private final FileStorageService fileStorageService;
     private final ApplicationContext applicationContext;
@@ -520,48 +516,11 @@ public class ImportProcessingService {
             log.info("[KPI Creation] Auto-created KPI: name='{}', category='{}', id={}",
                 kpiName, categorie.getCode(), savedKpi.getId());
 
-
-            createRagKnowledgeForKpi(savedKpi, categorie);
-
             return savedKpi;
         } catch (Exception ex) {
             log.error("[KPI Creation] Error auto-creating KPI '{}': {}", kpiName, ex.getMessage(), ex);
             return null;
         }
-    }
-
-
-    private void createRagKnowledgeForKpi(Kpi kpi, CategorieKpi categorie) {
-        try {
-
-            if (ragKnowledgeRepository.findByKpiNameAndChunkType(kpi.getNom(), "full").isPresent()) {
-                return;
-            }
-
-            RagKnowledge ragKnowledge = RagKnowledge.builder()
-                    .kpiName(kpi.getNom())
-                    .chunkType("full")
-                    .definition(kpi.getDefinition())
-                    .category(categorie.getCode())
-                    .thresholds(buildThresholdJson(kpi))
-                    .build();
-
-            ragKnowledgeRepository.save(ragKnowledge);
-            log.info("[RAG Knowledge] Created RAG knowledge for KPI: {}", kpi.getNom());
-        } catch (Exception ex) {
-            log.error("[RAG Knowledge] Error creating RAG knowledge for KPI '{}': {}", kpi.getNom(), ex.getMessage());
-
-        }
-    }
-
-
-    private String buildThresholdJson(Kpi kpi) {
-        return String.format(Locale.US,
-            "{\"faible\":%f, \"modere\":%f, \"critique\":%f}",
-            kpi.getSeuilFaible(),
-            kpi.getSeuilModere(),
-            kpi.getSeuilCritique()
-        );
     }
 
 

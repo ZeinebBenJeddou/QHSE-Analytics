@@ -7,8 +7,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -19,7 +17,6 @@ public class AiTraceabilityResponse {
 
     private String modelName;
     private String generatedAt;
-    private List<AiContextSourceResponse> contextSourcesUsed;
     private String schemaVersion;
     private String promptVersion;
     private Long importSessionId;

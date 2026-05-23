@@ -13,10 +13,7 @@ import com.QHSEAnalytics.shared.exception.KpiAlreadyExistsException;
 import com.QHSEAnalytics.shared.exception.KpiNotFoundException;
 import com.QHSEAnalytics.shared.repository.CategorieKpiRepository;
 import com.QHSEAnalytics.shared.repository.KpiRepository;
-import com.QHSEAnalytics.shared.repository.RagKnowledgeRepository;
-import com.QHSEAnalytics.analytics.service.EmbeddingService;
 import com.QHSEAnalytics.kpi.service.KpiService;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -38,9 +35,6 @@ class KpiServiceTest {
 
     @Mock KpiRepository kpiRepository;
     @Mock CategorieKpiRepository categorieKpiRepository;
-    @Mock RagKnowledgeRepository ragKnowledgeRepository;
-    @Mock EmbeddingService embeddingService;
-    @Mock JdbcTemplate jdbcTemplate;
 
     @InjectMocks KpiService kpiService;
 
@@ -130,8 +124,6 @@ class KpiServiceTest {
             k.setId(2L);
             return k;
         });
-        when(ragKnowledgeRepository.findByKpiNameAndChunkType(anyString(), eq("full")))
-                .thenReturn(Optional.empty());
 
         KpiResponse result = kpiService.createKpi(request);
 

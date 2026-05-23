@@ -1,7 +1,6 @@
 package com.QHSEAnalytics.analytics.service;
 
 import com.QHSEAnalytics.shared.exception.ProviderUnavailableException;
-import com.QHSEAnalytics.analytics.service.GeminiClientService;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +28,6 @@ public class LlmProviderChain {
 
     public static final String PROVIDER_CHAIN_VERSION = "v1";
     private final GroqService groqService;
-    private final GeminiClientService geminiService;
     private final ProviderCooldownManager cooldownManager;
     private final MeterRegistry meterRegistry;
     private final CacheManager cacheManager;
@@ -47,12 +45,10 @@ public class LlmProviderChain {
     }
 
     public LlmProviderChain(GroqService groqService,
-                            GeminiClientService geminiService,
                             ProviderCooldownManager cooldownManager,
                             MeterRegistry meterRegistry,
                             CacheManager cacheManager) {
         this.groqService = groqService;
-        this.geminiService = geminiService;
         this.cooldownManager = cooldownManager;
         this.meterRegistry = meterRegistry;
         this.cacheManager = cacheManager;
@@ -159,22 +155,7 @@ public class LlmProviderChain {
             log.info("[LlmChain] Groq on cooldown, skipping");
         }
 
-        if (cooldownManager.isAvailable("gemini")) {
-            try {
-                String result = geminiService.generateRaw(prompt);
-                if (result != null && !result.isBlank()) {
-                    log.info("[LlmChain] Selected provider=gemini");
-                    incrementCounter("ai.provider.selected", Tags.of("provider", "gemini"));
-                    return new ProviderResult(result, "gemini");
-                }
-            } catch (Exception e) {
-                log.warn("[LlmChain] Gemini failed: {}", e.getMessage());
-            }
-        } else {
-            log.info("[LlmChain] Gemini on cooldown, skipping");
-        }
-
-        return new ProviderResult(null, "none");
+        throw new ProviderUnavailableException("groq", "Service IA temporairement indisponible, réessayez dans quelques minutes");
     }
 
     private void incrementCounter(String metricName, Tags tags) {

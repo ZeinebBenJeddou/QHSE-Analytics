@@ -1,13 +1,11 @@
 package com.QHSEAnalytics.analytics.service.processing;
 
 import com.QHSEAnalytics.analytics.service.LlmProviderChain;
-import com.QHSEAnalytics.analytics.service.RagSearchService;
 import com.QHSEAnalytics.shared.dto.llm.AiResponse;
 import com.QHSEAnalytics.shared.dto.llm.KpiInsight;
 import com.QHSEAnalytics.shared.dto.response.AiActionPlanItemResponse;
 import com.QHSEAnalytics.shared.dto.response.AiAnalysisStructuredResponse;
 import com.QHSEAnalytics.shared.dto.response.AiConfidenceResponse;
-import com.QHSEAnalytics.shared.dto.response.AiContextSourceResponse;
 import com.QHSEAnalytics.shared.dto.response.AiKpiInsightResponse;
 import com.QHSEAnalytics.shared.dto.response.AiPredictiveAlertResponse;
 import com.QHSEAnalytics.shared.dto.response.AiRecommendationResponse;
@@ -15,9 +13,7 @@ import com.QHSEAnalytics.shared.dto.response.AiRootCauseResponse;
 import com.QHSEAnalytics.shared.dto.response.AiTraceabilityResponse;
 import com.QHSEAnalytics.shared.dto.response.KpiCalculatedDTO;
 import com.QHSEAnalytics.shared.entity.AnalyseGlobale;
-import com.QHSEAnalytics.shared.entity.RagKnowledge;
 import com.QHSEAnalytics.shared.repository.AnalyseGlobaleRepository;
-import com.QHSEAnalytics.shared.repository.KpiRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -48,14 +44,12 @@ public class AnalysisAgent {
     private static final int MAX_VALIDATION_RETRY_ATTEMPTS = 2;
 
     private final LlmProviderChain llmProviderChain;
-    private final KpiRepository kpiRepository;
     private final AnalyseGlobaleRepository analyseGlobaleRepository;
     private final ObjectMapper objectMapper;
     private final StructuredAnalysisPromptBuilder structuredAnalysisPromptBuilder;
     private final StructuredAnalysisValidator structuredAnalysisValidator;
     private final MeterRegistry meterRegistry;
     private final PromptSanitizer promptSanitizer;
-    private final RagSearchService ragSearchService;
 
     @Value("${app.analysis.batch-size:5}")
     private int analysisBatchSize = 5;
@@ -87,7 +81,7 @@ public class AnalysisAgent {
                 .limit(20)
                 .collect(Collectors.toList());
         String prompt = buildPrompt(topKpis);
-        log.info("Lancement analyse IA (Groq puis Gemini) sur {} KPIs", topKpis.size());
+        log.info("Lancement analyse IA (Groq) sur {} KPIs", topKpis.size());
 
         String responseJson = llmProviderChain.generate(prompt);
         if (responseJson != null && !responseJson.isBlank()) {
@@ -240,87 +234,7 @@ public class AnalysisAgent {
         return mergedResponse;
     }
 
-    private ChunkAnalysisResult analyzeStructuredChunk(List<KpiCalculatedDTO> chunkKpis,
-                                                       List<KpiCalculatedDTO> allKpis,
-                                                       Long importSessionId,
-                                                       boolean bypassCache,
-                                                       String chunkCacheKeyPrefix,
-                                                       int chunkNumber,
-                                                       int totalChunks) {
-        String prompt = structuredAnalysisPromptBuilder.buildPrompt(chunkKpis, allKpis.size(), allKpis);
-        long start = System.currentTimeMillis();
-        LlmProviderChain.ProviderResult providerResult = llmProviderChain.generate(prompt, chunkCacheKeyPrefix, bypassCache);
-        long latency = System.currentTimeMillis() - start;
-        String providerUsed = providerResult == null ? "none" : providerResult.provider();
-        String responseJson = providerResult == null ? null : providerResult.response();
-        log.info("[AnalysisAgent] analyseStructured: provider response received in {}ms, importSessionId={}, provider={}, cachePrefix={}",
-                latency, importSessionId, providerUsed, chunkCacheKeyPrefix);
 
-        if (responseJson == null || responseJson.isBlank()) {
-            log.warn("[AnalysisAgent] analyseStructured: empty response from provider. reason=empty_response, chunk={}/{}, latency={}ms, provider={}",
-                    chunkNumber, totalChunks, latency, providerUsed);
-            return new ChunkAnalysisResult(null, providerUsed, "Aucune réponse du provider IA.", ChunkFailureType.EMPTY, false);
-        }
-
-        AiAnalysisStructuredResponse response = parseStructuredResponse(responseJson);
-        if (response == null) {
-            log.warn("[AnalysisAgent] analyseStructured: initial parsing failed. reason=initial_parsing_failed, chunk={}/{}, latency={}ms",
-                    chunkNumber, totalChunks, latency);
-            return new ChunkAnalysisResult(null, providerUsed, "Impossible de parser la réponse IA.", ChunkFailureType.PARSE, false);
-        }
-
-        structuredAnalysisValidator.sanitize(response);
-        List<String> errors = validateChunkResponse(response, chunkKpis);
-        int missingCount = computeMissingKpiCount(chunkKpis, response.getKpiInsights());
-        log.info("[AnalysisAgent] analyseStructured: coverage total_input_kpis={} total_output_insights={} missing_kpis_count={} importSessionId={} chunk={}/{}",
-                chunkKpis.size(), response.getKpiInsights() == null ? 0 : response.getKpiInsights().size(), missingCount, importSessionId, chunkNumber, totalChunks);
-        if (errors.isEmpty()) {
-            return new ChunkAnalysisResult(response, providerUsed, null, ChunkFailureType.NONE, false);
-        }
-
-        log.warn("[AnalysisAgent] analyseStructured: validation failed. reason=validation_errors, chunk={}/{}, error_count={}, errors={}, latency={}ms",
-                chunkNumber, totalChunks, errors.size(), errors, latency);
-        String retryPrompt = structuredAnalysisPromptBuilder.buildRetryPrompt(prompt, String.join("; ", errors));
-        log.info("[AnalysisAgent] analyseStructured: retry attempt initiated. retry_count=1, chunk={}/{}", chunkNumber, totalChunks);
-        LlmProviderChain.ProviderResult retryResult = llmProviderChain.generate(retryPrompt, chunkCacheKeyPrefix, bypassCache);
-        AiAnalysisStructuredResponse retryResponse = parseStructuredResponse(retryResult == null ? null : retryResult.response());
-        if (retryResponse == null) {
-            log.warn("[AnalysisAgent] analyseStructured: retry parsing failed. reason=retry_parsing_failed, retry_count=1, chunk={}/{}, latency={}ms",
-                    chunkNumber, totalChunks, latency);
-            return new ChunkAnalysisResult(
-                    null,
-                    retryResult == null ? providerUsed : retryResult.provider(),
-                    "Impossible de parser la réponse IA après retry.",
-                    ChunkFailureType.PARSE,
-                    true
-            );
-        }
-
-        structuredAnalysisValidator.sanitize(retryResponse);
-        List<String> retryErrors = validateChunkResponse(retryResponse, chunkKpis);
-        int retryMissingCount = computeMissingKpiCount(chunkKpis, retryResponse.getKpiInsights());
-        log.info("[AnalysisAgent] analyseStructured: retry coverage total_input_kpis={} total_output_insights={} missing_kpis_count={} importSessionId={} chunk={}/{}",
-                chunkKpis.size(), retryResponse.getKpiInsights() == null ? 0 : retryResponse.getKpiInsights().size(), retryMissingCount, importSessionId, chunkNumber, totalChunks);
-        if (retryErrors.isEmpty()) {
-            return new ChunkAnalysisResult(
-                    retryResponse,
-                    retryResult == null ? providerUsed : retryResult.provider(),
-                    null,
-                    ChunkFailureType.NONE,
-                    true
-            );
-        }
-
-        log.warn("[AnalysisAgent] analyseStructured: retry validation failed. reason=retry_validation_errors, chunk={}/{}, error_count={}, errors={}, retry_count=1, latency={}ms",
-                chunkNumber, totalChunks, retryErrors.size(), retryErrors, latency);
-        return new ChunkAnalysisResult(
-                null,
-                retryResult == null ? providerUsed : retryResult.provider(),
-                "Réponse IA invalide après retry : " + String.join("; ", retryErrors),
-                ChunkFailureType.VALIDATION,
-                true
-        );
-    }
 
     private ChunkAnalysisResult analyzeStructuredChunkWithRetries(List<KpiCalculatedDTO> chunkKpis,
                                                                   List<KpiCalculatedDTO> allKpis,
@@ -540,13 +454,6 @@ public class AnalysisAgent {
                 .flatMap(response -> safeList(response.getPredictiveAlerts()).stream())
                 .distinct()
                 .toList();
-        List<AiContextSourceResponse> mergedContextSources = chunkResponses.stream()
-                .map(AiAnalysisStructuredResponse::getTraceability)
-                .filter(traceability -> traceability != null)
-                .flatMap(traceability -> safeList(traceability.getContextSourcesUsed()).stream())
-                .distinct()
-                .toList();
-
         return AiAnalysisStructuredResponse.builder()
                 .globalSummary(mergedSummary)
                 .confidence(mergeConfidence(chunkResponses))
@@ -557,7 +464,6 @@ public class AnalysisAgent {
                 .rootCauseAnalysis(mergedRootCauses)
                 .predictiveAlerts(mergedPredictiveAlerts)
                 .traceability(AiTraceabilityResponse.builder()
-                        .contextSourcesUsed(mergedContextSources)
                         .build())
                 .build();
     }
@@ -665,9 +571,7 @@ public class AnalysisAgent {
             return;
         }
         if (response.getTraceability() == null) {
-            response.setTraceability(AiTraceabilityResponse.builder()
-                    .contextSourcesUsed(List.of())
-                    .build());
+            response.setTraceability(AiTraceabilityResponse.builder().build());
         }
         String modelName = provider == null || provider.isBlank() || "none".equalsIgnoreCase(provider)
                 ? "fallback"
@@ -724,7 +628,6 @@ public class AnalysisAgent {
                 .traceability(AiTraceabilityResponse.builder()
                         .modelName("fallback")
                         .generatedAt(OffsetDateTime.now(ZoneOffset.UTC).toString())
-                        .contextSourcesUsed(List.of())
                         .schemaVersion("1.1")
                         .promptVersion(structuredAnalysisPromptBuilder.getPromptVersion())
                         .importSessionId(null)
@@ -876,22 +779,6 @@ public class AnalysisAgent {
     private String buildPrompt(List<KpiCalculatedDTO> data) {
         StringBuilder prompt = new StringBuilder();
 
-        String combinedQuery = data.stream()
-                .map(k -> promptSanitizer.sanitize(k.getKpiName()))
-                .collect(Collectors.joining(", "));
-        List<RagKnowledge> ragResults = ragSearchService.findRelevant(combinedQuery, 10, null, 0.65);
-        if (!ragResults.isEmpty()) {
-            prompt.append("=== CONTEXTE MÉTIER QHSE (base de connaissances) ===\n");
-            ragResults.forEach(r -> {
-                prompt.append("• ").append(r.getKpiName()).append(": ").append(r.getDefinition());
-                if (r.getThresholds() != null) {
-                    prompt.append(" | Seuils: ").append(r.getThresholds());
-                }
-                prompt.append("\n");
-            });
-            prompt.append("\n");
-        }
-
         List<AnalyseGlobale> recentAnalyses = analyseGlobaleRepository.findTop10ByOrderByCreatedAtDesc();
         prompt.append("=== HISTORIQUE : PLANS D'ACTIONS RÉCENTS ===\n");
         recentAnalyses.forEach(a -> prompt.append(String.format(
@@ -936,9 +823,8 @@ public class AnalysisAgent {
         prompt.append("=== INSTRUCTIONS STRICTES ===\n");
         prompt.append("1. NIVEAU D'ANALYSE : Ton analyse doit être extrêmement détaillée (ISO compliance).\n");
         prompt.append("2. PLANS D'ACTIONS IMMÉDIATS : Fournis des actions correctives concrètes pour chaque risque détecté.\n");
-        prompt.append("3. RAG : Utilise les seuils et l'historique fournis pour contextualiser chaque variation.\n");
-        prompt.append("4. IMPORTANT : Tu dois OBLIGATOIREMENT renvoyer un objet d'analyse dans le tableau 'kpis' pour CHAQUE KPI listé dans les données actuelles. Aucun KPI ne doit être ignoré.\n");
-        prompt.append("5. TOUS LES CHAMPS OBLIGATOIRES : Chaque objet KPI doit contenir tous les champs demandés (identificationRisque, actionImmediate, etc.). Ne laisse aucun champ vide.\n");
+        prompt.append("3. IMPORTANT : Tu dois OBLIGATOIREMENT renvoyer un objet d'analyse dans le tableau 'kpis' pour CHAQUE KPI listé dans les données actuelles. Aucun KPI ne doit être ignoré.\n");
+        prompt.append("4. TOUS LES CHAMPS OBLIGATOIRES : Chaque objet KPI doit contenir tous les champs demandés (identificationRisque, actionImmediate, etc.). Ne laisse aucun champ vide.\n");
         prompt.append("Réponds uniquement avec du JSON valide.\n");
         prompt.append("Format attendu :\n");
         prompt.append("{\n");
