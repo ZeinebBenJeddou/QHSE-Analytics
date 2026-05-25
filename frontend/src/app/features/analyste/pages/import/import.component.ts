@@ -48,6 +48,8 @@ export class ImportComponent implements OnInit, AfterViewInit, OnDestroy {
   yearN = signal<number | null>(null);
   yearNMinus1 = signal<number | null>(null);
   yearError = signal('');
+  private rawYearN = '';
+  private rawYearNMinus1 = '';
   isSubmitting = signal(false);
   result = signal<ImportProcessingResponse | null>(null);
   errorMsg = signal('');
@@ -157,14 +159,14 @@ export class ImportComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onYearNChange(value: string) {
-    const parsed = this.parseYear(value);
-    this.yearN.set(parsed);
+    this.rawYearN = value;
+    this.yearN.set(this.parseYear(value));
     this.updateYearError();
   }
 
   onYearNMinus1Change(value: string) {
-    const parsed = this.parseYear(value);
-    this.yearNMinus1.set(parsed);
+    this.rawYearNMinus1 = value;
+    this.yearNMinus1.set(this.parseYear(value));
     this.updateYearError();
   }
 
@@ -174,16 +176,23 @@ export class ImportComponent implements OnInit, AfterViewInit, OnDestroy {
       return null;
     }
     const parsed = Number(trimmed);
-    return Number.isInteger(parsed) ? parsed : null;
+    if (!Number.isInteger(parsed)) return null;
+    if (parsed < 2000 || parsed > 2026) return null;
+    return parsed;
   }
 
   private updateYearError() {
-    if (this.yearN() === null || this.yearNMinus1() === null) {
-      this.yearError.set('');
-      return;
-    }
     const yearN = this.yearN();
     const yearNMinus1 = this.yearNMinus1();
+
+    if (this.rawYearN.trim() && yearN === null) {
+      this.yearError.set('L\'année N doit être comprise entre 2000 et 2026.');
+      return;
+    }
+    if (this.rawYearNMinus1.trim() && yearNMinus1 === null) {
+      this.yearError.set('L\'année N-1 doit être comprise entre 2000 et 2026.');
+      return;
+    }
     if (yearN === null || yearNMinus1 === null) {
       this.yearError.set('');
       return;

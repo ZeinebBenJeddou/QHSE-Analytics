@@ -71,10 +71,10 @@ public class ImportProcessingService {
     private final FileStorageService fileStorageService;
     private final ApplicationContext applicationContext;
 
-    @Value("${import.validation.year.min:1900}")
+    @Value("${import.validation.year.min:2000}")
     private int yearMin;
 
-    @Value("${import.validation.year.max:2100}")
+    @Value("${import.validation.year.max:2026}")
     private int yearMax;
 
     @Value("${import.kpi.default.seuil.faible:10.0}")
@@ -536,7 +536,10 @@ public class ImportProcessingService {
 
             Kpi newKpi = Kpi.builder()
                     .nom(kpiName)
-                    .definition("KPI auto-créé à partir d'un import. Catégorie détectée: " + dto.getCategorie())
+                    .definition(dto.getDefinition() != null && !dto.getDefinition().isBlank()
+                            && !dto.getDefinition().startsWith("KPI auto-créé")
+                        ? dto.getDefinition()
+                        : "KPI auto-créé à partir d'un import. Catégorie détectée: " + dto.getCategorie())
                     .unite(parseUnite(dto.getUnite()))
                     .categorieKpi(categorie)
                     .seuilFaible(dto.getSeuilFaible() != null ? dto.getSeuilFaible() : defaultSeuilFaible)
