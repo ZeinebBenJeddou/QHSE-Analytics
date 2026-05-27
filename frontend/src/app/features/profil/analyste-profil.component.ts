@@ -26,6 +26,7 @@ import { AnalysteProfil } from '../../core/models/analyste-profil.model';
     MatSnackBarModule,
   ],
   templateUrl: './analyste-profil.component.html',
+  styleUrl: './analyste-profil.component.css',
 })
 export class AnalysteProfilComponent implements OnInit {
   private profilService = inject(AnalysteProfilService);

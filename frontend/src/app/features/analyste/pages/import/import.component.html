@@ -106,37 +106,48 @@
 
         <div class="contexte-fields">
 
-          <mat-form-field appearance="outline" class="full-width">
+          <!-- Ligne 1 : Secteur | Taille | Certifications -->
+          <mat-form-field appearance="outline">
             <mat-label>Secteur d'activité</mat-label>
+            <mat-icon matPrefix style="font-size:16px;width:16px;height:16px;color:var(--ink-muted);margin-right:4px">category</mat-icon>
             <input matInput [(ngModel)]="contexte.secteurActivite" placeholder="ex: BTP, Industrie, Chimie" maxlength="100" />
           </mat-form-field>
 
           <mat-form-field appearance="outline">
             <mat-label>Taille du site</mat-label>
+            <mat-icon matPrefix style="font-size:16px;width:16px;height:16px;color:var(--ink-muted);margin-right:4px">group</mat-icon>
             <mat-select [(ngModel)]="contexte.tailleSite">
               <mat-option value="">— Non renseigné —</mat-option>
               <mat-option *ngFor="let opt of tailleSiteOptions" [value]="opt">{{ opt }} employés</mat-option>
             </mat-select>
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="full-width">
+          <mat-form-field appearance="outline">
             <mat-label>Certifications</mat-label>
+            <mat-icon matPrefix style="font-size:16px;width:16px;height:16px;color:var(--ink-muted);margin-right:4px">verified</mat-icon>
             <input matInput [(ngModel)]="contexte.certifications" placeholder="ex: ISO 9001, ISO 45001" maxlength="200" />
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="full-width">
+          <!-- Ligne 2 : Objectifs | Réglementation | Contexte (textareas) -->
+          <mat-form-field appearance="outline">
             <mat-label>Objectifs QHSE</mat-label>
-            <textarea matInput [(ngModel)]="contexte.objectifsQhse" placeholder="ex: Réduire TF1 de 30%..." maxlength="500" rows="2"></textarea>
+            <mat-icon matPrefix style="font-size:16px;width:16px;height:16px;color:var(--ink-muted);margin-right:4px">flag</mat-icon>
+            <textarea matInput [(ngModel)]="contexte.objectifsQhse"
+                      placeholder="ex: Réduire TF1 de 30%…" maxlength="500" rows="2"></textarea>
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="full-width">
+          <mat-form-field appearance="outline">
             <mat-label>Réglementation applicable</mat-label>
-            <input matInput [(ngModel)]="contexte.reglementation" placeholder="ex: Code du travail français, OPPBTP" maxlength="200" />
+            <mat-icon matPrefix style="font-size:16px;width:16px;height:16px;color:var(--ink-muted);margin-right:4px">gavel</mat-icon>
+            <input matInput [(ngModel)]="contexte.reglementation"
+                   placeholder="ex: Code du travail français, OPPBTP" maxlength="200" />
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="full-width">
+          <mat-form-field appearance="outline">
             <mat-label>Contexte spécifique</mat-label>
-            <textarea matInput [(ngModel)]="contexte.contexteSpecifique" placeholder="ex: Nouveau chantier en cours..." maxlength="500" rows="2"></textarea>
+            <mat-icon matPrefix style="font-size:16px;width:16px;height:16px;color:var(--ink-muted);margin-right:4px">notes</mat-icon>
+            <textarea matInput [(ngModel)]="contexte.contexteSpecifique"
+                      placeholder="ex: Nouveau chantier en cours…" maxlength="500" rows="2"></textarea>
           </mat-form-field>
 
         </div>

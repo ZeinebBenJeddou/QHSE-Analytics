@@ -46,23 +46,22 @@ export class AnalysteShellComponent implements OnInit, OnDestroy {
   profileRole = 'Analyste';
 
   dashItems = [
-    { label: 'Tableau de bord', icon: 'dashboard', route: '/analyste/dashboard', badge: null as number | null },
+    { label: 'Tableau de bord', route: '/analyste/dashboard', badge: null as number | null },
   ];
 
   dataItems = [
-    { label: 'Importer données', icon: 'upload_file', route: '/analyste/import', badge: null as number | null },
-    { label: 'Historique imports', icon: 'history', route: '/analyste/historique', badge: null as number | null },
+    { label: 'Importer données',  route: '/analyste/import',     badge: null as number | null },
+    { label: 'Historique imports',route: '/analyste/historique', badge: null as number | null },
   ];
 
   navItems = [
-    { label: 'Analyse ',          icon: 'analytics',       route: '/analyste/ia',          badge: null as number | null },
-    { label: 'Export PDF', icon: 'picture_as_pdf', route: '/analyste/export', badge: null as number | null },
-    
+    { label: 'Analyse',  route: '/analyste/ia',     badge: null as number | null },
+    { label: 'Export PDF',route: '/analyste/export', badge: null as number | null },
   ];
 
   profilItems = [
-    { label: 'Profil', icon: 'person', route: '/analyste/profile', badge: null as number | null },
-    { label: 'Contexte QHSE', icon: 'business_center', route: '/analyste/profil-qhse', badge: null as number | null },
+    { label: 'Profil',        route: '/analyste/profile',    badge: null as number | null },
+    { label: 'Contexte QHSE', route: '/analyste/profil-qhse',badge: null as number | null },
   ];
 
   constructor() {

@@ -39,12 +39,12 @@ export class AdminShellComponent implements OnDestroy {
   activeLabel = 'Overview';
 
   navItems = [
-    { label: 'Profil',        icon: 'person',           route: '/admin/profile',  badge: null },
-    { label: 'Tableau de bord',      icon: 'bar_chart',        route: '/admin/overview', badge: null },
-    { label: 'Historique',    icon: 'history',          route: '/admin/historique', badge: null },
-    { label: 'Utilisateurs',  icon: 'group',            route: '/admin/users',    badge: null },
-    //{ label: 'KPIs',          icon: 'speed',            route: '/admin/kpis',     badge: null },
-    { label: 'Actions Administrateur',         icon: 'policy',           route: '/admin/audit',     badge: null },
+    { label: 'Profil',                route: '/admin/profile',    badge: null },
+    { label: 'Tableau de bord',       route: '/admin/overview',   badge: null },
+    { label: 'Historique',            route: '/admin/historique', badge: null },
+    { label: 'Utilisateurs',          route: '/admin/users',      badge: null },
+    { label: 'KPIs',                  route: '/admin/kpis',       badge: null },
+    { label: 'Actions Administrateur',route: '/admin/audit',      badge: null },
   ];
 
   constructor() {

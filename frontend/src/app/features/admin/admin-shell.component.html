@@ -26,7 +26,6 @@
            matTooltipPosition="right"
            [matTooltipDisabled]="sidenavOpen"
         >
-          <mat-icon matListItemIcon class="nav-icon">{{ item.icon }}</mat-icon>
           <span matListItemTitle class="nav-item-title">{{ item.label }}</span>
           <span class="nav-badge" *ngIf="item.badge">{{ item.badge }}</span>
         </a>
@@ -35,7 +34,6 @@
 
     <div class="sidenav-footer">
       <a mat-list-item class="nav-item logout-btn" (click)="logout()">
-        <mat-icon matListItemIcon>logout</mat-icon>
         <span matListItemTitle>Déconnexion</span>
       </a>
     </div>
