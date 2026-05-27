@@ -1,6 +1,7 @@
 package com.QHSEAnalytics.analytics.service.processing;
 
 import com.QHSEAnalytics.shared.dto.response.KpiCalculatedDTO;
+import com.QHSEAnalytics.shared.entity.ImportSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -108,7 +109,39 @@ public class StructuredAnalysisPromptBuilder {
     private final PromptSanitizer promptSanitizer;
 
     public String buildPrompt(List<KpiCalculatedDTO> kpis) {
-        return buildPrompt(kpis, kpis == null ? 0 : kpis.size(), null);
+        return buildPrompt(kpis, kpis == null ? 0 : kpis.size(), null, null);
+    }
+
+    public String buildPrompt(List<KpiCalculatedDTO> kpis, int totalKpiCount, List<KpiCalculatedDTO> allKpis) {
+        return buildPrompt(kpis, totalKpiCount, allKpis, null);
+    }
+
+    public String buildPrompt(List<KpiCalculatedDTO> kpis, int totalKpiCount, List<KpiCalculatedDTO> allKpis, ImportSession session) {
+        return buildPromptInternal(kpis, totalKpiCount, allKpis, buildContextSection(session));
+    }
+
+    public String buildContextSection(ImportSession session) {
+        if (session == null) return "";
+        return buildContextSection(
+                session.getContexteSecteur(),
+                session.getContexteTaille(),
+                session.getContexteCertifications(),
+                session.getContexteObjectifs(),
+                session.getContexteReglementation(),
+                session.getContexteSpecifique());
+    }
+
+    public String buildContextSection(String secteur, String taille, String certifications,
+                                       String objectifs, String reglementation, String specifique) {
+        StringBuilder sb = new StringBuilder();
+        if (hasValue(secteur))        sb.append("Secteur d'activité : ").append(secteur).append("\n");
+        if (hasValue(taille))         sb.append("Taille du site : ").append(taille).append("\n");
+        if (hasValue(certifications)) sb.append("Certifications : ").append(certifications).append("\n");
+        if (hasValue(objectifs))      sb.append("Objectifs QHSE : ").append(objectifs).append("\n");
+        if (hasValue(reglementation)) sb.append("Réglementation : ").append(reglementation).append("\n");
+        if (hasValue(specifique))     sb.append("Contexte spécifique : ").append(specifique).append("\n");
+        if (sb.isEmpty()) return "";
+        return "=== CONTEXTE DE L'ORGANISATION ===\n" + sb + "===================================\n\n";
     }
 
     /**
@@ -116,7 +149,7 @@ public class StructuredAnalysisPromptBuilder {
      * @param totalKpiCount   total number of KPIs in the session (used only for globalSummary context)
      * @param allKpis         full list used to compute session-wide scores; falls back to kpis when null
      */
-    public String buildPrompt(List<KpiCalculatedDTO> kpis, int totalKpiCount, List<KpiCalculatedDTO> allKpis) {
+    private String buildPromptInternal(List<KpiCalculatedDTO> kpis, int totalKpiCount, List<KpiCalculatedDTO> allKpis, String contextBlock) {
         if (kpis == null || kpis.isEmpty()) {
             throw new IllegalArgumentException("At least one KPI is required to build a structured IA prompt.");
         }
@@ -133,6 +166,9 @@ public class StructuredAnalysisPromptBuilder {
         StringBuilder prompt = new StringBuilder();
         prompt.append("SYSTEM:\n");
         prompt.append(SYSTEM_PROMPT);
+        if (contextBlock != null && !contextBlock.isBlank()) {
+            prompt.append(contextBlock);
+        }
         prompt.append(String.format("Nombre exact d'objets kpiInsights attendus : %d.\n\n", orderedKpis.size()));
 
         prompt.append("=== ANALYSE QHSE — DONNÉES À ANALYSER ===\n\n");
@@ -307,6 +343,10 @@ public class StructuredAnalysisPromptBuilder {
 
     public String getPromptVersion() {
         return "structured-qhse-v8";
+    }
+
+    private boolean hasValue(String s) {
+        return s != null && !s.isBlank();
     }
 
     private String safeText(String value) {

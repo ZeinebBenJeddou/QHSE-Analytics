@@ -60,6 +60,24 @@ public class ImportSession {
     @Column(length = 1000)
     private String messageErreur;
 
+    @Column(name = "contexte_secteur", length = 100)
+    private String contexteSecteur;
+
+    @Column(name = "contexte_taille", length = 50)
+    private String contexteTaille;
+
+    @Column(name = "contexte_certifications", length = 200)
+    private String contexteCertifications;
+
+    @Column(name = "contexte_objectifs", length = 500)
+    private String contexteObjectifs;
+
+    @Column(name = "contexte_reglementation", length = 200)
+    private String contexteReglementation;
+
+    @Column(name = "contexte_specifique", length = 500)
+    private String contexteSpecifique;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

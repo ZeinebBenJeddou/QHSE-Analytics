@@ -215,7 +215,7 @@ public class AnalyseIaService {
             if (!iaUnavailable) {
                 try {
                     AiAnalysisStructuredResponse structured =
-                            analysisAgent.analyzeStructured(cleanedData, importSessionId, bypassStructuredCache);
+                            analysisAgent.analyzeStructured(cleanedData, importSessionId, bypassStructuredCache, session);
                     if (structured != null) {
                         analyseGlobale.setStructuredResponseJson(objectMapper.writeValueAsString(structured));
                         if (structured.getConfidence() != null && structured.getConfidence().getOverall() != null) {
@@ -357,7 +357,7 @@ public class AnalyseIaService {
 
         List<KpiCalculatedDTO> kpiData = resultats.stream().map(this::toKpiCalculatedDTO).toList();
         List<KpiCalculatedDTO> cleanedData = cleanKpis(kpiData);
-        AiAnalysisStructuredResponse result = analysisAgent.analyzeStructured(cleanedData, importSessionId);
+        AiAnalysisStructuredResponse result = analysisAgent.analyzeStructured(cleanedData, importSessionId, false, session);
 
         if (result != null) {
             // Persister pour les consultations futures

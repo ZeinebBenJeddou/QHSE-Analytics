@@ -1,0 +1,61 @@
+<div class="profil-page">
+
+  <div class="header-row">
+    <mat-icon class="header-icon">manage_accounts</mat-icon>
+    <div>
+      <h1>Profil QHSE</h1>
+      <p class="subtitle">Ces informations seront pré-remplies à chaque import pour personnaliser l'analyse IA.</p>
+    </div>
+  </div>
+
+  <mat-card class="profil-card" *ngIf="!isLoading(); else loading">
+    <mat-card-content>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Secteur d'activité</mat-label>
+        <input matInput [(ngModel)]="profil.secteurActivite" placeholder="ex: BTP, Industrie, Chimie" maxlength="100" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Taille du site</mat-label>
+        <mat-select [(ngModel)]="profil.tailleSite">
+          <mat-option value="">— Non renseigné —</mat-option>
+          <mat-option *ngFor="let opt of tailleSiteOptions" [value]="opt">{{ opt }} employés</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Certifications</mat-label>
+        <input matInput [(ngModel)]="profil.certifications" placeholder="ex: ISO 9001, ISO 45001" maxlength="200" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Objectifs QHSE</mat-label>
+        <textarea matInput [(ngModel)]="profil.objectifsQhse" placeholder="ex: Réduire TF1 de 30%, atteindre zéro accident..." maxlength="500" rows="3"></textarea>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Réglementation applicable</mat-label>
+        <input matInput [(ngModel)]="profil.reglementation" placeholder="ex: Code du travail français, OPPBTP" maxlength="200" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Contexte spécifique</mat-label>
+        <textarea matInput [(ngModel)]="profil.contexteSpecifique" placeholder="ex: Nouveau chantier en cours, fusion en préparation..." maxlength="500" rows="3"></textarea>
+      </mat-form-field>
+
+    </mat-card-content>
+
+    <mat-card-actions>
+      <button mat-flat-button color="primary" (click)="save()" [disabled]="isSaving()">
+        <mat-icon>save</mat-icon>
+        {{ isSaving() ? 'Enregistrement…' : 'Enregistrer le profil' }}
+      </button>
+    </mat-card-actions>
+  </mat-card>
+
+  <ng-template #loading>
+    <div class="loading-placeholder">Chargement du profil…</div>
+  </ng-template>
+
+</div>

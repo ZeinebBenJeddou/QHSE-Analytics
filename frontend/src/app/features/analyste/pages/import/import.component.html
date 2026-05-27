@@ -7,7 +7,6 @@
       </div>
       <div>
         <h1>Importez un fichier Excel et mappez vos colonnes</h1>
-       
       </div>
     </div>
     <button mat-stroked-button class="reset-btn" (click)="clear()">
@@ -39,7 +38,6 @@
     </div>
   </div>
 
-
   <div>
     <div class="panel">
       <div class="upload-card">
@@ -51,7 +49,6 @@
           </button>
 
           <div class="year-fields">
-
             <mat-form-field appearance="outline">
               <mat-label>Année N-1</mat-label>
               <input matInput type="number" min="2000" max="2025" placeholder="2025"
@@ -65,8 +62,6 @@
                      [value]="yearN() ?? ''"
                      (input)="onYearNChange($any($event.target).value)" />
             </mat-form-field>
-
-            
           </div>
 
           <div class="required-columns">
@@ -93,6 +88,60 @@
         </button>
       </div>
 
+      <!-- Section contexte IA -->
+      <mat-expansion-panel class="contexte-panel">
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            <mat-icon>psychology</mat-icon>
+            &nbsp;Contexte de l'analyse (optionnel)
+          </mat-panel-title>
+          <mat-panel-description>
+            Ces informations personnalisent l'analyse IA
+          </mat-panel-description>
+        </mat-expansion-panel-header>
+
+        <p class="contexte-hint">
+          Pré-rempli depuis votre profil QHSE. Vous pouvez modifier ces valeurs pour cette session uniquement.
+        </p>
+
+        <div class="contexte-fields">
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Secteur d'activité</mat-label>
+            <input matInput [(ngModel)]="contexte.secteurActivite" placeholder="ex: BTP, Industrie, Chimie" maxlength="100" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Taille du site</mat-label>
+            <mat-select [(ngModel)]="contexte.tailleSite">
+              <mat-option value="">— Non renseigné —</mat-option>
+              <mat-option *ngFor="let opt of tailleSiteOptions" [value]="opt">{{ opt }} employés</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Certifications</mat-label>
+            <input matInput [(ngModel)]="contexte.certifications" placeholder="ex: ISO 9001, ISO 45001" maxlength="200" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Objectifs QHSE</mat-label>
+            <textarea matInput [(ngModel)]="contexte.objectifsQhse" placeholder="ex: Réduire TF1 de 30%..." maxlength="500" rows="2"></textarea>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Réglementation applicable</mat-label>
+            <input matInput [(ngModel)]="contexte.reglementation" placeholder="ex: Code du travail français, OPPBTP" maxlength="200" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Contexte spécifique</mat-label>
+            <textarea matInput [(ngModel)]="contexte.contexteSpecifique" placeholder="ex: Nouveau chantier en cours..." maxlength="500" rows="2"></textarea>
+          </mat-form-field>
+
+        </div>
+      </mat-expansion-panel>
+
       <div class="error-banner" *ngIf="errorMsg()">
         <mat-icon>error_outline</mat-icon>
         <span>{{ errorMsg() }}</span>
@@ -110,6 +159,5 @@
       </div>
     </div>
   </div>
-
 
 </div>

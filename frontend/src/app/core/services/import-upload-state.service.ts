@@ -8,6 +8,12 @@ export interface ImportUploadState {
   yearNMinus1: number;
   headers: string[];
   detectedHeaders?: string[];
+  contexteSecteur?: string;
+  contexteTaille?: string;
+  contexteCertifications?: string;
+  contexteObjectifs?: string;
+  contexteReglementation?: string;
+  contexteSpecifique?: string;
 }
 
 @Injectable({ providedIn: 'root' })

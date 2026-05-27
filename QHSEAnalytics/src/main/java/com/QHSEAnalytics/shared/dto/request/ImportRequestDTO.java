@@ -19,4 +19,11 @@ public class ImportRequestDTO {
     private Map<String, Integer> mappingIndexes;
     private Boolean allowPartialImport;
     private String clientId;
+
+    private String contexteSecteur;
+    private String contexteTaille;
+    private String contexteCertifications;
+    private String contexteObjectifs;
+    private String contexteReglementation;
+    private String contexteSpecifique;
 }

@@ -3,6 +3,16 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ColumnProfileDTO, HistoriqueAnalysteResponse, ImportProcessingResponse } from '../models/import-session.model';
+import { AnalysteProfil } from '../models/analyste-profil.model';
+
+export interface ImportContexte {
+  contexteSecteur?: string;
+  contexteTaille?: string;
+  contexteCertifications?: string;
+  contexteObjectifs?: string;
+  contexteReglementation?: string;
+  contexteSpecifique?: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class ImportService {
@@ -27,7 +37,7 @@ export class ImportService {
     return this.http.post<ImportProcessingResponse>(`${this.manualBase}/preview`, form);
   }
 
-  processManualImport(file: File, yearN: number, yearNMinus1: number, mapping: Record<string, number>, allowPartialImport = false, clientId?: string): Observable<ImportProcessingResponse> {
+  processManualImport(file: File, yearN: number, yearNMinus1: number, mapping: Record<string, number>, allowPartialImport = false, clientId?: string, contexte?: ImportContexte): Observable<ImportProcessingResponse> {
     const form = new FormData();
     form.append('file', file);
     form.append('yearN', String(yearN));
@@ -35,6 +45,14 @@ export class ImportService {
     form.append('mapping', JSON.stringify(mapping));
     if (allowPartialImport) {
       form.append('allowPartialImport', 'true');
+    }
+    if (contexte) {
+      if (contexte.contexteSecteur)        form.append('contexteSecteur',        contexte.contexteSecteur);
+      if (contexte.contexteTaille)         form.append('contexteTaille',         contexte.contexteTaille);
+      if (contexte.contexteCertifications) form.append('contexteCertifications', contexte.contexteCertifications);
+      if (contexte.contexteObjectifs)      form.append('contexteObjectifs',      contexte.contexteObjectifs);
+      if (contexte.contexteReglementation) form.append('contexteReglementation', contexte.contexteReglementation);
+      if (contexte.contexteSpecifique)     form.append('contexteSpecifique',     contexte.contexteSpecifique);
     }
     const url = clientId ? `${this.manualBase}?clientId=${encodeURIComponent(clientId)}` : this.manualBase;
     return this.http.post<ImportProcessingResponse>(url, form);
@@ -50,12 +68,12 @@ export class ImportService {
     return this.http.post<ColumnProfileDTO[]>(`${this.manualBase}/profile`, form);
   }
 
-  confirmStrict(file: File, yearN: number, yearNMinus1: number, mapping: Record<string, number>, clientId?: string): Observable<ImportProcessingResponse> {
-    return this.processManualImport(file, yearN, yearNMinus1, mapping, false, clientId);
+  confirmStrict(file: File, yearN: number, yearNMinus1: number, mapping: Record<string, number>, clientId?: string, contexte?: ImportContexte): Observable<ImportProcessingResponse> {
+    return this.processManualImport(file, yearN, yearNMinus1, mapping, false, clientId, contexte);
   }
 
-  confirmPartial(file: File, yearN: number, yearNMinus1: number, mapping: Record<string, number>, clientId?: string): Observable<ImportProcessingResponse> {
-    return this.processManualImport(file, yearN, yearNMinus1, mapping, true, clientId);
+  confirmPartial(file: File, yearN: number, yearNMinus1: number, mapping: Record<string, number>, clientId?: string, contexte?: ImportContexte): Observable<ImportProcessingResponse> {
+    return this.processManualImport(file, yearN, yearNMinus1, mapping, true, clientId, contexte);
   }
 
   annuler(sessionId: number): Observable<{ message: string }> {

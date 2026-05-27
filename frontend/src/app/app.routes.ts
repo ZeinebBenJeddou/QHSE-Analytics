@@ -32,6 +32,7 @@ import { authGuard } from './core/guards/auth.guard';
 import { adminGuard } from './core/guards/admin.guard';
 import { analysteGuard } from './core/guards/analyste.guard';
 import { ExportPdfComponent } from './features/analyste/pages/export-pdf/export-pdf.component';
+import { AnalysteProfilComponent } from './features/profil/analyste-profil.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'auth', pathMatch: 'full' },
@@ -77,6 +78,7 @@ export const routes: Routes = [
       { path: 'ia', component: AnalyseIAComponent },
       { path: 'ia/:id', component: AnalyseIAComponent },
       { path: 'export', component: ExportPdfComponent },
+      { path: 'profil-qhse', component: AnalysteProfilComponent },
     ],
   },
 

@@ -62,6 +62,7 @@ export class AnalysteShellComponent implements OnInit, OnDestroy {
 
   profilItems = [
     { label: 'Profil', icon: 'person', route: '/analyste/profile', badge: null as number | null },
+    { label: 'Contexte QHSE', icon: 'business_center', route: '/analyste/profil-qhse', badge: null as number | null },
   ];
 
   constructor() {

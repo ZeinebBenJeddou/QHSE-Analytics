@@ -39,7 +39,8 @@ public class SecurityConfig {
                         "/api/auth/refresh",
                         "/api/auth/forgot-password",
                         "/api/auth/reset-password",
-                        "/actuator/health"
+                        "/actuator/health",
+                        "/api/import/manual/progress"
                     ).permitAll()
                     .requestMatchers("/api/auth/logout").authenticated()
                         .requestMatchers(

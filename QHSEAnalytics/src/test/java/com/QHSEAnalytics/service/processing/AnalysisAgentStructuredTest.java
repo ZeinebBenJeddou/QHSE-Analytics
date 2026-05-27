@@ -6,6 +6,7 @@ import com.QHSEAnalytics.analytics.service.processing.StructuredAnalysisPromptBu
 import com.QHSEAnalytics.analytics.service.processing.StructuredAnalysisValidator;
 import com.QHSEAnalytics.shared.dto.response.AiAnalysisStructuredResponse;
 import com.QHSEAnalytics.shared.dto.response.KpiCalculatedDTO;
+import com.QHSEAnalytics.shared.entity.ImportSession;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -29,6 +30,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -83,7 +85,7 @@ class AnalysisAgentStructuredTest {
                 .variationPercentage(10.0)
                 .build());
 
-        when(structuredAnalysisPromptBuilder.buildPrompt(anyList(), anyInt(), anyList())).thenReturn("test prompt");
+        when(structuredAnalysisPromptBuilder.buildPrompt(anyList(), anyInt(), anyList(), nullable(ImportSession.class))).thenReturn("test prompt");
         when(llmProviderChain.generate(eq("test prompt"), anyString(), eq(false))).thenReturn(null);
 
         var result = analysisAgent.analyzeStructured(kpiData);
@@ -99,7 +101,7 @@ class AnalysisAgentStructuredTest {
                 .variationPercentage(10.0)
                 .build());
 
-        when(structuredAnalysisPromptBuilder.buildPrompt(anyList(), anyInt(), anyList())).thenReturn("test prompt");
+        when(structuredAnalysisPromptBuilder.buildPrompt(anyList(), anyInt(), anyList(), nullable(ImportSession.class))).thenReturn("test prompt");
         when(llmProviderChain.generate(eq("test prompt"), anyString(), eq(false)))
                 .thenReturn(new LlmProviderChain.ProviderResult("invalid json", "groq"));
 
@@ -128,7 +130,7 @@ class AnalysisAgentStructuredTest {
                 }
                 """;
 
-        when(structuredAnalysisPromptBuilder.buildPrompt(anyList(), anyInt(), anyList())).thenReturn("test prompt");
+        when(structuredAnalysisPromptBuilder.buildPrompt(anyList(), anyInt(), anyList(), nullable(ImportSession.class))).thenReturn("test prompt");
         when(llmProviderChain.generate(eq("test prompt"), anyString(), eq(false)))
                 .thenReturn(new LlmProviderChain.ProviderResult(validJson, "groq"));
         when(structuredAnalysisValidator.validate(any(), any())).thenReturn(List.of());
@@ -172,7 +174,7 @@ class AnalysisAgentStructuredTest {
                 }
                 """;
 
-        when(structuredAnalysisPromptBuilder.buildPrompt(anyList(), anyInt(), anyList())).thenReturn("test prompt");
+        when(structuredAnalysisPromptBuilder.buildPrompt(anyList(), anyInt(), anyList(), nullable(ImportSession.class))).thenReturn("test prompt");
         when(structuredAnalysisPromptBuilder.buildRetryPrompt(eq("test prompt"), anyString())).thenReturn("retry prompt");
         when(llmProviderChain.generate(eq("test prompt"), anyString(), eq(false)))
                 .thenReturn(new LlmProviderChain.ProviderResult(invalidJson, "groq"));
@@ -205,7 +207,7 @@ class AnalysisAgentStructuredTest {
                 }
                 """;
 
-        when(structuredAnalysisPromptBuilder.buildPrompt(anyList(), anyInt(), anyList())).thenReturn("test prompt");
+        when(structuredAnalysisPromptBuilder.buildPrompt(anyList(), anyInt(), anyList(), nullable(ImportSession.class))).thenReturn("test prompt");
         when(structuredAnalysisPromptBuilder.buildRetryPrompt(eq("test prompt"), anyString())).thenReturn("retry prompt");
         when(llmProviderChain.generate(eq("test prompt"), anyString(), eq(false)))
                 .thenReturn(new LlmProviderChain.ProviderResult(invalidJson, "groq"));
@@ -238,7 +240,7 @@ class AnalysisAgentStructuredTest {
                 }
                 """;
 
-        when(structuredAnalysisPromptBuilder.buildPrompt(anyList(), anyInt(), anyList())).thenReturn("test prompt");
+        when(structuredAnalysisPromptBuilder.buildPrompt(anyList(), anyInt(), anyList(), nullable(ImportSession.class))).thenReturn("test prompt");
         when(llmProviderChain.generate(eq("test prompt"), anyString(), eq(false)))
                 .thenReturn(new LlmProviderChain.ProviderResult(validJson, "groq"));
         when(structuredAnalysisValidator.validate(any(), any())).thenReturn(List.of());
@@ -262,7 +264,7 @@ class AnalysisAgentStructuredTest {
                         .build())
                 .toList();
 
-        when(structuredAnalysisPromptBuilder.buildPrompt(anyList(), anyInt(), anyList())).thenAnswer(invocation -> {
+        when(structuredAnalysisPromptBuilder.buildPrompt(anyList(), anyInt(), anyList(), nullable(ImportSession.class))).thenAnswer(invocation -> {
             @SuppressWarnings("unchecked")
             List<KpiCalculatedDTO> chunk = invocation.getArgument(0);
             return "prompt-" + chunk.get(0).getKpiName();
@@ -284,7 +286,7 @@ class AnalysisAgentStructuredTest {
         assertThat(result.getGlobalSummary()).isNotBlank();
         assertThat(result.getTraceability().getModelName()).isEqualTo("groq");
         assertThat(result.getTraceability().getImportSessionId()).isEqualTo(321L);
-        verify(structuredAnalysisPromptBuilder, times(4)).buildPrompt(anyList(), anyInt(), anyList());
+        verify(structuredAnalysisPromptBuilder, times(4)).buildPrompt(anyList(), anyInt(), anyList(), nullable(ImportSession.class));
         verify(llmProviderChain).generate(eq("prompt-KPI 1"), contains("chunk=1"), eq(false));
         verify(llmProviderChain).generate(eq("prompt-KPI 6"), contains("chunk=2"), eq(false));
         verify(llmProviderChain).generate(eq("prompt-KPI 11"), contains("chunk=3"), eq(false));
@@ -300,7 +302,7 @@ class AnalysisAgentStructuredTest {
                         .build())
                 .toList();
 
-        when(structuredAnalysisPromptBuilder.buildPrompt(anyList(), anyInt(), anyList())).thenAnswer(invocation -> {
+        when(structuredAnalysisPromptBuilder.buildPrompt(anyList(), anyInt(), anyList(), nullable(ImportSession.class))).thenAnswer(invocation -> {
             @SuppressWarnings("unchecked")
             List<KpiCalculatedDTO> chunk = invocation.getArgument(0);
             return "prompt-" + chunk.get(0).getKpiName();
@@ -327,7 +329,7 @@ class AnalysisAgentStructuredTest {
                         .build())
                 .toList();
 
-        when(structuredAnalysisPromptBuilder.buildPrompt(anyList(), anyInt(), anyList())).thenAnswer(invocation -> {
+        when(structuredAnalysisPromptBuilder.buildPrompt(anyList(), anyInt(), anyList(), nullable(ImportSession.class))).thenAnswer(invocation -> {
             @SuppressWarnings("unchecked")
             List<KpiCalculatedDTO> chunk = invocation.getArgument(0);
             return "prompt-" + chunk.get(0).getKpiName();

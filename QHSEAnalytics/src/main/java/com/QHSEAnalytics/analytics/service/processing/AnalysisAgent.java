@@ -13,6 +13,7 @@ import com.QHSEAnalytics.shared.dto.response.AiRootCauseResponse;
 import com.QHSEAnalytics.shared.dto.response.AiTraceabilityResponse;
 import com.QHSEAnalytics.shared.dto.response.KpiCalculatedDTO;
 import com.QHSEAnalytics.shared.entity.AnalyseGlobale;
+import com.QHSEAnalytics.shared.entity.ImportSession;
 import com.QHSEAnalytics.shared.repository.AnalyseGlobaleRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -109,6 +110,10 @@ public class AnalysisAgent {
     }
 
     public AiAnalysisStructuredResponse analyzeStructured(List<KpiCalculatedDTO> calculatedData, Long importSessionId, boolean bypassCache) {
+        return analyzeStructured(calculatedData, importSessionId, bypassCache, null);
+    }
+
+    public AiAnalysisStructuredResponse analyzeStructured(List<KpiCalculatedDTO> calculatedData, Long importSessionId, boolean bypassCache, ImportSession session) {
         if (calculatedData == null || calculatedData.isEmpty()) {
             return buildStructuredFallback("FAILED", "Aucune donnée KPI disponible pour l'analyse structurée.");
         }
@@ -150,7 +155,8 @@ public class AnalysisAgent {
                     bypassCache,
                     chunkCacheKeyPrefix,
                     chunkNumber,
-                    chunks.size()
+                    chunks.size(),
+                    session
             );
             anyRetry |= chunkResult.retried();
             anyParseFailure |= chunkResult.failureType() == ChunkFailureType.PARSE;
@@ -242,8 +248,9 @@ public class AnalysisAgent {
                                                                   boolean bypassCache,
                                                                   String chunkCacheKeyPrefix,
                                                                   int chunkNumber,
-                                                                  int totalChunks) {
-        String basePrompt = structuredAnalysisPromptBuilder.buildPrompt(chunkKpis, allKpis.size(), allKpis);
+                                                                  int totalChunks,
+                                                                  ImportSession session) {
+        String basePrompt = structuredAnalysisPromptBuilder.buildPrompt(chunkKpis, allKpis.size(), allKpis, session);
         String retryPromptBase = basePrompt;
         String currentPrompt = basePrompt;
         String providerUsed = "none";
@@ -261,6 +268,16 @@ public class AnalysisAgent {
             String responseJson = providerResult == null ? null : providerResult.response();
             log.info("[AnalysisAgent] analyseStructured: provider response received in {}ms, importSessionId={}, provider={}, cachePrefix={}, attempt={}",
                     latency, importSessionId, providerUsed, chunkCacheKeyPrefix, attemptNumber);
+            if (log.isDebugEnabled()) {
+                log.debug("[AnalysisAgent] LLM raw response (chunk={}/{}, attempt={}, importSessionId={}):\n{}",
+                        chunkNumber, totalChunks, attemptNumber, importSessionId,
+                        responseJson == null ? "<null>" : responseJson);
+            } else {
+                log.info("[AnalysisAgent] LLM raw response (chunk={}/{}, attempt={}, importSessionId={}, len={}):\n{}",
+                        chunkNumber, totalChunks, attemptNumber, importSessionId,
+                        responseJson == null ? 0 : responseJson.length(),
+                        responseJson == null ? "<null>" : responseJson);
+            }
 
             if (responseJson == null || responseJson.isBlank()) {
                 log.warn("[AnalysisAgent] analyseStructured: empty response from provider. reason=empty_response, chunk={}/{}, latency={}ms, provider={}, attempt={}",

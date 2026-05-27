@@ -1,6 +1,8 @@
 package com.QHSEAnalytics.importer.service;
 
+import com.QHSEAnalytics.auth.dto.AnalysteProfilDTO;
 import com.QHSEAnalytics.auth.entity.User;
+import com.QHSEAnalytics.auth.service.AnalysteProfilService;
 import com.QHSEAnalytics.shared.dto.request.ImportRequestDTO;
 import com.QHSEAnalytics.shared.dto.request.KpiRawDataDTO;
 import com.QHSEAnalytics.shared.dto.response.CategoryScoreDTO;
@@ -70,6 +72,7 @@ public class ImportProcessingService {
     private final ImportProgressService importProgressService;
     private final FileStorageService fileStorageService;
     private final ApplicationContext applicationContext;
+    private final AnalysteProfilService analysteProfilService;
 
     @Value("${import.validation.year.min:2000}")
     private int yearMin;
@@ -92,7 +95,7 @@ public class ImportProcessingService {
         validateYearInputs(request.getYearN(), request.getYearN1());
 
         importProgressService.push(clientId, "INITIALISATION", 5, "Création de la session d'import…");
-        ImportSession session = buildImportSession(request.getFile(), user, request.getYearN(), request.getYearN1());
+        ImportSession session = buildImportSession(request, user);
         ImportSession initialSession = importSessionRepository.save(session);
         ImportSession processingSession = advanceStatus(initialSession, ImportStatut.processing());
 
@@ -272,8 +275,22 @@ public class ImportProcessingService {
         importSessionRepository.delete(session);
     }
 
-    private ImportSession buildImportSession(MultipartFile file, User user, int yearN, int yearNMinus1) {
+    private ImportSession buildImportSession(ImportRequestDTO request, User user) {
+        MultipartFile file = request.getFile();
+        int yearN = request.getYearN();
+        int yearNMinus1 = request.getYearN1();
+
         FileStorageService.StoredFile stored = fileStorageService.store(file, user.getId(), yearN);
+
+        AnalysteProfilDTO profil = analysteProfilService.getProfil(user.getId());
+
+        String secteur        = firstNonBlank(request.getContexteSecteur(),        profil.getSecteurActivite());
+        String taille         = firstNonBlank(request.getContexteTaille(),         profil.getTailleSite());
+        String certifications = firstNonBlank(request.getContexteCertifications(), profil.getCertifications());
+        String objectifs      = firstNonBlank(request.getContexteObjectifs(),      profil.getObjectifsQhse());
+        String reglementation = firstNonBlank(request.getContexteReglementation(), profil.getReglementation());
+        String specifique     = firstNonBlank(request.getContexteSpecifique(),     profil.getContexteSpecifique());
+
         return ImportSession.builder()
                 .user(user)
                 .mode(ImportMode.MANUAL)
@@ -287,6 +304,12 @@ public class ImportProcessingService {
                 .periodeN(yearN)
                 .statut(ImportStatut.initial())
                 .messageErreur(null)
+                .contexteSecteur(secteur)
+                .contexteTaille(taille)
+                .contexteCertifications(certifications)
+                .contexteObjectifs(objectifs)
+                .contexteReglementation(reglementation)
+                .contexteSpecifique(specifique)
                 .build();
     }
 
