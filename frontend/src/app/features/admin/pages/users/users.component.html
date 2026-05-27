@@ -2,9 +2,7 @@
 
   <div class="page-header">
     <div class="header-left">
-      <div class="header-icon-wrap">
-        <mat-icon class="header-icon">group</mat-icon>
-      </div>
+      
       <div>
         <h1>Utilisateurs</h1>
         <p class="subtitle">Vérification, activation et gestion des rôles</p>
@@ -20,7 +18,7 @@
 
   @if (errorMessage) {
     <div class="error-banner">
-      <mat-icon>error_outline</mat-icon>
+      
       <span>{{ errorMessage }}</span>
     </div>
   }
@@ -29,9 +27,7 @@
 
     <mat-card class="glass-card">
       <mat-card-header>
-        <div mat-card-avatar class="card-av-icon-wrap">
-          <mat-icon class="card-av-icon">person_add</mat-icon>
-        </div>
+       
         <mat-card-title>Créer un analyste</mat-card-title>
         <mat-card-subtitle>Un email de bienvenue sera envoyé automatiquement</mat-card-subtitle>
       </mat-card-header>
@@ -40,24 +36,24 @@
           <div class="form-row">
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Nom</mat-label>
-              <mat-icon matPrefix class="field-icon">person_outline</mat-icon>
+             
               <input matInput formControlName="nom" />
             </mat-form-field>
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Prénom</mat-label>
-              <mat-icon matPrefix class="field-icon">person_outline</mat-icon>
+              
               <input matInput formControlName="prenom" />
             </mat-form-field>
           </div>
           <mat-form-field appearance="outline" class="form-field">
             <mat-label>Adresse e-mail</mat-label>
-            <mat-icon matPrefix class="field-icon">alternate_email</mat-icon>
+            
             <input matInput formControlName="email" type="email" />
           </mat-form-field>
           <div class="form-actions">
             <button mat-flat-button class="primary-btn" type="submit"
               [disabled]="creating || createUserForm.invalid">
-              <mat-icon>{{ creating ? 'hourglass_empty' : 'add' }}</mat-icon>
+              
               {{ creating ? 'Création...' : 'Créer l\'analyste' }}
             </button>
           </div>
@@ -68,9 +64,7 @@
     @if (editingUser) {
       <mat-card class="glass-card edit-card">
         <mat-card-header>
-          <div mat-card-avatar class="card-av-icon-wrap amber">
-            <mat-icon class="card-av-icon amber">edit</mat-icon>
-          </div>
+         
           <mat-card-title>Modifier l'utilisateur</mat-card-title>
           <mat-card-subtitle>{{ editingUser.prenom }} {{ editingUser.nom }} - {{ editingUser.email }}</mat-card-subtitle>
         </mat-card-header>
@@ -79,29 +73,29 @@
             <div class="form-row">
               <mat-form-field appearance="outline" class="form-field">
                 <mat-label>Nom</mat-label>
-                <mat-icon matPrefix class="field-icon">person_outline</mat-icon>
+               
                 <input matInput formControlName="nom" />
               </mat-form-field>
               <mat-form-field appearance="outline" class="form-field">
                 <mat-label>Prénom</mat-label>
-                <mat-icon matPrefix class="field-icon">person_outline</mat-icon>
+                
                 <input matInput formControlName="prenom" />
               </mat-form-field>
             </div>
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Adresse e-mail</mat-label>
-              <mat-icon matPrefix class="field-icon">alternate_email</mat-icon>
+              
               <input matInput formControlName="email" type="email" />
               <mat-hint>Changer l'email déconnectera l'utilisateur et requerra une re-vérification.</mat-hint>
             </mat-form-field>
             <div class="form-actions">
               <button mat-stroked-button class="ia-btn" type="button" (click)="cancelEdit()">
-                <mat-icon>close</mat-icon>
+                
                 Annuler
               </button>
               <button mat-flat-button class="amber-btn" type="submit"
                 [disabled]="saving || editUserForm.invalid">
-                <mat-icon>{{ saving ? 'hourglass_empty' : 'save' }}</mat-icon>
+                
                 {{ saving ? 'Enregistrement...' : 'Enregistrer' }}
               </button>
             </div>
@@ -112,9 +106,7 @@
 
     <mat-card class="glass-card">
       <mat-card-header>
-        <div mat-card-avatar class="card-av-icon-wrap">
-          <mat-icon class="card-av-icon">manage_accounts</mat-icon>
-        </div>
+        
         <mat-card-title>
           Comptes
           <span class="count-badge">{{ totalElements }}</span>

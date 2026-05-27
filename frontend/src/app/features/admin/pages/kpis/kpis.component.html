@@ -3,9 +3,7 @@
  
   <div class="page-header">
     <div class="header-left">
-      <div class="header-icon-wrap">
-        <mat-icon class="header-icon">analytics</mat-icon>
-      </div>
+      
       <div>
         <h1>Gestion des KPI</h1>
         <p class="subtitle">Créez, modifiez et gérez les indicateurs métier</p>
@@ -30,11 +28,7 @@
     
     <mat-card class="glass-card">
       <mat-card-header>
-        <div mat-card-avatar class="card-av-icon-wrap" [class.amber]="editMode">
-          <mat-icon class="card-av-icon" [class.amber]="editMode">
-            {{ editMode ? 'edit' : 'add_circle_outline' }}
-          </mat-icon>
-        </div>
+        
         <mat-card-title>{{ editMode ? 'Modifier le KPI' : 'Ajouter un KPI' }}</mat-card-title>
         <mat-card-subtitle>
           {{ editMode ? 'Modifiez les champs puis enregistrez' : 'Remplissez les champs pour créer un nouvel indicateur' }}
@@ -48,13 +42,13 @@
           <div class="form-row">
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Nom</mat-label>
-              <mat-icon matPrefix class="field-icon">label_outline</mat-icon>
+              
               <input matInput formControlName="nom" placeholder="Ex : Taux de disponibilité" />
             </mat-form-field>
  
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Unité</mat-label>
-              <mat-icon matPrefix class="field-icon">straighten</mat-icon>
+              
               <mat-select formControlName="unite" placeholder="Sélectionnez une unité">
                 <mat-option *ngFor="let option of unitOptions" [value]="option.value">
                   {{ option.label }}
@@ -66,7 +60,7 @@
           
           <mat-form-field appearance="outline" class="form-field">
             <mat-label>Définition</mat-label>
-            <mat-icon matPrefix class="field-icon">description</mat-icon>
+            
             <input matInput formControlName="definition" placeholder="Description courte de l'indicateur" />
           </mat-form-field>
  
@@ -74,7 +68,7 @@
           <div class="form-row">
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Catégorie</mat-label>
-              <mat-icon matPrefix class="field-icon">folder_open</mat-icon>
+              
               <mat-select formControlName="categorieCode">
                 <mat-option *ngFor="let cat of categories" [value]="cat.code">
                   {{ cat.libelle }}
@@ -84,7 +78,7 @@
  
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Ordre d'affichage</mat-label>
-              <mat-icon matPrefix class="field-icon">sort</mat-icon>
+              
               <input matInput type="number" formControlName="ordre" placeholder="0" />
             </mat-form-field>
           </div>
@@ -94,7 +88,7 @@
           <div class="threshold-grid">
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Seuil faible</mat-label>
-              <mat-icon matPrefix class="field-icon">arrow_downward</mat-icon>
+              
               <input matInput type="number" formControlName="seuilFaible" />
               <mat-error *ngIf="kpiForm.get('seuilFaible')?.hasError('min')">
                 Le seuil ne peut pas être négatif
@@ -103,7 +97,7 @@
 
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Seuil modéré</mat-label>
-              <mat-icon matPrefix class="field-icon">remove</mat-icon>
+              
               <input matInput type="number" formControlName="seuilModere" />
               <mat-error *ngIf="kpiForm.get('seuilModere')?.hasError('min')">
                 Le seuil ne peut pas être négatif
@@ -112,7 +106,7 @@
 
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Seuil critique</mat-label>
-              <mat-icon matPrefix class="field-icon">arrow_upward</mat-icon>
+             
               <input matInput type="number" formControlName="seuilCritique" />
               <mat-error *ngIf="kpiForm.get('seuilCritique')?.hasError('min')">
                 Le seuil ne peut pas être négatif
@@ -147,9 +141,7 @@
    
     <mat-card class="glass-card">
       <mat-card-header>
-        <div mat-card-avatar class="card-av-icon-wrap">
-          <mat-icon class="card-av-icon">list_alt</mat-icon>
-        </div>
+        
         <mat-card-title>
           Indicateurs
           <span class="count-badge">{{ kpis.length }}</span>

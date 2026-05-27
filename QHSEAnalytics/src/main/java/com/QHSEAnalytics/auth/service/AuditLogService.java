@@ -10,6 +10,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -43,6 +46,25 @@ public class AuditLogService {
     @Transactional(readOnly = true)
     public Page<AuditLogResponse> getAll(Pageable pageable) {
         return auditLogRepository.findAllByOrderByTimestampDesc(pageable).map(this::toResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AuditLogResponse> getFiltered(
+            String action,
+            String adminEmail,
+            LocalDate dateDebut,
+            LocalDate dateFin,
+            Pageable pageable) {
+
+        // Normalise : chaînes vides → null pour le JPQL (:x IS NULL)
+        String actionParam     = (action     != null && !action.isBlank())     ? action.trim()     : null;
+        String adminEmailParam = (adminEmail != null && !adminEmail.isBlank()) ? adminEmail.trim() : null;
+        LocalDateTime debut = dateDebut != null ? dateDebut.atStartOfDay()              : null;
+        LocalDateTime fin   = dateFin   != null ? dateFin.atTime(23, 59, 59)            : null;
+
+        return auditLogRepository
+                .findFiltered(actionParam, adminEmailParam, debut, fin, pageable)
+                .map(this::toResponse);
     }
 
     private AuditLogResponse toResponse(AuditLog a) {

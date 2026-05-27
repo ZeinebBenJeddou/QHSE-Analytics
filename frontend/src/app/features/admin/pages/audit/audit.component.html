@@ -1,5 +1,6 @@
 <div class="audit-page">
 
+  <!-- ── En-tête ─────────────────────────────────────────────────────────── -->
   <div class="page-header">
     <div class="header-left">
       <div class="header-icon-wrap">
@@ -7,15 +8,21 @@
       </div>
       <div>
         <h1>Historique de toutes les actions administrateur</h1>
-        
       </div>
     </div>
-    <button mat-stroked-button class="ia-btn" routerLink="/admin/overview">
-      <mat-icon>arrow_back</mat-icon>
-      Retour
-    </button>
+    <div class="header-actions">
+      <button mat-stroked-button class="export-btn" (click)="exportCsv()" [disabled]="!logs.length" matTooltip="Exporter la page courante en CSV">
+        <mat-icon>download</mat-icon>
+        Export CSV
+      </button>
+      <button mat-stroked-button class="ia-btn" routerLink="/admin/overview">
+        <mat-icon>arrow_back</mat-icon>
+        Retour
+      </button>
+    </div>
   </div>
 
+  <!-- ── Bannière erreur ─────────────────────────────────────────────────── -->
   @if (error) {
     <div class="error-banner">
       <mat-icon>error_outline</mat-icon>
@@ -23,6 +30,51 @@
     </div>
   }
 
+  <!-- ── Barre de filtres ────────────────────────────────────────────────── -->
+  <div class="filter-bar">
+
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>Action</mat-label>
+      <mat-select [(ngModel)]="filterAction">
+        <mat-option value="">— Toutes —</mat-option>
+        @for (opt of actionOptions; track opt.value) {
+          <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>Email administrateur</mat-label>
+      <mat-icon matPrefix class="filter-prefix-icon">manage_accounts</mat-icon>
+      <input matInput [(ngModel)]="filterAdminEmail" placeholder="ex: admin@qhse.fr"
+             (keyup.enter)="applyFilters()" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filter-field filter-field--date">
+      <mat-label>Du</mat-label>
+      <mat-icon matPrefix class="filter-prefix-icon">event</mat-icon>
+      <input matInput type="date" [(ngModel)]="filterDateDebut" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filter-field filter-field--date">
+      <mat-label>Au</mat-label>
+      <mat-icon matPrefix class="filter-prefix-icon">event</mat-icon>
+      <input matInput type="date" [(ngModel)]="filterDateFin" />
+    </mat-form-field>
+
+    <div class="filter-actions">
+      <button mat-flat-button class="apply-btn" (click)="applyFilters()">
+        <mat-icon>search</mat-icon>
+        Filtrer
+      </button>
+      <button mat-stroked-button class="reset-btn-sm" (click)="resetFilters()" [disabled]="!hasActiveFilters" matTooltip="Effacer les filtres">
+        <mat-icon>filter_alt_off</mat-icon>
+      </button>
+    </div>
+
+  </div>
+
+  <!-- ── Carte principale ───────────────────────────────────────────────── -->
   <mat-card class="glass-card">
     <mat-card-header>
       <div mat-card-avatar class="card-av-icon-wrap">
@@ -31,6 +83,9 @@
       <mat-card-title>
         Événements
         <span class="count-badge">{{ totalElements }}</span>
+        @if (hasActiveFilters) {
+          <span class="filter-active-badge">filtrés</span>
+        }
       </mat-card-title>
       <mat-card-subtitle>Actions effectuées par les administrateurs</mat-card-subtitle>
     </mat-card-header>
@@ -47,7 +102,7 @@
       @if (!loading && !logs.length) {
         <div class="empty-state">
           <mat-icon>playlist_remove</mat-icon>
-          <span>Aucune action enregistrée.</span>
+          <span>Aucune action enregistrée{{ hasActiveFilters ? ' pour ces filtres' : '' }}.</span>
         </div>
       }
 
@@ -55,6 +110,7 @@
         <div class="table-wrap">
           <table mat-table [dataSource]="logs" class="audit-table">
 
+            <!-- Date -->
             <ng-container matColumnDef="timestamp">
               <th mat-header-cell *matHeaderCellDef>Date</th>
               <td mat-cell *matCellDef="let row">
@@ -63,6 +119,7 @@
               </td>
             </ng-container>
 
+            <!-- Administrateur -->
             <ng-container matColumnDef="admin">
               <th mat-header-cell *matHeaderCellDef>Administrateur</th>
               <td mat-cell *matCellDef="let row">
@@ -70,6 +127,7 @@
               </td>
             </ng-container>
 
+            <!-- Action -->
             <ng-container matColumnDef="action">
               <th mat-header-cell *matHeaderCellDef>Action</th>
               <td mat-cell *matCellDef="let row">
@@ -79,6 +137,7 @@
               </td>
             </ng-container>
 
+            <!-- Cible -->
             <ng-container matColumnDef="cible">
               <th mat-header-cell *matHeaderCellDef>Utilisateur cible</th>
               <td mat-cell *matCellDef="let row">
@@ -86,6 +145,7 @@
               </td>
             </ng-container>
 
+            <!-- Détails -->
             <ng-container matColumnDef="details">
               <th mat-header-cell *matHeaderCellDef>Détails</th>
               <td mat-cell *matCellDef="let row">
@@ -100,6 +160,7 @@
           </table>
         </div>
 
+        <!-- Pagination -->
         @if (totalPages > 1) {
           <div class="pagination">
             <button mat-icon-button class="page-btn" [disabled]="currentPage === 0" (click)="goToPage(0)" matTooltip="Première page">

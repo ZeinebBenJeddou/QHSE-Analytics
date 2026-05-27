@@ -53,12 +53,134 @@
 h1 { margin: 0; font-size: 1.45rem; font-weight: 700; color: var(--ink); letter-spacing: -0.3px; }
 .subtitle { margin: 3px 0 0; color: var(--ink-muted); font-size: 0.8rem; font-weight: 500; font-family: var(--font-mono); }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .ia-btn {
   color: var(--blue) !important; border-color: var(--blue-ring) !important;
   border-radius: var(--radius-item) !important; font-family: var(--font) !important;
   font-size: 0.83rem !important; font-weight: 500 !important; height: 38px !important; gap: 4px;
 }
 .ia-btn:hover { background: var(--blue-soft) !important; }
+
+.export-btn {
+  color: var(--green) !important;
+  border-color: rgba(56,161,105,0.25) !important;
+  border-radius: var(--radius-item) !important;
+  font-family: var(--font) !important;
+  font-size: 0.83rem !important;
+  font-weight: 500 !important;
+  height: 38px !important;
+  gap: 4px;
+}
+.export-btn:hover { background: var(--green-soft) !important; }
+.export-btn[disabled] { opacity: 0.4 !important; pointer-events: none; }
+
+/* ─── Barre de filtres ───────────────────────────────────────────────────── */
+
+.filter-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  padding: 16px 18px;
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.filter-field {
+  flex: 1 1 180px;
+  min-width: 160px;
+}
+.filter-field--date { flex: 0 1 150px; min-width: 140px; }
+
+.filter-field ::ng-deep .mat-mdc-text-field-wrapper {
+  background: var(--surface) !important;
+  border-radius: var(--radius-item) !important;
+}
+.filter-field ::ng-deep .mdc-notched-outline__leading,
+.filter-field ::ng-deep .mdc-notched-outline__notch,
+.filter-field ::ng-deep .mdc-notched-outline__trailing {
+  border-color: var(--border) !important;
+}
+.filter-field:focus-within ::ng-deep .mdc-notched-outline__leading,
+.filter-field:focus-within ::ng-deep .mdc-notched-outline__notch,
+.filter-field:focus-within ::ng-deep .mdc-notched-outline__trailing {
+  border-color: var(--blue) !important;
+}
+.filter-field ::ng-deep label {
+  color: var(--ink-muted) !important;
+  font-family: var(--font) !important;
+  font-size: 0.83rem !important;
+}
+.filter-field ::ng-deep input,
+.filter-field ::ng-deep .mat-mdc-select-value-text {
+  font-family: var(--font) !important;
+  color: var(--ink) !important;
+  font-size: 0.85rem !important;
+}
+.filter-prefix-icon {
+  font-size: 16px !important;
+  width: 16px !important;
+  height: 16px !important;
+  color: var(--ink-muted) !important;
+  margin-right: 4px;
+}
+
+.filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 2px;
+}
+
+.apply-btn {
+  background: var(--blue) !important;
+  color: var(--white) !important;
+  border-radius: var(--radius-item) !important;
+  font-family: var(--font) !important;
+  font-size: 0.83rem !important;
+  font-weight: 600 !important;
+  height: 40px !important;
+  box-shadow: 0 3px 10px var(--blue-ring) !important;
+  gap: 4px;
+}
+.apply-btn:hover { background: var(--blue-deep) !important; }
+
+.reset-btn-sm {
+  color: var(--ink-muted) !important;
+  border-color: var(--border) !important;
+  border-radius: var(--radius-item) !important;
+  min-width: 40px !important;
+  width: 40px !important;
+  height: 40px !important;
+  padding: 0 !important;
+}
+.reset-btn-sm:hover:not([disabled]) {
+  color: var(--red) !important;
+  border-color: rgba(229,62,62,0.3) !important;
+  background: var(--red-soft) !important;
+}
+.reset-btn-sm[disabled] { opacity: 0.35 !important; pointer-events: none; }
+
+.filter-active-badge {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: var(--amber-soft);
+  color: var(--amber);
+  margin-left: 6px;
+  vertical-align: middle;
+}
 
 .error-banner {
   display: flex; align-items: center; gap: 10px;
@@ -163,7 +285,11 @@ h1 { margin: 0; font-size: 1.45rem; font-weight: 700; color: var(--ink); letter-
 .page-info { font-size: 0.75rem; font-family: var(--font-mono); color: var(--ink-muted); margin-left: 8px; }
 
 @media (max-width: 640px) {
-  .page-header { flex-direction: column; align-items: flex-start; }
+  .page-header  { flex-direction: column; align-items: flex-start; }
+  .header-actions { width: 100%; }
+  .filter-bar   { padding: 12px; gap: 8px; }
+  .filter-field { flex: 1 1 100%; }
+  .filter-field--date { flex: 1 1 calc(50% - 4px); }
   .details-text { max-width: 120px; }
-  .page-info { display: none; }
+  .page-info    { display: none; }
 }

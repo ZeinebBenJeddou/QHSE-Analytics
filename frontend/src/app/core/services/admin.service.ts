@@ -44,8 +44,16 @@ export class AdminService {
     return this.http.get<UserListResponse>(`${this.adminBase}/users`, { params });
   }
 
-  getAuditLog(page = 0, size = 30): Observable<AuditPageResponse> {
-    const params = new HttpParams().set('page', page).set('size', size);
+  getAuditLog(
+    page = 0,
+    size = 30,
+    filters: { action?: string; adminEmail?: string; dateDebut?: string; dateFin?: string } = {}
+  ): Observable<AuditPageResponse> {
+    let params = new HttpParams().set('page', page).set('size', size);
+    if (filters.action?.trim())     params = params.set('action',     filters.action.trim());
+    if (filters.adminEmail?.trim()) params = params.set('adminEmail', filters.adminEmail.trim());
+    if (filters.dateDebut)          params = params.set('dateDebut',  filters.dateDebut);
+    if (filters.dateFin)            params = params.set('dateFin',    filters.dateFin);
     return this.http.get<AuditPageResponse>(`${this.adminBase}/audit`, { params });
   }
 

@@ -2,9 +2,7 @@
 
   <div class="page-header">
     <div class="header-left">
-      <div class="header-icon-wrap">
-        <mat-icon class="header-icon">bar_chart</mat-icon>
-      </div>
+      
       <div>
         <h1>Tableau de bord d'administration</h1>
         
@@ -12,7 +10,7 @@
     </div>
     <div class="header-actions">
       <button type="button" mat-stroked-button class="export-btn" (click)="exportPdf()" [disabled]="exportInProgress">
-        <mat-icon>picture_as_pdf</mat-icon>
+        
         {{ exportInProgress ? 'Export en cours…' : 'Exporter le rapport' }}
       </button>
     </div>
@@ -20,7 +18,7 @@
 
   @if (errorMessage) {
     <div class="error-banner">
-      <mat-icon>error_outline</mat-icon>
+      
       <span>{{ errorMessage }}</span>
     </div>
   }
@@ -35,9 +33,7 @@
               <p class="card-label">Analyses totales</p>
               <p class="card-value">{{ stats.totalAnalyses }}</p>
             </div>
-            <div class="card-icon-wrap icon-blue">
-              <mat-icon>assessment</mat-icon>
-            </div>
+            
           </div>
         </mat-card-content>
       </mat-card>
@@ -63,9 +59,7 @@
               <p class="card-label">Analystes actifs</p>
               <p class="card-value">{{ stats.nombreAnalystesActifs }}</p>
             </div>
-            <div class="card-icon-wrap icon-green">
-              <mat-icon>group</mat-icon>
-            </div>
+           
           </div>
         </mat-card-content>
       </mat-card>
@@ -77,9 +71,7 @@
               <p class="card-label">Administrateurs</p>
               <p class="card-value">{{ stats.nombreAdmins }}</p>
             </div>
-            <div class="card-icon-wrap icon-orange">
-              <mat-icon>admin_panel_settings</mat-icon>
-            </div>
+            
           </div>
         </mat-card-content>
       </mat-card>
@@ -115,9 +107,7 @@
 
       <mat-card class="glass-card">
         <mat-card-header>
-          <div mat-card-avatar class="card-av-icon-wrap">
-            <mat-icon class="card-av-icon">donut_large</mat-icon>
-          </div>
+          
           <mat-card-title>Répartition des niveaux</mat-card-title>
           <mat-card-subtitle>KPIs par niveau de criticité (toutes sessions)</mat-card-subtitle>
         </mat-card-header>
@@ -145,9 +135,7 @@
 
       <mat-card class="glass-card">
         <mat-card-header>
-          <div mat-card-avatar class="card-av-icon-wrap danger">
-            <mat-icon class="card-av-icon danger">bar_chart</mat-icon>
-          </div>
+          
           <mat-card-title>KPIs critiques par catégorie</mat-card-title>
           <mat-card-subtitle>Nombre de KPIs en niveau critique</mat-card-subtitle>
         </mat-card-header>
@@ -170,9 +158,7 @@
 
     <mat-card class="glass-card">
       <mat-card-header>
-        <div mat-card-avatar class="card-av-icon-wrap">
-          <mat-icon class="card-av-icon">show_chart</mat-icon>
-        </div>
+        
         <mat-card-title>Évolution par catégorie</mat-card-title>
         <mat-card-subtitle>Valeur moyenne N-1 vs N et variation</mat-card-subtitle>
       </mat-card-header>
@@ -211,9 +197,7 @@
   @if (repartition) {
     <mat-card class="glass-card">
       <mat-card-header>
-        <div mat-card-avatar class="card-av-icon-wrap">
-          <mat-icon class="card-av-icon">pie_chart</mat-icon>
-        </div>
+        
         <mat-card-title>Répartition des catégories</mat-card-title>
         <mat-card-subtitle>Niveaux par catégorie de KPI</mat-card-subtitle>
       </mat-card-header>
@@ -260,9 +244,7 @@
 
     <mat-card class="glass-card">
       <mat-card-header>
-        <div mat-card-avatar class="card-av-icon-wrap">
-          <mat-icon class="card-av-icon">people</mat-icon>
-        </div>
+        
         <mat-card-title>Analystes</mat-card-title>
         <mat-card-subtitle>{{ analystes.length }} compte(s)</mat-card-subtitle>
       </mat-card-header>

@@ -3,12 +3,10 @@
   
   <div class="page-header">
     <div class="header-left">
-      <div class="header-icon-wrap">
-        <mat-icon class="header-icon">history</mat-icon>
-      </div>
+      
       <div>
         <h1>Historique des analyses des analystes</h1>
-        <p class="subtitle">Tous les imports analystes et l'accès aux analyses IA disponibles</p>
+        
       </div>
     </div>
     <div>
@@ -26,9 +24,7 @@
  
       <mat-card class="glass-card stat-card">
         <div class="stat-body">
-          <div class="stat-icon-wrap blue">
-            <mat-icon class="stat-icon blue">upload_file</mat-icon>
-          </div>
+          
           <div class="stat-text">
             <span class="stat-value">{{ totalImports() }}</span>
             <span class="stat-label">Sessions totales</span>
@@ -38,9 +34,7 @@
  
       <mat-card class="glass-card stat-card">
         <div class="stat-body">
-          <div class="stat-icon-wrap green">
-            <mat-icon class="stat-icon green">check_circle</mat-icon>
-          </div>
+          
           <div class="stat-text">
             <span class="stat-value">{{ totalTraites() }}</span>
             <span class="stat-label">Analyses disponibles</span>
@@ -50,9 +44,7 @@
  
       <mat-card class="glass-card stat-card">
         <div class="stat-body">
-          <div class="stat-icon-wrap red">
-            <mat-icon class="stat-icon red">error_outline</mat-icon>
-          </div>
+          
           <div class="stat-text">
             <span class="stat-value">{{ totalErreurs() }}</span>
             <span class="stat-label">Erreurs</span>
@@ -65,9 +57,7 @@
    
     <mat-card class="glass-card">
       <mat-card-header>
-        <div mat-card-avatar class="card-av-icon-wrap">
-          <mat-icon class="card-av-icon">table_rows</mat-icon>
-        </div>
+        
         <mat-card-title>Détail des analyses par analyste</mat-card-title>
         <mat-card-subtitle>Historique global des imports analystes et consultation des analyses IA</mat-card-subtitle>
       </mat-card-header>
