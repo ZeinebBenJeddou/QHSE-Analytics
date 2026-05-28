@@ -253,7 +253,7 @@
     <section class="section">
       <div class="section-header">
         <div class="section-header-left">
-          <mat-icon class="section-icon">table_chart</mat-icon>
+         
           <h2 class="section-title">Tableau comparatif détaillé</h2>
           <span class="section-badge">{{ filteredLignes().length }} / {{ (comparatif()?.lignes ?? []).length }} KPI</span>
         </div>
@@ -369,7 +369,6 @@
                   <div class="cat-tag"
                        [style.background]="getCatInfo(row.categorieCode).bgLight"
                        [style.color]="getCatInfo(row.categorieCode).color">
-                    <mat-icon class="cat-tag-icon">{{ getCatInfo(row.categorieCode).icon }}</mat-icon>
                     {{ row.categorieLibelle }}
                   </div>
                 </td>
