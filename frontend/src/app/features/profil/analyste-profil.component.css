@@ -24,7 +24,7 @@
   color: var(--ink);
 }
 
-/* ─── Page wrapper ─────────────────────────────────────────────────────────── */
+
 
 .profil-page {
   max-width: 860px;
@@ -32,7 +32,6 @@
   font-family: var(--font);
 }
 
-/* ─── Page header ───────────────────────────────────────────────────────────── */
 
 .page-header {
   display: flex;
@@ -86,7 +85,6 @@ h1 {
   letter-spacing: 0.02em;
 }
 
-/* ─── Buttons ───────────────────────────────────────────────────────────────── */
 
 .ia-btn {
   color: var(--blue) !important;
@@ -138,7 +136,6 @@ h1 {
   opacity: 0.5 !important;
 }
 
-/* ─── Loader ────────────────────────────────────────────────────────────────── */
 
 .loader-overlay {
   display: flex;
@@ -150,7 +147,6 @@ h1 {
   font-size: 0.88rem;
 }
 
-/* ─── Error banner ──────────────────────────────────────────────────────────── */
 
 .error-banner {
   display: flex;
@@ -172,7 +168,6 @@ h1 {
   flex-shrink: 0;
 }
 
-/* ─── Profile / content grid ────────────────────────────────────────────────── */
 
 .profile-grid {
   display: flex;
@@ -180,7 +175,6 @@ h1 {
   gap: 20px;
 }
 
-/* ─── Glass card ────────────────────────────────────────────────────────────── */
 
 .glass-card {
   background: var(--white) !important;
@@ -215,7 +209,6 @@ h1 {
   padding: 8px 16px 16px !important;
 }
 
-/* ─── Card avatar icon ───────────────────────────────────────────────────────── */
 
 .card-av-icon-wrap {
   width: 36px !important;
@@ -240,7 +233,6 @@ h1 {
   color: var(--red) !important;
 }
 
-/* ─── Identity card (profil page) ───────────────────────────────────────────── */
 
 .identity-card {
   padding: 0 !important;
@@ -308,7 +300,6 @@ h1 {
   flex-shrink: 0;
 }
 
-/* ─── Forms ─────────────────────────────────────────────────────────────────── */
 
 .form-grid {
   display: flex;
@@ -317,7 +308,6 @@ h1 {
   padding-top: 8px;
 }
 
-/* Two-column row used in profil QHSE */
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -378,7 +368,6 @@ h1 {
   padding-top: 8px;
 }
 
-/* ─── Responsive ────────────────────────────────────────────────────────────── */
 
 @media (max-width: 600px) {
   .page-header   { flex-direction: column; align-items: flex-start; }

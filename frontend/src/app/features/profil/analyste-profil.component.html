@@ -2,9 +2,7 @@
 
   <div class="page-header">
     <div class="header-left">
-      <div class="header-icon-wrap">
-        <mat-icon class="header-icon">factory</mat-icon>
-      </div>
+      
       <div>
         <h1>Profil QHSE</h1>
         <p class="subtitle">Ces informations seront pré-remplies à chaque import pour personnaliser l'analyse IA.</p>
@@ -21,12 +19,10 @@
 
   <div *ngIf="!isLoading(); else loading" class="profile-grid">
 
-    <!-- Bloc 1 : Informations du site -->
+    
     <mat-card class="glass-card">
       <mat-card-header>
-        <div mat-card-avatar class="card-av-icon-wrap">
-          <mat-icon class="card-av-icon">domain</mat-icon>
-        </div>
+        
         <mat-card-title>Informations du site</mat-card-title>
         <mat-card-subtitle>Secteur, taille et certifications de votre organisation</mat-card-subtitle>
       </mat-card-header>
@@ -36,14 +32,14 @@
           <div class="form-row">
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Secteur d'activité</mat-label>
-              <mat-icon matPrefix class="field-icon">category</mat-icon>
+              
               <input matInput [(ngModel)]="profil.secteurActivite"
                      placeholder="ex: BTP, Industrie, Chimie" maxlength="100" />
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Taille du site</mat-label>
-              <mat-icon matPrefix class="field-icon">group</mat-icon>
+              
               <mat-select [(ngModel)]="profil.tailleSite">
                 <mat-option value="">— Non renseigné —</mat-option>
                 <mat-option *ngFor="let opt of tailleSiteOptions" [value]="opt">{{ opt }} employés</mat-option>
@@ -53,7 +49,7 @@
 
           <mat-form-field appearance="outline" class="form-field">
             <mat-label>Certifications</mat-label>
-            <mat-icon matPrefix class="field-icon">verified</mat-icon>
+            
             <input matInput [(ngModel)]="profil.certifications"
                    placeholder="ex: ISO 9001, ISO 45001" maxlength="200" />
             <mat-hint>Séparez les certifications par des virgules</mat-hint>
@@ -62,12 +58,10 @@
       </mat-card-content>
     </mat-card>
 
-    <!-- Bloc 2 : Objectifs & contexte -->
+    
     <mat-card class="glass-card">
       <mat-card-header>
-        <div mat-card-avatar class="card-av-icon-wrap">
-          <mat-icon class="card-av-icon">track_changes</mat-icon>
-        </div>
+        
         <mat-card-title>Objectifs &amp; contexte</mat-card-title>
         <mat-card-subtitle>Ces informations enrichissent les recommandations de l'IA</mat-card-subtitle>
       </mat-card-header>
@@ -76,7 +70,7 @@
         <div class="form-grid">
           <mat-form-field appearance="outline" class="form-field">
             <mat-label>Objectifs QHSE</mat-label>
-            <mat-icon matPrefix class="field-icon">flag</mat-icon>
+            
             <textarea matInput [(ngModel)]="profil.objectifsQhse"
                       placeholder="ex: Réduire TF1 de 30%, atteindre zéro accident…"
                       maxlength="500" rows="3"></textarea>
@@ -84,14 +78,14 @@
 
           <mat-form-field appearance="outline" class="form-field">
             <mat-label>Réglementation applicable</mat-label>
-            <mat-icon matPrefix class="field-icon">gavel</mat-icon>
+            
             <input matInput [(ngModel)]="profil.reglementation"
                    placeholder="ex: Code du travail français, OPPBTP" maxlength="200" />
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="form-field">
             <mat-label>Contexte spécifique</mat-label>
-            <mat-icon matPrefix class="field-icon">notes</mat-icon>
+            
             <textarea matInput [(ngModel)]="profil.contexteSpecifique"
                       placeholder="ex: Nouveau chantier en cours, fusion en préparation…"
                       maxlength="500" rows="3"></textarea>
@@ -102,7 +96,7 @@
       <mat-card-actions>
         <div class="form-actions">
           <button mat-flat-button class="primary-btn" (click)="save()" [disabled]="isSaving()">
-            <mat-icon>{{ isSaving() ? 'hourglass_empty' : 'save' }}</mat-icon>
+            
             {{ isSaving() ? 'Enregistrement…' : 'Enregistrer le profil' }}
           </button>
         </div>
