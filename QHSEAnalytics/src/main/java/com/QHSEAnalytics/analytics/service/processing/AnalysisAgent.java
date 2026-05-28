@@ -66,6 +66,14 @@ public class AnalysisAgent {
         return aiResponse.getSummary();
     }
 
+    /**
+     * @deprecated Utiliser analyzeStructured() à la place.
+     * Ce pipeline legacy produit un format AiResponse simplifié
+     * sans les sections rootCauseAnalysis, predictiveAlerts
+     * et actionPlan structuré.
+     * Conservé uniquement pour compatibilité ascendante.
+     */
+    @Deprecated(since = "structured-qhse-v8", forRemoval = false)
     public AiResponse analyzeStrict(List<KpiCalculatedDTO> calculatedData) {
         if (calculatedData == null || calculatedData.isEmpty()) {
             return AiResponse.builder()
@@ -404,11 +412,19 @@ public class AnalysisAgent {
             if (merged.getKpiInsights() != null && !merged.getKpiInsights().isEmpty()) {
                 prompt.append("\nRésumé des analyses par KPI :\n");
                 for (var insight : merged.getKpiInsights()) {
-                    String urgency = insight.getUrgency() != null ? insight.getUrgency() : "?";
-                    String action = insight.getActionImmediate() != null
-                            ? insight.getActionImmediate().substring(0, Math.min(80, insight.getActionImmediate().length()))
+                    String urgency = insight.getUrgency() != null
+                            ? insight.getUrgency() : "?";
+                    String insightShort = insight.getInsight() != null
+                            ? insight.getInsight().substring(
+                                0, Math.min(150, insight.getInsight().length()))
                             : "";
-                    prompt.append(String.format("- %s [%s] : %s\n", insight.getKpiName(), urgency, action));
+                    String action = insight.getActionImmediate() != null
+                            ? insight.getActionImmediate().substring(
+                                0, Math.min(100, insight.getActionImmediate().length()))
+                            : "";
+                    prompt.append(String.format(
+                            "- %s [%s] | Analyse: %s | Action: %s\n",
+                            insight.getKpiName(), urgency, insightShort, action));
                 }
             }
 

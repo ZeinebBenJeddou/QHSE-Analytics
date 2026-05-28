@@ -1,6 +1,5 @@
 package com.QHSEAnalytics.analytics.service;
 
-import com.QHSEAnalytics.analytics.service.processing.GroqPromptBuilder;
 import com.QHSEAnalytics.shared.exception.ProviderUnavailableException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,7 +33,6 @@ public class GroqService {
     private static final int MAX_TOKENS = 2800;
 
     private final ObjectMapper objectMapper;
-    private final GroqPromptBuilder groqPromptBuilder;
     private final GroqKeyRotator groqKeyRotator;
     private final ProviderCooldownManager cooldownManager;
     private final AiConfigService aiConfigService;

@@ -1,7 +1,6 @@
 package com.QHSEAnalytics.kpi.service;
 
 import com.QHSEAnalytics.analytics.service.LlmProviderChain;
-import com.QHSEAnalytics.analytics.service.processing.GroqPromptBuilder;
 import com.QHSEAnalytics.shared.dto.response.KpiAnalysisResult;
 import com.QHSEAnalytics.shared.dto.response.KpiEnrichedResponse;
 import com.QHSEAnalytics.shared.entity.*;
@@ -32,7 +31,6 @@ public class KpiEnrichmentService {
     private final KpiAnalysisRepository analysisRepository;
     private final KpiRepository kpiRepository;
     private final LlmProviderChain llmProviderChain;
-    private final GroqPromptBuilder groqPromptBuilder;
     private final ObjectProvider<KpiEnrichmentService> selfProvider;
     private final ObjectMapper objectMapper;
 
@@ -138,25 +136,53 @@ public class KpiEnrichmentService {
     }
 
     private String buildEnrichmentPrompt(KpiImportPreview preview) {
-        double valeurN = preview.getValueN() == null ? 0d : preview.getValueN();
-        double valeurN1 = preview.getValueN1() == null ? 0d : preview.getValueN1();
+        double valeurN   = preview.getValueN()          == null ? 0d : preview.getValueN();
+        double valeurN1  = preview.getValueN1()         == null ? 0d : preview.getValueN1();
         double variation = preview.getVariationPercent() == null ? 0d : preview.getVariationPercent();
 
-        int currentYear = LocalDateTime.now().getYear();
-        int periodeN = currentYear;
-        int periodeN1 = currentYear - 1;
+        int periodeN  = LocalDateTime.now().getYear();
+        int periodeN1 = periodeN - 1;
 
-        return groqPromptBuilder.buildKpiPrompt(
-                preview.getKpiName(),
-                preview.getDefinition(),
-                preview.getUnit(),
-                preview.getCategory(),
-                valeurN1,
-                valeurN,
-                variation,
-                periodeN1,
-                periodeN
-        );
+        String nom        = preview.getKpiName()    != null ? preview.getKpiName()    : "N/A";
+        String definition = preview.getDefinition() != null ? preview.getDefinition() : "N/A";
+        String unite      = preview.getUnit()       != null ? preview.getUnit()       : "N/A";
+        String categorie  = preview.getCategory()   != null ? preview.getCategory()   : "N/A";
+
+        return "Tu es un expert QHSE. Réponds UNIQUEMENT avec un objet JSON valide. "
+            + "Aucune explication, aucun markdown, aucun bloc de code. "
+            + "Commence ta réponse par { et termine par }.\n\n"
+            + "Fournis exactement la structure JSON suivante "
+            + "(tous les champs doivent être présents) :\n"
+            + "{\n"
+            + "  \"risqueIa\": \"Élevé|Modéré|Faible\",\n"
+            + "  \"noteIa\": \"résumé court\",\n"
+            + "  \"identificationRisque\": \"text\",\n"
+            + "  \"problemeDetecte\": \"text\",\n"
+            + "  \"actionsCorrectives\": \"text\",\n"
+            + "  \"actionsPreventives\": \"text\",\n"
+            + "  \"actionImmediate\": \"text\",\n"
+            + "  \"prioriteAction\": \"HAUTE|MOYENNE|FAIBLE\",\n"
+            + "  \"methode8D\": {\n"
+            + "    \"D1\": \"text\", \"D2\": \"text\","
+            + " \"D3\": \"text\", \"D4\": \"text\",\n"
+            + "    \"D5\": \"text\", \"D6\": \"text\","
+            + " \"D7\": \"text\", \"D8\": \"text\"\n"
+            + "  },\n"
+            + "  \"noteFinale\": \"text\"\n"
+            + "}\n\n"
+            + "Contexte KPI :\n"
+            + "- nom: "               + nom        + "\n"
+            + "- definition: "        + definition + "\n"
+            + "- valeur_n1: "         + String.format(Locale.ROOT, "%.2f", valeurN1)  + "\n"
+            + "- valeur_n: "          + String.format(Locale.ROOT, "%.2f", valeurN)   + "\n"
+            + "- variation_percent: " + String.format(Locale.ROOT, "%.2f", variation) + "\n"
+            + "- unite: "             + unite      + "\n"
+            + "- categorie: "         + categorie  + "\n"
+            + "- periode_n1: "        + periodeN1  + "\n"
+            + "- periode_n: "         + periodeN   + "\n\n"
+            + "Utilise le contexte QHSE ci-dessus pour enrichir ton analyse "
+            + "(direction, benchmarks sectoriels, causes probables, normes ISO applicables).\n"
+            + "Réponds en français. Les champs texte doivent être brefs et factuels.\n";
     }
 
     private KpiAnalysisResult parseAnalysisResult(String rawJson, String kpiName) {

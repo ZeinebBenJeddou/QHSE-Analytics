@@ -294,7 +294,39 @@ public class StructuredAnalysisValidator {
                     insight.setUrgency("MEDIUM");
                 }
                 if (isBlank(insight.getOwnerRole())) {
-                    insight.setOwnerRole("Responsable QHSE");
+                    String kpiNameLower = insight.getKpiName() != null
+                            ? insight.getKpiName().toLowerCase() : "";
+                    String defaultOwner;
+                    if (kpiNameLower.contains("accident")
+                            || kpiNameLower.contains("frequence")
+                            || kpiNameLower.contains("gravite")
+                            || kpiNameLower.contains("securite")
+                            || kpiNameLower.contains("epi")
+                            || kpiNameLower.contains("incident")
+                            || kpiNameLower.contains("absenteisme")
+                            || kpiNameLower.contains("maladie")) {
+                        defaultOwner = "Responsable HSE";
+                    } else if (kpiNameLower.contains("qualite")
+                            || kpiNameLower.contains("conformite")
+                            || kpiNameLower.contains("audit")
+                            || kpiNameLower.contains("reclamation")
+                            || kpiNameLower.contains("satisfaction")
+                            || kpiNameLower.contains("yield")
+                            || kpiNameLower.contains("rebus")
+                            || kpiNameLower.contains("livraison")) {
+                        defaultOwner = "Responsable Qualité";
+                    } else if (kpiNameLower.contains("emission")
+                            || kpiNameLower.contains("energie")
+                            || kpiNameLower.contains("co2")
+                            || kpiNameLower.contains("dechet")
+                            || kpiNameLower.contains("environnement")
+                            || kpiNameLower.contains("eau")
+                            || kpiNameLower.contains("valorisation")) {
+                        defaultOwner = "Responsable Environnement";
+                    } else {
+                        defaultOwner = "Responsable QHSE";
+                    }
+                    insight.setOwnerRole(defaultOwner);
                 }
                 if (isBlank(insight.getDueHorizon())) {
                     insight.setDueHorizon("1 mois");
