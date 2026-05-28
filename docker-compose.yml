@@ -2,7 +2,7 @@ services:
 
   #PostgreSQL
   postgres:
-    image: pgvector/pgvector:pg16
+    image: postgres:16
     restart: unless-stopped
     environment:
       POSTGRES_DB: qhse_db
@@ -45,9 +45,7 @@ services:
       ADMIN_DEFAULT_PASSWORD: ${ADMIN_DEFAULT_PASSWORD}
       # Groq 
       GROQ_API_KEYS: ${GROQ_API_KEYS}
-      # Gemini (fallback)
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      # Frontend URL 
+      # Frontend URL
       APP_FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost}
     ports:
