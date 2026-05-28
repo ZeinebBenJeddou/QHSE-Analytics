@@ -126,12 +126,12 @@
           <div class="form-actions">
             <button mat-stroked-button class="cancel-btn" type="button"
               *ngIf="editMode" (click)="cancelEdit()">
-              <mat-icon>close</mat-icon>
+              
               Annuler
             </button>
             <button mat-flat-button class="primary-btn" type="submit"
               [disabled]="kpiForm.invalid || !!seuilError || saving">
-              <mat-icon>{{ saving ? 'hourglass_empty' : (editMode ? 'save' : 'add') }}</mat-icon>
+             
               {{ saving ? 'Enregistrement…' : (editMode ? 'Enregistrer les modifications' : 'Créer le KPI') }}
             </button>
           </div>
@@ -198,7 +198,7 @@
         @if (inactiveKpis.length) {
           <div class="inactive-section">
             <div class="inactive-section-title">
-              <mat-icon>archive</mat-icon>
+            
               Désactivés ({{ inactiveKpis.length }})
             </div>
             <div class="kpi-list">
