@@ -3,15 +3,14 @@
   <!-- ── En-tête ─────────────────────────────────────────────────────────── -->
   <div class="page-header">
     <div class="header-left">
-      <div class="header-icon-wrap">
-        <mat-icon class="header-icon">policy</mat-icon>
-      </div>
+      
       <div>
         <h1>Historique de toutes les actions administrateur</h1>
       </div>
     </div>
     <div class="header-actions">
-      <button mat-stroked-button class="export-btn" (click)="exportCsv()" [disabled]="!logs.length" matTooltip="Exporter la page courante en CSV">
+      <button mat-stroked-button class="export-btn" (click)="exportCsv()"
+        [disabled]="!logs.length" matTooltip="Exporter la page courante en CSV">
         <mat-icon>download</mat-icon>
         Export CSV
       </button>
@@ -30,62 +29,13 @@
     </div>
   }
 
-  <!-- ── Barre de filtres ────────────────────────────────────────────────── -->
-  <div class="filter-bar">
-
-    <mat-form-field appearance="outline" class="filter-field">
-      <mat-label>Action</mat-label>
-      <mat-select [(ngModel)]="filterAction">
-        <mat-option value="">— Toutes —</mat-option>
-        @for (opt of actionOptions; track opt.value) {
-          <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" class="filter-field">
-      <mat-label>Email administrateur</mat-label>
-      <mat-icon matPrefix class="filter-prefix-icon">manage_accounts</mat-icon>
-      <input matInput [(ngModel)]="filterAdminEmail" placeholder="ex: admin@qhse.fr"
-             (keyup.enter)="applyFilters()" />
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" class="filter-field filter-field--date">
-      <mat-label>Du</mat-label>
-      <mat-icon matPrefix class="filter-prefix-icon">event</mat-icon>
-      <input matInput type="date" [(ngModel)]="filterDateDebut" />
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" class="filter-field filter-field--date">
-      <mat-label>Au</mat-label>
-      <mat-icon matPrefix class="filter-prefix-icon">event</mat-icon>
-      <input matInput type="date" [(ngModel)]="filterDateFin" />
-    </mat-form-field>
-
-    <div class="filter-actions">
-      <button mat-flat-button class="apply-btn" (click)="applyFilters()">
-        <mat-icon>search</mat-icon>
-        Filtrer
-      </button>
-      <button mat-stroked-button class="reset-btn-sm" (click)="resetFilters()" [disabled]="!hasActiveFilters" matTooltip="Effacer les filtres">
-        <mat-icon>filter_alt_off</mat-icon>
-      </button>
-    </div>
-
-  </div>
-
   <!-- ── Carte principale ───────────────────────────────────────────────── -->
   <mat-card class="glass-card">
     <mat-card-header>
-      <div mat-card-avatar class="card-av-icon-wrap">
-        <mat-icon class="card-av-icon">manage_search</mat-icon>
-      </div>
+      
       <mat-card-title>
         Événements
         <span class="count-badge">{{ totalElements }}</span>
-        @if (hasActiveFilters) {
-          <span class="filter-active-badge">filtrés</span>
-        }
       </mat-card-title>
       <mat-card-subtitle>Actions effectuées par les administrateurs</mat-card-subtitle>
     </mat-card-header>
@@ -102,7 +52,7 @@
       @if (!loading && !logs.length) {
         <div class="empty-state">
           <mat-icon>playlist_remove</mat-icon>
-          <span>Aucune action enregistrée{{ hasActiveFilters ? ' pour ces filtres' : '' }}.</span>
+          <span>Aucune action enregistrée.</span>
         </div>
       }
 
@@ -163,21 +113,26 @@
         <!-- Pagination -->
         @if (totalPages > 1) {
           <div class="pagination">
-            <button mat-icon-button class="page-btn" [disabled]="currentPage === 0" (click)="goToPage(0)" matTooltip="Première page">
+            <button mat-icon-button class="page-btn" [disabled]="currentPage === 0"
+              (click)="goToPage(0)" matTooltip="Première page">
               <mat-icon>first_page</mat-icon>
             </button>
-            <button mat-icon-button class="page-btn" [disabled]="currentPage === 0" (click)="goToPage(currentPage - 1)" matTooltip="Précédente">
+            <button mat-icon-button class="page-btn" [disabled]="currentPage === 0"
+              (click)="goToPage(currentPage - 1)" matTooltip="Précédente">
               <mat-icon>chevron_left</mat-icon>
             </button>
             @for (p of pages; track p) {
-              <button mat-icon-button class="page-btn page-num" [class.active]="p === currentPage" (click)="goToPage(p)">
+              <button mat-icon-button class="page-btn page-num"
+                [class.active]="p === currentPage" (click)="goToPage(p)">
                 {{ p + 1 }}
               </button>
             }
-            <button mat-icon-button class="page-btn" [disabled]="currentPage === totalPages - 1" (click)="goToPage(currentPage + 1)" matTooltip="Suivante">
+            <button mat-icon-button class="page-btn" [disabled]="currentPage === totalPages - 1"
+              (click)="goToPage(currentPage + 1)" matTooltip="Suivante">
               <mat-icon>chevron_right</mat-icon>
             </button>
-            <button mat-icon-button class="page-btn" [disabled]="currentPage === totalPages - 1" (click)="goToPage(totalPages - 1)" matTooltip="Dernière page">
+            <button mat-icon-button class="page-btn" [disabled]="currentPage === totalPages - 1"
+              (click)="goToPage(totalPages - 1)" matTooltip="Dernière page">
               <mat-icon>last_page</mat-icon>
             </button>
             <span class="page-info">Page {{ currentPage + 1 }} / {{ totalPages }}</span>

@@ -71,15 +71,14 @@ export class AdminOverviewComponent implements OnInit {
         this.kpisCritiques = data.kpisCritiques ?? [];
         this.repartition   = data.repartition;
         this.graphiques    = data.graphiques;
+        this.loading       = false;
         if (!data.stats) {
           this.errorMessage = 'Impossible de charger les statistiques.';
         }
       },
       error: () => {
         this.errorMessage = 'Erreur lors du chargement du tableau de bord.';
-      },
-      complete: () => {
-        this.loading = false;
+        this.loading      = false;
       },
     });
   }
@@ -151,16 +150,13 @@ export class AdminOverviewComponent implements OnInit {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-
-        window.setTimeout(() => {
-          window.URL.revokeObjectURL(url);
-        }, 1000);
-      },
-      error: () => {
-        this.errorMessage = 'Impossible d\'exporter le PDF.';
+        window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
         this.exportInProgress = false;
       },
-      complete: () => { this.exportInProgress = false; },
+      error: () => {
+        this.errorMessage     = 'Impossible d\'exporter le PDF.';
+        this.exportInProgress = false;
+      },
     });
   }
 }

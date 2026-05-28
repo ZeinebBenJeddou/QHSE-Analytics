@@ -1,14 +1,11 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { RouterModule } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { AdminService } from '../../../../core/services/admin.service';
@@ -38,11 +35,11 @@ const ACTION_CLASS: Record<string, string> = {
   selector: 'app-admin-audit',
   standalone: true,
   imports: [
-    CommonModule, DatePipe, FormsModule, RouterModule,
+    CommonModule, RouterModule,
     MatCardModule, MatButtonModule, MatIconModule,
-    MatFormFieldModule, MatInputModule, MatSelectModule,
     MatProgressSpinnerModule, MatTableModule, MatTooltipModule,
   ],
+  providers: [DatePipe],
   templateUrl: './audit.component.html',
   styleUrls: ['./audit.component.css'],
 })
@@ -52,25 +49,15 @@ export class AdminAuditComponent implements OnInit {
   private readonly datePipe     = inject(DatePipe);
 
   logs: AuditLogResponse[] = [];
-  loading      = false;
-  error        = '';
-  currentPage  = 0;
-  totalPages   = 0;
+  loading       = false;
+  error         = '';
+  currentPage   = 0;
+  totalPages    = 0;
   totalElements = 0;
   readonly pageSize = 30;
 
   displayedColumns = ['timestamp', 'admin', 'action', 'cible', 'details'];
 
-  // ── Filtres ──────────────────────────────────────────────────────────────
-  filterAction     = '';
-  filterAdminEmail = '';
-  filterDateDebut  = '';
-  filterDateFin    = '';
-
-  readonly actionOptions = Object.entries(ACTION_LABELS)
-    .map(([value, label]) => ({ value, label }));
-
-  // ── Init ─────────────────────────────────────────────────────────────────
   ngOnInit(): void {
     const resolved = this.route.snapshot.data['audit'] as AuditPageResponse | null;
     if (resolved) {
@@ -80,7 +67,6 @@ export class AdminAuditComponent implements OnInit {
     }
   }
 
-  // ── Helpers affichage ────────────────────────────────────────────────────
   actionLabel(action: string): string { return ACTION_LABELS[action] ?? action; }
   actionClass(action: string): string { return ACTION_CLASS[action] ?? 'chip-neutral'; }
 
@@ -88,29 +74,11 @@ export class AdminAuditComponent implements OnInit {
     return Array.from({ length: this.totalPages }, (_, i) => i);
   }
 
-  // ── Navigation ───────────────────────────────────────────────────────────
   goToPage(page: number): void {
     if (page < 0 || page >= this.totalPages || this.loading) return;
     this.loadPage(page);
   }
 
-  // ── Filtres ───────────────────────────────────────────────────────────────
-  applyFilters(): void { this.loadPage(0); }
-
-  resetFilters(): void {
-    this.filterAction     = '';
-    this.filterAdminEmail = '';
-    this.filterDateDebut  = '';
-    this.filterDateFin    = '';
-    this.loadPage(0);
-  }
-
-  get hasActiveFilters(): boolean {
-    return !!(this.filterAction || this.filterAdminEmail ||
-              this.filterDateDebut || this.filterDateFin);
-  }
-
-  // ── Export CSV ───────────────────────────────────────────────────────────
   exportCsv(): void {
     if (!this.logs.length) return;
 
@@ -137,19 +105,18 @@ export class AdminAuditComponent implements OnInit {
     URL.revokeObjectURL(url);
   }
 
-  // ── Chargement ────────────────────────────────────────────────────────────
   private loadPage(page: number): void {
     this.loading = true;
     this.error   = '';
-    this.adminService.getAuditLog(page, this.pageSize, {
-      action:     this.filterAction     || undefined,
-      adminEmail: this.filterAdminEmail || undefined,
-      dateDebut:  this.filterDateDebut  || undefined,
-      dateFin:    this.filterDateFin    || undefined,
-    }).subscribe({
-      next:     (r) => { this.applyPage(r); },
-      error:    () => { this.error = 'Impossible de charger le journal d\'audit.'; this.loading = false; },
-      complete: () => { this.loading = false; },
+    this.adminService.getAuditLog(page, this.pageSize).subscribe({
+      next: (r) => {
+        this.applyPage(r);
+        this.loading = false;
+      },
+      error: () => {
+        this.error   = 'Impossible de charger le journal d\'audit.';
+        this.loading = false;
+      },
     });
   }
 

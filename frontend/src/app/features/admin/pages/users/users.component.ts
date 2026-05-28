@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -37,6 +37,7 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
   private readonly dialog       = inject(MatDialog);
   private readonly fb           = inject(FormBuilder);
   private readonly route        = inject(ActivatedRoute);
+  private readonly cdr          = inject(ChangeDetectorRef);
   private readonly destroy$     = new Subject<void>();
   private readonly searchInput$ = new Subject<string>();
 
@@ -124,6 +125,7 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
     if (this.createUserForm.invalid) return;
     this.creating     = true;
     this.errorMessage = '';
+    this.cdr.detectChanges();
     const payload = this.createUserForm.value as CreateAnalysteRequest;
 
     this.adminService.createUser(payload).subscribe({
@@ -136,6 +138,7 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
         this.snackBar.open('Impossible de créer l\'analyste.', 'Fermer', { duration: 3000 });
         this.errorMessage = 'Impossible de créer l\'analyste. Vérifiez les informations et réessayez.';
         this.creating = false;
+        this.cdr.detectChanges();
       },
     });
   }
@@ -155,6 +158,7 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
   submitEditUser(): void {
     if (this.editUserForm.invalid || !this.editingUser) return;
     this.saving = true;
+    this.cdr.detectChanges();
     const payload = this.editUserForm.value as UpdateUserRequest;
 
     this.adminService.updateUser(this.editingUser.id, payload).subscribe({
@@ -162,36 +166,39 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
         this.snackBar.open('Utilisateur mis à jour.', 'Fermer', { duration: 3000 });
         this.editingUser = null;
         this.editUserForm.reset();
+        this.saving = false;
         this.loadPage(this.currentPage);
       },
       error: (err) => {
         const msg = err?.error?.message || 'Impossible de mettre à jour l\'utilisateur.';
         this.snackBar.open(msg, 'Fermer', { duration: 4000 });
         this.saving = false;
+        this.cdr.detectChanges();
       },
-      complete: () => { this.saving = false; },
     });
   }
 
   verifyUser(user: UserResponse): void {
     if (this.areUserActionsDisabled(user)) return;
     this.actionInProgressId = user.id;
+    this.cdr.detectChanges();
     this.adminService.verifyUser(user.id).subscribe({
-      next:     () => { this.snackBar.open('Compte vérifié.', 'Fermer', { duration: 3000 }); this.loadPage(this.currentPage); },
-      error:    () => { this.snackBar.open('Échec de la vérification.', 'Fermer', { duration: 3000 }); this.actionInProgressId = null; },
+      next:  () => { this.snackBar.open('Compte vérifié.', 'Fermer', { duration: 3000 }); this.loadPage(this.currentPage); },
+      error: () => { this.snackBar.open('Échec de la vérification.', 'Fermer', { duration: 3000 }); this.actionInProgressId = null; this.cdr.detectChanges(); },
     });
   }
 
   toggleActivation(user: UserResponse): void {
     if (this.areUserActionsDisabled(user)) return;
     this.actionInProgressId = user.id;
+    this.cdr.detectChanges();
     const action = user.active
       ? this.adminService.deactivateUser(user.id)
       : this.adminService.activateUser(user.id);
 
     action.subscribe({
       next:  () => { this.snackBar.open(user.active ? 'Compte désactivé.' : 'Compte activé.', 'Fermer', { duration: 3000 }); this.loadPage(this.currentPage); },
-      error: () => { this.snackBar.open('Impossible de mettre à jour l\'activation.', 'Fermer', { duration: 3000 }); this.actionInProgressId = null; },
+      error: () => { this.snackBar.open('Impossible de mettre à jour l\'activation.', 'Fermer', { duration: 3000 }); this.actionInProgressId = null; this.cdr.detectChanges(); },
     });
   }
 
@@ -213,13 +220,14 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
       if (!confirmed) return;
       setTimeout(() => {
         this.actionInProgressId = user.id;
+        this.cdr.detectChanges();
         const action = isPromoting
           ? this.adminService.promoteToAdmin(user.id)
           : this.adminService.demoteToAnalyste(user.id);
 
         action.subscribe({
           next:  () => { this.snackBar.open(isPromoting ? 'Promu administrateur.' : 'Rétrogradé en analyste.', 'Fermer', { duration: 3000 }); this.loadPage(this.currentPage); },
-          error: () => { this.snackBar.open('Impossible de modifier le rôle.', 'Fermer', { duration: 3000 }); this.actionInProgressId = null; },
+          error: () => { this.snackBar.open('Impossible de modifier le rôle.', 'Fermer', { duration: 3000 }); this.actionInProgressId = null; this.cdr.detectChanges(); },
         });
       });
     });
@@ -228,10 +236,10 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
   resetUserPassword(user: UserResponse): void {
     if (this.areUserActionsDisabled(user)) return;
     this.actionInProgressId = user.id;
+    this.cdr.detectChanges();
     this.adminService.resetUserPassword(user.id).subscribe({
-      next:     () => { this.snackBar.open('Email de réinitialisation envoyé.', 'Fermer', { duration: 3000 }); },
-      error:    () => { this.snackBar.open('Impossible d\'envoyer l\'email.', 'Fermer', { duration: 3000 }); },
-      complete: () => { this.actionInProgressId = null; },
+      next:     () => { this.snackBar.open('Email de réinitialisation envoyé.', 'Fermer', { duration: 3000 }); this.actionInProgressId = null; this.cdr.detectChanges(); },
+      error:    () => { this.snackBar.open('Impossible d\'envoyer l\'email.', 'Fermer', { duration: 3000 }); this.actionInProgressId = null; this.cdr.detectChanges(); },
     });
   }
 
@@ -250,6 +258,7 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
       if (!confirmed) return;
       setTimeout(() => {
         this.actionInProgressId = user.id;
+        this.cdr.detectChanges();
         this.adminService.deleteUser(user.id).subscribe({
           next: () => {
             this.snackBar.open('Utilisateur supprimé.', 'Fermer', { duration: 3000 });
@@ -257,7 +266,7 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
               ? this.currentPage - 1 : this.currentPage;
             this.loadPage(targetPage);
           },
-          error: () => { this.snackBar.open('Impossible de supprimer l\'utilisateur.', 'Fermer', { duration: 3000 }); this.actionInProgressId = null; },
+          error: () => { this.snackBar.open('Impossible de supprimer l\'utilisateur.', 'Fermer', { duration: 3000 }); this.actionInProgressId = null; this.cdr.detectChanges(); },
         });
       });
     });
@@ -265,10 +274,21 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
 
   private loadPage(page: number): void {
     this.loading = true;
+    this.cdr.detectChanges();
     this.adminService.getUsers(page, this.pageSize, this.searchQuery).subscribe({
-      next:     (r) => { this.applyPage(r); },
-      error:    () => { this.errorMessage = 'Impossible de recharger la liste.'; },
-      complete: () => { this.loading = false; this.creating = false; this.actionInProgressId = null; },
+      next: (r) => {
+        this.applyPage(r);
+        this.loading            = false;
+        this.creating           = false;
+        this.actionInProgressId = null;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.errorMessage       = 'Impossible de recharger la liste.';
+        this.loading            = false;
+        this.actionInProgressId = null;
+        this.cdr.detectChanges();
+      },
     });
   }
 

@@ -97,13 +97,14 @@ export class AdminProfileComponent implements OnInit {
     const payload = this.profileForm.value as UpdateProfilRequest;
     this.adminService.updateProfile(payload).subscribe({
       next: (profile) => {
-        this.profile = profile;
+        this.profile       = profile;
+        this.savingProfile = false;
         this.snackBar.open('Profil mis à jour avec succès.', 'Fermer', { duration: 4000 });
       },
       error: () => {
+        this.savingProfile = false;
         this.snackBar.open('Impossible de mettre à jour le profil.', 'Fermer', { duration: 4000 });
       },
-      complete: () => { this.savingProfile = false; },
     });
   }
 
@@ -113,17 +114,18 @@ export class AdminProfileComponent implements OnInit {
     const payload = this.passwordForm.value as ChangePasswordRequest;
     this.adminService.changePassword(payload).subscribe({
       next: (response) => {
+        this.savingPassword = false;
         this.snackBar.open(response.message, 'Fermer', { duration: 5000 });
         this.authService.logout().subscribe({
           complete: () => { this.tokenService.removeToken(); this.router.navigate(['/auth/login']); },
-          error: ()  => { this.tokenService.removeToken(); this.router.navigate(['/auth/login']); }
+          error:    () => { this.tokenService.removeToken(); this.router.navigate(['/auth/login']); },
         });
       },
       error: (err: HttpErrorResponse) => {
+        this.savingPassword = false;
         const message = err.error?.message || 'Impossible de changer le mot de passe.';
         this.snackBar.open(message, 'Fermer', { duration: 5000 });
       },
-      complete: () => { this.savingPassword = false; },
     });
   }
 }
