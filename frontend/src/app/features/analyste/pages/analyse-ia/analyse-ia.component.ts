@@ -316,10 +316,21 @@ export class AnalyseIAComponent implements OnInit, OnDestroy {
   }
 
   getNiveauClass(niveau: string | null): string {
-    if (niveau === 'CRITIQUE') return 'niveau-critique';
-    if (niveau === 'MODERE')   return 'niveau-modere';
-    if (niveau === 'FAIBLE')   return 'niveau-faible';
+    if (niveau === 'CRITIQUE')    return 'niveau-critique';
+    if (niveau === 'MODERE')      return 'niveau-modere';
+    if (niveau === 'FAIBLE')      return 'niveau-faible';
+    if (niveau === 'INDETERMINE') return 'niveau-indetermine';
     return 'niveau-default';
+  }
+
+  getNiveauLabel(niveau: string | null): string {
+    switch (niveau) {
+      case 'CRITIQUE':    return 'Critique';
+      case 'MODERE':      return 'Modéré';
+      case 'FAIBLE':      return 'Faible';
+      case 'INDETERMINE': return 'Indéterminé';
+      default:            return niveau ?? '—';
+    }
   }
 
   getTendanceIcon(tendance: string | null): string {
@@ -432,7 +443,7 @@ export class AnalyseIAComponent implements OnInit, OnDestroy {
           insightConfidence: ins?.confidence,
           structuredCauses:  ins?.probableCauses ?? [],
           structuredRecos:   ins?.recommendations ?? [],
-          structuredAction:  ins?.actionImmediate ?? kpi.immediateAction,
+          structuredAction:  ins?.actionImmediate,
           structuredOwner:   ins?.ownerRole,
           structuredDue:     ins?.dueHorizon,
           structuredSuccess: ins?.successMetric,

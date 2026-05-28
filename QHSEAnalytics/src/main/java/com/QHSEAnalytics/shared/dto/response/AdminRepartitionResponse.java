@@ -27,6 +27,7 @@ public class AdminRepartitionResponse {
         private int nombreFaibles;
         private int nombreModeres;
         private int nombreCritiques;
+        private int nombreIndetermine;
         private int total;
     }
 }

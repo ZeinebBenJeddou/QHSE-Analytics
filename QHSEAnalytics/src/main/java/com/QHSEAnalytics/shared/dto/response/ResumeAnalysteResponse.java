@@ -22,10 +22,8 @@ public class ResumeAnalysteResponse {
     private List<ResumeCategorieResponse> resumeCategories;
     private int nombreTotalKpis;
     private int nombreTotalCritiques;
-    private int nombreTotalPreEscalades;
     private int nombreTotalModeres;
     private int nombreTotalFaibles;
-    private int nombreTotalExcellents;
     private int nombreTotalIndetermines;
     private String messageErreurIa;
 }

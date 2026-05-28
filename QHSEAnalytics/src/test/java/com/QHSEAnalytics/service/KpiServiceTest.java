@@ -117,7 +117,7 @@ class KpiServiceTest {
         CreateKpiRequest request = buildCreateRequest("Nouveau KPI", 5.0, 10.0, 20.0);
 
         when(categorieKpiRepository.findByCode("Q")).thenReturn(Optional.of(categorieQ));
-        when(kpiRepository.existsByNomAndCategorieKpi(any(), any())).thenReturn(false);
+        when(kpiRepository.findByNomAndCategorieKpi("Nouveau KPI", categorieQ)).thenReturn(Optional.empty());
         when(kpiRepository.save(any(Kpi.class))).thenAnswer(inv -> {
             Kpi k = inv.getArgument(0);
             k.setId(2L);
@@ -137,7 +137,6 @@ class KpiServiceTest {
         CreateKpiRequest request = buildCreateRequest("KPI Invalide", 15.0, 10.0, 20.0);
 
         when(categorieKpiRepository.findByCode("Q")).thenReturn(Optional.of(categorieQ));
-        when(kpiRepository.existsByNomAndCategorieKpi(any(), any())).thenReturn(false);
 
         assertThatThrownBy(() -> kpiService.createKpi(request))
                 .isInstanceOf(InvalidSeuilException.class);
@@ -149,7 +148,7 @@ class KpiServiceTest {
         CreateKpiRequest request = buildCreateRequest("Taux d'accidents", 5.0, 10.0, 20.0);
 
         when(categorieKpiRepository.findByCode("Q")).thenReturn(Optional.of(categorieQ));
-        when(kpiRepository.existsByNomAndCategorieKpi(any(), any())).thenReturn(true);
+        when(kpiRepository.findByNomAndCategorieKpi("Taux d'accidents", categorieQ)).thenReturn(Optional.of(kpiAccidents));
 
         assertThatThrownBy(() -> kpiService.createKpi(request))
                 .isInstanceOf(KpiAlreadyExistsException.class);

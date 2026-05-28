@@ -41,7 +41,6 @@ public class RiskDetectionAgent {
 
     private boolean isCriticalRisk(KpiCalculatedDTO kpi) {
         return "CRITIQUE".equals(kpi.getClassification()) ||
-               "PRE_ESCALADE".equals(kpi.getClassification()) ||
                (kpi.getRiskScore() != null && kpi.getRiskScore() >= 12);
     }
 

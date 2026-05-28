@@ -89,6 +89,7 @@ export interface AdminRepartitionCategorieItem {
   nombreFaibles: number;
   nombreModeres: number;
   nombreCritiques: number;
+  nombreIndetermine: number;
   total: number;
 }
 

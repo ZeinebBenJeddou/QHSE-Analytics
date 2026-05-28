@@ -66,12 +66,10 @@ public class DashboardAnalysteService {
                 .sorted(Comparator.comparing(ResumeCategorieResponse::getCategorieCode, Comparator.nullsLast(String::compareTo)))
                 .toList();
 
-        int critiques     = (int) resultats.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.CRITIQUE).count();
-        int preEscalades  = (int) resultats.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.PRE_ESCALADE).count();
-        int moderes       = (int) resultats.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.MODERE).count();
-        int faibles       = (int) resultats.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.FAIBLE).count();
-        int excellents    = (int) resultats.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.EXCELLENT).count();
-        int indetermines  = (int) resultats.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.INDETERMINE).count();
+        int critiques    = (int) resultats.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.CRITIQUE).count();
+        int moderes      = (int) resultats.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.MODERE).count();
+        int faibles      = (int) resultats.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.FAIBLE).count();
+        int indetermines = (int) resultats.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.INDETERMINE).count();
 
         String messageErreurIa = session.getStatut() == ImportStatut.READY_FOR_AI
                 && session.getMessageErreur() != null && !session.getMessageErreur().isBlank()
@@ -85,10 +83,8 @@ public class DashboardAnalysteService {
                 .resumeCategories(resumeCategories)
                 .nombreTotalKpis(resultats.size())
                 .nombreTotalCritiques(critiques)
-                .nombreTotalPreEscalades(preEscalades)
                 .nombreTotalModeres(moderes)
                 .nombreTotalFaibles(faibles)
-                .nombreTotalExcellents(excellents)
                 .nombreTotalIndetermines(indetermines)
                 .messageErreurIa(messageErreurIa)
                 .build();
@@ -128,13 +124,9 @@ public class DashboardAnalysteService {
                 return toLigneComparatif(r, analysis);
             })
                 .toList();
-        int critiques = (int) sorted.stream().filter(r ->
-                r.getNiveauVariation() == NiveauVariation.CRITIQUE ||
-                r.getNiveauVariation() == NiveauVariation.PRE_ESCALADE).count();
+        int critiques = (int) sorted.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.CRITIQUE).count();
         int moderes = (int) sorted.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.MODERE).count();
-        int faibles = (int) sorted.stream().filter(r ->
-                r.getNiveauVariation() == NiveauVariation.FAIBLE ||
-                r.getNiveauVariation() == NiveauVariation.EXCELLENT).count();
+        int faibles = (int) sorted.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.FAIBLE).count();
 
         return ComparatifTableauResponse.builder()
                 .importId(session.getId())
@@ -172,9 +164,9 @@ public class DashboardAnalysteService {
                         score = 50.0;
                     } else {
                         long critiques = real.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.CRITIQUE).count();
-                        long excellents = real.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.EXCELLENT).count();
+                        long faibles = real.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.FAIBLE).count();
                         double realCount = real.size();
-                        score = 100d - ((double) critiques / realCount * 60d) + ((double) excellents / realCount * 20d);
+                        score = 100d - ((double) critiques / realCount * 60d) + ((double) faibles / realCount * 10d);
                         score = Math.min(100d, Math.max(0d, score));
                     }
                     return RadarPoint.builder()
@@ -185,7 +177,7 @@ public class DashboardAnalysteService {
                 .toList();
 
         List<KpiDegrade> topDegrades = resultats.stream()
-                .filter(r -> r.getTendance() == Tendance.HAUSSE && r.getNiveauVariation() != NiveauVariation.EXCELLENT)
+                .filter(r -> r.getTendance() == Tendance.HAUSSE && r.getNiveauVariation() != NiveauVariation.FAIBLE)
                 .sorted(Comparator
                         .comparingInt((ResultatKpi r) -> severityRank(r.getNiveauVariation()))
                         .thenComparing(Comparator.comparing(ResultatKpi::getVariationRelative, Comparator.nullsLast(Comparator.reverseOrder())))
@@ -286,13 +278,9 @@ public class DashboardAnalysteService {
     }
 
     private ResumeCategorieResponse toResumeCategorie(List<ResultatKpi> resultats) {
-        int critiques = (int) resultats.stream().filter(r ->
-                r.getNiveauVariation() == NiveauVariation.CRITIQUE ||
-                r.getNiveauVariation() == NiveauVariation.PRE_ESCALADE).count();
+        int critiques = (int) resultats.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.CRITIQUE).count();
         int moderes = (int) resultats.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.MODERE).count();
-        int faibles = (int) resultats.stream().filter(r ->
-                r.getNiveauVariation() == NiveauVariation.FAIBLE ||
-                r.getNiveauVariation() == NiveauVariation.EXCELLENT).count();
+        int faibles = (int) resultats.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.FAIBLE).count();
 
         String couleur;
         if (critiques == 0) {
@@ -483,12 +471,10 @@ public class DashboardAnalysteService {
             return 99;
         }
         return switch (niveauVariation) {
-            case CRITIQUE     -> 0;
-            case PRE_ESCALADE -> 1;
-            case MODERE       -> 2;
-            case FAIBLE       -> 3;
-            case INDETERMINE  -> 4;
-            case EXCELLENT    -> 5;
+            case CRITIQUE    -> 0;
+            case MODERE      -> 1;
+            case FAIBLE      -> 2;
+            case INDETERMINE -> 3;
         };
     }
 

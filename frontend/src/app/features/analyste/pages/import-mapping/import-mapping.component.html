@@ -222,7 +222,7 @@
           mat-flat-button
           class="confirm-btn confirm-btn-blocked"
           disabled>
-          <mat-icon>block</mat-icon>
+          
           Import bloqué
         </button>
         <button
@@ -231,7 +231,7 @@
           class="confirm-btn"
           (click)="confirmImport()"
           [disabled]="!previewResponse() || processing()">
-          <mat-icon>check_circle</mat-icon>
+          
           Confirmer l'import
         </button>
         <button
@@ -240,7 +240,7 @@
           class="confirm-partial-btn"
           (click)="confirmPartialImport()"
           [disabled]="!previewResponse() || processing()">
-          <mat-icon>partial_tick</mat-icon>
+          
           Continuer avec lignes valides
         </button>
       </div>
@@ -289,42 +289,42 @@
 
       <div class="quality-stats-grid">
         <div class="quality-stat">
-          <mat-icon class="stat-icon icon-total">format_list_numbered</mat-icon>
+          
           <div>
             <div class="stat-value">{{ qualityReport.totalRows }}</div>
             <div class="stat-label">Lignes lues</div>
           </div>
         </div>
         <div class="quality-stat">
-          <mat-icon class="stat-icon icon-valid">check_circle</mat-icon>
+          
           <div>
             <div class="stat-value text-up">{{ qualityReport.validRows }}</div>
             <div class="stat-label">Lignes valides</div>
           </div>
         </div>
         <div class="quality-stat">
-          <mat-icon class="stat-icon icon-invalid">cancel</mat-icon>
+          
           <div>
             <div class="stat-value text-down">{{ qualityReport.invalidRows }}</div>
             <div class="stat-label">Lignes invalides</div>
           </div>
         </div>
         <div class="quality-stat">
-          <mat-icon class="stat-icon icon-warning">warning</mat-icon>
+          
           <div>
             <div class="stat-value">{{ qualityReport.warningRows }}</div>
             <div class="stat-label">Avec avertissements</div>
           </div>
         </div>
         <div class="quality-stat" matTooltip="Nombre d'occurrences de doublons écartées">
-          <mat-icon class="stat-icon icon-duplicate">content_copy</mat-icon>
+          
           <div>
             <div class="stat-value">{{ qualityReport.duplicateRows }}</div>
             <div class="stat-label">Doublons écartés (occurrences)</div>
           </div>
         </div>
         <div class="quality-stat">
-          <mat-icon class="stat-icon icon-outlier">show_chart</mat-icon>
+          
           <div>
             <div class="stat-value">{{ qualityReport.outlierRows }}</div>
             <div class="stat-label">Valeurs aberrantes</div>
@@ -341,7 +341,6 @@
               <th mat-header-cell *matHeaderCellDef>Sévérité</th>
               <td mat-cell *matCellDef="let issue">
                 <span [ngClass]="severityClass(issue.severity)" class="severity-chip">
-                  <mat-icon>{{ severityIcon(issue.severity) }}</mat-icon>
                   {{ severityLabel(issue.severity) }}
                 </span>
               </td>
@@ -372,7 +371,7 @@
           </table>
         </div>
         <div class="issues-truncated-banner" *ngIf="qualityReport.issuesTruncated">
-          <mat-icon>info</mat-icon>
+         
           Affichage limité aux 200 premières anomalies par catégorie. Corrigez votre fichier source pour voir toutes les erreurs.
         </div>
       </div>
@@ -457,10 +456,6 @@
             <th mat-header-cell *matHeaderCellDef>Statut</th>
             <td mat-cell *matCellDef="let row">
               <span [ngClass]="getStatusClass(row.statusColor)">
-                <mat-icon *ngIf="row.statusColor === 'green'">check_circle</mat-icon>
-                <mat-icon *ngIf="row.statusColor === 'red'">error</mat-icon>
-                <mat-icon *ngIf="row.statusColor === 'yellow'">remove_circle</mat-icon>
-                <mat-icon *ngIf="row.statusColor === 'blue'">new_releases</mat-icon>
                 {{ row.status }}
               </span>
             </td>

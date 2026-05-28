@@ -1284,7 +1284,7 @@ h1 {
   .dual-mapping { grid-template-columns: 1fr; }
 }
 
-/* ─── Column Profile Cards ─────────────────────────────────────── */
+
 .section-label-row {
   display: flex;
   align-items: center;

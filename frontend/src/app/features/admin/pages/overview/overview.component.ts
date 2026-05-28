@@ -90,9 +90,20 @@ export class AdminOverviewComponent implements OnInit {
   get niveauxList(): Array<{ label: string; count: number; pct: number; color: string }> {
     const n = this.graphiques?.repartitionNiveaux ?? {};
     const total = Object.values(n).reduce((s, v) => s + v, 0);
-    const colors: Record<string, string> = { FAIBLE: '#38A169', MODERE: '#DD6B20', CRITIQUE: '#E53E3E' };
-    return ['FAIBLE', 'MODERE', 'CRITIQUE'].map(k => ({
-      label: k,
+    const colors: Record<string, string> = {
+      CRITIQUE:    '#E53E3E',
+      MODERE:      '#DD6B20',
+      FAIBLE:      '#38A169',
+      INDETERMINE: '#718096',
+    };
+    const labels: Record<string, string> = {
+      CRITIQUE:    'Critique',
+      MODERE:      'Modéré',
+      FAIBLE:      'Faible',
+      INDETERMINE: 'Indéterminé',
+    };
+    return ['CRITIQUE', 'MODERE', 'FAIBLE', 'INDETERMINE'].map(k => ({
+      label: labels[k],
       count: n[k] ?? 0,
       pct: total > 0 ? Math.round(((n[k] ?? 0) / total) * 100) : 0,
       color: colors[k],

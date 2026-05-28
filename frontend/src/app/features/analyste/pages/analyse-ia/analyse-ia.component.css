@@ -913,10 +913,11 @@
   letter-spacing: .05em;
   flex-shrink: 0;
 }
-.niveau-critique { background: var(--red-bg);    color: var(--red); }
-.niveau-modere   { background: var(--orange-bg); color: var(--orange); }
-.niveau-faible   { background: var(--green-bg);  color: var(--green); }
-.niveau-default  { background: var(--surface);   color: var(--ink-muted); }
+.niveau-critique    { background: var(--red-bg);    color: var(--red); }
+.niveau-modere      { background: var(--orange-bg); color: var(--orange); }
+.niveau-faible      { background: var(--green-bg);  color: var(--green); }
+.niveau-indetermine { background: var(--surface);   color: var(--ink-muted); }
+.niveau-default     { background: var(--surface);   color: var(--ink-muted); }
 
 .kpi-cat-dot {
   display: inline-flex;

@@ -16,10 +16,8 @@ export interface ResumeAnalysteResponse {
   resumeCategories: ResumeCategorieResponse[];
   nombreTotalKpis: number;
   nombreTotalCritiques: number;
-  nombreTotalPreEscalades?: number;
   nombreTotalModeres: number;
   nombreTotalFaibles: number;
-  nombreTotalExcellents?: number;
   nombreTotalIndetermines?: number;
   messageErreurIa?: string;
 }
@@ -34,7 +32,7 @@ export interface LigneComparatifResponse {
   valeurN: number;
   variationAbsolue: number;
   variationRelative: number;
-  niveauVariation: 'FAIBLE' | 'MODERE' | 'CRITIQUE' | 'PRE_ESCALADE' | 'EXCELLENT' | 'INDETERMINE' | null;
+  niveauVariation: 'FAIBLE' | 'MODERE' | 'CRITIQUE' | 'INDETERMINE' | null;
   tendance: 'HAUSSE' | 'BAISSE' | 'STABLE' | null;
   status?: string;
   commentaire?: string;

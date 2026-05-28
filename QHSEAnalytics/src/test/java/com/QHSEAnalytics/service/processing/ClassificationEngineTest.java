@@ -32,9 +32,7 @@ class ClassificationEngineTest {
 
     @Test
     void testThresholdsImprovementNotCritical() {
-        // LOWER_IS_BETTER : N-1=20, N=10 → amélioration, valeur N=10 ≤ seuilModere(5)? non → zone FAIBLE → FAIBLE
-        // valeur N=10 : > seuilFaible(1), > seuilModere(5), < seuilCritique(20) → MODERE
-        // Pour EXCELLENT : N=10 ≤ seuilFaible(1)? non. Utilisons N=0.5
+        // LOWER_IS_BETTER : N-1=20, N=0.5 → amélioration, valeur 0.5 ≤ seuilFaible(1) → zone optimale → FAIBLE
         Kpi k = Kpi.builder()
                 .nom("Nombre d'incidents")
                 .categorieKpi(CategorieKpi.builder().code("S").libelle("Sécurité").build())
@@ -43,7 +41,7 @@ class ClassificationEngineTest {
         k.setDirection(Direction.LOWER_IS_BETTER);
         ComparativeCalculator.ComparativeResult comp = compCalc.compute(k, 20d, 0.5d);
         ClassificationEngine.ClassificationResult res = engine.classify(k, comp, null);
-        assertEquals("EXCELLENT", res.getClassification());
+        assertEquals("FAIBLE", res.getClassification());
     }
 
     @Test

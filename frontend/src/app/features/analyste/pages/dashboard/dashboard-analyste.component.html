@@ -23,9 +23,6 @@
 
   @if (!loading() && !error()) {
 
-    <!-- ══════════════════════════════════════════════════
-         ZONE 1 — Barre identitaire
-    ══════════════════════════════════════════════════ -->
     <div class="identity-bar">
       <div class="identity-left">
         <div class="identity-avatar">
@@ -48,26 +45,22 @@
       </div>
       <div class="identity-actions">
         <button class="btn-action btn-action--secondary" (click)="exportExcel()" [disabled]="exporting()">
-          <mat-icon>download</mat-icon>
+          
           Exporter Excel
         </button>
         <button class="btn-action btn-action--primary" (click)="goToImport()">
-          <mat-icon>upload_file</mat-icon>
+         
           Importer
         </button>
       </div>
     </div>
 
-    <!-- ══════════════════════════════════════════════════
-         ZONE 2 — Scorecards enrichis
-    ══════════════════════════════════════════════════ -->
+    
     <section class="section">
       <div class="scorecards-grid">
 
         <div class="scorecard scorecard--blue">
-          <div class="sc-icon-wrap" style="background:#DBEAFE">
-            <mat-icon style="color:#1E40AF">assignment</mat-icon>
-          </div>
+          
           <div class="sc-body">
             <div class="sc-value">{{ scorecardsData().total }}</div>
             <div class="sc-label">KPI suivis</div>
@@ -76,9 +69,7 @@
         </div>
 
         <div class="scorecard scorecard--red">
-          <div class="sc-icon-wrap" style="background:#FEE2E2">
-            <mat-icon style="color:#DC2626">warning</mat-icon>
-          </div>
+          
           <div class="sc-body">
             <div class="sc-value" style="color:#DC2626">{{ scorecardsData().critiques }}</div>
             <div class="sc-label">Critiques</div>
@@ -88,9 +79,7 @@
         </div>
 
         <div class="scorecard scorecard--orange">
-          <div class="sc-icon-wrap" style="background:#FEF3C7">
-            <mat-icon style="color:#D97706">trending_up</mat-icon>
-          </div>
+          
           <div class="sc-body">
             <div class="sc-value" style="color:#D97706">{{ scorecardsData().moderes }}</div>
             <div class="sc-label">Modérés</div>
@@ -100,9 +89,7 @@
         </div>
 
         <div class="scorecard scorecard--green">
-          <div class="sc-icon-wrap" style="background:#D1FAE5">
-            <mat-icon style="color:#059669">trending_down</mat-icon>
-          </div>
+          
           <div class="sc-body">
             <div class="sc-value" style="color:#059669">{{ scorecardsData().faibles }}</div>
             <div class="sc-label">En amélioration</div>
@@ -114,9 +101,7 @@
       </div>
     </section>
 
-    <!-- ══════════════════════════════════════════════════
-         ZONE 3 — Graphiques (bar + donut + top dégradés)
-    ══════════════════════════════════════════════════ -->
+    
     <section class="section">
       <div class="section-header">
         <div class="section-header-left">
@@ -127,7 +112,7 @@
 
       <div class="charts-main-grid">
 
-        <!-- Bar chart -->
+        
         <div class="chart-panel">
           <div class="chart-panel-header">
             <span>Valeurs moyennes par catégorie</span>
@@ -145,7 +130,7 @@
           </div>
         </div>
 
-        <!-- Donut + top dégradés côte à côte -->
+        
         <div class="charts-right-col">
 
           <div class="chart-panel chart-panel--donut">
@@ -174,11 +159,10 @@
             </div>
           </div>
 
-          <!-- Top KPIs dégradés -->
           @if (topKpisDegrades().length) {
             <div class="chart-panel top-degrades-panel">
               <div class="chart-panel-header">
-                <mat-icon>trending_up</mat-icon>
+               
                 <span>Top indicateurs en dégradation</span>
                 <span class="panel-count">{{ topKpisDegrades().length }}</span>
               </div>
@@ -203,13 +187,11 @@
       </div>
     </section>
 
-    <!-- ══════════════════════════════════════════════════
-         ZONE 4 — Catégories QHSE (cartes cliquables)
-    ══════════════════════════════════════════════════ -->
+    
     <section class="section">
       <div class="section-header">
         <div class="section-header-left">
-          <mat-icon class="section-icon">grid_view</mat-icon>
+          
           <h2 class="section-title">Performance par domaine QHSE</h2>
         </div>
       </div>
@@ -222,7 +204,6 @@
                (click)="setActiveCat(activeCatTab() === cat.code ? '' : cat.code)">
 
             <div class="cat-card-top">
-              <div class="cat-icon-wrap"><mat-icon>{{ cat.icon }}</mat-icon></div>
               <div class="cat-header-info">
                 <div class="cat-libelle">{{ cat.libelle }}</div>
                 <div class="cat-total">{{ cat.total }} indicateurs</div>
@@ -268,9 +249,7 @@
       </div>
     </section>
 
-    <!-- ══════════════════════════════════════════════════
-         ZONE 5 — Tableau comparatif détaillé
-    ══════════════════════════════════════════════════ -->
+   
     <section class="section">
       <div class="section-header">
         <div class="section-header-left">
@@ -448,12 +427,9 @@
       </div>
     </section>
 
-    <!-- ══════════════════════════════════════════════════
-         ZONE 6 — Aperçu IA
-    ══════════════════════════════════════════════════ -->
+    
     <div class="ia-block">
 
-      <!-- Header -->
       <div class="ia-block-header">
         <div class="ia-block-header-left">
           <div>
@@ -463,7 +439,6 @@
       </div>
 
       @if (!hasAiData()) {
-        <!-- État vide -->
         <div class="ia-block-empty">
           <div class="ia-block-empty-icon"><mat-icon>smart_toy</mat-icon></div>
           <div class="ia-block-empty-text">Aucune analyse IA disponible pour cet import.</div>
@@ -476,7 +451,7 @@
 
         <div class="ia-block-content">
 
-          <!-- Colonne gauche : synthèse globale complète -->
+          
           <div class="ia-block-left">
 
             @if (structured()?.globalSummary) {
@@ -493,13 +468,10 @@
 
           </div>
 
-          <!-- Séparateur vertical -->
           <div class="ia-block-divider"></div>
 
-          <!-- Colonne droite : score global + recommandations -->
           <div class="ia-block-right">
 
-            <!-- Score global -->
             @if (iaGlobalScore() !== null) {
               <div class="ia-score-row">
                 <div class="ia-score-ring-wrap">
@@ -525,7 +497,6 @@
               </div>
             }
 
-            <!-- Recommandations -->
             @if (iaRecommendations().length) {
               <div class="ia-block-section-label" style="margin-top:4px">Recommandations clés</div>
               <div class="ia-block-actions-list">

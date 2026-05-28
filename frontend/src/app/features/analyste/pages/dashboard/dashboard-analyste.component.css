@@ -1768,12 +1768,10 @@ h1 {
   letter-spacing: .04em;
   white-space: nowrap;
 }
-.niveau-critique     { background: #FEF2F2; color: #DC2626; }
-.niveau-pre-escalade { background: #FFF1E6; color: #C2410C; }
-.niveau-modere       { background: #FFFBEB; color: #D97706; }
-.niveau-faible       { background: #F0FDF4; color: #16A34A; }
-.niveau-excellent    { background: #EFF6FF; color: #1D4ED8; }
-.niveau-default      { background: var(--surface); color: var(--ink-muted); }
+.niveau-critique  { background: #FEF2F2; color: #DC2626; }
+.niveau-modere    { background: #FFFBEB; color: #D97706; }
+.niveau-faible    { background: #F0FDF4; color: #16A34A; }
+.niveau-default   { background: var(--surface); color: var(--ink-muted); }
 
 .statut-label { font-size: 13px; font-weight: 600; }
 .statut-red    { color: #EF4444; }

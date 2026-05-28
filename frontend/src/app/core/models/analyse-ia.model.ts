@@ -11,19 +11,9 @@ export interface ResultatKpiIaResponse {
   valeurN: number;
   variationAbsolue: number;
   variationRelative: number;
-  niveauVariation: 'FAIBLE' | 'MODERE' | 'CRITIQUE' | null;
+  niveauVariation: 'FAIBLE' | 'MODERE' | 'CRITIQUE' | 'INDETERMINE' | null;
   tendance: 'HAUSSE' | 'BAISSE' | 'STABLE' | null;
   analyseIa: string | null;
-  riskLevel?: 'Faible' | 'Modéré' | 'Élevé';
-  riskJustification?: string;
-  issueDetected?: string;
-  correctiveAction?: string;
-  preventiveAction?: string;
-  immediateAction?: string;
-  immediatePriority?: 'Haute' | 'Moyenne' | 'Basse';
-  requires8d?: boolean;
-  eightDDetails?: string;
-  aiNote?: string;
   createdAt: string;
 }
 

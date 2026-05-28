@@ -315,28 +315,14 @@
                           </div>
                         }
 
-                        @if (kpi.structuredAction || kpi.correctiveAction || kpi.preventiveAction) {
+                        @if (kpi.structuredAction) {
                           <div class="detail-card dc-actions">
                             <div class="dc-head"><mat-icon>build</mat-icon> Plan d'actions</div>
                             <div class="dc-actions-stack">
-                              @if (kpi.structuredAction) {
-                                <div class="dc-action dc-immediate">
-                                  <div class="dc-action-label"><mat-icon>bolt</mat-icon> Immédiate</div>
-                                  <p>{{ formatDisplayText(kpi.structuredAction) }}</p>
-                                </div>
-                              }
-                              @if (kpi.correctiveAction && kpi.correctiveAction !== kpi.structuredAction) {
-                                <div class="dc-action dc-corrective">
-                                  <div class="dc-action-label"><mat-icon>build_circle</mat-icon> Corrective</div>
-                                  <p>{{ formatDisplayText(kpi.correctiveAction) }}</p>
-                                </div>
-                              }
-                              @if (kpi.preventiveAction) {
-                                <div class="dc-action dc-preventive">
-                                  <div class="dc-action-label"><mat-icon>shield</mat-icon> Préventive</div>
-                                  <p>{{ formatDisplayText(kpi.preventiveAction) }}</p>
-                                </div>
-                              }
+                              <div class="dc-action dc-immediate">
+                                <div class="dc-action-label"><mat-icon>bolt</mat-icon> Immédiate</div>
+                                <p>{{ formatDisplayText(kpi.structuredAction) }}</p>
+                              </div>
                             </div>
                           </div>
                         }

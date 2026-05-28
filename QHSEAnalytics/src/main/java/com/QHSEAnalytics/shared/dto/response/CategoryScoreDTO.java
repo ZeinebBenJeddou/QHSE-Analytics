@@ -9,9 +9,7 @@ public class CategoryScoreDTO {
     private String categoryCode;
     private String categoryLibelle;
     private int    kpiCount;
-    private int    excellentCount;
     private int    faibleCount;
-    private int    preEscaladeCount;
     private int    modereCount;
     private int    critiqueCount;
     private int    indetermineCount;

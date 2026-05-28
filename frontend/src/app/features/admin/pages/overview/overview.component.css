@@ -282,12 +282,12 @@ h1 {
   background: var(--surface);
   color: var(--ink-muted);
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: 0.63rem;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   font-weight: 700;
   border-bottom: 1.5px solid var(--border);
-  padding: 12px 14px;
+  padding: 10px 10px;
   text-align: left;
   white-space: nowrap;
 }
@@ -295,8 +295,8 @@ h1 {
 .kpi-table td {
   color: var(--ink-mid);
   border-bottom: 1px solid var(--border);
-  font-size: 0.86rem;
-  padding: 11px 14px;
+  font-size: 0.82rem;
+  padding: 9px 10px;
   font-family: var(--font);
 }
 
@@ -344,9 +344,10 @@ h1 {
   letter-spacing: 0.02em;
   display: inline-block;
 }
-.chip-critique { background: var(--red-soft);    color: var(--red); }
-.chip-modere   { background: var(--orange-soft);  color: var(--orange); }
-.chip-faible   { background: var(--green-soft);   color: var(--green); }
+.chip-critique    { background: var(--red-soft);          color: var(--red); }
+.chip-modere      { background: var(--orange-soft);       color: var(--orange); }
+.chip-faible      { background: var(--green-soft);        color: var(--green); }
+.chip-indetermine { background: rgba(113,128,150,0.10);   color: #718096; }
 
 
 .list-grid {

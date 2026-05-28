@@ -524,12 +524,10 @@ public class AnalyseIaService {
     private String mapNiveauToRiskLevel(String niveau) {
         if (niveau == null) return "Modéré";
         return switch (niveau.toUpperCase()) {
-            case "CRITIQUE"     -> "Élevé";
-            case "PRE_ESCALADE" -> "Élevé";
-            case "MODERE"       -> "Modéré";
-            case "FAIBLE"       -> "Faible";
-            case "EXCELLENT"    -> "Faible";
-            default             -> "Modéré";
+            case "CRITIQUE" -> "Élevé";
+            case "MODERE"   -> "Modéré";
+            case "FAIBLE"   -> "Faible";
+            default         -> "Modéré";
         };
     }
 

@@ -33,7 +33,7 @@ export interface KpiCalculatedDTO {
   definition?: string;
   variationAbsolute?: number;
   variationPercentage: number;
-  classification: 'EXCELLENT' | 'FAIBLE' | 'MODERE' | 'PRE_ESCALADE' | 'CRITIQUE' | 'INDETERMINE' | 'UNKNOWN';
+  classification: 'FAIBLE' | 'MODERE' | 'CRITIQUE' | 'INDETERMINE' | 'UNKNOWN';
   tendance: 'HAUSSE' | 'BAISSE' | 'STABLE' | null;
   matchedKpi?: string | null;
   matchedKpiId?: number | null;

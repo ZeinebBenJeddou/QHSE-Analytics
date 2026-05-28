@@ -408,13 +408,11 @@ public class ImportProcessingService {
     private String mapClassificationToRiskLevel(String classification) {
         if (classification == null) return "Indéterminé";
         return switch (classification.toUpperCase()) {
-            case "EXCELLENT"    -> "Faible";
-            case "FAIBLE"       -> "Faible";
-            case "MODERE"       -> "Modéré";
-            case "PRE_ESCALADE" -> "Élevé";
-            case "CRITIQUE"     -> "Critique";
-            case "INDETERMINE"  -> "Indéterminé";
-            default             -> "Indéterminé";
+            case "FAIBLE"      -> "Faible";
+            case "MODERE"      -> "Modéré";
+            case "CRITIQUE"    -> "Critique";
+            case "INDETERMINE" -> "Indéterminé";
+            default            -> "Indéterminé";
         };
     }
 

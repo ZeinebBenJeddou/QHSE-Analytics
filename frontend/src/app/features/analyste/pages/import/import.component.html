@@ -2,9 +2,7 @@
 
   <div class="header-row">
     <div class="header-left">
-      <div class="header-icon-wrap">
-        <mat-icon>upload_file</mat-icon>
-      </div>
+      
       <div>
         <h1>Importez un fichier Excel et mappez vos colonnes</h1>
       </div>
@@ -44,7 +42,7 @@
         <div class="upload-info">
           <input #fileInput type="file" accept=".xlsx,.xls" hidden (change)="onFileSelected($event)" />
           <button mat-flat-button class="select-file-btn" (click)="fileInput.click()">
-            <mat-icon>upload_file</mat-icon>
+            
             Sélectionner un fichier
           </button>
 
@@ -70,7 +68,7 @@
           </div>
 
           <div class="year-error" *ngIf="yearError()">
-            <mat-icon>error_outline</mat-icon>
+            
             <span>{{ yearError() }}</span>
           </div>
 
@@ -83,16 +81,16 @@
         <button mat-flat-button class="continue-btn"
                 [disabled]="isUploadDisabled"
                 (click)="continueToMapping()">
-          <mat-icon>arrow_forward</mat-icon>
+          
           {{ isSubmitting() ? 'Lecture…' : 'Continuer vers le mapping' }}
         </button>
       </div>
 
-      <!-- Section contexte IA -->
+      
       <mat-expansion-panel class="contexte-panel">
         <mat-expansion-panel-header>
           <mat-panel-title>
-            <mat-icon>psychology</mat-icon>
+            
             &nbsp;Contexte de l'analyse (optionnel)
           </mat-panel-title>
           <mat-panel-description>
@@ -106,16 +104,16 @@
 
         <div class="contexte-fields">
 
-          <!-- Ligne 1 : Secteur | Taille | Certifications -->
+         
           <mat-form-field appearance="outline">
             <mat-label>Secteur d'activité</mat-label>
-            <mat-icon matPrefix style="font-size:16px;width:16px;height:16px;color:var(--ink-muted);margin-right:4px">category</mat-icon>
+            
             <input matInput [(ngModel)]="contexte.secteurActivite" placeholder="ex: BTP, Industrie, Chimie" maxlength="100" />
           </mat-form-field>
 
           <mat-form-field appearance="outline">
             <mat-label>Taille du site</mat-label>
-            <mat-icon matPrefix style="font-size:16px;width:16px;height:16px;color:var(--ink-muted);margin-right:4px">group</mat-icon>
+            
             <mat-select [(ngModel)]="contexte.tailleSite">
               <mat-option value="">— Non renseigné —</mat-option>
               <mat-option *ngFor="let opt of tailleSiteOptions" [value]="opt">{{ opt }} employés</mat-option>
@@ -124,28 +122,28 @@
 
           <mat-form-field appearance="outline">
             <mat-label>Certifications</mat-label>
-            <mat-icon matPrefix style="font-size:16px;width:16px;height:16px;color:var(--ink-muted);margin-right:4px">verified</mat-icon>
+            
             <input matInput [(ngModel)]="contexte.certifications" placeholder="ex: ISO 9001, ISO 45001" maxlength="200" />
           </mat-form-field>
 
-          <!-- Ligne 2 : Objectifs | Réglementation | Contexte (textareas) -->
+         
           <mat-form-field appearance="outline">
             <mat-label>Objectifs QHSE</mat-label>
-            <mat-icon matPrefix style="font-size:16px;width:16px;height:16px;color:var(--ink-muted);margin-right:4px">flag</mat-icon>
+            
             <textarea matInput [(ngModel)]="contexte.objectifsQhse"
                       placeholder="ex: Réduire TF1 de 30%…" maxlength="500" rows="2"></textarea>
           </mat-form-field>
 
           <mat-form-field appearance="outline">
             <mat-label>Réglementation applicable</mat-label>
-            <mat-icon matPrefix style="font-size:16px;width:16px;height:16px;color:var(--ink-muted);margin-right:4px">gavel</mat-icon>
+            
             <input matInput [(ngModel)]="contexte.reglementation"
                    placeholder="ex: Code du travail français, OPPBTP" maxlength="200" />
           </mat-form-field>
 
           <mat-form-field appearance="outline">
             <mat-label>Contexte spécifique</mat-label>
-            <mat-icon matPrefix style="font-size:16px;width:16px;height:16px;color:var(--ink-muted);margin-right:4px">notes</mat-icon>
+            
             <textarea matInput [(ngModel)]="contexte.contexteSpecifique"
                       placeholder="ex: Nouveau chantier en cours…" maxlength="500" rows="2"></textarea>
           </mat-form-field>

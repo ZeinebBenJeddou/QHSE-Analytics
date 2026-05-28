@@ -207,9 +207,10 @@
             <thead>
               <tr>
                 <th>Catégorie</th>
-                <th class="num-cell">Faibles</th>
-                <th class="num-cell">Modérés</th>
                 <th class="num-cell">Critiques</th>
+                <th class="num-cell">Modérés</th>
+                <th class="num-cell">Faibles</th>
+                <th class="num-cell">Indét.</th>
                 <th class="num-cell">Total</th>
               </tr>
             </thead>
@@ -220,13 +221,16 @@
                     <span class="cat-badge">{{ item.categorieLibelle }}</span>
                   </td>
                   <td class="num-cell">
-                    <span class="niveau-chip chip-faible">{{ item.nombreFaibles }}</span>
+                    <span class="niveau-chip chip-critique">{{ item.nombreCritiques }}</span>
                   </td>
                   <td class="num-cell">
                     <span class="niveau-chip chip-modere">{{ item.nombreModeres }}</span>
                   </td>
                   <td class="num-cell">
-                    <span class="niveau-chip chip-critique">{{ item.nombreCritiques }}</span>
+                    <span class="niveau-chip chip-faible">{{ item.nombreFaibles }}</span>
+                  </td>
+                  <td class="num-cell">
+                    <span class="niveau-chip chip-indetermine">{{ item.nombreIndetermine }}</span>
                   </td>
                   <td class="num-cell total-cell">{{ item.total }}</td>
                 </tr>

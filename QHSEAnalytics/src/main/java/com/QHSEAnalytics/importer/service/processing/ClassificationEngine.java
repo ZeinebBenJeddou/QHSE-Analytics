@@ -20,12 +20,10 @@ public class ClassificationEngine {
         private boolean reviewRequired;
     }
 
-    private static final String EXCELLENT    = "EXCELLENT";
-    private static final String CRITIQUE     = "CRITIQUE";
-    private static final String PRE_ESCALADE = "PRE_ESCALADE";
-    private static final String MODERE       = "MODERE";
-    private static final String FAIBLE       = "FAIBLE";
-    private static final String INDETERMINE  = "INDETERMINE";
+    private static final String CRITIQUE    = "CRITIQUE";
+    private static final String MODERE      = "MODERE";
+    private static final String FAIBLE      = "FAIBLE";
+    private static final String INDETERMINE = "INDETERMINE";
 
     public ClassificationResult classify(Kpi kpi, ComparativeCalculator.ComparativeResult comp, List<Double> historical) {
         ClassificationResult r = new ClassificationResult();
@@ -78,7 +76,7 @@ public class ClassificationEngine {
 
             if (!hasDegradation) {
                 if ("EXCELLENT".equals(absolutePosition)) {
-                    r.setClassification(EXCELLENT);
+                    r.setClassification(FAIBLE);
                     r.setReason("Performance excellente — valeur actuelle au-delà du seuil optimal");
                     r.setReviewRequired(false);
                     return r;
@@ -128,7 +126,7 @@ public class ClassificationEngine {
                 return r;
             }
             if (degradationScore >= 72 || (critique > 0 && degradationMagnitude >= critique * 0.75 && degradationMagnitude < critique)) {
-                r.setClassification(PRE_ESCALADE);
+                r.setClassification(CRITIQUE);
                 r.setReason("Dégradation pré-critique — surveillance immédiate requise");
                 r.setReviewRequired(true);
                 return r;
@@ -162,7 +160,7 @@ public class ClassificationEngine {
             if (!hasDegradation && p25 > 0 && degradationMagnitude == 0) {
                 double improvementMag = computeImprovementMagnitude(kpi, comp);
                 if (improvementMag > p75) {
-                    r.setClassification(EXCELLENT);
+                    r.setClassification(FAIBLE);
                     r.setReason("Performance excellente dans le contexte historique (amélioration > p75)");
                     r.setReviewRequired(false);
                     return r;
@@ -181,7 +179,7 @@ public class ClassificationEngine {
                 return r;
             }
             if (degradationMagnitude > p75 * 0.85) {
-                r.setClassification(PRE_ESCALADE);
+                r.setClassification(CRITIQUE);
                 r.setReason("Dégradation pré-critique dans l'historique (approche p75)");
                 r.setReviewRequired(true);
                 return r;
@@ -202,7 +200,7 @@ public class ClassificationEngine {
                 return r;
             }
             if (robustZ >= 2.4) {
-                r.setClassification(PRE_ESCALADE);
+                r.setClassification(CRITIQUE);
                 r.setReason("Dégradation pré-critique (z robuste ≥ 2.4)");
                 r.setReviewRequired(true);
                 return r;
@@ -216,7 +214,7 @@ public class ClassificationEngine {
             if (!hasDegradation) {
                 double improvementZ = robustZScore(historyDegradations, computeImprovementMagnitude(kpi, comp));
                 if (improvementZ >= 2.0) {
-                    r.setClassification(EXCELLENT);
+                    r.setClassification(FAIBLE);
                     r.setReason("Performance excellente (z robuste amélioration ≥ 2.0)");
                     r.setReviewRequired(false);
                     return r;

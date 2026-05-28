@@ -78,18 +78,15 @@ public class CalculationAgent {
                     .filter(Objects::nonNull)
                     .findFirst().orElse(code);
 
-            int excellent = count(items, "EXCELLENT");
             int faible = count(items, "FAIBLE");
             int indetermine = count(items, "INDETERMINE");
             int modere = count(items, "MODERE");
-            int preEscalade = count(items, "PRE_ESCALADE");
             int critique = count(items, "CRITIQUE");
             int total = items.size();
 
 
             double score = total == 0 ? 0 :
-                (excellent * 100.0 + faible * 75.0 + indetermine * 45.0
-                + modere * 30.0 + preEscalade * 15.0 + critique * 0.0) / total;
+                (faible * 100.0 + modere * 50.0 + critique * 0.0) / total;
 
             String label;
             if (score >= 90) label = "Excellent";
@@ -102,11 +99,9 @@ public class CalculationAgent {
                     .categoryCode(code)
                     .categoryLibelle(libelle)
                     .kpiCount(total)
-                    .excellentCount(excellent)
                     .faibleCount(faible)
                     .indetermineCount(indetermine)
                     .modereCount(modere)
-                    .preEscaladeCount(preEscalade)
                     .critiqueCount(critique)
                     .compositeScore(Math.round(score * 10.0) / 10.0)
                     .compositeLabel(label)
@@ -338,12 +333,10 @@ public class CalculationAgent {
 
     private int[] computeRisk(String classification, String tendance, String categoryCode, Direction direction) {
         int probability = switch (classification) {
-            case "CRITIQUE"     -> 5;
-            case "PRE_ESCALADE" -> 4;
-            case "MODERE"       -> 3;
-            case "FAIBLE"       -> 2;
-            case "EXCELLENT"    -> 1;
-            default             -> 2;
+            case "CRITIQUE"  -> 5;
+            case "MODERE"    -> 3;
+            case "FAIBLE"    -> 1;
+            default          -> 2;
         };
         if (isWorseningTrend(tendance, direction)) probability = Math.min(5, probability + 1);
 
@@ -355,8 +348,7 @@ public class CalculationAgent {
             default   -> 2;
         };
 
-        if ("CRITIQUE".equals(classification))     impact = Math.min(5, impact + 1);
-        if ("PRE_ESCALADE".equals(classification)) impact = Math.min(5, impact + 1);
+        if ("CRITIQUE".equals(classification)) impact = Math.min(5, impact + 1);
 
         return new int[]{probability, impact};
     }

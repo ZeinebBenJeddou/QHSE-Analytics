@@ -151,9 +151,10 @@ public class DashboardAdminService {
         List<ResultatKpi> critiques = all.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.CRITIQUE).toList();
 
         Map<String, Integer> repartition = new LinkedHashMap<>();
-        repartition.put("FAIBLE", (int) all.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.FAIBLE).count());
-        repartition.put("MODERE", (int) all.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.MODERE).count());
-        repartition.put("CRITIQUE", (int) all.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.CRITIQUE).count());
+        repartition.put("CRITIQUE",    (int) all.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.CRITIQUE).count());
+        repartition.put("MODERE",      (int) all.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.MODERE).count());
+        repartition.put("FAIBLE",      (int) all.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.FAIBLE).count());
+        repartition.put("INDETERMINE", (int) all.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.INDETERMINE).count());
 
         Map<String, Integer> critiquesByCategorie = critiques.stream()
                 .collect(Collectors.groupingBy(r -> r.getKpi().getCategorieKpi().getCode(), LinkedHashMap::new, Collectors.summingInt(value -> 1)));
@@ -248,10 +249,11 @@ public class DashboardAdminService {
 
             List<AdminRepartitionResponse.RepartitionCategorieItem> categories = byCategorie.values().stream()
                 .map(list -> {
-                    int faibles = (int) list.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.FAIBLE).count();
-                    int moderes = (int) list.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.MODERE).count();
-                    int critiques = (int) list.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.CRITIQUE).count();
-                    int total = faibles + moderes + critiques;
+                    int faibles     = (int) list.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.FAIBLE).count();
+                    int moderes     = (int) list.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.MODERE).count();
+                    int critiques   = (int) list.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.CRITIQUE).count();
+                    int indetermine = (int) list.stream().filter(r -> r.getNiveauVariation() == NiveauVariation.INDETERMINE).count();
+                    int total = faibles + moderes + critiques + indetermine;
 
                     ResultatKpi first = list.get(0);
                     return AdminRepartitionResponse.RepartitionCategorieItem.builder()
@@ -260,6 +262,7 @@ public class DashboardAdminService {
                         .nombreFaibles(faibles)
                         .nombreModeres(moderes)
                         .nombreCritiques(critiques)
+                        .nombreIndetermine(indetermine)
                         .total(total)
                         .build();
                 })

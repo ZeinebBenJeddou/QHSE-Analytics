@@ -36,7 +36,7 @@ import {
   GraphiquesDataResponse,
   LigneComparatifResponse,
 } from '../../../../core/models/dashboard.model';
-import { AnalyseCompleteResponse, AiAnalysisStructuredResponse, ResultatKpiIaResponse } from '../../../../core/models/analyse-ia.model';
+import { AnalyseCompleteResponse, AiAnalysisStructuredResponse } from '../../../../core/models/analyse-ia.model';
 
 import { BarComparisonComponent } from '../../../../shared/components/charts/bar-comparison.component';
 import { PieDistributionComponent } from '../../../../shared/components/charts/pie-distribution.component';
@@ -219,11 +219,10 @@ export class DashboardAnalysteComponent implements OnInit, OnDestroy {
   tableColumns = ['expand', 'kpiNom', 'categorieLibelle', 'valeurN1', 'valeurN', 'variationAbsolue', 'variationRelative', 'niveauVariation', 'tendance'];
 
   getStatut(tendance: string | null, niveau: string | null): string {
-    if (tendance === 'HAUSSE' && niveau === 'CRITIQUE')                        return 'Dégradation';
-    if (tendance === 'HAUSSE' && niveau === 'PRE_ESCALADE')                    return 'Dégradation';
-    if (tendance === 'HAUSSE' && (niveau === 'MODERE' || niveau === 'FAIBLE')) return 'Dégradation légère';
-    if (tendance === 'HAUSSE' && niveau === 'EXCELLENT')                       return 'Amélioration';
-    if (tendance === 'BAISSE')                                                  return 'Amélioration';
+    if (tendance === 'HAUSSE' && niveau === 'CRITIQUE') return 'Dégradation';
+    if (tendance === 'HAUSSE' && niveau === 'MODERE')   return 'Dégradation légère';
+    if (tendance === 'HAUSSE' && niveau === 'FAIBLE')   return 'Dégradation légère';
+    if (tendance === 'BAISSE')                          return 'Amélioration';
     return 'Stable';
   }
 
@@ -235,12 +234,10 @@ export class DashboardAnalysteComponent implements OnInit, OnDestroy {
   }
 
   getNiveauClass(niveau: string | null): string {
-    if (niveau === 'CRITIQUE')     return 'niveau-critique';
-    if (niveau === 'PRE_ESCALADE') return 'niveau-pre-escalade';
-    if (niveau === 'MODERE')       return 'niveau-modere';
-    if (niveau === 'FAIBLE')       return 'niveau-faible';
-    if (niveau === 'EXCELLENT')    return 'niveau-excellent';
-    if (niveau === 'INDETERMINE')  return 'niveau-default';
+    if (niveau === 'CRITIQUE')    return 'niveau-critique';
+    if (niveau === 'MODERE')      return 'niveau-modere';
+    if (niveau === 'FAIBLE')      return 'niveau-faible';
+    if (niveau === 'INDETERMINE') return 'niveau-default';
     return 'niveau-default';
   }
 
@@ -533,12 +530,10 @@ export class DashboardAnalysteComponent implements OnInit, OnDestroy {
     const comparatif = this.comparatif();
     const lignes = comparatif?.lignes ?? [];
     const totalKpis = resume?.nombreTotalKpis ?? lignes.length ?? 0;
-    const critiques     = resume?.nombreTotalCritiques  ?? comparatif?.nombreCritiques ?? 0;
-    const preEscalades  = resume?.nombreTotalPreEscalades  ?? 0;
-    const moderes       = resume?.nombreTotalModeres    ?? comparatif?.nombreModeres   ?? 0;
-    const faibles       = resume?.nombreTotalFaibles    ?? comparatif?.nombreFaibles   ?? 0;
-    const excellents    = resume?.nombreTotalExcellents    ?? 0;
-    const indetermines  = resume?.nombreTotalIndetermines  ?? 0;
+    const critiques    = resume?.nombreTotalCritiques ?? comparatif?.nombreCritiques ?? 0;
+    const moderes      = resume?.nombreTotalModeres   ?? comparatif?.nombreModeres   ?? 0;
+    const faibles      = resume?.nombreTotalFaibles   ?? comparatif?.nombreFaibles   ?? 0;
+    const indetermines = resume?.nombreTotalIndetermines ?? 0;
 
     return [
       {
@@ -556,13 +551,6 @@ export class DashboardAnalysteComponent implements OnInit, OnDestroy {
         note: critiques > 0 ? `${critiques} à traiter en priorité` : 'Tous les seuils respectés',
       },
       {
-        label: 'PRÉ-ESCALADE',
-        value: preEscalades,
-        icon: 'trending_up',
-        color: 'orange',
-        note: totalKpis ? `${Math.round((preEscalades / totalKpis) * 100)}% du total` : '',
-      },
-      {
         label: 'MODÉRÉS',
         value: moderes,
         icon: 'swap_vert',
@@ -575,13 +563,6 @@ export class DashboardAnalysteComponent implements OnInit, OnDestroy {
         icon: 'trending_down',
         color: 'green',
         note: totalKpis ? `${Math.round((faibles / totalKpis) * 100)}% du total` : '',
-      },
-      {
-        label: 'EXCELLENTS',
-        value: excellents,
-        icon: 'star',
-        color: 'green',
-        note: totalKpis ? `${Math.round((excellents / totalKpis) * 100)}% du total` : '',
       },
       {
         label: 'INDÉTERMINÉS',
@@ -812,32 +793,8 @@ export class DashboardAnalysteComponent implements OnInit, OnDestroy {
   }
 
   private applyAnalysesToComparatif(): void {
-    const comparatif = this.comparatif();
-    const analyses = this.analysesIa();
-    if (!comparatif || !analyses?.analysesKpis?.length) return;
-
-    const analysisMap = new Map<number, ResultatKpiIaResponse>();
-    analyses.analysesKpis.forEach(item => analysisMap.set(item.kpiId, item));
-
-    const mergedLignes = comparatif.lignes.map(row => {
-      const analysis = analysisMap.get(row.kpiId);
-      if (!analysis) return row;
-      return {
-        ...row,
-        riskLevel: analysis.riskLevel ?? row.riskLevel,
-        riskJustification: analysis.riskJustification ?? row.riskJustification,
-        issueDetected: analysis.issueDetected ?? row.issueDetected,
-        correctiveAction: analysis.correctiveAction ?? row.correctiveAction,
-        preventiveAction: analysis.preventiveAction ?? row.preventiveAction,
-        immediateAction: analysis.immediateAction ?? row.immediateAction,
-        immediatePriority: analysis.immediatePriority ?? row.immediatePriority,
-        requires8d: analysis.requires8d ?? row.requires8d,
-        eightDDetails: analysis.eightDDetails ?? row.eightDDetails,
-        aiNote: analysis.aiNote ?? row.aiNote,
-      };
-    });
-
-    this.comparatif.set({ ...comparatif, lignes: mergedLignes });
+    // LigneComparatifResponse already carries all analysis fields from the backend.
+    // No merge needed.
   }
 
   
