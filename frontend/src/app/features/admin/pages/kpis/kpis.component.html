@@ -1,9 +1,7 @@
 <div class="kpis-page">
- 
- 
+
   <div class="page-header">
     <div class="header-left">
-      
       <div>
         <h1>Gestion des KPI</h1>
         <p class="subtitle">Créez, modifiez et gérez les indicateurs métier</p>
@@ -16,39 +14,34 @@
       </button>
     </div>
   </div>
- 
-  
+
   <div *ngIf="errorMessage" class="error-banner">
     <mat-icon>error_outline</mat-icon>
     <span>{{ errorMessage }}</span>
   </div>
- 
+
   <div class="page-grid">
- 
-    
+
+    <!-- ─── Formulaire création / édition ─────────────────────────────── -->
     <mat-card class="glass-card">
       <mat-card-header>
-        
         <mat-card-title>{{ editMode ? 'Modifier le KPI' : 'Ajouter un KPI' }}</mat-card-title>
         <mat-card-subtitle>
           {{ editMode ? 'Modifiez les champs puis enregistrez' : 'Remplissez les champs pour créer un nouvel indicateur' }}
         </mat-card-subtitle>
       </mat-card-header>
- 
+
       <mat-card-content>
         <form [formGroup]="kpiForm" (ngSubmit)="submitKpi()" class="form-grid">
- 
-          
+
           <div class="form-row">
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Nom</mat-label>
-              
               <input matInput formControlName="nom" placeholder="Ex : Taux de disponibilité" />
             </mat-form-field>
- 
+
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Unité</mat-label>
-              
               <mat-select formControlName="unite" placeholder="Sélectionnez une unité">
                 <mat-option *ngFor="let option of unitOptions" [value]="option.value">
                   {{ option.label }}
@@ -56,15 +49,12 @@
               </mat-select>
             </mat-form-field>
           </div>
- 
-          
+
           <mat-form-field appearance="outline" class="form-field">
             <mat-label>Définition</mat-label>
-            
             <input matInput formControlName="definition" placeholder="Description courte de l'indicateur" />
           </mat-form-field>
- 
-         
+
           <mat-form-field appearance="outline" class="form-field">
             <mat-label>Catégorie</mat-label>
             <mat-select formControlName="categorieCode">
@@ -82,15 +72,13 @@
                 <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
               }
             </mat-select>
-            <mat-hint>Indique si un KPI s'améliore en montant, en baissant, ou en approchant une cible</mat-hint>
+            <mat-hint>Indique si un KPI s'améliore en montant ou en baissant</mat-hint>
           </mat-form-field>
- 
-        
+
           <div class="thresholds-label">Seuils d'alerte</div>
           <div class="threshold-grid">
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Seuil faible</mat-label>
-              
               <input matInput type="number" formControlName="seuilFaible" />
               <mat-error *ngIf="kpiForm.get('seuilFaible')?.hasError('min')">
                 Le seuil ne peut pas être négatif
@@ -99,7 +87,6 @@
 
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Seuil modéré</mat-label>
-              
               <input matInput type="number" formControlName="seuilModere" />
               <mat-error *ngIf="kpiForm.get('seuilModere')?.hasError('min')">
                 Le seuil ne peut pas être négatif
@@ -108,7 +95,6 @@
 
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Seuil critique</mat-label>
-             
               <input matInput type="number" formControlName="seuilCritique" />
               <mat-error *ngIf="kpiForm.get('seuilCritique')?.hasError('min')">
                 Le seuil ne peut pas être négatif
@@ -126,49 +112,82 @@
           <div class="form-actions">
             <button mat-stroked-button class="cancel-btn" type="button"
               *ngIf="editMode" (click)="cancelEdit()">
-              
+              <mat-icon>close</mat-icon>
               Annuler
             </button>
             <button mat-flat-button class="primary-btn" type="submit"
               [disabled]="kpiForm.invalid || !!seuilError || saving">
-             
+              <mat-icon>{{ saving ? 'hourglass_empty' : (editMode ? 'save' : 'add') }}</mat-icon>
               {{ saving ? 'Enregistrement…' : (editMode ? 'Enregistrer les modifications' : 'Créer le KPI') }}
             </button>
           </div>
- 
+
         </form>
       </mat-card-content>
     </mat-card>
- 
-   
+
+    <!-- ─── Liste des indicateurs ──────────────────────────────────────── -->
     <mat-card class="glass-card">
       <mat-card-header>
-        
         <mat-card-title>
           Indicateurs
-          <span class="count-badge">{{ kpis.length }}</span>
+          <span class="count-badge">{{ filteredKpis.length }}</span>
+          @if (filteredKpis.length !== kpis.length) {
+            <span class="count-total">/ {{ kpis.length }}</span>
+          }
         </mat-card-title>
         <mat-card-subtitle>Liste de tous les KPI configurés</mat-card-subtitle>
       </mat-card-header>
- 
+
       <mat-card-content>
- 
-      
+
+        <!-- ─── Barre recherche + filtre catégorie ─── -->
+        <div class="search-bar">
+          <div class="search-input-wrap">
+            <mat-icon class="search-icon">search</mat-icon>
+            <input
+              class="search-input"
+              type="text"
+              placeholder="Rechercher un indicateur…"
+              [(ngModel)]="searchQuery"
+              (ngModelChange)="onSearch()"
+            />
+            @if (searchQuery) {
+              <button class="search-clear" (click)="searchQuery = ''; onSearch()">
+                <mat-icon>close</mat-icon>
+              </button>
+            }
+          </div>
+
+          <select class="cat-filter" [(ngModel)]="filterCategorie" (ngModelChange)="onSearch()">
+            <option value="">Toutes les catégories</option>
+            @for (cat of categories; track cat.code) {
+              <option [value]="cat.code">{{ cat.libelle }}</option>
+            }
+          </select>
+        </div>
+
+        <!-- Loader -->
         <div *ngIf="loading" class="loader-overlay">
           <mat-progress-spinner diameter="36" mode="indeterminate"></mat-progress-spinner>
           <span>Chargement des indicateurs…</span>
         </div>
- 
-       
+
+        <!-- Empty state global -->
         <div *ngIf="!loading && !kpis.length" class="empty-state">
           <mat-icon>inbox</mat-icon>
           <span>Aucun KPI configuré pour le moment.</span>
         </div>
- 
-       
-        <!-- KPIs actifs -->
-        <div *ngIf="!loading && kpis.length" class="kpi-list">
-          <div class="kpi-row" *ngFor="let kpi of kpis">
+
+        <!-- Empty state recherche -->
+        <div *ngIf="!loading && kpis.length && !filteredKpis.length" class="empty-state">
+          <mat-icon>search_off</mat-icon>
+          <span>Aucun indicateur ne correspond à votre recherche.</span>
+        </div>
+
+        <!-- KPIs actifs paginés -->
+        <div *ngIf="!loading && pagedKpis.length" class="kpi-list">
+          <div class="kpi-row" *ngFor="let kpi of pagedKpis">
             <div class="kpi-row-left">
               <span class="kpi-name">{{ kpi.nom }}</span>
               <div class="kpi-meta">
@@ -194,11 +213,37 @@
           </div>
         </div>
 
+        <!-- ─── Pagination ─── -->
+        @if (!loading && totalPages > 1) {
+          <div class="pagination">
+            <button class="pag-btn" [disabled]="currentPage === 0" (click)="goToPage(currentPage - 1)">
+              <mat-icon>chevron_left</mat-icon>
+            </button>
+
+            @for (p of pageNumbers; track p) {
+              <button
+                class="pag-btn pag-num"
+                [class.active]="p === currentPage"
+                (click)="goToPage(p)">
+                {{ p + 1 }}
+              </button>
+            }
+
+            <button class="pag-btn" [disabled]="currentPage === totalPages - 1" (click)="goToPage(currentPage + 1)">
+              <mat-icon>chevron_right</mat-icon>
+            </button>
+
+            <span class="pag-info">
+              {{ currentPage * PAGE_SIZE + 1 }}–{{ pageRangeEnd }} / {{ filteredKpis.length }}
+            </span>
+          </div>
+        }
+
         <!-- KPIs désactivés (soft-delete) -->
         @if (inactiveKpis.length) {
           <div class="inactive-section">
             <div class="inactive-section-title">
-            
+              <mat-icon>archive</mat-icon>
               Désactivés ({{ inactiveKpis.length }})
             </div>
             <div class="kpi-list">
@@ -226,6 +271,6 @@
 
       </mat-card-content>
     </mat-card>
- 
+
   </div>
 </div>

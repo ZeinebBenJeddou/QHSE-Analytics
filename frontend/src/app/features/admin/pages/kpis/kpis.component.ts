@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -39,6 +40,7 @@ const seuilOrderValidator: ValidatorFn = (group: AbstractControl): ValidationErr
   imports: [
     CommonModule,
     ReactiveFormsModule,
+    FormsModule,
     RouterModule,
     MatCardModule,
     MatDialogModule,
@@ -82,6 +84,51 @@ export class AdminKpisComponent implements OnInit {
   editMode       = false;
   editingKpiId:  number | null = null;
   errorMessage   = '';
+
+  // ─── Recherche & pagination ───────────────────────────────────────────────
+  searchQuery       = '';
+  filterCategorie   = '';
+  readonly PAGE_SIZE = 8;
+  currentPage       = 0;
+
+  get filteredKpis(): KpiResponse[] {
+    const q   = this.searchQuery.trim().toLowerCase();
+    const cat = this.filterCategorie;
+    return this.kpis.filter(k => {
+      const matchSearch = !q || k.nom.toLowerCase().includes(q) || k.definition.toLowerCase().includes(q);
+      const matchCat    = !cat || k.categorieCode === cat;
+      return matchSearch && matchCat;
+    });
+  }
+
+  get pagedKpis(): KpiResponse[] {
+    const start = this.currentPage * this.PAGE_SIZE;
+    return this.filteredKpis.slice(start, start + this.PAGE_SIZE);
+  }
+
+  get totalPages(): number {
+    return Math.ceil(this.filteredKpis.length / this.PAGE_SIZE);
+  }
+
+  get pageNumbers(): number[] {
+    return Array.from({ length: this.totalPages }, (_, i) => i);
+  }
+
+  onSearch(): void {
+    this.currentPage = 0;
+    this.cdr.detectChanges();
+  }
+
+  goToPage(page: number): void {
+    if (page >= 0 && page < this.totalPages) {
+      this.currentPage = page;
+      this.cdr.detectChanges();
+    }
+  }
+
+  get pageRangeEnd(): number {
+    return Math.min((this.currentPage + 1) * this.PAGE_SIZE, this.filteredKpis.length);
+  }
  
   kpiForm = this.fb.group({
     nom:           ['', Validators.required],
