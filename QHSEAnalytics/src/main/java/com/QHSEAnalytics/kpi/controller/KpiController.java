@@ -33,6 +33,12 @@ public class KpiController {
         return ResponseEntity.ok(kpiService.getKpis(categorie, PageRequest.of(page, size)));
     }
 
+    @GetMapping("/inactive")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<KpiResponse>> getInactiveKpis() {
+        return ResponseEntity.ok(kpiService.getInactiveKpis());
+    }
+
     @GetMapping("/categories")
     @PreAuthorize("hasAnyRole('ADMIN','ANALYSTE')")
     public ResponseEntity<List<CategorieKpiResponse>> getAllCategories() {

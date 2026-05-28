@@ -32,7 +32,7 @@ class CalculationAgentIntegrationTest {
                 .unite(UniteKpi.NOMBRE)
                 .categorieKpi(CategorieKpi.builder().libelle("Q").code("Q").build())
                 .seuilFaible(1.0).seuilModere(5.0).seuilCritique(10.0)
-                .ordre(1).createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+                .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
                 .build();
 
         ResultatKpiRepository.VariationHistoryProjection proj = new ResultatKpiRepository.VariationHistoryProjection() {
@@ -40,7 +40,7 @@ class CalculationAgentIntegrationTest {
             public Double getVariation() { return 1.5; }
         };
 
-        Mockito.when(repo.findByIsActiveTrueOrderByOrdreAsc()).thenReturn(List.of(sample));
+        Mockito.when(repo.findByIsActiveTrueOrderByNomAsc()).thenReturn(List.of(sample));
         Mockito.when(histRepo.findVariationHistoryByKpiIds(anyList()))
                 .thenReturn(List.of(proj, proj, proj, proj, proj, proj, proj, proj, proj, proj));
 

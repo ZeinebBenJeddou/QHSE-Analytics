@@ -39,7 +39,7 @@ export interface KpiCalculatedDTO {
   matchedKpiId?: number | null;
   matchConfidence?: number | null;       
   
-  direction?: 'HIGHER_IS_BETTER' | 'LOWER_IS_BETTER' | 'TARGET_IS_BEST';
+  direction?: 'HIGHER_IS_BETTER' | 'LOWER_IS_BETTER';
   calcConfidence?: number; 
   classificationReason?: string;
   reviewRequired?: boolean;

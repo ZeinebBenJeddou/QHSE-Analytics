@@ -66,17 +66,6 @@ class ComparativeCalculatorTest {
     }
 
     @Test
-    void testDirectionResolverTargetByName() {
-        Kpi kpi = Kpi.builder()
-                .nom("KPI cible conformité")
-                .categorieKpi(CategorieKpi.builder().code("Q").libelle("Qualité").build())
-                .build();
-
-        ComparativeCalculator.ComparativeResult r = calc.compute(kpi, 95d, 92d);
-        assertEquals(Direction.TARGET_IS_BEST, r.getDirection());
-    }
-
-    @Test
     void testDirectionResolverUsesExplicitKpiDirectionFirst() {
         Kpi kpi = Kpi.builder()
                 .nom("Taux de conformité")

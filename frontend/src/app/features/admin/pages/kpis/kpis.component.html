@@ -65,23 +65,25 @@
           </mat-form-field>
  
          
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Catégorie</mat-label>
-              
-              <mat-select formControlName="categorieCode">
-                <mat-option *ngFor="let cat of categories" [value]="cat.code">
-                  {{ cat.libelle }}
-                </mat-option>
-              </mat-select>
-            </mat-form-field>
- 
-            <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Ordre d'affichage</mat-label>
-              
-              <input matInput type="number" formControlName="ordre" placeholder="0" />
-            </mat-form-field>
-          </div>
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Catégorie</mat-label>
+            <mat-select formControlName="categorieCode">
+              @for (cat of categories; track cat.code) {
+                <mat-option [value]="cat.code">{{ cat.libelle }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Direction</mat-label>
+            <mat-select formControlName="direction">
+              <mat-option [value]="null">— Non définie —</mat-option>
+              @for (opt of directionOptions; track opt.value) {
+                <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+              }
+            </mat-select>
+            <mat-hint>Indique si un KPI s'améliore en montant, en baissant, ou en approchant une cible</mat-hint>
+          </mat-form-field>
  
         
           <div class="thresholds-label">Seuils d'alerte</div>
@@ -164,15 +166,12 @@
         </div>
  
        
+        <!-- KPIs actifs -->
         <div *ngIf="!loading && kpis.length" class="kpi-list">
           <div class="kpi-row" *ngFor="let kpi of kpis">
- 
             <div class="kpi-row-left">
               <span class="kpi-name">{{ kpi.nom }}</span>
               <div class="kpi-meta">
-                <span class="kpi-badge" [class.inactive]="!kpi.isActive">
-                  {{ kpi.isActive ? 'Actif' : 'Inactif' }}
-                </span>
                 <span class="kpi-badge">{{ kpi.categorieLibelle }}</span>
                 <span class="kpi-unite">{{ kpi.unite }}</span>
                 <div class="kpi-thresholds">
@@ -182,26 +181,49 @@
                 </div>
               </div>
             </div>
- 
             <div class="kpi-row-actions">
               <button mat-icon-button class="row-icon-btn"
                 matTooltip="Modifier" (click)="editKpi(kpi)">
                 <mat-icon>edit</mat-icon>
-              </button>
-              <button mat-icon-button class="row-icon-btn success"
-                *ngIf="!kpi.isActive"
-                matTooltip="Restaurer" (click)="restoreKpi(kpi)" [disabled]="saving">
-                <mat-icon>restore</mat-icon>
               </button>
               <button mat-icon-button class="row-icon-btn danger"
                 matTooltip="Supprimer" (click)="deleteKpi(kpi)" [disabled]="saving">
                 <mat-icon>delete_outline</mat-icon>
               </button>
             </div>
- 
           </div>
         </div>
- 
+
+        <!-- KPIs désactivés (soft-delete) -->
+        @if (inactiveKpis.length) {
+          <div class="inactive-section">
+            <div class="inactive-section-title">
+              <mat-icon>archive</mat-icon>
+              Désactivés ({{ inactiveKpis.length }})
+            </div>
+            <div class="kpi-list">
+              @for (kpi of inactiveKpis; track kpi.id) {
+                <div class="kpi-row kpi-row--inactive">
+                  <div class="kpi-row-left">
+                    <span class="kpi-name">{{ kpi.nom }}</span>
+                    <div class="kpi-meta">
+                      <span class="kpi-badge inactive">Inactif</span>
+                      <span class="kpi-badge">{{ kpi.categorieLibelle }}</span>
+                      <span class="kpi-unite">{{ kpi.unite }}</span>
+                    </div>
+                  </div>
+                  <div class="kpi-row-actions">
+                    <button mat-icon-button class="row-icon-btn success"
+                      matTooltip="Restaurer" (click)="restoreKpi(kpi)" [disabled]="saving">
+                      <mat-icon>restore</mat-icon>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
       </mat-card-content>
     </mat-card>
  

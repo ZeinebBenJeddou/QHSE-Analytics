@@ -2,6 +2,5 @@ package com.QHSEAnalytics.shared.enums;
 
 public enum Direction {
     HIGHER_IS_BETTER,
-    LOWER_IS_BETTER,
-    TARGET_IS_BEST
+    LOWER_IS_BETTER
 }

@@ -116,7 +116,7 @@ public class DashboardAnalysteService {
         List<ResultatKpi> sorted = resultats.stream()
                 .sorted(Comparator
                         .comparing((ResultatKpi r) -> safeCategorieCode(r), Comparator.nullsLast(String::compareTo))
-                        .thenComparing(r -> safeKpiOrdre(r), Comparator.nullsLast(Integer::compareTo)))
+                        .thenComparing(r -> safeKpiNom(r), Comparator.nullsLast(String::compareTo)))
                 .toList();
 
         List<LigneComparatifResponse> lignes = sorted.stream()
@@ -476,13 +476,6 @@ public class DashboardAnalysteService {
                             .build();
                 })
                 .orElseGet(() -> AlertesResponse.builder().count(0).alertes(List.of()).build());
-    }
-
-    private Integer safeKpiOrdre(ResultatKpi r) {
-        if (r == null || r.getKpi() == null) {
-            return Integer.MAX_VALUE;
-        }
-        return r.getKpi().getOrdre();
     }
 
     private int severityRank(NiveauVariation niveauVariation) {

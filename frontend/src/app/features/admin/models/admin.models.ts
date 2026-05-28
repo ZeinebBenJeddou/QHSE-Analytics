@@ -108,6 +108,7 @@ export interface AdminGraphiquesDataResponse {
 }
 
 export type UniteKpi = 'POURCENTAGE' | 'NOMBRE' | 'KWH' | 'KG';
+export type Direction = 'HIGHER_IS_BETTER' | 'LOWER_IS_BETTER';
 
 export interface KpiResponse {
   id: number;
@@ -119,10 +120,15 @@ export interface KpiResponse {
   seuilFaible: number;
   seuilModere: number;
   seuilCritique: number;
-  ordre: number;
+  direction: Direction | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface KpiDeleteResponse {
+  message: string;
+  deleted: boolean;
 }
 
 export interface CategorieKpiResponse {
@@ -141,7 +147,7 @@ export interface CreateKpiRequest {
   seuilFaible: number;
   seuilModere: number;
   seuilCritique: number;
-  ordre: number;
+  direction?: Direction | null;
 }
 
 export interface UpdateKpiRequest {
@@ -152,7 +158,7 @@ export interface UpdateKpiRequest {
   seuilFaible?: number;
   seuilModere?: number;
   seuilCritique?: number;
-  ordre?: number;
+  direction?: Direction | null;
 }
 
 export interface AnalyseCompleteResponse {

@@ -57,7 +57,6 @@ class KpiServiceTest {
                 .seuilFaible(5.0)
                 .seuilModere(10.0)
                 .seuilCritique(20.0)
-                .ordre(1)
                 .isActive(true)
                 .direction(Direction.LOWER_IS_BETTER)
                 .build();
@@ -68,7 +67,7 @@ class KpiServiceTest {
     @Test
     @DisplayName("getAllKpis retourne la liste des KPIs actifs")
     void getAllKpis_returnsActiveList() {
-        when(kpiRepository.findByIsActiveTrueOrderByOrdreAsc()).thenReturn(List.of(kpiAccidents));
+        when(kpiRepository.findByIsActiveTrueOrderByNomAsc()).thenReturn(List.of(kpiAccidents));
 
         List<KpiResponse> result = kpiService.getAllKpis();
 
@@ -80,7 +79,7 @@ class KpiServiceTest {
     @Test
     @DisplayName("getAllKpis retourne liste vide si aucun KPI actif")
     void getAllKpis_returnsEmptyList_whenNoActiveKpis() {
-        when(kpiRepository.findByIsActiveTrueOrderByOrdreAsc()).thenReturn(List.of());
+        when(kpiRepository.findByIsActiveTrueOrderByNomAsc()).thenReturn(List.of());
 
         List<KpiResponse> result = kpiService.getAllKpis();
 
@@ -219,7 +218,6 @@ class KpiServiceTest {
         req.setSeuilFaible(faible);
         req.setSeuilModere(modere);
         req.setSeuilCritique(critique);
-        req.setOrdre(1);
         req.setDirection(Direction.LOWER_IS_BETTER);
         return req;
     }

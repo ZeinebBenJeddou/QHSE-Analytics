@@ -3,6 +3,7 @@ package com.QHSEAnalytics.shared.entity;
 import com.QHSEAnalytics.shared.enums.Direction;
 import com.QHSEAnalytics.shared.enums.UniteKpi;
 import com.QHSEAnalytics.shared.exception.InvalidSeuilException;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -49,9 +50,6 @@ public class Kpi {
     @Column(nullable = false)
     private Double seuilCritique;
 
-    @Column(nullable = false)
-    private Integer ordre;
-
     @Column(name = "is_active", nullable = false)
     @Builder.Default
     private boolean isActive = true;
@@ -67,9 +65,6 @@ public class Kpi {
     @Column(name = "direction", length = 50, nullable = true)
     private Direction direction;
 
-
-    @Column(name = "target_value", nullable = true)
-    private Double targetValue;
 
     @PrePersist
     public void onCreate() {

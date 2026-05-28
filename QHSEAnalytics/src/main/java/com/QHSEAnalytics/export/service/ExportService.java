@@ -71,7 +71,7 @@ public class ExportService {
         List<ResultatKpi> resultats = resultatKpiRepository.findByImportSessionIdWithKpi(importId).stream()
                 .sorted(Comparator
                 .comparing(this::safeCategorieCode, Comparator.nullsLast(String::compareTo))
-                .thenComparing(this::safeKpiOrdre, Comparator.nullsLast(Integer::compareTo)))
+                .thenComparing(this::safeKpiNom, Comparator.nullsLast(String::compareTo)))
                 .toList();
 
         List<ResumeCategorieResponse> resumeCategories = buildResumeCategories(resultats);
@@ -330,13 +330,6 @@ public class ExportService {
             return "KPI inconnu";
         }
         return r.getKpi().getNom();
-    }
-
-    private Integer safeKpiOrdre(ResultatKpi r) {
-        if (r == null || r.getKpi() == null) {
-            return Integer.MAX_VALUE;
-        }
-        return r.getKpi().getOrdre();
     }
 
     private double round2(double value) {

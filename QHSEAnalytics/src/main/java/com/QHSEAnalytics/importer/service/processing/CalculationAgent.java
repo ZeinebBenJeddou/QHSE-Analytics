@@ -36,7 +36,7 @@ public class CalculationAgent {
     }
 
     public List<KpiCalculatedDTO> calculate(List<KpiRawDataDTO> rawData) {
-        List<Kpi> activeKpis = kpiRepository.findByIsActiveTrueOrderByOrdreAsc();
+        List<Kpi> activeKpis = kpiRepository.findByIsActiveTrueOrderByNomAsc();
         Map<String, Kpi> byName = buildKpiLookup(activeKpis);
 
 
@@ -368,7 +368,6 @@ public class CalculationAgent {
         return switch (direction) {
             case HIGHER_IS_BETTER -> "BAISSE".equals(tendance);
             case LOWER_IS_BETTER -> "HAUSSE".equals(tendance);
-            case TARGET_IS_BEST -> false;
         };
     }
 

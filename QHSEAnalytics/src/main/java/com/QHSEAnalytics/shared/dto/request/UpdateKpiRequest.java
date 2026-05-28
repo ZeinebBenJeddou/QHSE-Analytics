@@ -24,11 +24,7 @@ public class UpdateKpiRequest {
     @Positive(message = "Le seuil critique doit être positif")
     private Double seuilCritique;
 
-    @Positive(message = "L'ordre doit être positif")
-    private Integer ordre;
 
 
     private Direction direction;
-
-    private Double targetValue;
 }

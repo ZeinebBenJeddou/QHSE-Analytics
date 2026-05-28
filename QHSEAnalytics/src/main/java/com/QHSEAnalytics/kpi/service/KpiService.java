@@ -24,6 +24,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -37,16 +38,16 @@ public class KpiService {
     public Page<KpiResponse> getKpis(String categorie, Pageable pageable) {
         if (categorie != null && !categorie.isBlank()) {
             String normalizedCode = normalizeCode(categorie);
-            return kpiRepository.findByCategorieKpiCodeAndIsActiveTrueOrderByOrdreAsc(normalizedCode, pageable)
+            return kpiRepository.findByCategorieKpiCodeAndIsActiveTrueOrderByNomAsc(normalizedCode, pageable)
                     .map(this::toKpiResponse);
         }
-        return kpiRepository.findByIsActiveTrueOrderByOrdreAsc(pageable)
+        return kpiRepository.findByIsActiveTrueOrderByNomAsc(pageable)
                 .map(this::toKpiResponse);
     }
 
     public List<KpiResponse> getAllKpis() {
         log.info("Récupération de tous les KPIs actifs");
-        return kpiRepository.findByIsActiveTrueOrderByOrdreAsc()
+        return kpiRepository.findByIsActiveTrueOrderByNomAsc()
                 .stream()
                 .map(this::toKpiResponse)
                 .toList();
@@ -55,7 +56,7 @@ public class KpiService {
     public List<KpiResponse> getKpisByCategorie(String code) {
         String normalizedCode = normalizeCode(code);
         log.info("Récupération des KPIs actifs de catégorie {}", normalizedCode);
-        return kpiRepository.findByCategorieKpiCodeAndIsActiveTrueOrderByOrdreAsc(normalizedCode)
+        return kpiRepository.findByCategorieKpiCodeAndIsActiveTrueOrderByNomAsc(normalizedCode)
                 .stream()
                 .map(this::toKpiResponse)
                 .toList();
@@ -90,11 +91,26 @@ public class KpiService {
         CategorieKpi categorie = categorieKpiRepository.findByCode(normalizedCode)
                 .orElseThrow(() -> new CategorieNotFoundException("Catégorie introuvable: " + normalizedCode));
 
-        if (kpiRepository.existsByNomAndCategorieKpi(request.getNom().trim(), categorie)) {
-            throw new KpiAlreadyExistsException("Ce KPI existe déjà dans la catégorie " + normalizedCode);
-        }
-
         validateSeuils(request.getSeuilFaible(), request.getSeuilModere(), request.getSeuilCritique());
+
+        // Si un KPI inactif existe déjà avec ce nom dans cette catégorie → le réactiver + màj
+        Optional<Kpi> existing = kpiRepository.findByNomAndCategorieKpi(request.getNom().trim(), categorie);
+        if (existing.isPresent()) {
+            Kpi kpi = existing.get();
+            if (kpi.isActive()) {
+                throw new KpiAlreadyExistsException("Ce KPI est déjà actif dans la catégorie " + normalizedCode);
+            }
+            kpi.setActive(true);
+            kpi.setDefinition(request.getDefinition().trim());
+            kpi.setUnite(request.getUnite());
+            kpi.setSeuilFaible(request.getSeuilFaible());
+            kpi.setSeuilModere(request.getSeuilModere());
+            kpi.setSeuilCritique(request.getSeuilCritique());
+            if (request.getDirection() != null) kpi.setDirection(request.getDirection());
+            Kpi saved = kpiRepository.save(kpi);
+            log.info("KPI réactivé id={} catégorie={} nom={}", saved.getId(), normalizedCode, saved.getNom());
+            return toKpiResponse(saved);
+        }
 
         Kpi kpi = Kpi.builder()
                 .nom(request.getNom().trim())
@@ -104,9 +120,7 @@ public class KpiService {
                 .seuilFaible(request.getSeuilFaible())
                 .seuilModere(request.getSeuilModere())
                 .seuilCritique(request.getSeuilCritique())
-                .ordre(request.getOrdre())
                 .direction(request.getDirection())
-                .targetValue(request.getTargetValue())
                 .isActive(true)
                 .build();
 
@@ -161,14 +175,8 @@ public class KpiService {
         if (request.getSeuilCritique() != null) {
             kpi.setSeuilCritique(request.getSeuilCritique());
         }
-        if (request.getOrdre() != null) {
-            kpi.setOrdre(request.getOrdre());
-        }
         if (request.getDirection() != null) {
             kpi.setDirection(request.getDirection());
-        }
-        if (request.getTargetValue() != null) {
-            kpi.setTargetValue(request.getTargetValue());
         }
 
         Kpi saved = kpiRepository.save(kpi);
@@ -246,12 +254,10 @@ public class KpiService {
                 .seuilFaible(kpi.getSeuilFaible())
                 .seuilModere(kpi.getSeuilModere())
                 .seuilCritique(kpi.getSeuilCritique())
-                .ordre(kpi.getOrdre())
                 .isActive(kpi.isActive())
                 .createdAt(kpi.getCreatedAt())
                 .updatedAt(kpi.getUpdatedAt())
                 .direction(kpi.getDirection())
-                .targetValue(kpi.getTargetValue())
                 .build();
     }
 

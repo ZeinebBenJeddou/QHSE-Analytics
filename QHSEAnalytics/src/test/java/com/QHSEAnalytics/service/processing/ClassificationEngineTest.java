@@ -65,45 +65,12 @@ class ClassificationEngineTest {
     }
 
     @Test
-    void testTargetWithoutExplicitTargetForcesReview() {
-        Kpi k = Kpi.builder()
-                .nom("KPI cible conformité")
-                .categorieKpi(CategorieKpi.builder().code("Q").libelle("Qualité").build())
-                .build();
-        k.setDirection(Direction.TARGET_IS_BEST);
-
-        ComparativeCalculator.ComparativeResult comp = compCalc.compute(k, 90d, 92d);
-        ClassificationEngine.ClassificationResult res = engine.classify(k, comp, List.of(1d, 1.1, 0.9, 1.2, 1.05));
-
-        assertTrue(res.isReviewRequired());
-        assertTrue(res.getReason().contains("cible explicite absente"));
-    }
-
-    @Test
-    void testTargetWithExplicitTargetValue() {
-        Kpi k = Kpi.builder()
-                .nom("KPI cible 100")
-                .categorieKpi(CategorieKpi.builder().code("Q").libelle("Qualité").build())
-                .seuilFaible(5.0).seuilModere(10.0).seuilCritique(20.0)
-                .build();
-        k.setDirection(Direction.TARGET_IS_BEST);
-        k.setTargetValue(100.0);
-
-        ComparativeCalculator.ComparativeResult comp = compCalc.compute(k, 95d, 102d);
-        ClassificationEngine.ClassificationResult res = engine.classify(k, comp, null);
-
-
-        assertEquals("FAIBLE", res.getClassification());
-        assertFalse(res.isReviewRequired());
-    }
-
-    @Test
-    void testIndeterminateWhenNoThresholdsNoTargetNoHistory() {
+    void testIndeterminateWhenNoThresholdsNoHistory() {
         Kpi k = Kpi.builder()
                 .nom("KPI sans contexte")
                 .categorieKpi(CategorieKpi.builder().code("M").libelle("Misc").build())
                 .build();
-        k.setDirection(Direction.TARGET_IS_BEST);
+        k.setDirection(Direction.LOWER_IS_BETTER);
 
         ComparativeCalculator.ComparativeResult comp = compCalc.compute(k, 50d, 55d);
         ClassificationEngine.ClassificationResult res = engine.classify(k, comp, List.of(60d));

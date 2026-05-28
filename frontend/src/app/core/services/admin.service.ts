@@ -15,6 +15,7 @@ import {
   CategorieKpiResponse,
   CreateAnalysteRequest,
   CreateKpiRequest,
+  KpiDeleteResponse,
   KpiResponse,
   MessageResponse,
   ProfileResponse,
@@ -121,6 +122,10 @@ export class AdminService {
     );
   }
 
+  getInactiveKpis(): Observable<KpiResponse[]> {
+    return this.http.get<KpiResponse[]>(`${this.kpiBase}/inactive`);
+  }
+
   getKpiCategories(): Observable<CategorieKpiResponse[]> {
     return this.http.get<CategorieKpiResponse[]>(`${this.kpiBase}/categories`);
   }
@@ -145,8 +150,8 @@ export class AdminService {
     return this.http.put<KpiResponse>(`${this.kpiBase}/${id}`, request);
   }
 
-  deleteKpi(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.kpiBase}/${id}`);
+  deleteKpi(id: number): Observable<KpiDeleteResponse> {
+    return this.http.delete<KpiDeleteResponse>(`${this.kpiBase}/${id}`);
   }
 
   restoreKpi(id: number): Observable<KpiResponse> {

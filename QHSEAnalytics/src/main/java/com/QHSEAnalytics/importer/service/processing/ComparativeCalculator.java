@@ -146,9 +146,6 @@ public class ComparativeCalculator {
             return null;
         }
         String n = normalize(text);
-        if (containsAny(n, "cible", "objectif", "target")) {
-            return Direction.TARGET_IS_BEST;
-        }
         if (containsAny(n, "accident", "incident", "nc", "nonconform", "reclamation", "rejet", "defaut", "retard", "anomal")) {
             return Direction.LOWER_IS_BETTER;
         }

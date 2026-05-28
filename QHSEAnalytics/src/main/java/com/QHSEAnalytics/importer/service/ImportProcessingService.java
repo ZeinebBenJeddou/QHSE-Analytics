@@ -569,7 +569,6 @@ public class ImportProcessingService {
                     .seuilModere(dto.getSeuilModere() != null ? dto.getSeuilModere() : defaultSeuilModere)
                     .seuilCritique(dto.getSeuilCritique() != null ? dto.getSeuilCritique() : defaultSeuilCritique)
                     .direction(parseDirection(dto.getDirection()))
-                    .ordre(999)
                     .isActive(true)
                     .build();
 

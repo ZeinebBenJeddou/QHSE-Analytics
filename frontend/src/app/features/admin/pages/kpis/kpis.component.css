@@ -404,6 +404,35 @@ h1 {
 .threshold-chip.mod    { background: var(--amber-soft);  color: var(--amber); }
 .threshold-chip.crit   { background: var(--red-soft);    color: var(--red);   }
  
+.inactive-section {
+  margin-top: 24px;
+  border-top: 1px dashed var(--border);
+  padding-top: 16px;
+}
+
+.inactive-section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 12px;
+}
+
+.inactive-section-title mat-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  color: var(--ink-muted);
+}
+
+.kpi-row--inactive {
+  opacity: 0.6;
+}
+
 .kpi-row-actions {
   display: flex;
   align-items: center;

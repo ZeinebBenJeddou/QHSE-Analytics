@@ -13,9 +13,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ClassificationEngine {
 
-    private record DegradationContext(double magnitude, boolean targetFallbackUsed) {
-    }
-
     @Data
     public static class ClassificationResult {
         private String classification;
@@ -66,102 +63,92 @@ public class ClassificationEngine {
         }
 
         boolean hasThresholds = hasThresholds(kpi);
-        DegradationContext degradationContext = computeDegradationContext(kpi, comp);
-        double degradationMagnitude = degradationContext.magnitude();
+        double degradationMagnitude = computeDegradationMagnitude(kpi, comp);
         boolean hasDegradation = degradationMagnitude > 0;
-        double degradationScore = computeDegradationScore(kpi, comp, degradationMagnitude);
-        boolean forceReviewForTargetFallback = degradationContext.targetFallbackUsed();
+        double degradationScore = computeDegradationScore(comp, degradationMagnitude);
 
         if (hasThresholds) {
-            double faible = safe(kpi.getSeuilFaible());
-            double modere = safe(kpi.getSeuilModere());
+            double faible   = safe(kpi.getSeuilFaible());
+            double modere   = safe(kpi.getSeuilModere());
             double critique = safe(kpi.getSeuilCritique());
 
             Direction dir = resolveDirection(kpi, comp);
             Double currentValue = comp.getCurrentValue();
-
-
             String absolutePosition = computeAbsolutePosition(dir, currentValue, faible, modere, critique);
 
             if (!hasDegradation) {
-
-                if (dir != Direction.TARGET_IS_BEST) {
-                    if ("EXCELLENT".equals(absolutePosition)) {
-                        r.setClassification(EXCELLENT);
-                        r.setReason(withTargetFallbackNote("Performance excellente — valeur actuelle au-delà du seuil optimal", forceReviewForTargetFallback));
-                        r.setReviewRequired(false);
-                        return r;
-                    }
-                    if ("MODERE".equals(absolutePosition)) {
-                        r.setClassification(MODERE);
-                        r.setReason(withTargetFallbackNote("Amélioration en cours mais valeur encore en zone modérée", forceReviewForTargetFallback));
-                        r.setReviewRequired(comp.isReviewRequired() || forceReviewForTargetFallback);
-                        return r;
-                    }
-                    if ("CRITIQUE".equals(absolutePosition)) {
-                        r.setClassification(CRITIQUE);
-                        r.setReason(withTargetFallbackNote("Valeur en zone critique malgré une amélioration par rapport à N-1", forceReviewForTargetFallback));
-                        r.setReviewRequired(true);
-                        return r;
-                    }
-                }
-                r.setClassification(FAIBLE);
-                r.setReason(withTargetFallbackNote("Variation orientée amélioration selon la direction métier", forceReviewForTargetFallback));
-                r.setReviewRequired(comp.isReviewRequired() || forceReviewForTargetFallback);
-                return r;
-            }
-
-            // Position absolue prime sur le score composite
-            if (dir != Direction.TARGET_IS_BEST) {
-                if ("CRITIQUE".equals(absolutePosition)) {
-                    r.setClassification(CRITIQUE);
-                    r.setReason(withTargetFallbackNote("Valeur en zone critique absolue selon les seuils KPI", forceReviewForTargetFallback));
-                    r.setReviewRequired(true);
+                if ("EXCELLENT".equals(absolutePosition)) {
+                    r.setClassification(EXCELLENT);
+                    r.setReason("Performance excellente — valeur actuelle au-delà du seuil optimal");
+                    r.setReviewRequired(false);
                     return r;
                 }
                 if ("MODERE".equals(absolutePosition)) {
                     r.setClassification(MODERE);
-                    r.setReason(withTargetFallbackNote("Valeur en zone modérée absolue selon les seuils KPI", forceReviewForTargetFallback));
-                    r.setReviewRequired(comp.isReviewRequired() || forceReviewForTargetFallback);
+                    r.setReason("Amélioration en cours mais valeur encore en zone modérée");
+                    r.setReviewRequired(comp.isReviewRequired());
                     return r;
                 }
-                if ("EXCELLENT".equals(absolutePosition)) {
-                    r.setClassification(FAIBLE);
-                    r.setReason(withTargetFallbackNote("Légère dégradation mais valeur dans la zone optimale", forceReviewForTargetFallback));
-                    r.setReviewRequired(comp.isReviewRequired() || forceReviewForTargetFallback);
+                if ("CRITIQUE".equals(absolutePosition)) {
+                    r.setClassification(CRITIQUE);
+                    r.setReason("Valeur en zone critique malgré une amélioration par rapport à N-1");
+                    r.setReviewRequired(true);
                     return r;
                 }
+                r.setClassification(FAIBLE);
+                r.setReason("Variation orientée amélioration selon la direction métier");
+                r.setReviewRequired(comp.isReviewRequired());
+                return r;
+            }
+
+            // Position absolue prime sur le score composite
+            if ("CRITIQUE".equals(absolutePosition)) {
+                r.setClassification(CRITIQUE);
+                r.setReason("Valeur en zone critique absolue selon les seuils KPI");
+                r.setReviewRequired(true);
+                return r;
+            }
+            if ("MODERE".equals(absolutePosition)) {
+                r.setClassification(MODERE);
+                r.setReason("Valeur en zone modérée absolue selon les seuils KPI");
+                r.setReviewRequired(comp.isReviewRequired());
+                return r;
+            }
+            if ("EXCELLENT".equals(absolutePosition)) {
+                r.setClassification(FAIBLE);
+                r.setReason("Légère dégradation mais valeur dans la zone optimale");
+                r.setReviewRequired(comp.isReviewRequired());
+                return r;
             }
 
             if (degradationMagnitude >= critique || degradationScore >= 85) {
                 r.setClassification(CRITIQUE);
-                r.setReason(withTargetFallbackNote("Dégradation critique selon les seuils KPI", forceReviewForTargetFallback));
+                r.setReason("Dégradation critique selon les seuils KPI");
                 r.setReviewRequired(true);
                 return r;
             }
-
             if (degradationScore >= 72 || (critique > 0 && degradationMagnitude >= critique * 0.75 && degradationMagnitude < critique)) {
                 r.setClassification(PRE_ESCALADE);
-                r.setReason(withTargetFallbackNote("Dégradation pré-critique — surveillance immédiate requise", forceReviewForTargetFallback));
+                r.setReason("Dégradation pré-critique — surveillance immédiate requise");
                 r.setReviewRequired(true);
                 return r;
             }
             if (degradationMagnitude >= modere || degradationScore >= 60) {
                 r.setClassification(MODERE);
-                r.setReason(withTargetFallbackNote("Dégradation modérée selon les seuils KPI", forceReviewForTargetFallback));
-                r.setReviewRequired(comp.isReviewRequired() || degradationScore >= 70 || forceReviewForTargetFallback);
+                r.setReason("Dégradation modérée selon les seuils KPI");
+                r.setReviewRequired(comp.isReviewRequired() || degradationScore >= 70);
                 return r;
             }
             if (degradationMagnitude >= faible || degradationScore >= 35) {
                 r.setClassification(FAIBLE);
-                r.setReason(withTargetFallbackNote("Dégradation faible mais surveillée", forceReviewForTargetFallback));
-                r.setReviewRequired(comp.isReviewRequired() || forceReviewForTargetFallback);
+                r.setReason("Dégradation faible mais surveillée");
+                r.setReviewRequired(comp.isReviewRequired());
                 return r;
             }
 
             r.setClassification(FAIBLE);
-            r.setReason(withTargetFallbackNote("Dans les seuils attendus", forceReviewForTargetFallback));
-            r.setReviewRequired(comp.isReviewRequired() || forceReviewForTargetFallback);
+            r.setReason("Dans les seuils attendus");
+            r.setReviewRequired(comp.isReviewRequired());
             return r;
         }
 
@@ -172,37 +159,36 @@ public class ClassificationEngine {
             double p75 = percentile(historyDegradations, 75);
             double p25 = percentile(historyDegradations, 25);
 
-            if (!hasDegradation && p25 > 0 && degradationMagnitude == 0
-                    && resolveDirection(kpi, comp) != Direction.TARGET_IS_BEST) {
+            if (!hasDegradation && p25 > 0 && degradationMagnitude == 0) {
                 double improvementMag = computeImprovementMagnitude(kpi, comp);
                 if (improvementMag > p75) {
                     r.setClassification(EXCELLENT);
-                    r.setReason(withTargetFallbackNote("Performance excellente dans le contexte historique (amélioration > p75)", forceReviewForTargetFallback));
+                    r.setReason("Performance excellente dans le contexte historique (amélioration > p75)");
                     r.setReviewRequired(false);
                     return r;
                 }
             }
             if (degradationMagnitude > p95) {
                 r.setClassification(CRITIQUE);
-                r.setReason(withTargetFallbackNote("Dégradation hors distribution historique (p95)", forceReviewForTargetFallback));
+                r.setReason("Dégradation hors distribution historique (p95)");
                 r.setReviewRequired(true);
                 return r;
             }
             if (degradationMagnitude > p75) {
                 r.setClassification(MODERE);
-                r.setReason(withTargetFallbackNote("Dégradation notable dans l'historique (p75)", forceReviewForTargetFallback));
-                r.setReviewRequired(comp.isReviewRequired() || forceReviewForTargetFallback);
+                r.setReason("Dégradation notable dans l'historique (p75)");
+                r.setReviewRequired(comp.isReviewRequired());
                 return r;
             }
             if (degradationMagnitude > p75 * 0.85) {
                 r.setClassification(PRE_ESCALADE);
-                r.setReason(withTargetFallbackNote("Dégradation pré-critique dans l'historique (approche p75)", forceReviewForTargetFallback));
+                r.setReason("Dégradation pré-critique dans l'historique (approche p75)");
                 r.setReviewRequired(true);
                 return r;
             }
             r.setClassification(FAIBLE);
-            r.setReason(withTargetFallbackNote("Dégradation contenue dans l'historique", forceReviewForTargetFallback));
-            r.setReviewRequired(comp.isReviewRequired() || forceReviewForTargetFallback);
+            r.setReason("Dégradation contenue dans l'historique");
+            r.setReviewRequired(comp.isReviewRequired());
             return r;
         }
 
@@ -211,90 +197,83 @@ public class ClassificationEngine {
             double robustZ = robustZScore(historyDegradations, degradationMagnitude);
             if (robustZ >= 3.0) {
                 r.setClassification(CRITIQUE);
-                r.setReason(withTargetFallbackNote("Dégradation atypique détectée (z robuste)", forceReviewForTargetFallback));
+                r.setReason("Dégradation atypique détectée (z robuste)");
                 r.setReviewRequired(true);
                 return r;
             }
             if (robustZ >= 2.4) {
                 r.setClassification(PRE_ESCALADE);
-                r.setReason(withTargetFallbackNote("Dégradation pré-critique (z robuste ≥ 2.4)", forceReviewForTargetFallback));
+                r.setReason("Dégradation pré-critique (z robuste ≥ 2.4)");
                 r.setReviewRequired(true);
                 return r;
             }
             if (robustZ >= 1.8) {
                 r.setClassification(MODERE);
-                r.setReason(withTargetFallbackNote("Dégradation au-dessus du comportement normal (z robuste)", forceReviewForTargetFallback));
-                r.setReviewRequired(comp.isReviewRequired() || forceReviewForTargetFallback);
+                r.setReason("Dégradation au-dessus du comportement normal (z robuste)");
+                r.setReviewRequired(comp.isReviewRequired());
                 return r;
             }
-
-            if (!hasDegradation && resolveDirection(kpi, comp) != Direction.TARGET_IS_BEST) {
+            if (!hasDegradation) {
                 double improvementZ = robustZScore(historyDegradations, computeImprovementMagnitude(kpi, comp));
                 if (improvementZ >= 2.0) {
                     r.setClassification(EXCELLENT);
-                    r.setReason(withTargetFallbackNote("Performance excellente (z robuste amélioration ≥ 2.0)", forceReviewForTargetFallback));
+                    r.setReason("Performance excellente (z robuste amélioration ≥ 2.0)");
                     r.setReviewRequired(false);
                     return r;
                 }
             }
             r.setClassification(FAIBLE);
-            r.setReason(withTargetFallbackNote("Dégradation non atypique selon l'historique court", forceReviewForTargetFallback));
-            r.setReviewRequired(comp.isReviewRequired() || forceReviewForTargetFallback);
+            r.setReason("Dégradation non atypique selon l'historique court");
+            r.setReviewRequired(comp.isReviewRequired());
             return r;
         }
 
         r.setClassification(INDETERMINE);
-        r.setReason(withTargetFallbackNote("Pas de seuils ni historique suffisant", forceReviewForTargetFallback));
+        r.setReason("Pas de seuils ni historique suffisant");
         r.setReviewRequired(true);
         return r;
     }
 
+    // ─────────────────────────────────────────────────────────────
+    // Helpers privés
+    // ─────────────────────────────────────────────────────────────
+
     private boolean hasThresholds(Kpi kpi) {
-        return kpi != null && kpi.getSeuilFaible() != null && kpi.getSeuilModere() != null && kpi.getSeuilCritique() != null;
+        return kpi != null
+                && kpi.getSeuilFaible() != null
+                && kpi.getSeuilModere() != null
+                && kpi.getSeuilCritique() != null;
     }
 
-
     private String computeAbsolutePosition(Direction dir, Double currentValue, double faible, double modere, double critique) {
-        if (currentValue == null || dir == Direction.TARGET_IS_BEST) {
-            return "UNKNOWN";
-        }
+        if (currentValue == null) return "UNKNOWN";
         double v = currentValue;
         if (dir == Direction.LOWER_IS_BETTER) {
-            if (faible > 0 && v <= faible)   return "EXCELLENT";
-            if (modere > 0 && v <= modere)   return "FAIBLE";
+            if (faible   > 0 && v <= faible)   return "EXCELLENT";
+            if (modere   > 0 && v <= modere)   return "FAIBLE";
             if (critique > 0 && v <= critique) return "MODERE";
             return "CRITIQUE";
         }
         if (dir == Direction.HIGHER_IS_BETTER) {
             if (critique > 0 && v >= critique) return "EXCELLENT";
-            if (modere > 0 && v >= modere)     return "FAIBLE";
-            if (faible > 0 && v >= faible)     return "MODERE";
+            if (modere   > 0 && v >= modere)   return "FAIBLE";
+            if (faible   > 0 && v >= faible)   return "MODERE";
             return "CRITIQUE";
         }
         return "UNKNOWN";
     }
 
-    private double computeDegradationScore(Kpi kpi, ComparativeCalculator.ComparativeResult comp, double degradationMagnitude) {
+    private double computeDegradationScore(ComparativeCalculator.ComparativeResult comp, double degradationMagnitude) {
+        if (degradationMagnitude <= 0) return 0d;
         double relative = comp.getRelativePercentage() == null ? 0d : Math.abs(comp.getRelativePercentage());
         double absolute = Math.abs(comp.getAbsoluteGap());
         double score = 0d;
-
-        if (degradationMagnitude <= 0) {
-            return 0d;
-        }
-
         score += Math.min(55d, relative * 0.55d);
         score += Math.min(30d, Math.log10(1d + absolute) * 15d);
         score += Math.min(15d, Math.log10(1d + degradationMagnitude) * 10d);
-
         if (comp.getDataFlags() != null && !comp.getDataFlags().isEmpty()) {
             score += 5d;
         }
-
-        if (resolveDirection(kpi, comp) == Direction.TARGET_IS_BEST) {
-            score += 5d;
-        }
-
         return Math.min(100d, score);
     }
 
@@ -302,63 +281,36 @@ public class ClassificationEngine {
         Direction direction = resolveDirection(kpi, comp);
         double gap = comp.getAbsoluteGap();
         if (direction == Direction.HIGHER_IS_BETTER) return Math.max(0d, gap);
-        if (direction == Direction.LOWER_IS_BETTER) return Math.max(0d, -gap);
+        if (direction == Direction.LOWER_IS_BETTER)  return Math.max(0d, -gap);
         return 0d;
     }
 
-    private DegradationContext computeDegradationContext(Kpi kpi, ComparativeCalculator.ComparativeResult comp) {
+    private double computeDegradationMagnitude(Kpi kpi, ComparativeCalculator.ComparativeResult comp) {
         Direction direction = resolveDirection(kpi, comp);
         double gap = comp.getAbsoluteGap();
-
-        if (direction == Direction.HIGHER_IS_BETTER) {
-            return new DegradationContext(Math.max(0d, -gap), false);
-        }
-        if (direction == Direction.LOWER_IS_BETTER) {
-            return new DegradationContext(Math.max(0d, gap), false);
-        }
-
-
-        if (kpi == null || kpi.getTargetValue() == null) {
-            return new DegradationContext(Math.abs(gap), true);
-        }
-
-        double target = kpi.getTargetValue();
-        Double prev = comp.getPreviousValue();
-        Double curr = comp.getCurrentValue();
-        if (prev == null || curr == null) {
-            return new DegradationContext(Math.abs(gap), true);
-        }
-        double prevDistance = Math.abs(prev - target);
-        double currDistance = Math.abs(curr - target);
-        return new DegradationContext(Math.max(0d, currDistance - prevDistance), false);
+        if (direction == Direction.HIGHER_IS_BETTER) return Math.max(0d, -gap);
+        if (direction == Direction.LOWER_IS_BETTER)  return Math.max(0d, gap);
+        return Math.abs(gap);
     }
 
     private List<Double> toDegradationSeries(Kpi kpi, ComparativeCalculator.ComparativeResult comp, List<Double> historical) {
         Direction direction = resolveDirection(kpi, comp);
         List<Double> series = new ArrayList<>();
         for (Double value : historical) {
-            if (value == null) {
-                continue;
-            }
+            if (value == null) continue;
             double v = value;
             if (direction == Direction.HIGHER_IS_BETTER) {
                 series.add(Math.max(0d, -v));
-            } else if (direction == Direction.LOWER_IS_BETTER) {
-                series.add(Math.max(0d, v));
             } else {
-                series.add(Math.abs(v));
+                series.add(Math.max(0d, v));
             }
         }
         return series;
     }
 
     private Direction resolveDirection(Kpi kpi, ComparativeCalculator.ComparativeResult comp) {
-        if (comp != null && comp.getDirection() != null) {
-            return comp.getDirection();
-        }
-        if (kpi != null && kpi.getDirection() != null) {
-            return kpi.getDirection();
-        }
+        if (comp != null && comp.getDirection() != null) return comp.getDirection();
+        if (kpi  != null && kpi.getDirection()  != null) return kpi.getDirection();
         return Direction.HIGHER_IS_BETTER;
     }
 
@@ -375,14 +327,10 @@ public class ClassificationEngine {
     }
 
     private double robustZScore(List<Double> data, double value) {
-        if (data == null || data.isEmpty()) {
-            return 0d;
-        }
+        if (data == null || data.isEmpty()) return 0d;
         double med = median(data);
         double mad = mad(data, med);
-        if (mad < 1e-9) {
-            return 0d;
-        }
+        if (mad < 1e-9) return 0d;
         return Math.abs(value - med) / (1.4826d * mad);
     }
 
@@ -397,12 +345,5 @@ public class ClassificationEngine {
         if (n == 0) return 0d;
         if (n % 2 == 1) return copy.get(n / 2);
         return (copy.get(n / 2 - 1) + copy.get(n / 2)) / 2.0;
-    }
-
-    private String withTargetFallbackNote(String baseReason, boolean targetFallbackUsed) {
-        if (!targetFallbackUsed) {
-            return baseReason;
-        }
-        return baseReason + " (cible explicite absente, fallback sur variation absolue)";
     }
 }

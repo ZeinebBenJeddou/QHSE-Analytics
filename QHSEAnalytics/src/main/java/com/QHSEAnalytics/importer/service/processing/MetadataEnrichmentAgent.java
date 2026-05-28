@@ -70,8 +70,7 @@ public class MetadataEnrichmentAgent {
                     Double seuilCritique = node.path("seuilCritique").isNull() ? null : node.path("seuilCritique").asDouble();
                     String direction = node.path("direction").isNull() ? null : node.path("direction").asText();
                     boolean validDirection = "HIGHER_IS_BETTER".equals(direction)
-                            || "LOWER_IS_BETTER".equals(direction)
-                            || "TARGET_IS_BEST".equals(direction);
+                            || "LOWER_IS_BETTER".equals(direction);
 
                     data.stream()
                         .filter(k -> k.getKpiName().equalsIgnoreCase(name))
@@ -114,13 +113,12 @@ public class MetadataEnrichmentAgent {
         sb.append("\n- If uncertain, return null for all three threshold fields.");
         sb.append("\nFor the direction field:");
         sb.append("\n- Choose EXACTLY one of: HIGHER_IS_BETTER (improvement = increase, e.g. satisfaction rate),");
-        sb.append(" LOWER_IS_BETTER (improvement = decrease, e.g. accident count),");
-        sb.append(" TARGET_IS_BEST (improvement = reaching a target, e.g. target rate).");
+        sb.append(" LOWER_IS_BETTER (improvement = decrease, e.g. accident count).");
         sb.append("\n- If uncertain, return null for direction.");
         sb.append("\nReturn ONLY a valid JSON object with exactly this structure: "
                 + "{\"items\":[{\"name\":string,\"category\":string,\"definition\":string,\"unite\":string,"
                 + "\"seuilFaible\":number|null,\"seuilModere\":number|null,\"seuilCritique\":number|null,"
-                + "\"direction\":\"HIGHER_IS_BETTER|LOWER_IS_BETTER|TARGET_IS_BEST\"|null}]}. No other text.");
+                + "\"direction\":\"HIGHER_IS_BETTER|LOWER_IS_BETTER\"|null}]}. No other text.");
         return sb.toString();
     }
 }
