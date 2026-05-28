@@ -4,9 +4,7 @@
     <div class="page-header-left">
       
       <div class="page-title-row">
-        <div class="title-icon-wrap">
-          <mat-icon>picture_as_pdf</mat-icon>
-        </div>
+        
         <div>
           <h1 class="page-title">Exporter le rapport PDF</h1>
           <p class="page-subtitle">Générez un rapport QHSE complet au format PDF</p>
@@ -20,7 +18,7 @@
     <div class="export-left">
       <div class="config-card">
         <div class="config-card-head">
-          <mat-icon class="cc-icon cc-icon-primary">folder_open</mat-icon>
+          
           <div>
             <div class="cc-title">Choisir un import</div>
             <div class="cc-subtitle">Sélectionnez la période à exporter</div>
@@ -36,7 +34,7 @@
 
         <ng-container *ngIf="!loadingImports() && imports().length === 0">
           <div class="import-empty">
-            <mat-icon>info_outline</mat-icon>
+            
             Aucun import traité disponible.
           </div>
         </ng-container>
@@ -69,9 +67,7 @@
       <ng-container *ngIf="selectedImport() as imp">
         <div class="preview-card">
           <div class="preview-header">
-            <div class="preview-doc-icon">
-              <mat-icon>description</mat-icon>
-            </div>
+            
             <div class="preview-meta">
               <div class="preview-title">Rapport QHSE — {{ imp.periodeN1 }} vs {{ imp.periodeN }}</div>
               <div class="preview-filename">QHSE_Rapport_{{ imp.periodeN1 }}_{{ imp.periodeN }}.pdf</div>
@@ -81,22 +77,22 @@
 
           <div class="preview-details">
             <div class="preview-detail-row">
-              <mat-icon>folder</mat-icon>
+              
               <span class="pd-label">Fichier source</span>
               <span class="pd-value">{{ imp.nomFichier }}</span>
             </div>
             <div class="preview-detail-row">
-              <mat-icon>calendar_today</mat-icon>
+              
               <span class="pd-label">Date d'import</span>
               <span class="pd-value">{{ imp.dateImport | date:'dd/MM/yyyy' }}</span>
             </div>
             <div class="preview-detail-row">
-              <mat-icon>analytics</mat-icon>
+              
               <span class="pd-label">Période</span>
               <span class="pd-value">{{ imp.periodeN1 }} → {{ imp.periodeN }}</span>
             </div>
             <div *ngIf="imp.nombreKpisCritiques > 0" class="preview-detail-row">
-              <mat-icon class="pd-icon-red">warning</mat-icon>
+              
               <span class="pd-label">KPIs critiques</span>
               <span class="pd-value pd-value-red">{{ imp.nombreKpisCritiques }}</span>
             </div>
@@ -113,7 +109,7 @@
           <span>Génération en cours…</span>
         </ng-container>
         <ng-template #generateLabel>
-          <mat-icon>download</mat-icon>
+         
           <span>Générer et télécharger le PDF</span>
         </ng-template>
       </button>
