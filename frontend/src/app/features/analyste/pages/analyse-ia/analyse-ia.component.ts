@@ -406,6 +406,34 @@ export class AnalyseIAComponent implements OnInit, OnDestroy {
     }
   }
 
+  getUrgencyLabel(urgency: string): string {
+    const map: Record<string, string> = {
+      'HIGH': 'HAUTE',
+      'MEDIUM': 'MOYENNE',
+      'LOW': 'FAIBLE',
+      'HAUTE': 'HAUTE',
+      'MOYENNE': 'MOYENNE',
+      'FAIBLE': 'FAIBLE',
+      'ELEVEE': 'HAUTE',
+      'MODEREE': 'MOYENNE'
+    };
+    return map[(urgency || '').toUpperCase()] ?? urgency;
+  }
+
+  getUrgencyClass(urgency: string): string {
+    const map: Record<string, string> = {
+      'HIGH': 'haute',
+      'MEDIUM': 'moyenne',
+      'LOW': 'faible',
+      'HAUTE': 'haute',
+      'MOYENNE': 'moyenne',
+      'FAIBLE': 'faible',
+      'ELEVEE': 'haute',
+      'MODEREE': 'moyenne'
+    };
+    return map[(urgency || '').toUpperCase()] ?? 'moyenne';
+  }
+
   clampConfidence(value: number): number {
     return Math.max(0, Math.min(100, value ?? 0));
   }

@@ -51,7 +51,7 @@
     <header class="page-header">
       <div class="page-header-left">
         <div class="page-title-row">
-          <h1 class="page-title">Analyses Intelligence Artificielle</h1>
+          <!--<h1 class="page-title">Analyses Intelligence Artificielle</h1>-->
           @if (periode) {
             <span class="period-badge">{{ periode }}</span>
           }
@@ -79,21 +79,18 @@
     <!-- ── Stats strip ── -->
     <div class="stats-strip">
       <div class="stat-card">
-        <div class="stat-icon stat-icon-blue"><mat-icon>bar_chart</mat-icon></div>
         <div class="stat-body">
           <div class="stat-value">{{ heroStats().total }}</div>
           <div class="stat-label">Indicateurs analysés</div>
         </div>
       </div>
       <div class="stat-card stat-card-danger">
-        <div class="stat-icon stat-icon-red"><mat-icon>warning</mat-icon></div>
         <div class="stat-body">
           <div class="stat-value stat-value-red">{{ heroStats().critiques }}</div>
           <div class="stat-label">KPIs critiques</div>
         </div>
       </div>
       <div class="stat-card stat-card-warn">
-        <div class="stat-icon stat-icon-orange"><mat-icon>info</mat-icon></div>
         <div class="stat-body">
           <div class="stat-value stat-value-orange">{{ heroStats().moderes }}</div>
           <div class="stat-label">KPIs modérés</div>
@@ -129,7 +126,6 @@
           <div class="hero-summary">
             <div class="hero-summary-header">
               <h2>Synthèse Globale</h2>
-              <span class="synth-badge-expert">Expert QHSE</span>
             </div>
 
             <p class="synthese-text">{{ globalSummaryText() }}</p>
@@ -140,18 +136,11 @@
                   <div class="cat-mini-card"
                        [style.background]="stat.bgLight"
                        [style.border-color]="stat.color">
-                    <mat-icon [style.color]="stat.color">{{ stat.icon }}</mat-icon>
                     <div class="cat-mini-info">
                       <span class="cat-mini-label" [style.color]="stat.color">{{ stat.libelle }}</span>
                       <div class="cat-mini-counts">
                         @if (stat.critique > 0) {
                           <span class="mini-count mini-c">{{ stat.critique }} critique{{ stat.critique > 1 ? 's' : '' }}</span>
-                        }
-                        @if (stat.modere > 0) {
-                          <span class="mini-count mini-m">{{ stat.modere }} modéré{{ stat.modere > 1 ? 's' : '' }}</span>
-                        }
-                        @if (stat.critique === 0 && stat.modere === 0) {
-                          <span class="mini-count mini-ok">{{ stat.faible }} OK</span>
                         }
                       </div>
                     </div>
@@ -459,24 +448,36 @@
           <div class="tab-content">
             @if (!structured()?.recommendations?.length) {
               <div class="tab-empty">
-                <mat-icon>lightbulb_outline</mat-icon>
-                <p>Aucune recommandation disponible pour cette analyse.</p>
+                <p>Aucune recommandation disponible.</p>
               </div>
             } @else {
-              <div class="recos-list">
-                @for (rec of structured()!.recommendations; track $index) {
+              <div class="reco-grid">
+                @for (reco of structured()!.recommendations!; track reco.title; let i = $index) {
                   <div class="reco-card">
                     <div class="reco-card-top">
-                      <span class="reco-priority" [class]="'prio-' + (rec.urgency || 'medium').toLowerCase()">
-                        {{ formatPriorityLabel(rec.urgency) }}
-                      </span>
+                      <div class="reco-num"
+                           [ngClass]="'reco-num-' + getUrgencyClass(reco.urgency || 'MOYENNE')">
+                        {{ i + 1 }}
+                      </div>
+                      <div class="reco-main">
+                        <div class="reco-header-row">
+                          <div class="reco-title">{{ reco.title }}</div>
+                          <span class="urgency-badge"
+                                [ngClass]="'ub-' + getUrgencyClass(reco.urgency || 'MOYENNE')">
+                            {{ getUrgencyLabel(reco.urgency || 'MOYENNE') }}
+                          </span>
+                        </div>
+                        @if (reco.rationale) {
+                          <div class="reco-rationale">{{ reco.rationale }}</div>
+                        }
+                      </div>
                     </div>
-                    <p class="reco-title">{{ formatDisplayText(rec.title || rec.rationale) }}</p>
-                    @if (rec.rationale) {
-                      <p class="reco-rationale">{{ rec.rationale }}</p>
-                    }
-                    @if (rec.expectedBenefit) {
-                      <p class="reco-benefit"><mat-icon>trending_up</mat-icon>{{ formatDisplayText(rec.expectedBenefit) }}</p>
+                    @if (reco.expectedBenefit) {
+                      <div class="reco-footer">
+                        <span class="reco-benefit-label">Bénéfice attendu</span>
+                        <mat-icon class="reco-benefit-icon">trending_up</mat-icon>
+                        <span class="reco-benefit-value">{{ reco.expectedBenefit }}</span>
+                      </div>
                     }
                   </div>
                 }

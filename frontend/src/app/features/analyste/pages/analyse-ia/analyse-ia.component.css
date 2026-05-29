@@ -1187,68 +1187,142 @@
   flex: 1;
 }
 
-/* Cartes reco */
-.reco-card {
-  background: var(--qhse-card);
-  border: 1px solid var(--qhse-border);
-  border-radius: 10px;
-  padding: 12px 14px;
-  border-left: 3px solid var(--qhse-primary);
-  transition: box-shadow 0.15s;
-}
-.reco-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
-.reco-card-top { margin-bottom: 6px; }
-.reco-priority {
-  display: inline-flex;
-  padding: 2px 9px;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: .04em;
-  text-transform: uppercase;
-}
-.reco-title {
-  margin: 0 0 5px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--qhse-text-primary);
-  line-height: 1.5;
-}
-.reco-rationale {
-  font-size: 12.5px;
-  line-height: 1.65;
-  color: var(--qhse-text-secondary);
-  margin: 6px 0 10px;
-  padding-left: 10px;
-  border-left: 2px solid var(--qhse-border);
-}
-.reco-benefit {
+/* ── Recommandations (nouveau design) ── */
+.reco-grid {
   display: flex;
-  align-items: center;
-  gap: 4px;
-  margin: 0;
-  font-size: 12px;
-  color: var(--green);
-  font-weight: 600;
-}
-.reco-benefit mat-icon {
-  font-size: 13px !important;
-  width: 13px !important;
-  height: 13px !important;
+  flex-direction: column;
+  gap: 12px;
 }
 
-/* Badges priorité */
-.prio-high, .prio-haute, .prio-critique {
-  background: var(--red-bg);
+.reco-card {
+  background: var(--qhse-card);
+  border-radius: 12px;
+  border: 1px solid var(--qhse-border);
+  overflow: hidden;
+  transition: box-shadow 0.15s;
+}
+
+.reco-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.07);
+}
+
+.reco-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px 14px;
+}
+
+.reco-num {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 2px;
+  font-family: var(--font);
+}
+
+.reco-num-high, .reco-num-haute, .reco-num-elevee {
+  background: #FEF2F2;
   color: #DC2626;
 }
-.prio-medium, .prio-moyenne, .prio-modere {
-  background: var(--orange-bg);
+.reco-num-medium, .reco-num-moyenne, .reco-num-moderee {
+  background: #FEF3C7;
   color: #D97706;
 }
-.prio-low, .prio-faible, .prio-basse {
-  background: var(--green-bg);
+.reco-num-low, .reco-num-faible {
+  background: #F0FDF4;
   color: #16A34A;
+}
+
+.reco-main { flex: 1; min-width: 0; }
+
+.reco-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.reco-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--qhse-text-primary);
+  line-height: 1.45;
+  font-family: var(--font);
+  flex: 1;
+}
+
+.urgency-badge {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.ub-high, .ub-haute, .ub-elevee {
+  background: #FEF2F2;
+  color: #DC2626;
+}
+.ub-medium, .ub-moyenne, .ub-moderee {
+  background: #FEF3C7;
+  color: #D97706;
+}
+.ub-low, .ub-faible {
+  background: #F0FDF4;
+  color: #16A34A;
+}
+
+.reco-rationale {
+  font-size: 12.5px;
+  color: var(--qhse-text-secondary);
+  line-height: 1.65;
+  padding-left: 10px;
+  border-left: 2px solid var(--qhse-border);
+  font-family: var(--font);
+}
+
+.reco-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: var(--qhse-surface);
+  border-top: 1px solid var(--qhse-border);
+}
+
+.reco-benefit-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--qhse-text-secondary);
+  white-space: nowrap;
+  font-family: var(--font);
+}
+
+.reco-benefit-icon {
+  font-size: 15px !important;
+  width: 15px !important;
+  height: 15px !important;
+  color: var(--qhse-success);
+}
+
+.reco-benefit-value {
+  font-size: 12px;
+  color: var(--qhse-success);
+  font-weight: 600;
+  font-family: var(--font);
 }
 
 /* Ishikawa inline badges */

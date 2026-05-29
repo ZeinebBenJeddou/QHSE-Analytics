@@ -252,7 +252,13 @@ public class StructuredAnalysisPromptBuilder {
             "ayant permis une réduction de -9,4 % des émissions CO2' " +
             "(copie du few-shot)\n" +
             "    Chaque action DOIT citer le nom exact du KPI concerné " +
-            "et ses valeurs réelles N-1 → N.\n";
+            "et ses valeurs réelles N-1 → N.\n" +
+            "    Pour les recommendations, le rationale DOIT citer " +
+            "les valeurs réelles du KPI concerné " +
+            "telles que fournies dans la section 'KPIs À ANALYSER'. " +
+            "INTERDIT de citer des valeurs fictives " +
+            "comme '2,5 → 3,2' ou '+128,5 %' " +
+            "qui ne correspondent pas aux KPIs réels fournis.\n";
 
     private static final String FEW_SHOT_EXAMPLE =
             "\n\n=== EXEMPLES DE STRUCTURE ET NIVEAU DE DÉTAIL ATTENDUS ===\n" +

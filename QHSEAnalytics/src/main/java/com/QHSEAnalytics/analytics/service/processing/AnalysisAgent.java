@@ -513,13 +513,11 @@ public class AnalysisAgent {
                         a.trim().split("\\s+").length))
                 .limit(8)
                 .collect(java.util.stream.Collectors.toList());
-        List<AiRecommendationResponse> mergedRecommendations = chunkResponses.stream()
+        List<AiRecommendationResponse> mergedRecommendationsRaw = chunkResponses.stream()
                 .flatMap(response -> safeList(response.getRecommendations()).stream())
                 .filter(r -> r != null && r.getTitle() != null)
-                .collect(java.util.stream.Collectors.collectingAndThen(
-                        java.util.stream.Collectors.toList(),
-                        list -> deduplicateRecommendations(list)
-                ));
+                .collect(Collectors.toList());
+        List<AiRecommendationResponse> mergedRecommendations = deduplicateRecommendationsBySimilarity(mergedRecommendationsRaw);
         List<AiActionPlanItemResponse> mergedActionPlan = chunkResponses.stream()
                 .flatMap(response -> safeList(response.getActionPlan()).stream())
                 .filter(a -> a != null && a.getAction() != null)
@@ -986,6 +984,38 @@ public class AnalysisAgent {
         for (AiRecommendationResponse item : items) {
             String normalized = normalizeForDedup(item.getTitle());
             if (seen.add(normalized)) {
+                result.add(item);
+            }
+        }
+        return result;
+    }
+
+    private List<AiRecommendationResponse> deduplicateRecommendationsBySimilarity(
+            List<AiRecommendationResponse> items) {
+        if (items == null || items.isEmpty())
+            return new java.util.ArrayList<>();
+
+        List<AiRecommendationResponse> result = new java.util.ArrayList<>();
+
+        for (AiRecommendationResponse item : items) {
+            String normTitle = normalizeForDedup(item.getTitle());
+            boolean tooSimilar = false;
+
+            for (AiRecommendationResponse kept : result) {
+                String normKept = normalizeForDedup(kept.getTitle());
+                if (jaccardSimilarity(normTitle, normKept) > 0.60) {
+                    if (item.getRationale() != null
+                            && kept.getRationale() != null
+                            && item.getRationale().length()
+                               > kept.getRationale().length()) {
+                        result.remove(kept);
+                        result.add(item);
+                    }
+                    tooSimilar = true;
+                    break;
+                }
+            }
+            if (!tooSimilar) {
                 result.add(item);
             }
         }
