@@ -32,6 +32,7 @@ interface EnrichedKpi extends ResultatKpiIaResponse {
   structuredSuccess?: string;
   structuredRisk?: string;
   urgency?: string;
+  note?: string;
 }
 
 interface CategorieInfo {
@@ -449,6 +450,7 @@ export class AnalyseIAComponent implements OnInit, OnDestroy {
           structuredSuccess: ins?.successMetric,
           structuredRisk:    ins?.riskIfNotDone,
           urgency:           ins?.urgency,
+          note:              ins?.note,
         };
       });
     }
@@ -469,6 +471,7 @@ export class AnalyseIAComponent implements OnInit, OnDestroy {
       structuredSuccess: ins.successMetric,
       structuredRisk:   ins.riskIfNotDone,
       urgency:          ins.urgency,
+      note:             ins.note,
     }));
   });
 
@@ -539,5 +542,24 @@ export class AnalyseIAComponent implements OnInit, OnDestroy {
 
   catCountAll(code: string): number {
     return this.enrichedKpis().filter(k => k.categorieCode === code).length;
+  }
+
+  parseIshikawaCause(cause: string): { category: string; text: string } {
+    const match = cause.match(/^\[([^\]]+)\]\s*(.*)/);
+    if (match) {
+      return { category: match[1], text: match[2] };
+    }
+    return { category: '', text: cause };
+  }
+
+  getIshikawaClass(category: string): string {
+    const map: Record<string, string> = {
+      'Homme':   'ishikawa-homme',
+      'Machine': 'ishikawa-machine',
+      'Méthode': 'ishikawa-methode',
+      'Milieu':  'ishikawa-milieu',
+      'Matière': 'ishikawa-matiere',
+    };
+    return map[category] || 'ishikawa-autre';
   }
 }

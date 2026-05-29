@@ -78,12 +78,32 @@ public class StructuredAnalysisPromptBuilder {
 
     private static final String FEW_SHOT_EXAMPLE =
             "\n\n=== EXEMPLES DE RÉPONSES ATTENDUES (respecte ce niveau de qualité) ===\n\n" +
-            "EXEMPLE globalSummary :\n" +
-            "\"L'analyse QHSE portant sur la période 2025 → 2026, couvrant 12 indicateurs répartis sur 4 catégories (Qualité, Hygiène, Sécurité, Environnement), révèle un score global de 42/100 (À SURVEILLER) avec 8 KPIs classés CRITIQUE. " +
-            "La catégorie Qualité est la plus dégradée (score 20/100, 3 critiques), notamment le First Pass Yield en chute de −18,5 % (91 % → 74,2 %), franchissant le seuil critique ISO 9001 §8.7 sur la maîtrise des non-conformités. " +
-            "Sur le plan sécurité (ISO 45001), le Taux d'Absentéisme progresse de +32 % (4,1 % → 5,4 %), signal d'alerte sur les conditions de travail, tandis que le Taux de Fréquence des Accidents affiche +15 %, exposant l'entreprise à un risque de mise en demeure DREAL. " +
-            "Le Délai Moyen de Livraison (+28 %, 3,6 → 4,6 jours) génère un risque contractuel direct. " +
-            "Il est impératif d'engager dans les 48h une revue sécurité d'urgence ciblant les postes à risque, et dans la semaine un plan de réduction des défauts visant FPY > 85 % ; sans action immédiate, la trajectoire actuelle conduira à une non-conformité multi-normes dans les 2 à 3 prochains mois.\"\n\n" +
+            "EXEMPLE globalSummary (reproduis exactement cette structure " +
+            "en 5 phrases pour tes données) :\n" +
+            "\"L'analyse QHSE portant sur la période 2023 → 2024, " +
+            "couvrant 31 indicateurs répartis sur 4 catégories " +
+            "(Qualité, Hygiène, Sécurité, Environnement), " +
+            "révèle un score global de 66/100 (SATISFAISANT) " +
+            "avec 4 KPIs classés CRITIQUE et 14 KPIs modérés. " +
+            "La catégorie Sécurité est la plus dégradée (score 56/100) : " +
+            "le Nombre de Presque-accidents a progressé de +128,5 % " +
+            "(6,2 → 14,17), franchissant le seuil critique INRS, " +
+            "tandis que le Taux de Rebuts atteint 5,95 % (+45,8 %), " +
+            "au-delà du seuil modéré ISO 9001 §8.7. " +
+            "En revanche, le Délai Moyen de Livraison s'améliore " +
+            "de -22,2 % (4,68 → 3,64 jours), réduisant le risque " +
+            "de pénalités contractuelles, et le Taux de Valorisation " +
+            "Déchets progresse à 70,97 % (+17,2 %), au-dessus " +
+            "du seuil de 70 %. " +
+            "Le Responsable HSE doit organiser une revue sécurité " +
+            "dans les 48h pour condamner les postes à risque, " +
+            "tandis que le Responsable Qualité déploie un audit " +
+            "ISO 9001 ciblé sur les rebuts dans les 2 semaines. " +
+            "Avec un score global de 66/100 et 4 KPIs critiques " +
+            "sur 31, la trajectoire reste préoccupante sur la Sécurité " +
+            "mais montre des signaux positifs sur la Qualité " +
+            "et l'Environnement qui atteignent respectivement " +
+            "72/100 et 73/100.\"\n\n" +
             "EXEMPLE d'un kpiInsights (reproduis ce niveau de détail pour CHAQUE KPI) :\n" +
             "{\n" +
             "  \"kpiId\": 1547,\n" +
@@ -319,7 +339,6 @@ public class StructuredAnalysisPromptBuilder {
         prompt.append("    }\n");
         prompt.append("  ],\n");
         prompt.append("  \"traceability\": {\n");
-        prompt.append("    \"modelName\": string,\n");
         prompt.append("    \"generatedAt\": string\n");
         prompt.append("  }\n");
         prompt.append("}\n\n");

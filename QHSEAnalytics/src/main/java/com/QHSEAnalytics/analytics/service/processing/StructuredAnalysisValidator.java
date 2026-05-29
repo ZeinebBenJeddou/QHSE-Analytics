@@ -111,9 +111,7 @@ public class StructuredAnalysisValidator {
     }
 
     private void validateTraceability(AiTraceabilityResponse trace, List<String> errors) {
-        if (isBlank(trace.getModelName())) {
-            errors.add("traceability.modelName is mandatory.");
-        }
+        // modelName injecté côté serveur — pas de validation LLM
     }
 
     private void validateKpiInsights(List<AiKpiInsightResponse> insights, List<KpiCalculatedDTO> availableKpis, List<String> errors) {

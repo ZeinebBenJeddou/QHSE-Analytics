@@ -69,7 +69,7 @@ export class AnalysteShellComponent implements OnInit, OnDestroy {
       .pipe(filter(e => e instanceof NavigationEnd), takeUntil(this.destroy$))
       .subscribe(() => {
         const allItems = [
-          ...this.dashItems, ...this.dataItems,
+          ...this.dashItems, ...this.dataItems, ...this.navItems, ...this.profilItems,
         ];
         const match = allItems.find(i =>
           this.router.isActive(i.route, { paths: 'subset', queryParams: 'ignored', fragment: 'ignored', matrixParams: 'ignored' })

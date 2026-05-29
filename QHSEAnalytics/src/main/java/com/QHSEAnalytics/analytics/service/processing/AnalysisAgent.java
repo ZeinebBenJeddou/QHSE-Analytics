@@ -422,18 +422,52 @@ public class AnalysisAgent {
                             ? insight.getActionImmediate().substring(
                                 0, Math.min(100, insight.getActionImmediate().length()))
                             : "";
+                    String kpiDirection = allKpis.stream()
+                            .filter(k -> k.getKpiName() != null
+                                    && k.getKpiName().equals(insight.getKpiName()))
+                            .findFirst()
+                            .map(k -> k.getDirection() != null
+                                    ? k.getDirection().toString() : "?")
+                            .orElse("?");
+
                     prompt.append(String.format(
-                            "- %s [%s] | Analyse: %s | Action: %s\n",
-                            insight.getKpiName(), urgency, insightShort, action));
+                            "- %s [urgence:%s] [direction:%s] | Analyse: %s | Action: %s\n",
+                            insight.getKpiName(), urgency, kpiDirection,
+                            insightShort, action));
                 }
             }
 
-            prompt.append("\nConsignes strictes :\n");
-            prompt.append("1. Couvre TOUS les KPIs listés ci-dessus dans le paragraphe.\n");
-            prompt.append("2. Cite les valeurs chiffrées (score global, nombre de critiques, noms des KPIs les plus dégradés).\n");
-            prompt.append("3. Mentionne les 2-3 actions prioritaires avec leur horizon temporel.\n");
-            prompt.append("4. Termine par une conclusion sur la trajectoire globale.\n");
-            prompt.append("5. Réponds avec le texte du paragraphe uniquement — aucun JSON, aucun markdown.\n");
+            prompt.append("\nRÈGLES ABSOLUES pour ce globalSummary :\n");
+            prompt.append("1. Structure en exactement 5 phrases dans cet ordre strict :\n");
+            prompt.append("   Phrase 1 — Périmètre : cite la période analysée, " +
+                    "le nombre total de KPIs, le score global chiffré et son label.\n");
+            prompt.append("   Phrase 2 — KPIs critiques ou les plus dégradés : " +
+                    "cite les 2-3 indicateurs les plus problématiques " +
+                    "avec leurs valeurs N-1 → N et leur variation en %. " +
+                    "ATTENTION : si la direction d'un KPI est LOWER_IS_BETTER, " +
+                    "une baisse est une amélioration — ne pas la présenter comme " +
+                    "une dégradation.\n");
+            prompt.append("   Phrase 3 — Points positifs : cite 1-2 KPIs en " +
+                    "amélioration réelle en cohérence avec leur direction. " +
+                    "Si aucune amélioration notable, mentionne la stabilité observée.\n");
+            prompt.append("   Phrase 4 — Actions prioritaires : 2 actions concrètes " +
+                    "avec responsable précis et horizon temporel réaliste, " +
+                    "directement liées aux KPIs critiques cités en phrase 2.\n");
+            prompt.append("   Phrase 5 — Trajectoire : conclusion factuelle et " +
+                    "spécifique basée sur les scores réels fournis. " +
+                    "INTERDIT d'utiliser des formules génériques comme " +
+                    "'sans action immédiate, la trajectoire actuelle conduira à...'.\n");
+            prompt.append("2. RÈGLES INTERDITES :\n");
+            prompt.append("   - Ne jamais présenter une baisse comme négative " +
+                    "si la direction est LOWER_IS_BETTER.\n");
+            prompt.append("   - Ne jamais mentionner des catégories à 100/100 " +
+                    "comme problématiques.\n");
+            prompt.append("   - Ne jamais utiliser de formules génériques répétitives.\n");
+            prompt.append("   - Ne jamais répéter les mêmes recommandations.\n");
+            prompt.append("3. Chaque valeur chiffrée doit être strictement cohérente " +
+                    "avec les scores pré-calculés fournis dans ce prompt.\n");
+            prompt.append("4. Réponds avec le texte du paragraphe uniquement — " +
+                    "aucun JSON, aucun markdown, aucun saut de ligne interne.\n");
 
             String summaryKey = cacheKeyPrefix + "|final-summary";
             LlmProviderChain.ProviderResult result = llmProviderChain.generate(prompt.toString(), summaryKey, false);

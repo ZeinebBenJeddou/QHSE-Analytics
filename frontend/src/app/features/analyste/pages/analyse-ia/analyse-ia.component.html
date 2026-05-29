@@ -51,7 +51,6 @@
     <header class="page-header">
       <div class="page-header-left">
         <div class="page-title-row">
-          <mat-icon class="title-icon">smart_toy</mat-icon>
           <h1 class="page-title">Analyses Intelligence Artificielle</h1>
           @if (periode) {
             <span class="period-badge">{{ periode }}</span>
@@ -129,7 +128,6 @@
 
           <div class="hero-summary">
             <div class="hero-summary-header">
-              <mat-icon class="hero-icon">analytics</mat-icon>
               <h2>Synthèse Globale</h2>
               <span class="synth-badge-expert">Expert QHSE</span>
             </div>
@@ -178,7 +176,6 @@
         <!-- Tab 1: KPIs -->
         <mat-tab>
           <ng-template mat-tab-label>
-            <mat-icon class="tab-icon">insights</mat-icon>
             <span>Indicateurs</span>
             <span class="tab-badge">{{ enrichedKpis().length }}</span>
             @if (heroStats().critiques > 0) {
@@ -281,9 +278,7 @@
                         </span>
                       }
                       @if (kpi.insight) {
-                        <span class="ai-tag" matTooltip="Analyse IA disponible">
-                          <mat-icon>smart_toy</mat-icon> IA
-                        </span>
+                        <span class="ai-tag" matTooltip="Analyse IA disponible">IA</span>
                       }
                       <mat-icon class="expand-chevron" [class.open]="isExpanded(kpi.id)">expand_more</mat-icon>
                     </div>
@@ -306,10 +301,19 @@
 
                         @if (kpi.structuredCauses.length) {
                           <div class="detail-card dc-causes">
-                            <div class="dc-head"><mat-icon>search</mat-icon> Causes probables</div>
-                            <ul class="dc-list">
-                              @for (c of kpi.structuredCauses; track $index) {
-                                <li>{{ formatDisplayText(c) }}</li>
+                            <div class="dc-head">Causes probables</div>
+                            <ul class="causes-list">
+                              @for (cause of kpi.structuredCauses; track cause) {
+                                @let parsed = parseIshikawaCause(cause);
+                                <li class="cause-item">
+                                  @if (parsed.category) {
+                                    <span class="ishikawa-badge"
+                                          [ngClass]="getIshikawaClass(parsed.category)">
+                                      {{ parsed.category }}
+                                    </span>
+                                  }
+                                  <span class="cause-text">{{ parsed.text }}</span>
+                                </li>
                               }
                             </ul>
                           </div>
@@ -317,7 +321,7 @@
 
                         @if (kpi.structuredAction) {
                           <div class="detail-card dc-actions">
-                            <div class="dc-head"><mat-icon>build</mat-icon> Plan d'actions</div>
+                            <div class="dc-head">Plan d'actions</div>
                             <div class="dc-actions-stack">
                               <div class="dc-action dc-immediate">
                                 <div class="dc-action-label"><mat-icon>bolt</mat-icon> Immédiate</div>
@@ -329,7 +333,7 @@
 
                         @if (kpi.structuredRecos.length) {
                           <div class="detail-card dc-recos">
-                            <div class="dc-head"><mat-icon>lightbulb</mat-icon> Recommandations</div>
+                            <div class="dc-head">Recommandations</div>
                             <ul class="dc-list">
                               @for (r of kpi.structuredRecos; track $index) {
                                 <li>{{ formatDisplayText(r) }}</li>
@@ -338,9 +342,25 @@
                           </div>
                         }
 
-                        @if (kpi.structuredSuccess || kpi.structuredRisk) {
+                        @if (kpi.structuredSuccess || kpi.structuredRisk || kpi.structuredOwner || kpi.structuredDue) {
                           <div class="detail-card dc-outcome">
-                            <div class="dc-head"><mat-icon>flag</mat-icon> Objectifs & Risques</div>
+                            <div class="dc-head">Objectifs & Risques</div>
+                            @if (kpi.structuredOwner || kpi.structuredDue) {
+                              <div class="owner-row">
+                                @if (kpi.structuredOwner) {
+                                  <span class="owner-badge">
+                                    <mat-icon>person</mat-icon>
+                                    {{ kpi.structuredOwner }}
+                                  </span>
+                                }
+                                @if (kpi.structuredDue) {
+                                  <span class="horizon-badge">
+                                    <mat-icon>schedule</mat-icon>
+                                    {{ kpi.structuredDue }}
+                                  </span>
+                                }
+                              </div>
+                            }
                             @if (kpi.structuredSuccess) {
                               <div class="dc-outcome-row dc-success">
                                 <div class="dc-outcome-label">Métrique de succès</div>
@@ -357,6 +377,14 @@
                         }
 
                       </div>
+
+                      @if (kpi.note) {
+                        <div class="kpi-note">
+                          <mat-icon class="note-icon">info_outline</mat-icon>
+                          <span class="note-text">{{ kpi.note }}</span>
+                        </div>
+                      }
+
                     </div>
                   }
                 </div>
@@ -368,7 +396,6 @@
         <!-- Tab 2: Recommandations -->
         <mat-tab>
           <ng-template mat-tab-label>
-            <mat-icon class="tab-icon">lightbulb</mat-icon>
             <span>Recommandations</span>
             @if (structured()?.recommendations?.length) {
               <span class="tab-badge">{{ structured()!.recommendations.length }}</span>
@@ -454,7 +481,6 @@
         <!-- Tab 3: Plan d'action -->
         <mat-tab>
           <ng-template mat-tab-label>
-            <mat-icon class="tab-icon">task_alt</mat-icon>
             <span>Plan d'action</span>
             @if (structured()?.actionPlan?.length || planActionsList().length) {
               <span class="tab-badge tab-badge-blue">
@@ -521,7 +547,6 @@
         <!-- Tab 4: Alertes prédictives -->
         <mat-tab>
           <ng-template mat-tab-label>
-            <mat-icon class="tab-icon">notifications_active</mat-icon>
             <span>Alertes</span>
             @if (structured()?.predictiveAlerts?.length) {
               <span class="tab-badge tab-badge-danger">{{ structured()!.predictiveAlerts!.length }}</span>
@@ -575,8 +600,77 @@
           </div>
         </mat-tab>
 
+        <!-- Tab 5: Analyse Causes Racines -->
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <span>Causes Racines</span>
+            @if (structured()?.rootCauseAnalysis?.length) {
+              <span class="tab-badge">{{ structured()!.rootCauseAnalysis!.length }}</span>
+            }
+          </ng-template>
+
+          <div class="tab-content root-cause-container">
+            @if (!structured()?.rootCauseAnalysis?.length) {
+              <div class="tab-empty">
+                <mat-icon>search_off</mat-icon>
+                <p>Aucune analyse de cause racine disponible.</p>
+              </div>
+            } @else {
+              <div class="section-header-row">
+                <mat-icon class="s-icon">account_tree</mat-icon>
+                <h2>Analyse des Causes Racines</h2>
+                <span class="head-count">{{ structured()!.rootCauseAnalysis!.length }} analyse(s)</span>
+              </div>
+              <div class="root-cause-grid">
+                @for (rc of structured()!.rootCauseAnalysis!; track rc.kpiRef) {
+                  <div class="root-cause-card">
+                    <div class="rc-header">
+                      <mat-icon class="rc-icon">timeline</mat-icon>
+                      <span class="rc-kpi-ref">{{ rc.kpiRef }}</span>
+                      <span class="rc-method-badge">5 Pourquoi</span>
+                      @if (rc.ishikawaCategory) {
+                        <span class="ishikawa-badge"
+                              [ngClass]="getIshikawaClass(rc.ishikawaCategory)">
+                          {{ rc.ishikawaCategory }}
+                        </span>
+                      }
+                    </div>
+                    <div class="why-chain">
+                      @for (why of rc.whyChain; track $index) {
+                        <div class="why-step">
+                          <span class="why-number">{{ $index + 1 }}</span>
+                          <span class="why-text">{{ why }}</span>
+                        </div>
+                      }
+                    </div>
+                    <div class="root-cause-conclusion">
+                      <mat-icon>flag</mat-icon>
+                      <strong>Cause racine :</strong>
+                      <span>{{ rc.rootCause }}</span>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </mat-tab>
+
       </mat-tab-group>
     </div>
+
+    @if (structured()?.traceability) {
+      <div class="traceability-footer">
+        <mat-icon>verified</mat-icon>
+        <span>
+          Analyse générée par
+          <strong>{{ structured()!.traceability!.modelName }}</strong>
+          le {{ structured()!.traceability!.generatedAt | date:'dd/MM/yyyy à HH:mm' }}
+        </span>
+        @if (structured()!.traceability!.promptVersion) {
+          <span class="prompt-version">v{{ structured()!.traceability!.promptVersion }}</span>
+        }
+      </div>
+    }
 
   }
 </div>
