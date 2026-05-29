@@ -3,8 +3,6 @@ package com.QHSEAnalytics.analytics.service.processing;
 import com.QHSEAnalytics.shared.dto.response.AiAnalysisStructuredResponse;
 import com.QHSEAnalytics.shared.dto.response.AiConfidenceResponse;
 import com.QHSEAnalytics.shared.dto.response.AiKpiInsightResponse;
-import com.QHSEAnalytics.shared.dto.response.AiPredictiveAlertResponse;
-import com.QHSEAnalytics.shared.dto.response.AiRootCauseResponse;
 import com.QHSEAnalytics.shared.dto.response.AiTraceabilityResponse;
 import com.QHSEAnalytics.shared.dto.response.KpiCalculatedDTO;
 import lombok.extern.slf4j.Slf4j;
@@ -18,8 +16,6 @@ import java.util.Set;
 @Component
 @Slf4j
 public class StructuredAnalysisValidator {
-
-    private static final Set<String> VALID_SEVERITY = Set.of("LOW", "MEDIUM", "HIGH");
 
     public List<String> validate(AiAnalysisStructuredResponse response, List<KpiCalculatedDTO> availableKpis) {
         List<String> errors = new ArrayList<>();
@@ -68,47 +64,9 @@ public class StructuredAnalysisValidator {
             validateKpiInsights(response.getKpiInsights(), availableKpis, errors);
         }
 
-        validateRootCauseAnalysis(response.getRootCauseAnalysis(), errors);
-        validatePredictiveAlerts(response.getPredictiveAlerts(), errors);
-
         return errors;
     }
 
-    private void validateRootCauseAnalysis(List<AiRootCauseResponse> rootCauses, List<String> errors) {
-        if (rootCauses == null || rootCauses.isEmpty()) return;
-        Set<String> validIshikawa = Set.of("Homme", "Machine", "Méthode", "Milieu", "Matière");
-        for (int i = 0; i < rootCauses.size(); i++) {
-            AiRootCauseResponse rc = rootCauses.get(i);
-            String prefix = "rootCauseAnalysis[" + i + "]";
-            if (rc == null) { errors.add(prefix + " must not be null."); continue; }
-            if (isBlank(rc.getKpiRef()))     errors.add(prefix + ".kpiRef is mandatory.");
-            if (isBlank(rc.getRootCause()))  errors.add(prefix + ".rootCause is mandatory.");
-            if (rc.getWhyChain() == null || rc.getWhyChain().size() < 3)
-                errors.add(prefix + ".whyChain must contain at least 3 entries.");
-            if (!isBlank(rc.getIshikawaCategory()) && !validIshikawa.contains(rc.getIshikawaCategory()))
-                errors.add(prefix + ".ishikawaCategory must be one of: " + validIshikawa);
-        }
-    }
-
-    private void validatePredictiveAlerts(List<AiPredictiveAlertResponse> alerts, List<String> errors) {
-        if (alerts == null || alerts.isEmpty()) return;
-        Set<String> validSeverity = Set.of("LOW", "MEDIUM", "HIGH");
-        for (int i = 0; i < alerts.size(); i++) {
-            AiPredictiveAlertResponse alert = alerts.get(i);
-            String prefix = "predictiveAlerts[" + i + "]";
-            if (alert == null) { errors.add(prefix + " must not be null."); continue; }
-            if (isBlank(alert.getKpiRef()))    errors.add(prefix + ".kpiRef is mandatory.");
-            if (isBlank(alert.getProjection())) errors.add(prefix + ".projection is mandatory.");
-            if (alert.getEstimatedHorizonMonths() != null
-                    && (alert.getEstimatedHorizonMonths() < 0 || alert.getEstimatedHorizonMonths() > 24))
-                errors.add(prefix + ".estimatedHorizonMonths must be between 0 and 24.");
-            if (alert.getConfidence() != null
-                    && (alert.getConfidence() < 0 || alert.getConfidence() > 100))
-                errors.add(prefix + ".confidence must be between 0 and 100.");
-            if (!isBlank(alert.getSeverity()) && !validSeverity.contains(alert.getSeverity()))
-                errors.add(prefix + ".severity must be LOW, MEDIUM or HIGH.");
-        }
-    }
 
     private void validateTraceability(AiTraceabilityResponse trace, List<String> errors) {
         // modelName injecté côté serveur — pas de validation LLM
@@ -219,23 +177,6 @@ public class StructuredAnalysisValidator {
         }
     }
 
-    private String normalizeIshikawa(String raw) {
-        if (raw == null) return raw;
-        String key = raw.toLowerCase().trim()
-                .replace("é", "e").replace("è", "e").replace("ê", "e")
-                .replace("à", "a").replace("â", "a")
-                .replace("î", "i").replace("ô", "o").replace("û", "u")
-                .replace("ç", "c");
-        return switch (key) {
-            case "homme", "man", "people", "human", "humain" -> "Homme";
-            case "machine", "equipment", "materiel", "matériel" -> "Machine";
-            case "methode", "method", "methods", "methodologie" -> "Méthode";
-            case "milieu", "environment", "environnement", "milieu de travail" -> "Milieu";
-            case "matiere", "material", "materials", "matieres premieres" -> "Matière";
-            default -> raw;
-        };
-    }
-
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
     }
@@ -341,38 +282,6 @@ public class StructuredAnalysisValidator {
             });
         }
 
-        if (response.getRootCauseAnalysis() != null) {
-            response.getRootCauseAnalysis().forEach(rc -> {
-                if (rc == null || isBlank(rc.getIshikawaCategory())) return;
-                String normalized = normalizeIshikawa(rc.getIshikawaCategory());
-                if (!normalized.equals(rc.getIshikawaCategory())) {
-                    log.warn("[AI Validation] Normalized ishikawaCategory '{}' → '{}'", rc.getIshikawaCategory(), normalized);
-                    rc.setIshikawaCategory(normalized);
-                }
-            });
-        }
-
-        if (response.getPredictiveAlerts() != null) {
-            response.getPredictiveAlerts().forEach(alert -> {
-                if (alert == null) return;
-                if (alert.getConfidence() != null) {
-                    alert.setConfidence(clamp(alert.getConfidence(), 0, 100));
-                }
-                if (alert.getEstimatedHorizonMonths() != null) {
-                    alert.setEstimatedHorizonMonths(Math.max(0, Math.min(24, alert.getEstimatedHorizonMonths())));
-                }
-                if (alert.getSeverity() != null) {
-                    String upper = alert.getSeverity().toUpperCase();
-                    if (!VALID_SEVERITY.contains(upper)) {
-                        log.warn("[AI Validation] Invalid predictiveAlert severity '{}' normalized to MEDIUM", alert.getSeverity());
-                        alert.setSeverity("MEDIUM");
-                    } else {
-                        alert.setSeverity(upper);
-                    }
-                }
-                alert.setProjection(truncate(alert.getProjection(), 500));
-            });
-        }
     }
 
     private double clamp(double value, double min, double max) {

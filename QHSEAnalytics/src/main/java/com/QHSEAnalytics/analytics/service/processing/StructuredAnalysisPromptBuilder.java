@@ -41,43 +41,227 @@ public class StructuredAnalysisPromptBuilder {
             "1. Réponds UNIQUEMENT avec du JSON valide — aucun texte avant ou après, aucun markdown, aucun backtick.\n" +
             "2. Chaque champ texte doit être spécifique, chiffré et actionnable. " +
             "   Les valeurs génériques ('N/A', 'À analyser', 'Non disponible', texte < 15 mots) sont STRICTEMENT INTERDITES.\n" +
-            "3. insight : structure OBLIGATOIRE en exactement 3 phrases dans cet ordre strict :\n" +
+            "3. insight : structure OBLIGATOIRE en exactement 3 phrases " +
+            "dans cet ordre strict :\n" +
             "   Phrase 1 — variation chiffrée : cite les valeurs N-1 et N, " +
             "l'écart en pourcentage, le seuil franchi et la norme ISO concernée. " +
-            "Exemple : 'Le Taux de Fréquence est passé de 2,5 à 3,2 (+28 %), " +
+            "Exemple : 'Le TF1 est passé de 2,5 à 3,2 (+28 %), " +
             "franchissant le seuil critique de 3,0 fixé selon ISO 45001 §6.1.2.'\n" +
-            "   Phrase 2 — impact QHSE réel : décris la conséquence concrète " +
-            "sur la sécurité des personnes, la conformité normative, " +
-            "le coût ou la satisfaction client. " +
-            "Exemple : 'Cette dégradation expose l'organisation à un risque " +
-            "de mise en demeure DREAL et augmente la probabilité d'un accident " +
-            "grave avec arrêt de travail.'\n" +
-            "   Phrase 3 — interprétation causale préliminaire : formule " +
-            "une hypothèse causale classée dans une catégorie Ishikawa " +
-            "(Homme / Machine / Méthode / Milieu / Matière). " +
-            "Exemple : '[Méthode] L'absence de révision des analyses de risques " +
-            "lors de l'augmentation de cadence constitue la cause probable " +
-            "principale.'\n" +
-            "4. probableCauses (par KPI) : chaque cause doit être classée dans une catégorie Ishikawa " +
-            "   (Homme / Machine / Méthode / Milieu / Matière) et rédigée comme une phrase causale précise.\n" +
-            "5. actionImmediate : action SMART — Spécifique, Mesurable, avec un verbe d'action fort " +
-            "   (Organiser, Déployer, Auditer, Suspendre, Mettre en place), un responsable et un horizon temporel.\n" +
+            "   Phrase 2 — impact QHSE réel SELON LE SENS : " +
+            "si Sens variation = AMELIORATION, décris l'impact POSITIF " +
+            "(réduction du risque, conformité renforcée, économie réalisée) " +
+            "et recommande de maintenir la tendance. " +
+            "Si Sens variation = DEGRADATION, décris la conséquence négative " +
+            "(risque accru, non-conformité, coût, perte client).\n" +
+            "   Phrase 3 — interprétation causale : " +
+            "si AMELIORATION, explique ce qui a permis cette amélioration " +
+            "(bonne pratique, investissement, processus). " +
+            "si DEGRADATION, formule une hypothèse causale Ishikawa " +
+            "[Homme/Machine/Méthode/Milieu/Matière].\n" +
+            "4. probableCauses (par KPI) — règle selon le sens de variation :\n" +
+            "   Si Sens variation = DEGRADATION : " +
+            "liste de 2 à 4 causes probables de la dégradation. " +
+            "CHAQUE CAUSE doit :\n" +
+            "   - Être une phrase complète de 15 à 30 mots minimum.\n" +
+            "   - Citer un facteur CONCRET et SPÉCIFIQUE au secteur " +
+            "et au contexte organisationnel fourni.\n" +
+            "   - Expliquer le MÉCANISME causal " +
+            "(pas juste nommer le problème).\n" +
+            "   - Contenir au minimum 20 mots. " +
+            "Une cause en moins de 20 mots sera considérée " +
+            "comme invalide et refusée.\n" +
+            "   - Suivre ce format : " +
+            "[Contexte organisationnel] + [Défaillance observée] " +
+            "+ [Mécanisme d'impact sur le KPI].\n" +
+            "   EXEMPLES REFUSÉS (trop courts, rejetés automatiquement) :\n" +
+            "   ✗ 'Manque de formation des salariés'\n" +
+            "   ✗ 'Déficit de sensibilisation'\n" +
+            "   ✗ 'Formation insuffisante'\n" +
+            "   EXEMPLES ACCEPTÉS (mécanisme détaillé) :\n" +
+            "   ✓ 'L'absence de plan de formation annuel " +
+            "actualisé pour les nouveaux arrivants, qui représentent " +
+            "40 % des effectifs depuis janvier 2024, a créé un écart " +
+            "entre les compétences disponibles et les exigences " +
+            "sécurité des postes occupés.'\n" +
+            "   ✓ 'Le recours à des sous-traitants non formés " +
+            "aux procédures internes de sécurité, sans session " +
+            "d'intégration obligatoire, a exposé le chantier " +
+            "à des comportements à risque non détectés " +
+            "lors des visites de sécurité.'\n" +
+            "   Exemple acceptable : " +
+            "'L'augmentation de 40 % des effectifs sans révision " +
+            "proportionnelle du plan de formation sécurité a créé " +
+            "un déficit de compétences chez les nouveaux opérateurs, " +
+            "augmentant leur exposition aux risques.'\n" +
+            "   Exemple REFUSÉ : 'Manque de formation.' " +
+            "(trop court, pas de mécanisme)\n" +
+            "   Si Sens variation = AMELIORATION : " +
+            "liste de 2 à 4 facteurs d'amélioration. " +
+            "CHAQUE FACTEUR doit expliquer COMMENT et POURQUOI " +
+            "l'amélioration s'est produite, avec le mécanisme précis.\n" +
+            "   Exemple acceptable : " +
+            "'La mise en place d'un système de rappel automatique " +
+            "des visites médicales a permis d'augmenter le taux " +
+            "de convocation de 15 %, réduisant les oublis liés " +
+            "à la charge de travail élevée.'\n" +
+            "5. actionImmediate — règle selon le sens de variation :\n" +
+            "   Si Sens variation = AMELIORATION et niveau FAIBLE ou MODERE : " +
+            "l'action doit être de MAINTIEN ou CONSOLIDATION " +
+            "(ex: 'Consolider les bonnes pratiques...', " +
+            "'Documenter les actions ayant conduit à cette amélioration...'). " +
+            "NE PAS recommander une action corrective urgente " +
+            "sur un KPI qui s'améliore déjà.\n" +
+            "   Si Sens variation = DEGRADATION ou niveau CRITIQUE : " +
+            "action SMART avec verbe fort (Organiser, Déployer, Auditer, " +
+            "Suspendre), responsable précis et horizon temporel court.\n" +
+            "   Si Sens variation = AMELIORATION et niveau CRITIQUE : " +
+            "l'amélioration est positive mais le niveau reste préoccupant — " +
+            "action de poursuite de l'effort avec horizon réaliste.\n" +
             "6. successMetric : indicateur de résultat précis et mesurable " +
             "   (ex : 'TF1 < 2,5 dans les 3 mois', 'FPY > 90 % à J+30').\n" +
             "7. riskIfNotDone : conséquence concrète si l'action n'est pas menée " +
             "   (pénalité réglementaire, accident grave, perte client, audit défavorable).\n" +
             "8. probableCauses (global) : liste de causes TRANSVERSALES classées par catégorie Ishikawa, " +
             "   couvrant les thèmes communs à plusieurs KPIs. Format : '[Catégorie] Cause précise'.\n" +
-            "9. recommendations : chaque recommandation doit citer le(s) KPI(s) concerné(s), " +
-            "   la norme ISO applicable, et l'impact attendu chiffré si possible.\n" +
-            "10. actionPlan : plan d'actions priorisé, chaque action doit avoir un ownerRole précis " +
-            "    (Responsable HSE / Responsable Qualité / Directeur de Production / RH...), " +
-            "    un dueHorizon réaliste (48h / 1 semaine / 1 mois / 3 mois) et un successMetric mesurable.\n" +
+            "9. recommendations : liste de 3 à 6 recommandations. " +
+            "CHAQUE recommandation doit obligatoirement contenir :\n" +
+            "   - title : titre court et actionnable " +
+            "(verbe d'action + objet + contexte).\n" +
+            "   - rationale : 2 à 3 phrases expliquant POURQUOI " +
+            "cette recommandation est prioritaire, en citant : " +
+            "(1) le ou les KPIs concernés avec leurs valeurs, " +
+            "(2) la clause ISO applicable, " +
+            "(3) le risque si non appliquée.\n" +
+            "   Exemple rationale acceptable : " +
+            "'Le TF1 a progressé de +62 % (18 → 29), dépassant " +
+            "le seuil critique de 25 selon ISO 45001 §6.1.2. " +
+            "Sans renforcement des analyses de risques, " +
+            "l'organisation s'expose à une mise en demeure DREAL " +
+            "et à une augmentation de la cotisation AT/MP.'\n" +
+            "   Exemple rationale REFUSÉ : " +
+            "'Les KPIs convergent vers un déficit de compétences.' " +
+            "(trop vague, pas de valeurs chiffrées)\n" +
+            "   - expectedBenefit : résultat chiffré attendu " +
+            "avec horizon temporel précis. " +
+            "Format : 'Réduction de X% de [KPI] sous [délai]' " +
+            "ou '[KPI] < [seuil] à [horizon]'.\n" +
+            "   - urgency : HIGH / MEDIUM / LOW " +
+            "selon l'impact sur la sécurité et la conformité.\n" +
+            "10. actionPlan : plan de 4 à 8 actions SMART " +
+            "ordonnées par priorité décroissante. " +
+            "RÈGLES STRICTES par champ :\n" +
+            "   - action : phrase complète de 30 à 50 mots MINIMUM. " +
+            "Format OBLIGATOIRE en 3 parties dans cet ordre :\n" +
+            "     Partie 1 — Verbe fort + objet précis : " +
+            "[Verbe] un/une [objet spécifique] " +
+            "(ex: 'Organiser une revue sécurité d'urgence', " +
+            "'Déployer un programme de formation ciblé').\n" +
+            "     Partie 2 — Contexte chiffré du KPI : " +
+            "'suite à [variation chiffrée] du [nom KPI] " +
+            "([valeur N-1] → [valeur N]), " +
+            "[franchissant/restant au-dessus de/restant sous] " +
+            "le seuil [niveau] de [valeur seuil] " +
+            "selon [norme ISO applicable]'.\n" +
+            "     Partie 3 — Objectif intermédiaire de l'action : " +
+            "'afin de [résultat concret attendu de cette action " +
+            "spécifiquement, pas du KPI en général]'.\n" +
+            "     EXEMPLE VALIDE (reproduis cette structure) :\n" +
+            "     'Organiser une revue sécurité d'urgence " +
+            "avec les chefs de chantier et le Responsable HSE, " +
+            "suite à une hausse de +62,3 % du TF1 " +
+            "(18,07 → 29,32 accidents/million d'heures), " +
+            "franchissant le seuil critique de 25,0 " +
+            "selon ISO 45001 §6.1.2, " +
+            "afin d'identifier et condamner les postes à risque " +
+            "et réviser le DUERP pour les nouveaux opérateurs.'\n" +
+            "     EXEMPLE VALIDE consolidation :\n" +
+            "     'Documenter et standardiser les pratiques " +
+            "d'optimisation énergétique ayant permis une réduction " +
+            "de -9,4 % des émissions CO2 (160 → 145 kg), " +
+            "maintenant sous le seuil faible de 200,0 " +
+            "selon le protocole GHG Scope 1&2, " +
+            "afin de déployer ces bonnes pratiques sur l'ensemble " +
+            "des postes de production et pérenniser la tendance.'\n" +
+            "     INTERDIT : actions génériques sans valeurs chiffrées " +
+            "du KPI concerné.\n" +
+            "   - ownerRole : rôle précis parmi cette liste uniquement : " +
+            "Responsable HSE / Responsable Qualité / " +
+            "Directeur de Production / Médecin du Travail / " +
+            "Responsable Maintenance / Responsable Formation / " +
+            "Responsable Environnement / Responsable Commercial. " +
+            "INTERDIT : 'Responsable QHSE' générique.\n" +
+            "   - dueHorizon : délai strict parmi : " +
+            "48h / 1 semaine / 2 semaines / 1 mois / 3 mois / 6 mois. " +
+            "Proportionnel à la priorité : HAUTE → 48h à 2 semaines, " +
+            "MOYENNE → 1 à 3 mois, FAIBLE → 3 à 6 mois.\n" +
+            "   - successMetric : indicateur mesurable OBLIGATOIRE " +
+            "au format strict : '[Nom KPI] [< ou >] [valeur cible] " +
+            "dans les [délai]'. " +
+            "Exemple valide : 'TF1 < 25,0 dans les 3 mois'. " +
+            "INTERDIT : métriques vagues sans valeur chiffrée.\n" +
+            "   - riskIfNotDone : conséquence concrète en 1 phrase " +
+            "avec impact chiffré ou réglementaire précis. " +
+            "Exemples valides : " +
+            "'Risque d'accident grave avec arrêt de travail, " +
+            "mise en demeure DREAL et hausse de la cotisation " +
+            "AT/MP estimée à +15 %.' / " +
+            "'Non-conformité ISO 45001 §6.1.2 lors du prochain audit, " +
+            "risque de perte de certification.' " +
+            "INTERDIT : phrases vagues sans référence réglementaire " +
+            "ou impact chiffré.\n" +
+            "   - priority : HAUTE si urgency HIGH, " +
+            "MOYENNE si urgency MEDIUM, FAIBLE si urgency LOW.\n" +
             "11. Tu dois produire exactement un objet kpiInsights pour chaque KPI fourni.\n" +
-            "12. Réponds intégralement en français.\n";
+            "12. Réponds intégralement en français.\n" +
+            "13. urgency — règle stricte selon sens et niveau :\n" +
+            "    DEGRADATION + CRITIQUE → HIGH\n" +
+            "    DEGRADATION + MODERE  → MEDIUM\n" +
+            "    DEGRADATION + FAIBLE  → LOW\n" +
+            "    AMELIORATION + CRITIQUE → MEDIUM " +
+            "(encore critique malgré l'amélioration)\n" +
+            "    AMELIORATION + MODERE  → LOW\n" +
+            "    AMELIORATION + FAIBLE  → LOW\n" +
+            "    INTERDIT : urgency=HIGH sur un KPI " +
+            "en AMELIORATION avec niveau FAIBLE.\n" +
+            "   RÈGLE ACTIONPLAN : pour un KPI en AMELIORATION " +
+            "avec niveau FAIBLE, l'action dans actionPlan DOIT être " +
+            "de type CONSOLIDATION avec priority=FAIBLE " +
+            "et dueHorizon de 3 à 6 mois. " +
+            "INTERDIT de créer une action corrective urgente " +
+            "(priority=HAUTE, dueHorizon=48h) " +
+            "sur un KPI qui s'améliore déjà.\n" +
+            "15. RÈGLE ANTI-COPIE ABSOLUE :\n" +
+            "    Les exemples fournis dans ce prompt sont des MODÈLES " +
+            "de structure et de niveau de détail UNIQUEMENT.\n" +
+            "    INTERDIT de reproduire ou paraphraser le contenu " +
+            "des exemples dans tes réponses.\n" +
+            "    Chaque action, cause et recommandation DOIT être " +
+            "SPÉCIFIQUE aux KPIs réels fournis dans la section " +
+            "'KPIs À ANALYSER'.\n" +
+            "    Test : si ton action pourrait s'appliquer à " +
+            "n'importe quelle entreprise sans modification, " +
+            "elle est trop générique — reformule-la.\n" +
+            "    Exemples de copies INTERDITES :\n" +
+            "    ✗ 'Déployer un audit interne ISO 9001 §8.5 ciblé " +
+            "sur les processus de contrôle qualité en production' " +
+            "(copie exacte du few-shot)\n" +
+            "    ✗ 'Organiser une revue sécurité d'urgence avec " +
+            "les responsables de ligne et le Responsable HSE' " +
+            "(copie du few-shot)\n" +
+            "    ✗ 'Consolider les actions d'optimisation énergétique " +
+            "ayant permis une réduction de -9,4 % des émissions CO2' " +
+            "(copie du few-shot)\n" +
+            "    Chaque action DOIT citer le nom exact du KPI concerné " +
+            "et ses valeurs réelles N-1 → N.\n";
 
     private static final String FEW_SHOT_EXAMPLE =
-            "\n\n=== EXEMPLES DE RÉPONSES ATTENDUES (respecte ce niveau de qualité) ===\n\n" +
+            "\n\n=== EXEMPLES DE STRUCTURE ET NIVEAU DE DÉTAIL ATTENDUS ===\n" +
+            "⚠️ CES EXEMPLES SONT FICTIFS. " +
+            "NE PAS REPRODUIRE LEUR CONTENU.\n" +
+            "Utilise-les uniquement comme référence de format " +
+            "et de niveau de détail.\n" +
+            "Tes réponses DOIVENT être basées sur les KPIs réels " +
+            "fournis dans la section 'KPIs À ANALYSER'.\n\n" +
             "EXEMPLE globalSummary (reproduis exactement cette structure " +
             "en 5 phrases pour tes données) :\n" +
             "\"L'analyse QHSE portant sur la période 2023 → 2024, " +
@@ -111,9 +295,21 @@ public class StructuredAnalysisPromptBuilder {
             "  \"confidence\": 87,\n" +
             "  \"insight\": \"Le TF1 a progressé de +28 % entre N-1 et N (2,5 → 3,2), dépassant le seuil critique fixé à 3,0 selon le référentiel ISO 45001 §6.1.2. Cette dégradation, couplée à une augmentation de la cadence de production de 15 %, traduit une insuffisance des barrières préventives face à l'accroissement de l'activité. Un accident grave est statistiquement probable si la tendance n'est pas inversée sous 6 semaines.\",\n" +
             "  \"probableCauses\": [\n" +
-            "    \"[Méthode] Absence de révision des analyses de risques lors de l'augmentation de cadence de production\",\n" +
-            "    \"[Homme] Déficit de formation sécurité pour les opérateurs récemment embauchés (< 6 mois d'ancienneté)\",\n" +
-            "    \"[Milieu] Sous-déclaration des presqu'accidents réduisant la visibilité sur les signaux faibles\"\n" +
+            "    \"L'augmentation de la cadence de production de 15 % " +
+            "sans révision préalable des analyses de risques " +
+            "(DUERP) a exposé les opérateurs à des situations " +
+            "non anticipées, créant un écart entre les procédures " +
+            "existantes et les conditions réelles de travail.\",\n" +
+            "    \"Le déficit de formation sécurité chez les opérateurs " +
+            "embauchés depuis moins de 6 mois — représentant 30 % " +
+            "des effectifs — a réduit leur capacité à identifier " +
+            "et déclarer les signaux faibles avant qu'ils " +
+            "ne deviennent des accidents.\",\n" +
+            "    \"La sous-déclaration systématique des presqu'accidents, " +
+            "liée à la culture de non-signalement et à l'absence " +
+            "de remontée d'information structurée, a privé " +
+            "l'encadrement de données préventives essentielles " +
+            "pour anticiper les dérives.\"\n" +
             "  ],\n" +
             "  \"recommendations\": [\n" +
             "    \"Mettre à jour les analyses de risques (DUERP) pour intégrer les nouveaux postes créés lors de l'augmentation de cadence\",\n" +
@@ -133,22 +329,90 @@ public class StructuredAnalysisPromptBuilder {
             " \"[Machine] Maintenance préventive insuffisante engendrant des défaillances récurrentes\",\n" +
             " \"[Milieu] Conditions de travail dégradées (bruit, température, ergonomie) favorisant les erreurs humaines\",\n" +
             " \"[Matière] Variabilité de la qualité des matières premières non détectée à réception\"]\n\n" +
-            "EXEMPLE recommendation :\n" +
+            "EXEMPLE recommendation (reproduis ce niveau de détail) :\n" +
             "{\n" +
-            "  \"title\": \"Renforcer le plan de formation sécurité et qualité\",\n" +
-            "  \"rationale\": \"Les KPIs TF1 (+28 %) et First Pass Yield (−18,5 %) convergent vers un déficit de compétences opérateurs. ISO 45001 §7.2 et ISO 9001 §7.2 exigent la mise à jour des compétences lors de changements organisationnels.\",\n" +
-            "  \"expectedBenefit\": \"Réduction du TF1 de 20 % et remontée du FPY au-dessus de 88 % sous 3 mois\",\n" +
+            "  \"title\": \"Déployer un programme de formation sécurité " +
+            "ciblé pour les nouveaux opérateurs\",\n" +
+            "  \"rationale\": \"Le TF1 a progressé de +28 % " +
+            "(2,5 → 3,2), franchissant le seuil critique de 3,0 " +
+            "selon ISO 45001 §6.1.2. Les 30 % d'opérateurs embauchés " +
+            "depuis moins de 6 mois représentent le facteur de risque " +
+            "principal identifié dans les analyses de causes. " +
+            "Sans intervention ciblée, l'organisation s'expose " +
+            "à un accident grave avec arrêt dans les 8 semaines, " +
+            "une mise en demeure DREAL et une hausse " +
+            "de la cotisation AT/MP estimée à +15 %.\",\n" +
+            "  \"expectedBenefit\": \"TF1 < 2,5 dans les 3 mois, " +
+            "zéro accident avec arrêt sur les 30 prochains jours\",\n" +
             "  \"urgency\": \"HIGH\"\n" +
             "}\n\n" +
-            "EXEMPLE actionPlan :\n" +
-            "{\n" +
-            "  \"action\": \"Déployer un audit interne ISO 9001 ciblé sur les processus de contrôle qualité en production\",\n" +
-            "  \"priority\": \"HAUTE\",\n" +
-            "  \"ownerRole\": \"Responsable Qualité\",\n" +
-            "  \"dueHorizon\": \"1 mois\",\n" +
-            "  \"successMetric\": \"Rapport d'audit remis, non-conformités majeures traitées, FPY > 88 % à J+30\",\n" +
-            "  \"riskIfNotDone\": \"Maintien du FPY sous le seuil critique, risque de plaintes clients et de pertes de contrats\"\n" +
-            "}\n\n" +
+            "EXEMPLES actionPlan (reproduis ce niveau de détail) :\n" +
+            "[\n" +
+            "  {\n" +
+            "    \"action\": \"Organiser une revue sécurité d'urgence " +
+            "avec les chefs de chantier et le Responsable HSE " +
+            "pour réviser le DUERP et identifier les postes à risque, " +
+            "suite à une hausse de +128,5 % du Nombre de Presque-accidents " +
+            "(6,2 → 14,17 presqu'accidents), " +
+            "franchissant le seuil critique de 10,0 " +
+            "selon les référentiels INRS pour le secteur BTP, " +
+            "afin de mettre en place des barrières préventives " +
+            "avant que ces presqu'accidents ne se concrétisent " +
+            "en accidents avec arrêt.\",\n" +
+            "    \"priority\": \"HAUTE\",\n" +
+            "    \"ownerRole\": \"Responsable HSE\",\n" +
+            "    \"dueHorizon\": \"48h\",\n" +
+            "    \"successMetric\": \"TF1 < 25,0 dans les 3 mois " +
+            "et zéro accident avec arrêt sur les 30 prochains jours\",\n" +
+            "    \"riskIfNotDone\": \"Risque d'accident grave avec " +
+            "arrêt de travail, mise en demeure DREAL et hausse " +
+            "de la cotisation AT/MP estimée à +15 % " +
+            "sur l'exercice suivant.\"\n" +
+            "  },\n" +
+            "  {\n" +
+            "    \"action\": \"Déployer un programme de formation " +
+            "sécurité accélérée de 8 heures minimum " +
+            "pour les opérateurs embauchés depuis moins de 6 mois, " +
+            "suite à une baisse de -27,0 % des Heures de Formation " +
+            "Sécurité (8,29 → 6,05 heures/salarié), " +
+            "restant sous le seuil modéré de 10,0 " +
+            "selon ISO 45001 §7.2 sur la compétence, " +
+            "afin de couvrir les risques spécifiques " +
+            "aux postes créés lors du démarrage du nouveau chantier " +
+            "et réduire l'exposition des nouveaux arrivants.\",\n" +
+            "    \"priority\": \"HAUTE\",\n" +
+            "    \"ownerRole\": \"Responsable Formation\",\n" +
+            "    \"dueHorizon\": \"2 semaines\",\n" +
+            "    \"successMetric\": \"Heures de Formation Sécurité " +
+            "> 10,0 dans les 3 mois\",\n" +
+            "    \"riskIfNotDone\": \"Non-conformité ISO 45001 §7.2 " +
+            "lors du prochain audit externe, risque d'accident grave " +
+            "impliquant un opérateur non formé " +
+            "et perte de certification.\"\n" +
+            "  },\n" +
+            "  {\n" +
+            "    \"action\": \"Documenter et standardiser les pratiques " +
+            "d'optimisation énergétique ayant permis une réduction " +
+            "de -9,4 % des Emissions CO2 Scope 1&2 " +
+            "(160 → 145 kg éq. CO2), " +
+            "maintenant sous le seuil faible de 200,0 " +
+            "selon le protocole GHG et ISO 14001 §6.2, " +
+            "afin de déployer ces bonnes pratiques " +
+            "sur l'ensemble des postes de production " +
+            "et inscrire durablement cette tendance " +
+            "dans le système de management environnemental.\",\n" +
+            "    \"priority\": \"FAIBLE\",\n" +
+            "    \"ownerRole\": \"Responsable Environnement\",\n" +
+            "    \"dueHorizon\": \"3 mois\",\n" +
+            "    \"successMetric\": \"Emissions CO2 < 130,0 kg " +
+            "dans les 6 mois\",\n" +
+            "    \"riskIfNotDone\": \"Perte de la dynamique " +
+            "d'amélioration environnementale et risque de " +
+            "non-atteinte des objectifs ISO 14001 §6.2 " +
+            "lors du bilan annuel, compromettant " +
+            "le renouvellement de la certification.\"\n" +
+            "  }\n" +
+            "]\n\n" +
             "=== DONNÉES RÉELLES À ANALYSER (reproduis le même niveau de détail pour chaque KPI) ===\n";
 
     private final PromptSanitizer promptSanitizer;
@@ -320,24 +584,6 @@ public class StructuredAnalysisPromptBuilder {
         prompt.append("      \"riskIfNotDone\": string\n");
         prompt.append("    }\n");
         prompt.append("  ],\n");
-        prompt.append("  \"rootCauseAnalysis\": [\n");
-        prompt.append("    {\n");
-        prompt.append("      \"kpiRef\": string,\n");
-        prompt.append("      \"method\": \"5_whys\",\n");
-        prompt.append("      \"whyChain\": [string],\n");
-        prompt.append("      \"ishikawaCategory\": string,\n");
-        prompt.append("      \"rootCause\": string\n");
-        prompt.append("    }\n");
-        prompt.append("  ],\n");
-        prompt.append("  \"predictiveAlerts\": [\n");
-        prompt.append("    {\n");
-        prompt.append("      \"kpiRef\": string,\n");
-        prompt.append("      \"projection\": string,\n");
-        prompt.append("      \"estimatedHorizonMonths\": number,\n");
-        prompt.append("      \"confidence\": number,\n");
-        prompt.append("      \"severity\": \"LOW|MEDIUM|HIGH\"\n");
-        prompt.append("    }\n");
-        prompt.append("  ],\n");
         prompt.append("  \"traceability\": {\n");
         prompt.append("    \"generatedAt\": string\n");
         prompt.append("  }\n");
@@ -359,17 +605,7 @@ public class StructuredAnalysisPromptBuilder {
 
         prompt.append("Make sure the output is valid JSON.\n");
         prompt.append("If you cannot provide a structured section, return an empty array/object for it instead of text.\n");
-        prompt.append("\n=== INSTRUCTIONS SPÉCIFIQUES rootCauseAnalysis ===\n");
-        prompt.append("For each CRITIQUE or MODERE KPI, produce exactly one rootCauseAnalysis entry.\n");
-        prompt.append("whyChain must contain 3 to 5 successive 'Why' questions leading to the root cause.\n");
-        prompt.append("ishikawaCategory must be one of: Homme, Machine, Méthode, Milieu, Matière.\n");
-        prompt.append("rootCause must be a single concise sentence identifying the fundamental cause.\n");
-        prompt.append("\n=== INSTRUCTIONS SPÉCIFIQUES predictiveAlerts ===\n");
-        prompt.append("For each KPI showing a deteriorating trend (trendDirection DETERIORATING or 2+ consecutive negative variations), produce a predictiveAlert.\n");
-        prompt.append("projection must describe what will happen if the trend continues (e.g. 'Si la tendance continue, le KPI X atteindra le seuil critique dans environ N mois').\n");
-        prompt.append("estimatedHorizonMonths must be an integer between 1 and 24. Use null if trend is stable or improving.\n");
-        prompt.append("severity doit être LOW (horizon > 12 mois), MEDIUM (6-12 mois) ou HIGH (< 6 mois).\n");
-        prompt.append("confidence doit être un entier entre 0 et 100.\n");
+
 
         prompt.append("Remember: the structured JSON is the single source of truth. Do not output other prose.\n");
 

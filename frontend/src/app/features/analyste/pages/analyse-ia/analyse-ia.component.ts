@@ -562,4 +562,16 @@ export class AnalyseIAComponent implements OnInit, OnDestroy {
     };
     return map[category] || 'ishikawa-autre';
   }
+
+  getActionsByPriority(priority: string): any[] {
+    const actions = this.structured()?.actionPlan ?? [];
+    return actions.filter(a =>
+      (a.priority ?? '').toUpperCase() === priority.toUpperCase()
+    );
+  }
+
+  getActionIndex(action: any): number {
+    const actions = this.structured()?.actionPlan ?? [];
+    return actions.indexOf(action) + 1;
+  }
 }

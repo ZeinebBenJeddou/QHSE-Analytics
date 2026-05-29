@@ -393,7 +393,61 @@
           </div>
         </mat-tab>
 
-        <!-- Tab 2: Recommandations -->
+        <!-- Tab 2: Causes Probables -->
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <span>Causes Probables</span>
+            @if (probableCausesList().length) {
+              <span class="tab-badge">{{ probableCausesList().length }}</span>
+            }
+          </ng-template>
+
+          <div class="tab-content">
+            @if (!probableCausesList().length) {
+              <div class="tab-empty">
+                <mat-icon>search_off</mat-icon>
+                <p>Aucune cause probable identifiée.</p>
+              </div>
+            } @else {
+              <div class="causes-panel">
+                <div class="panel-head">
+                  <mat-icon>search</mat-icon>
+                  <h3>Causes transversales classées par catégorie</h3>
+                  <span class="head-count">{{ probableCausesList().length }}</span>
+                </div>
+                @if (groupedCauses().length > 1) {
+                  <div class="causes-grouped">
+                    @for (group of groupedCauses(); track group.category) {
+                      <div class="cause-group">
+                        <div class="cause-group-header" [class]="'ishikawa-' + group.cssKey">
+                          <mat-icon>{{ group.icon }}</mat-icon>
+                          <span>{{ group.category }}</span>
+                          <span class="cause-group-count">{{ group.causes.length }}</span>
+                        </div>
+                        <ul class="cause-group-list">
+                          @for (cause of group.causes; track $index) {
+                            <li>{{ cause }}</li>
+                          }
+                        </ul>
+                      </div>
+                    }
+                  </div>
+                } @else {
+                  <ol class="causes-list">
+                    @for (cause of probableCausesList(); track $index) {
+                      <li class="cause-item">
+                        <span class="cause-num">{{ $index + 1 }}</span>
+                        <span class="cause-text">{{ cause }}</span>
+                      </li>
+                    }
+                  </ol>
+                }
+              </div>
+            }
+          </div>
+        </mat-tab>
+
+        <!-- Tab 3: Recommandations -->
         <mat-tab>
           <ng-template mat-tab-label>
             <span>Recommandations</span>
@@ -403,76 +457,29 @@
           </ng-template>
 
           <div class="tab-content">
-            @if (probableCausesList().length || structured()?.recommendations?.length) {
-              <div class="causes-reco-grid">
-
-                @if (probableCausesList().length) {
-                  <div class="causes-panel">
-                    <div class="panel-head">
-                      <mat-icon>search</mat-icon>
-                      <h3>Causes Probables</h3>
-                      <span class="head-count">{{ probableCausesList().length }}</span>
-                    </div>
-                    @if (groupedCauses().length > 1) {
-                      <div class="causes-grouped">
-                        @for (group of groupedCauses(); track group.category) {
-                          <div class="cause-group">
-                            <div class="cause-group-header" [class]="'ishikawa-' + group.cssKey">
-                              <mat-icon>{{ group.icon }}</mat-icon>
-                              <span>{{ group.category }}</span>
-                              <span class="cause-group-count">{{ group.causes.length }}</span>
-                            </div>
-                            <ul class="cause-group-list">
-                              @for (cause of group.causes; track $index) {
-                                <li>{{ cause }}</li>
-                              }
-                            </ul>
-                          </div>
-                        }
-                      </div>
-                    } @else {
-                      <ol class="causes-list">
-                        @for (cause of probableCausesList(); track $index) {
-                          <li class="cause-item">
-                            <span class="cause-num">{{ $index + 1 }}</span>
-                            <span class="cause-text">{{ cause }}</span>
-                          </li>
-                        }
-                      </ol>
-                    }
-                  </div>
-                }
-
-                @if (structured()?.recommendations?.length) {
-                  <div class="recos-panel">
-                    <div class="panel-head">
-                      <mat-icon>lightbulb</mat-icon>
-                      <h3>Recommandations</h3>
-                      <span class="head-count">{{ structured()!.recommendations.length }}</span>
-                    </div>
-                    <div class="recos-list">
-                      @for (rec of structured()!.recommendations; track $index) {
-                        <div class="reco-card">
-                          <div class="reco-card-top">
-                            <span class="reco-priority" [class]="'prio-' + (rec.urgency || 'medium').toLowerCase()">
-                              {{ formatPriorityLabel(rec.urgency) }}
-                            </span>
-                          </div>
-                          <p class="reco-title">{{ formatDisplayText(rec.title || rec.rationale) }}</p>
-                          @if (rec.expectedBenefit) {
-                            <p class="reco-benefit"><mat-icon>trending_up</mat-icon>{{ formatDisplayText(rec.expectedBenefit) }}</p>
-                          }
-                        </div>
-                      }
-                    </div>
-                  </div>
-                }
-
-              </div>
-            } @else {
+            @if (!structured()?.recommendations?.length) {
               <div class="tab-empty">
                 <mat-icon>lightbulb_outline</mat-icon>
                 <p>Aucune recommandation disponible pour cette analyse.</p>
+              </div>
+            } @else {
+              <div class="recos-list">
+                @for (rec of structured()!.recommendations; track $index) {
+                  <div class="reco-card">
+                    <div class="reco-card-top">
+                      <span class="reco-priority" [class]="'prio-' + (rec.urgency || 'medium').toLowerCase()">
+                        {{ formatPriorityLabel(rec.urgency) }}
+                      </span>
+                    </div>
+                    <p class="reco-title">{{ formatDisplayText(rec.title || rec.rationale) }}</p>
+                    @if (rec.rationale) {
+                      <p class="reco-rationale">{{ rec.rationale }}</p>
+                    }
+                    @if (rec.expectedBenefit) {
+                      <p class="reco-benefit"><mat-icon>trending_up</mat-icon>{{ formatDisplayText(rec.expectedBenefit) }}</p>
+                    }
+                  </div>
+                }
               </div>
             }
           </div>
@@ -490,166 +497,149 @@
           </ng-template>
 
           <div class="tab-content">
-            @if (structured()?.actionPlan?.length || planActionsList().length) {
-              <div class="section-header-row">
-                <mat-icon class="s-icon">task_alt</mat-icon>
-                <h2>Plan d'Action Global</h2>
-                <span class="head-count">
-                  {{ structured()?.actionPlan?.length || planActionsList().length }} action(s)
-                </span>
-              </div>
-
-              @if (structured()?.actionPlan?.length) {
-                <div class="ap-cards">
-                  @for (action of structured()!.actionPlan; track $index) {
-                    <div class="ap-card" [class]="'ap-prio-' + (action.priority || 'moyenne').toLowerCase()">
-                      <div class="ap-card-header">
-                        <span class="ap-num">{{ $index + 1 }}</span>
-                        <span class="ap-card-action">{{ formatDisplayText(action.action) }}</span>
-                        <span class="apt-priority" [class]="'prio-' + (action.priority || 'medium').toLowerCase()">{{ formatPriorityLabel(action.priority) }}</span>
-                      </div>
-                      <div class="ap-card-meta">
-                        @if (action.ownerRole) {
-                          <span class="ap-meta-item"><mat-icon>person</mat-icon>{{ formatDisplayText(action.ownerRole) }}</span>
-                        }
-                        @if (action.dueHorizon) {
-                          <span class="ap-meta-item"><mat-icon>schedule</mat-icon>{{ formatDisplayText(action.dueHorizon) }}</span>
-                        }
-                      </div>
-                      @if (action.successMetric) {
-                        <div class="ap-success"><mat-icon>check_circle</mat-icon><span>{{ formatDisplayText(action.successMetric) }}</span></div>
-                      }
-                      @if (action.riskIfNotDone) {
-                        <div class="ap-risk"><mat-icon>warning</mat-icon><span>{{ formatDisplayText(action.riskIfNotDone) }}</span></div>
-                      }
-                    </div>
-                  }
-                </div>
-              } @else {
-                <div class="plan-cards">
-                  @for (action of planActionsList(); track $index) {
-                    <div class="plan-card">
-                      <div class="plan-num">{{ $index + 1 }}</div>
-                      <p>{{ formatDisplayText(action) }}</p>
-                    </div>
-                  }
-                </div>
-              }
-            } @else {
+            @if (!structured()?.actionPlan?.length && !planActionsList().length) {
               <div class="tab-empty">
                 <mat-icon>task_alt</mat-icon>
                 <p>Aucun plan d'action disponible pour cette analyse.</p>
               </div>
-            }
-          </div>
-        </mat-tab>
+            } @else {
+              <div class="kb-board">
 
-        <!-- Tab 4: Alertes prédictives -->
-        <mat-tab>
-          <ng-template mat-tab-label>
-            <span>Alertes</span>
-            @if (structured()?.predictiveAlerts?.length) {
-              <span class="tab-badge tab-badge-danger">{{ structured()!.predictiveAlerts!.length }}</span>
-            }
-          </ng-template>
+                <!-- Colonne HAUTE -->
+                <div class="kb-col">
+                  <div class="kb-col-head">
+                    <div class="kb-col-label haute">
+                      <span class="kb-dot dot-haute"></span>
+                      Haute priorité
+                    </div>
+                    <span class="kb-col-cnt cnt-haute">
+                      {{ getActionsByPriority('HAUTE').length }}
+                    </span>
+                  </div>
 
-          <div class="tab-content">
-            @if (structured()?.predictiveAlerts?.length) {
-              <div class="section-header-row">
-                <mat-icon class="s-icon s-icon-alert">notifications_active</mat-icon>
-                <h2>Alertes Prédictives</h2>
-                <span class="head-count">{{ structured()!.predictiveAlerts!.length }} alerte(s)</span>
-              </div>
+                  @if (getActionsByPriority('HAUTE').length === 0) {
+                    <div class="kb-empty">Aucune action prioritaire</div>
+                  }
 
-              <div class="alerts-grid">
-                @for (alert of structured()!.predictiveAlerts!; track $index) {
-                  <div class="alert-card" [class]="'alert-sev-' + (alert.severity || 'MEDIUM').toLowerCase()">
-                    <div class="alert-card-header">
-                      <div class="alert-kpi">
-                        <mat-icon>trending_down</mat-icon>
-                        <span class="alert-kpi-name">{{ alert.kpiRef }}</span>
-                      </div>
-                      <div class="alert-badges">
-                        <span class="alert-sev" [class]="'alert-sev-' + (alert.severity || 'MEDIUM').toLowerCase()">
-                          {{ formatPriorityLabel(alert.severity) }}
-                        </span>
-                        @if (alert.estimatedHorizonMonths != null) {
-                          <span class="alert-horizon">
-                            <mat-icon>schedule</mat-icon>{{ alert.estimatedHorizonMonths }} mois
+                  @for (action of getActionsByPriority('HAUTE'); track action.action) {
+                    <div class="kb-card">
+                      <div class="kb-card-num kn-haute">{{ getActionIndex(action) }}</div>
+                      <div class="kb-card-action">{{ action.action }}</div>
+                      <div class="kb-card-sep"></div>
+                      <div class="kb-card-meta">
+                        @if (action.dueHorizon) {
+                          <span class="kb-chip">
+                            <mat-icon>schedule</mat-icon>
+                            {{ action.dueHorizon }}
                           </span>
                         }
-                        @if (alert.confidence != null) {
-                          <span class="alert-conf">
-                            <mat-icon>verified</mat-icon>{{ clampConfidence(alert.confidence) }}%
-                          </span>
+                        @if (action.successMetric) {
+                          <div>
+                            <div class="kb-meta-label">Métrique</div>
+                            <div class="kb-metric">{{ action.successMetric }}</div>
+                          </div>
+                        }
+                        @if (action.riskIfNotDone) {
+                          <div>
+                            <div class="kb-meta-label">Risque</div>
+                            <div class="kb-risk">{{ action.riskIfNotDone }}</div>
+                          </div>
                         }
                       </div>
                     </div>
-                    @if (alert.projection) {
-                      <p class="alert-projection">{{ formatDisplayText(alert.projection) }}</p>
-                    }
-                  </div>
-                }
-              </div>
-            } @else {
-              <div class="tab-empty">
-                <mat-icon>notifications_none</mat-icon>
-                <p>Aucune alerte prédictive détectée pour cette période.</p>
-              </div>
-            }
-          </div>
-        </mat-tab>
+                  }
+                </div>
 
-        <!-- Tab 5: Analyse Causes Racines -->
-        <mat-tab>
-          <ng-template mat-tab-label>
-            <span>Causes Racines</span>
-            @if (structured()?.rootCauseAnalysis?.length) {
-              <span class="tab-badge">{{ structured()!.rootCauseAnalysis!.length }}</span>
-            }
-          </ng-template>
-
-          <div class="tab-content root-cause-container">
-            @if (!structured()?.rootCauseAnalysis?.length) {
-              <div class="tab-empty">
-                <mat-icon>search_off</mat-icon>
-                <p>Aucune analyse de cause racine disponible.</p>
-              </div>
-            } @else {
-              <div class="section-header-row">
-                <mat-icon class="s-icon">account_tree</mat-icon>
-                <h2>Analyse des Causes Racines</h2>
-                <span class="head-count">{{ structured()!.rootCauseAnalysis!.length }} analyse(s)</span>
-              </div>
-              <div class="root-cause-grid">
-                @for (rc of structured()!.rootCauseAnalysis!; track rc.kpiRef) {
-                  <div class="root-cause-card">
-                    <div class="rc-header">
-                      <mat-icon class="rc-icon">timeline</mat-icon>
-                      <span class="rc-kpi-ref">{{ rc.kpiRef }}</span>
-                      <span class="rc-method-badge">5 Pourquoi</span>
-                      @if (rc.ishikawaCategory) {
-                        <span class="ishikawa-badge"
-                              [ngClass]="getIshikawaClass(rc.ishikawaCategory)">
-                          {{ rc.ishikawaCategory }}
-                        </span>
-                      }
+                <!-- Colonne MOYENNE -->
+                <div class="kb-col">
+                  <div class="kb-col-head">
+                    <div class="kb-col-label moyenne">
+                      <span class="kb-dot dot-moyenne"></span>
+                      Priorité moyenne
                     </div>
-                    <div class="why-chain">
-                      @for (why of rc.whyChain; track $index) {
-                        <div class="why-step">
-                          <span class="why-number">{{ $index + 1 }}</span>
-                          <span class="why-text">{{ why }}</span>
-                        </div>
-                      }
-                    </div>
-                    <div class="root-cause-conclusion">
-                      <mat-icon>flag</mat-icon>
-                      <strong>Cause racine :</strong>
-                      <span>{{ rc.rootCause }}</span>
-                    </div>
+                    <span class="kb-col-cnt cnt-moyenne">
+                      {{ getActionsByPriority('MOYENNE').length }}
+                    </span>
                   </div>
-                }
+
+                  @if (getActionsByPriority('MOYENNE').length === 0) {
+                    <div class="kb-empty">Aucune action pour cette période</div>
+                  }
+
+                  @for (action of getActionsByPriority('MOYENNE'); track action.action) {
+                    <div class="kb-card">
+                      <div class="kb-card-num kn-moyenne">{{ getActionIndex(action) }}</div>
+                      <div class="kb-card-action">{{ action.action }}</div>
+                      <div class="kb-card-sep"></div>
+                      <div class="kb-card-meta">
+                        @if (action.dueHorizon) {
+                          <span class="kb-chip">
+                            <mat-icon>schedule</mat-icon>
+                            {{ action.dueHorizon }}
+                          </span>
+                        }
+                        @if (action.successMetric) {
+                          <div>
+                            <div class="kb-meta-label">Métrique</div>
+                            <div class="kb-metric">{{ action.successMetric }}</div>
+                          </div>
+                        }
+                        @if (action.riskIfNotDone) {
+                          <div>
+                            <div class="kb-meta-label">Risque</div>
+                            <div class="kb-risk">{{ action.riskIfNotDone }}</div>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+
+                <!-- Colonne FAIBLE -->
+                <div class="kb-col">
+                  <div class="kb-col-head">
+                    <div class="kb-col-label faible">
+                      <span class="kb-dot dot-faible"></span>
+                      Faible priorité
+                    </div>
+                    <span class="kb-col-cnt cnt-faible">
+                      {{ getActionsByPriority('FAIBLE').length }}
+                    </span>
+                  </div>
+
+                  @if (getActionsByPriority('FAIBLE').length === 0) {
+                    <div class="kb-empty">Aucune action planifiée</div>
+                  }
+
+                  @for (action of getActionsByPriority('FAIBLE'); track action.action) {
+                    <div class="kb-card">
+                      <div class="kb-card-num kn-faible">{{ getActionIndex(action) }}</div>
+                      <div class="kb-card-action">{{ action.action }}</div>
+                      <div class="kb-card-sep"></div>
+                      <div class="kb-card-meta">
+                        @if (action.dueHorizon) {
+                          <span class="kb-chip">
+                            <mat-icon>schedule</mat-icon>
+                            {{ action.dueHorizon }}
+                          </span>
+                        }
+                        @if (action.successMetric) {
+                          <div>
+                            <div class="kb-meta-label">Métrique</div>
+                            <div class="kb-metric">{{ action.successMetric }}</div>
+                          </div>
+                        }
+                        @if (action.riskIfNotDone) {
+                          <div>
+                            <div class="kb-meta-label">Risque</div>
+                            <div class="kb-risk">{{ action.riskIfNotDone }}</div>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+
               </div>
             }
           </div>
@@ -658,19 +648,6 @@
       </mat-tab-group>
     </div>
 
-    @if (structured()?.traceability) {
-      <div class="traceability-footer">
-        <mat-icon>verified</mat-icon>
-        <span>
-          Analyse générée par
-          <strong>{{ structured()!.traceability!.modelName }}</strong>
-          le {{ structured()!.traceability!.generatedAt | date:'dd/MM/yyyy à HH:mm' }}
-        </span>
-        @if (structured()!.traceability!.promptVersion) {
-          <span class="prompt-version">v{{ structured()!.traceability!.promptVersion }}</span>
-        }
-      </div>
-    }
 
   }
 </div>

@@ -33,7 +33,7 @@ public class AnalyseIaController {
         return ResponseEntity.ok(analyseIaService.getAnalyseComplete(importId, user.getId(), securityUtils.isAdmin()));
     }
 
-    @Operation(summary = "Analyse IA structurée JSON", description = "Réponse complète avec confidence, rootCauseAnalysis, predictiveAlerts")
+    @Operation(summary = "Analyse IA structurée JSON", description = "Réponse complète avec confidence, kpiInsights, recommendations et actionPlan")
     @GetMapping("/{importId}/structured")
     @PreAuthorize("hasAnyRole('ADMIN','ANALYSTE')")
     public ResponseEntity<AiAnalysisStructuredResponse> getAnalyseStructured(@PathVariable Long importId) {

@@ -7,9 +7,7 @@ import com.QHSEAnalytics.shared.dto.response.AiActionPlanItemResponse;
 import com.QHSEAnalytics.shared.dto.response.AiAnalysisStructuredResponse;
 import com.QHSEAnalytics.shared.dto.response.AiConfidenceResponse;
 import com.QHSEAnalytics.shared.dto.response.AiKpiInsightResponse;
-import com.QHSEAnalytics.shared.dto.response.AiPredictiveAlertResponse;
 import com.QHSEAnalytics.shared.dto.response.AiRecommendationResponse;
-import com.QHSEAnalytics.shared.dto.response.AiRootCauseResponse;
 import com.QHSEAnalytics.shared.dto.response.AiTraceabilityResponse;
 import com.QHSEAnalytics.shared.dto.response.KpiCalculatedDTO;
 import com.QHSEAnalytics.shared.entity.AnalyseGlobale;
@@ -69,7 +67,6 @@ public class AnalysisAgent {
     /**
      * @deprecated Utiliser analyzeStructured() à la place.
      * Ce pipeline legacy produit un format AiResponse simplifié
-     * sans les sections rootCauseAnalysis, predictiveAlerts
      * et actionPlan structuré.
      * Conservé uniquement pour compatibilité ascendante.
      */
@@ -501,26 +498,35 @@ public class AnalysisAgent {
                 .flatMap(response -> safeList(response.getKpiInsights()).stream())
                 .distinct()
                 .toList();
-        List<String> mergedProbableCauses = chunkResponses.stream()
+        List<String> mergedProbableCausesRaw = chunkResponses.stream()
                 .flatMap(response -> safeList(response.getProbableCauses()).stream())
-                .distinct()
-                .toList();
+                .filter(cause -> cause != null && !cause.isBlank())
+                .collect(java.util.stream.Collectors.collectingAndThen(
+                        java.util.stream.Collectors.toList(),
+                        list -> deduplicateByNormalizedContent(list)
+                ));
+
+        // Limiter à 8 causes maximum en priorisant les plus longues
+        List<String> mergedProbableCauses = mergedProbableCausesRaw.stream()
+                .sorted((a, b) -> Integer.compare(
+                        b.trim().split("\\s+").length,
+                        a.trim().split("\\s+").length))
+                .limit(8)
+                .collect(java.util.stream.Collectors.toList());
         List<AiRecommendationResponse> mergedRecommendations = chunkResponses.stream()
                 .flatMap(response -> safeList(response.getRecommendations()).stream())
-                .distinct()
-                .toList();
+                .filter(r -> r != null && r.getTitle() != null)
+                .collect(java.util.stream.Collectors.collectingAndThen(
+                        java.util.stream.Collectors.toList(),
+                        list -> deduplicateRecommendations(list)
+                ));
         List<AiActionPlanItemResponse> mergedActionPlan = chunkResponses.stream()
                 .flatMap(response -> safeList(response.getActionPlan()).stream())
-                .distinct()
-                .toList();
-        List<AiRootCauseResponse> mergedRootCauses = chunkResponses.stream()
-                .flatMap(response -> safeList(response.getRootCauseAnalysis()).stream())
-                .distinct()
-                .toList();
-        List<AiPredictiveAlertResponse> mergedPredictiveAlerts = chunkResponses.stream()
-                .flatMap(response -> safeList(response.getPredictiveAlerts()).stream())
-                .distinct()
-                .toList();
+                .filter(a -> a != null && a.getAction() != null)
+                .collect(java.util.stream.Collectors.collectingAndThen(
+                        java.util.stream.Collectors.toList(),
+                        list -> deduplicateActionPlanBySimilarity(list)
+                ));
         return AiAnalysisStructuredResponse.builder()
                 .globalSummary(mergedSummary)
                 .confidence(mergeConfidence(chunkResponses))
@@ -528,8 +534,6 @@ public class AnalysisAgent {
                 .probableCauses(mergedProbableCauses)
                 .recommendations(mergedRecommendations)
                 .actionPlan(mergedActionPlan)
-                .rootCauseAnalysis(mergedRootCauses)
-                .predictiveAlerts(mergedPredictiveAlerts)
                 .traceability(AiTraceabilityResponse.builder()
                         .build())
                 .build();
@@ -922,6 +926,128 @@ public class AnalysisAgent {
         EMPTY,
         PARSE,
         VALIDATION
+    }
+
+    private List<String> deduplicateByNormalizedContent(List<String> items) {
+        if (items == null || items.isEmpty()) return new java.util.ArrayList<>();
+
+        // Filtre 1 — éliminer les causes trop courtes (< 8 mots)
+        List<String> filtered = items.stream()
+                .filter(item -> item != null && !item.isBlank())
+                .filter(item -> item.trim().split("\\s+").length >= 8)
+                .collect(java.util.stream.Collectors.toList());
+
+        // Si le filtre élimine tout, garder les originaux
+        if (filtered.isEmpty()) filtered = items.stream()
+                .filter(item -> item != null && !item.isBlank())
+                .collect(java.util.stream.Collectors.toList());
+
+        // Étape 1 — normaliser tous les items
+        List<String> normalized = filtered.stream()
+                .map(this::normalizeForDedup)
+                .collect(java.util.stream.Collectors.toList());
+
+        List<String> result = new java.util.ArrayList<>();
+        java.util.Set<Integer> excluded = new java.util.HashSet<>();
+
+        for (int i = 0; i < filtered.size(); i++) {
+            if (excluded.contains(i)) continue;
+            String normI = normalized.get(i);
+            boolean hasLongerVersion = false;
+            for (int j = 0; j < filtered.size(); j++) {
+                if (i == j || excluded.contains(j)) continue;
+                String normJ = normalized.get(j);
+                if (normJ.contains(normI) && normJ.length() > normI.length()) {
+                    hasLongerVersion = true;
+                    break;
+                }
+            }
+            if (!hasLongerVersion) {
+                boolean tooSimilar = false;
+                for (String kept : result) {
+                    String normKept = normalizeForDedup(kept);
+                    if (jaccardSimilarity(normI, normKept) > 0.60) {
+                        tooSimilar = true;
+                        break;
+                    }
+                }
+                if (!tooSimilar) {
+                    result.add(filtered.get(i));
+                }
+            }
+        }
+        return result;
+    }
+
+    private List<AiRecommendationResponse> deduplicateRecommendations(
+            List<AiRecommendationResponse> items) {
+        java.util.Set<String> seen = new java.util.LinkedHashSet<>();
+        List<AiRecommendationResponse> result = new java.util.ArrayList<>();
+        for (AiRecommendationResponse item : items) {
+            String normalized = normalizeForDedup(item.getTitle());
+            if (seen.add(normalized)) {
+                result.add(item);
+            }
+        }
+        return result;
+    }
+
+    private List<AiActionPlanItemResponse> deduplicateActionPlanBySimilarity(
+            List<AiActionPlanItemResponse> items) {
+        if (items == null || items.isEmpty())
+            return new java.util.ArrayList<>();
+
+        List<AiActionPlanItemResponse> result = new java.util.ArrayList<>();
+
+        for (AiActionPlanItemResponse item : items) {
+            String normItem = normalizeForDedup(item.getAction());
+            boolean tooSimilar = false;
+
+            for (AiActionPlanItemResponse kept : result) {
+                String normKept = normalizeForDedup(kept.getAction());
+                // Seuil plus strict que les causes : 0.55
+                if (jaccardSimilarity(normItem, normKept) > 0.55) {
+                    // Garder la version avec le riskIfNotDone le plus long (plus détaillé)
+                    if (item.getRiskIfNotDone() != null
+                            && kept.getRiskIfNotDone() != null
+                            && item.getRiskIfNotDone().length()
+                               > kept.getRiskIfNotDone().length()) {
+                        result.remove(kept);
+                        result.add(item);
+                    }
+                    tooSimilar = true;
+                    break;
+                }
+            }
+            if (!tooSimilar) {
+                result.add(item);
+            }
+        }
+        return result;
+    }
+
+    private String normalizeForDedup(String text) {
+        if (text == null) return "";
+        return java.text.Normalizer
+                .normalize(text.trim().toLowerCase(java.util.Locale.ROOT),
+                        java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .replaceAll("[^a-z0-9\\s]", "")
+                .replaceAll("\\s+", " ")
+                .trim();
+    }
+
+    private double jaccardSimilarity(String a, String b) {
+        if (a == null || b == null || a.isEmpty() || b.isEmpty()) return 0.0;
+        java.util.Set<String> wordsA = new java.util.HashSet<>(
+                java.util.Arrays.asList(a.split("\\s+")));
+        java.util.Set<String> wordsB = new java.util.HashSet<>(
+                java.util.Arrays.asList(b.split("\\s+")));
+        java.util.Set<String> intersection = new java.util.HashSet<>(wordsA);
+        intersection.retainAll(wordsB);
+        java.util.Set<String> union = new java.util.HashSet<>(wordsA);
+        union.addAll(wordsB);
+        return union.isEmpty() ? 0.0 : (double) intersection.size() / union.size();
     }
 
     private record ChunkAnalysisResult(

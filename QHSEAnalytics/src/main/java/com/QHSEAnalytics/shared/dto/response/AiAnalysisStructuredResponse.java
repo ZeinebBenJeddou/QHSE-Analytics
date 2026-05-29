@@ -23,8 +23,6 @@ public class AiAnalysisStructuredResponse {
     private List<String> probableCauses;
     private List<AiRecommendationResponse> recommendations;
     private List<AiActionPlanItemResponse> actionPlan;
-    private List<AiRootCauseResponse> rootCauseAnalysis;
-    private List<AiPredictiveAlertResponse> predictiveAlerts;
     private AiTraceabilityResponse traceability;
     private String status;
     private String fallbackReason;
