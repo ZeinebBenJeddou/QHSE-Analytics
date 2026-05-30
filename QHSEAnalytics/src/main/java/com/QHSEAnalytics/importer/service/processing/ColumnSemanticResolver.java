@@ -52,28 +52,95 @@ public final class ColumnSemanticResolver {
 
         if (KPI_SYNONYMS.contains(h) || h.contains("kpi") || h.contains("indicateur")
                 || h.contains("intitule") || h.contains("designation"))
-            return new Result(Semantic.KPI_NAME, 0.95);
+            return new Result(Semantic.KPI_NAME, bestScore(h, KPI_SYNONYMS));
 
         // VALUE_N1 testé AVANT VALUE_N pour éviter que "n-1" matche "actuel"
         if (VALUE_N1_SYNONYMS.contains(h) || h.contains("n1") || h.contains("n-1")
                 || h.contains("precedent") || h.contains("previous") || h.contains("reference")
                 || h.contains("base"))
-            return new Result(Semantic.VALUE_N1, 0.90);
+            return new Result(Semantic.VALUE_N1, bestScore(h, VALUE_N1_SYNONYMS));
 
         if (VALUE_N_SYNONYMS.contains(h) || h.equals("n")
                 || h.contains("actuel") || h.contains("current") || h.contains("realise")
                 || h.contains("performance") || h.contains("resultat"))
-            return new Result(Semantic.VALUE_N, 0.85);
+            return new Result(Semantic.VALUE_N, bestScore(h, VALUE_N_SYNONYMS));
 
         if (CATEGORY_SYNONYMS.contains(h) || h.contains("categor") || h.contains("domain")
                 || h.contains("theme") || h.contains("pilier") || h.contains("processus"))
-            return new Result(Semantic.CATEGORY, 0.88);
+            return new Result(Semantic.CATEGORY, bestScore(h, CATEGORY_SYNONYMS));
 
         if (UNIT_SYNONYMS.contains(h) || h.contains("unit") || h.contains("mesure")
                 || h.contains("grandeur"))
-            return new Result(Semantic.UNIT, 0.85);
+            return new Result(Semantic.UNIT, bestScore(h, UNIT_SYNONYMS));
 
-        return new Result(Semantic.UNKNOWN, 0.30);
+        // Aucune correspondance : score = meilleure similarité Jaro-Winkler
+        // résiduelle sur l'ensemble des synonymes connus, naturellement < 0,70.
+        double residual = allSynonyms().stream()
+                .mapToDouble(syn -> jaroWinkler(h, syn))
+                .max()
+                .orElse(0.0);
+        return new Result(Semantic.UNKNOWN, residual);
+    }
+
+    private static double bestScore(String h, Set<String> synonyms) {
+        return synonyms.stream()
+                .mapToDouble(syn -> jaroWinkler(h, syn))
+                .max()
+                .orElse(0.0);
+    }
+
+    private static Set<String> allSynonyms() {
+        Set<String> all = new java.util.HashSet<>();
+        all.addAll(KPI_SYNONYMS);
+        all.addAll(VALUE_N_SYNONYMS);
+        all.addAll(VALUE_N1_SYNONYMS);
+        all.addAll(CATEGORY_SYNONYMS);
+        all.addAll(UNIT_SYNONYMS);
+        return all;
+    }
+
+    static double jaroWinkler(String s1, String s2) {
+        if (s1.equals(s2)) return 1.0;
+        if (s1.isEmpty() || s2.isEmpty()) return 0.0;
+
+        int matchDist = Math.max(Math.max(s1.length(), s2.length()) / 2 - 1, 0);
+        boolean[] s1Matched = new boolean[s1.length()];
+        boolean[] s2Matched = new boolean[s2.length()];
+
+        int matches = 0;
+        for (int i = 0; i < s1.length(); i++) {
+            int start = Math.max(0, i - matchDist);
+            int end   = Math.min(i + matchDist + 1, s2.length());
+            for (int j = start; j < end; j++) {
+                if (!s2Matched[j] && s1.charAt(i) == s2.charAt(j)) {
+                    s1Matched[i] = true;
+                    s2Matched[j] = true;
+                    matches++;
+                    break;
+                }
+            }
+        }
+        if (matches == 0) return 0.0;
+
+        int transpositions = 0;
+        int k = 0;
+        for (int i = 0; i < s1.length(); i++) {
+            if (!s1Matched[i]) continue;
+            while (!s2Matched[k]) k++;
+            if (s1.charAt(i) != s2.charAt(k)) transpositions++;
+            k++;
+        }
+
+        double jaro = (matches / (double) s1.length()
+                     + matches / (double) s2.length()
+                     + (matches - transpositions / 2.0) / matches) / 3.0;
+
+        int prefix = 0;
+        for (int i = 0; i < Math.min(4, Math.min(s1.length(), s2.length())); i++) {
+            if (s1.charAt(i) == s2.charAt(i)) prefix++;
+            else break;
+        }
+        return jaro + prefix * 0.1 * (1.0 - jaro);
     }
 
     public static boolean matches(String rawHeader, Set<String> synonyms) {
