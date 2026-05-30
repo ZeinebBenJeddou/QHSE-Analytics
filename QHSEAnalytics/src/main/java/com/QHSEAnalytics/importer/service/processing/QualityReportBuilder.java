@@ -3,6 +3,7 @@ package com.QHSEAnalytics.importer.service.processing;
 import com.QHSEAnalytics.shared.dto.request.KpiRawDataDTO;
 import com.QHSEAnalytics.shared.dto.response.ImportIssue;
 import com.QHSEAnalytics.shared.dto.response.ImportQualityReport;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -12,6 +13,7 @@ import java.util.Map;
 
 
 @Service
+@Slf4j
 public class QualityReportBuilder {
 
     @Value("${import.quality.score.valid:100}")
@@ -151,6 +153,16 @@ public class QualityReportBuilder {
             }
         }
 
+        // --- QHSE-EVAL quality block ---
+        String anomaliesSummary = buildAnomaliesSummary(cappedErrors, cappedWarnings);
+        log.info("\n[QUALITY]" +
+                        "\n  Score global  : {}/100" +
+                        "\n  Lignes valides: {} | Avertissements : {} | Invalides : {}" +
+                        "\n  Anomalies     : {}",
+                qualityScore,
+                validRows, warningRows, invalidRows,
+                anomaliesSummary.isEmpty() ? "aucune" : anomaliesSummary);
+
         return ImportQualityReport.builder()
                 .importMode(importMode)
                 .importedRowsCount(importedRowsCount)
@@ -173,6 +185,23 @@ public class QualityReportBuilder {
                 .infos(cappedInfos)
                 .issuesTruncated(issuesTruncated)
                 .build();
+    }
+
+    private static String buildAnomaliesSummary(List<ImportIssue> errors, List<ImportIssue> warnings) {
+        StringBuilder sb = new StringBuilder();
+        for (ImportIssue issue : errors) {
+            if (sb.length() > 0) sb.append(" ");
+            sb.append(String.format("[ERROR ligne %s %s]",
+                    issue.getRowIndex() != null ? issue.getRowIndex() : "?",
+                    issue.getColumn() != null ? issue.getColumn() : issue.getCode()));
+        }
+        for (ImportIssue issue : warnings) {
+            if (sb.length() > 0) sb.append(" ");
+            sb.append(String.format("[WARN ligne %s %s]",
+                    issue.getRowIndex() != null ? issue.getRowIndex() : "?",
+                    issue.getColumn() != null ? issue.getColumn() : issue.getCode()));
+        }
+        return sb.toString();
     }
 
     private static boolean isHardBlockingIssue(ImportIssue issue) {

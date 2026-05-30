@@ -27,21 +27,47 @@ public class MetadataEnrichmentAgent {
                 .toList();
 
         if (toEnrich.isEmpty()) {
+            log.info("\n[ENRICHMENT]\n  Aucun KPI à enrichir (tous les attributs déjà renseignés)");
             return data;
         }
 
+        List<String> sentNames = toEnrich.stream().map(KpiCalculatedDTO::getKpiName).toList();
         log.info("Enriching metadata for {} KPIs using AI", toEnrich.size());
         String prompt = buildEnrichmentPrompt(toEnrich);
 
+        long llmStart = System.currentTimeMillis();
         try {
             String aiResponseJson = llmProviderChain.generate(prompt);
+            long llmMs = System.currentTimeMillis() - llmStart;
 
             if (aiResponseJson != null) {
                 parseAndApplyMetadata(aiResponseJson, data);
             }
-        } catch (Exception e) {
-            log.error("Failed to enrich metadata using AI: {}", e.getMessage());
 
+            // count fields still null after enrichment for the KPIs that were sent
+            long nullFields = toEnrich.stream().mapToLong(k -> {
+                long n = 0;
+                if (k.getDefinition()  == null || k.getDefinition().isBlank())  n++;
+                if (k.getCategorie()   == null || k.getCategorie().isBlank())   n++;
+                if (k.getUnite()       == null || k.getUnite().isBlank())       n++;
+                if (k.getDirection()   == null || k.getDirection().isBlank())   n++;
+                if (k.getSeuilFaible() == null)  n++;
+                return n;
+            }).sum();
+
+            log.info("\n[ENRICHMENT]" +
+                            "\n  KPIs envoyés au LLM  : {}" +
+                            "\n  Temps LLM enrichissement : {} ms | Champs null après enrichissement : {}",
+                    sentNames,
+                    llmMs, nullFields);
+
+        } catch (Exception e) {
+            long llmMs = System.currentTimeMillis() - llmStart;
+            log.error("Failed to enrich metadata using AI: {}", e.getMessage());
+            log.info("\n[ENRICHMENT]" +
+                            "\n  KPIs envoyés au LLM  : {}" +
+                            "\n  Temps LLM enrichissement : {} ms | ERREUR LLM",
+                    sentNames, llmMs);
         }
 
         return data;

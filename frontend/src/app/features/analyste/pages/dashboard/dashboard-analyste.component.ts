@@ -198,6 +198,22 @@ export class DashboardAnalysteComponent implements OnInit, OnDestroy {
     return map[urgency] ?? urgency;
   }
 
+  getUrgencyLabel(urgency: string): string {
+    const map: Record<string, string> = {
+      'HIGH': 'HAUTE', 'MEDIUM': 'MOYENNE', 'LOW': 'FAIBLE',
+      'HAUTE': 'HAUTE', 'MOYENNE': 'MOYENNE', 'FAIBLE': 'FAIBLE'
+    };
+    return map[(urgency || '').toUpperCase()] ?? urgency;
+  }
+
+  getUrgencyClass(urgency: string): string {
+    const map: Record<string, string> = {
+      'HIGH': 'ub-haute', 'MEDIUM': 'ub-moyenne', 'LOW': 'ub-faible',
+      'HAUTE': 'ub-haute', 'MOYENNE': 'ub-moyenne', 'FAIBLE': 'ub-faible'
+    };
+    return map[(urgency || '').toUpperCase()] ?? 'ub-moyenne';
+  }
+
   searchFilter = signal('');
   categorieFilter = signal('');
   niveauFilter = signal('');

@@ -602,4 +602,12 @@ export class AnalyseIAComponent implements OnInit, OnDestroy {
     const actions = this.structured()?.actionPlan ?? [];
     return actions.indexOf(action) + 1;
   }
+
+  getCategoryClass(category: string): string {
+    return (category || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z]/g, '');
+  }
 }

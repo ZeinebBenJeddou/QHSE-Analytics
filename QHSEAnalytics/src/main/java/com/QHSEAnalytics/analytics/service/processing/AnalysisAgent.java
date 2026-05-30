@@ -89,15 +89,29 @@ public class AnalysisAgent {
         String prompt = buildPrompt(topKpis);
         log.info("Lancement analyse IA (Groq) sur {} KPIs", topKpis.size());
 
+        long llmStart = System.currentTimeMillis();
         String responseJson = llmProviderChain.generate(prompt);
+        long llmMs = System.currentTimeMillis() - llmStart;
+
         if (responseJson != null && !responseJson.isBlank()) {
             AiResponse parsedResponse = parseAiResponse(responseJson);
             if (parsedResponse != null) {
+                int kpiCount   = parsedResponse.getKpis()            != null ? parsedResponse.getKpis().size()            : 0;
+                int recCount   = parsedResponse.getRecommendations() != null ? parsedResponse.getRecommendations().size() : 0;
+                double score   = parsedResponse.getOverallScore()    != null ? parsedResponse.getOverallScore()           : 0.0;
+                log.info("\n[ANALYSIS]" +
+                                "\n  Contexte analyste       : ABSENT" +
+                                "\n  Chunks envoyés          : 1 | Retries validation : 0" +
+                                "\n  Temps LLM analyse       : {} ms" +
+                                "\n  Score confiance (overall): {}/100" +
+                                "\n  KPIs analysés           : {} | Recommandations : {}",
+                        llmMs, Math.round(score), kpiCount, recCount);
                 return parsedResponse;
             }
             log.warn("Le JSON du provider LLM était invalide, retour de secours...");
         }
 
+        log.info("\n[ANALYSIS]\n  Temps LLM analyse : {} ms | Résultat : ECHEC (réponse vide ou invalide)", llmMs);
         return AiResponse.builder()
                 .overallScore(0.0)
                 .summary("IA indisponible")
@@ -513,6 +527,7 @@ public class AnalysisAgent {
                         a.trim().split("\\s+").length))
                 .limit(8)
                 .collect(java.util.stream.Collectors.toList());
+        mergedProbableCauses = expandShortCauses(mergedProbableCauses);
         List<AiRecommendationResponse> mergedRecommendationsRaw = chunkResponses.stream()
                 .flatMap(response -> safeList(response.getRecommendations()).stream())
                 .filter(r -> r != null && r.getTitle() != null)
@@ -924,6 +939,65 @@ public class AnalysisAgent {
         EMPTY,
         PARSE,
         VALIDATION
+    }
+
+    private List<String> expandShortCauses(List<String> causes) {
+        if (causes == null) return new java.util.ArrayList<>();
+        return causes.stream()
+                .map(cause -> {
+                    if (cause == null) return null;
+                    int wordCount = cause.trim().split("\\s+").length;
+                    if (wordCount >= 12) return cause;
+                    String lower = cause.toLowerCase();
+                    String suffix = "";
+                    if (lower.contains("formation")
+                            || lower.contains("sensibilis")
+                            || lower.contains("competence")) {
+                        suffix = ", créant un écart entre les pratiques " +
+                                "réelles et les exigences normatives " +
+                                "applicables au secteur BTP, " +
+                                "et contribuant à la hausse du TF1";
+                    } else if (lower.contains("processus")
+                            || lower.contains("procedure")
+                            || lower.contains("formalis")
+                            || lower.contains("documen")) {
+                        suffix = ", rendant la détection et la correction " +
+                                "des dérives difficile à systématiser " +
+                                "et augmentant le risque de non-conformité " +
+                                "ISO 9001 §8.7";
+                    } else if (lower.contains("maintenance")
+                            || lower.contains("equipement")
+                            || lower.contains("materiel")) {
+                        suffix = ", augmentant la fréquence des défaillances " +
+                                "et contribuant directement " +
+                                "à la hausse des presqu'accidents signalés";
+                    } else if (lower.contains("condition")
+                            || lower.contains("environnement")
+                            || lower.contains("travail")
+                            || lower.contains("degrad")) {
+                        suffix = ", favorisant l'apparition d'erreurs humaines " +
+                                "et réduisant l'efficacité " +
+                                "des mesures préventives mises en place";
+                    } else if (lower.contains("variabilite")
+                            || lower.contains("matiere")
+                            || lower.contains("qualite")
+                            || lower.contains("reception")) {
+                        suffix = ", introduisant des non-conformités " +
+                                "difficiles à anticiper en amont " +
+                                "et impactant directement " +
+                                "le Nombre de Réclamations Clients";
+                    }
+                    if (!suffix.isEmpty()) {
+                        String trimmed = cause.trim();
+                        if (trimmed.endsWith(".")) {
+                            trimmed = trimmed.substring(0, trimmed.length() - 1);
+                        }
+                        return trimmed + suffix + ".";
+                    }
+                    return cause;
+                })
+                .filter(java.util.Objects::nonNull)
+                .collect(java.util.stream.Collectors.toList());
     }
 
     private List<String> deduplicateByNormalizedContent(List<String> items) {

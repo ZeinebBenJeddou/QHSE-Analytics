@@ -20,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 @RequiredArgsConstructor
@@ -35,8 +36,19 @@ public class KpiProcessingOrchestratorService {
     private final MetadataEnrichmentAgent metadataEnrichmentAgent;
     private final QualityReportBuilder    qualityReportBuilder;
 
+    private static final AtomicLong SESSION_COUNTER = new AtomicLong(0);
+
 
     public ImportProcessingResponse process(MultipartFile file, Map<String, Integer> mapping, boolean allowPartialImport) {
+        long sessionId = SESSION_COUNTER.incrementAndGet();
+        long sessionStart = System.currentTimeMillis();
+        String fileName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "inconnu";
+
+        log.info("\n═══════════════════════════════════════════════════" +
+                 "\n[QHSE-EVAL] IMPORT SESSION #{} — {}" +
+                 "\n═══════════════════════════════════════════════════",
+                sessionId, fileName);
+
         ExtractionAgent.ExtractionResult result = extractionAgent.extract(file, mapping);
         List<KpiRawDataDTO> rawData = cleaningAgent.clean(result.getRows());
 
@@ -79,6 +91,37 @@ public class KpiProcessingOrchestratorService {
             analyseIa = "Analyse IA temporairement indisponible.";
             log.error("[Orchestrator] Exception AnalysisAgent : {}", ex.getMessage(), ex);
         }
+
+        long totalMs = System.currentTimeMillis() - sessionStart;
+
+        int critiqueCount = (int) enrichedData.stream()
+                .filter(k -> "CRITIQUE".equals(k.getClassification()))
+                .count();
+        int aiConfidence = 0;
+        if (aiResponse != null && aiResponse.getOverallScore() != null) {
+            aiConfidence = (int) Math.round(aiResponse.getOverallScore());
+        }
+        String contexte = "ABSENT";
+
+        log.info("\n═══════════════════════════════════════════════════" +
+                 "\n[SYNTHÈSE SESSION #{}]" +
+                 "\n  Fichier        : {}" +
+                 "\n  KPIs traités   : {}" +
+                 "\n  Score qualité  : {}/100" +
+                 "\n  Score risque   : {}/100" +
+                 "\n  KPIs CRITIQUE  : {}" +
+                 "\n  Contexte       : {}" +
+                 "\n  Confiance IA   : {}/100" +
+                 "\n  Durée totale   : {} ms" +
+                 "\n═══════════════════════════════════════════════════",
+                sessionId, fileName,
+                enrichedData.size(),
+                qualityReport.getQualityScore(),
+                riskScore != null ? riskScore : 0,
+                critiqueCount,
+                contexte,
+                aiConfidence,
+                totalMs);
 
         return ImportProcessingResponse.builder()
                 .rawData(rawData)

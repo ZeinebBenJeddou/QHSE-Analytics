@@ -77,6 +77,11 @@ public class StructuredAnalysisPromptBuilder {
             "   ✗ 'Manque de formation des salariés'\n" +
             "   ✗ 'Déficit de sensibilisation'\n" +
             "   ✗ 'Formation insuffisante'\n" +
+            "   RÈGLE KPI : chaque cause DOIT mentionner " +
+            "le nom du KPI qu'elle explique ou impacte " +
+            "(ex: 'contribuant à la hausse du TF1', " +
+            "'augmentant le nombre de Presqu'accidents signalés', " +
+            "'impactant le Nombre de Réclamations Clients').\n" +
             "   EXEMPLES ACCEPTÉS (mécanisme détaillé) :\n" +
             "   ✓ 'L'absence de plan de formation annuel " +
             "actualisé pour les nouveaux arrivants, qui représentent " +
@@ -301,21 +306,25 @@ public class StructuredAnalysisPromptBuilder {
             "  \"confidence\": 87,\n" +
             "  \"insight\": \"Le TF1 a progressé de +28 % entre N-1 et N (2,5 → 3,2), dépassant le seuil critique fixé à 3,0 selon le référentiel ISO 45001 §6.1.2. Cette dégradation, couplée à une augmentation de la cadence de production de 15 %, traduit une insuffisance des barrières préventives face à l'accroissement de l'activité. Un accident grave est statistiquement probable si la tendance n'est pas inversée sous 6 semaines.\",\n" +
             "  \"probableCauses\": [\n" +
-            "    \"L'augmentation de la cadence de production de 15 % " +
-            "sans révision préalable des analyses de risques " +
-            "(DUERP) a exposé les opérateurs à des situations " +
-            "non anticipées, créant un écart entre les procédures " +
-            "existantes et les conditions réelles de travail.\",\n" +
-            "    \"Le déficit de formation sécurité chez les opérateurs " +
-            "embauchés depuis moins de 6 mois — représentant 30 % " +
-            "des effectifs — a réduit leur capacité à identifier " +
-            "et déclarer les signaux faibles avant qu'ils " +
-            "ne deviennent des accidents.\",\n" +
-            "    \"La sous-déclaration systématique des presqu'accidents, " +
-            "liée à la culture de non-signalement et à l'absence " +
-            "de remontée d'information structurée, a privé " +
-            "l'encadrement de données préventives essentielles " +
-            "pour anticiper les dérives.\"\n" +
+            "    \"[Homme] L'augmentation de 40 % des effectifs " +
+            "sans révision proportionnelle du plan de formation " +
+            "sécurité a créé un déficit de compétences chez " +
+            "les nouveaux opérateurs, augmentant directement " +
+            "leur exposition aux risques et contribuant " +
+            "à la hausse du TF1 (18,07 → 29,32).\",\n" +
+            "    \"[Méthode] Les procédures d'analyse des risques " +
+            "(DUERP) n'ont pas été révisées depuis le démarrage " +
+            "du nouveau chantier en janvier 2024, rendant " +
+            "la détection des dérives difficile à systématiser " +
+            "sur les nouveaux postes et favorisant " +
+            "l'augmentation des Presque-accidents signalés " +
+            "(6,2 → 14,17).\",\n" +
+            "    \"[Machine] L'absence d'un programme de maintenance " +
+            "préventive structuré sur les équipements du chantier " +
+            "génère des défaillances non anticipées, " +
+            "contribuant aux 14,17 presqu'accidents signalés " +
+            "et exposant les opérateurs à des risques mécaniques " +
+            "non maîtrisés.\"\n" +
             "  ],\n" +
             "  \"recommendations\": [\n" +
             "    \"Mettre à jour les analyses de risques (DUERP) pour intégrer les nouveaux postes créés lors de l'augmentation de cadence\",\n" +

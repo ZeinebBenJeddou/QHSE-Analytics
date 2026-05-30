@@ -39,7 +39,6 @@ public class CalculationAgent {
         List<Kpi> activeKpis = kpiRepository.findByIsActiveTrueOrderByNomAsc();
         Map<String, Kpi> byName = buildKpiLookup(activeKpis);
 
-
         List<Long> kpiIds = activeKpis.stream()
                 .map(Kpi::getId)
                 .filter(Objects::nonNull)
@@ -59,9 +58,53 @@ public class CalculationAgent {
             historyCache = Collections.emptyMap();
         }
 
-        return rawData.stream()
+        List<KpiCalculatedDTO> result = rawData.stream()
                 .map(row -> mapCalculatedRow(row, byName, historyCache))
                 .toList();
+
+        logMatchingReport(rawData, result);
+        return result;
+    }
+
+    private void logMatchingReport(List<KpiRawDataDTO> rawData, List<KpiCalculatedDTO> calculated) {
+        int total = calculated.size();
+        List<String> exactNames      = new ArrayList<>();
+        List<String> inclusionNames  = new ArrayList<>();
+        List<String[]> jwNames       = new ArrayList<>(); // [name, score]
+        List<String> unrecognized    = new ArrayList<>();
+
+        for (int i = 0; i < rawData.size() && i < calculated.size(); i++) {
+            KpiRawDataDTO   raw  = rawData.get(i);
+            KpiCalculatedDTO calc = calculated.get(i);
+            Double conf = calc.getMatchConfidence();
+            if (conf == null) {
+                unrecognized.add(raw.getKpiName());
+            } else if (conf >= 1.0) {
+                exactNames.add(raw.getKpiName());
+            } else if (conf >= 0.9) {
+                inclusionNames.add(raw.getKpiName());
+            } else {
+                jwNames.add(new String[]{raw.getKpiName(), String.format("%.2f", conf)});
+            }
+        }
+
+        String unrecognizedList = unrecognized.isEmpty()
+                ? "aucun"
+                : unrecognized.stream().map(n -> "\"" + n + "\"").collect(Collectors.joining(", "));
+
+        String jwDetail = jwNames.isEmpty()
+                ? ""
+                : jwNames.stream().map(e -> e[0] + "(score:" + e[1] + ")").collect(Collectors.joining(", "));
+
+        log.info("\n[MATCHING]" +
+                        "\n  Reconnus EXACT        : {}/{}" +
+                        "\n  Reconnus INCLUSION    : {}/{}" +
+                        "\n  Reconnus JARO_WINKLER : {}/{}{}" +
+                        "\n  NON RECONNUS          : {}/{} → [{}]",
+                exactNames.size(), total,
+                inclusionNames.size(), total,
+                jwNames.size(), total, jwNames.isEmpty() ? "" : " → " + jwDetail,
+                unrecognized.size(), total, unrecognizedList);
     }
 
 

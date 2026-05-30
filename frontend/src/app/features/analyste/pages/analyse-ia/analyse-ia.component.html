@@ -175,7 +175,7 @@
           <div class="tab-content">
             <div class="section-header-row">
               <div class="section-header-left">
-                <mat-icon class="s-icon">insights</mat-icon>
+                
                 <h2>Tous les Indicateurs</h2>
                 <span class="head-count">{{ filteredKpis().length }} / {{ enrichedKpis().length }}</span>
               </div>
@@ -194,7 +194,6 @@
                               [class.active]="catFilter() === cat.code"
                               [style.--cat-color]="cat.color"
                               (click)="setCatFilter(cat.code)">
-                        <mat-icon>{{ cat.icon }}</mat-icon>
                         {{ cat.libelle }}
                         <span class="kct-count"
                               [class.has-critique]="(catStats()[CATEGORIES.indexOf(cat)]?.critique ?? 0) > 0">
@@ -240,13 +239,7 @@
                       <span class="kpi-niveau" [class]="getNiveauClass(kpi.niveauVariation)">
                         {{ kpi.niveauVariation ?? '—' }}
                       </span>
-                      <span class="kpi-cat-dot"
-                            [style.background]="getCatInfo(kpi.categorieCode).bgLight"
-                            [style.color]="getCatInfo(kpi.categorieCode).color"
-                            [matTooltip]="kpi.categorieLibelle || kpi.categorieCode">
-                        <mat-icon>{{ getCatInfo(kpi.categorieCode).icon }}</mat-icon>
-                      </span>
-                      <div class="kpi-name-block">
+<div class="kpi-name-block">
                         <span class="kpi-name">{{ kpi.kpiNom }}</span>
                         @if (kpi.kpiUnite) {
                           <span class="kpi-unit">{{ kpi.kpiUnite }}</span>
@@ -277,100 +270,108 @@
                     <div class="kpi-detail">
 
                       @if (kpi.insight) {
-                        <div class="insight-box">
-                          <div class="insight-box-header">
-                            <mat-icon>smart_toy</mat-icon>
-                            <span>Analyse IA</span>
-                          </div>
-                          <p class="insight-text">{{ formatDisplayText(kpi.insight) }}</p>
+                        <div class="kd-insight-box">
+                          <span class="kd-insight-label">Analyse IA</span>
+                          <span class="kd-insight-text">{{ kpi.insight }}</span>
                         </div>
                       }
 
-                      <div class="detail-grid">
+                      <div class="kd-grid">
 
-                        @if (kpi.structuredCauses.length) {
-                          <div class="detail-card dc-causes">
-                            <div class="dc-head">Causes probables</div>
-                            <ul class="causes-list">
-                              @for (cause of kpi.structuredCauses; track cause) {
-                                @let parsed = parseIshikawaCause(cause);
-                                <li class="cause-item">
-                                  @if (parsed.category) {
-                                    <span class="ishikawa-badge"
-                                          [ngClass]="getIshikawaClass(parsed.category)">
-                                      {{ parsed.category }}
-                                    </span>
-                                  }
-                                  <span class="cause-text">{{ parsed.text }}</span>
-                                </li>
-                              }
-                            </ul>
+                        <div class="kd-box">
+                          <div class="kd-box-head">
+                            <span class="kd-box-label">Causes probables</span>
                           </div>
-                        }
-
-                        @if (kpi.structuredAction) {
-                          <div class="detail-card dc-actions">
-                            <div class="dc-head">Plan d'actions</div>
-                            <div class="dc-actions-stack">
-                              <div class="dc-action dc-immediate">
-                                <div class="dc-action-label"><mat-icon>bolt</mat-icon> Immédiate</div>
-                                <p>{{ formatDisplayText(kpi.structuredAction) }}</p>
+                          <div class="kd-box-body">
+                            @if (!kpi.structuredCauses.length) {
+                              <span class="kd-empty">Aucune cause identifiée.</span>
+                            }
+                            @for (cause of kpi.structuredCauses; track cause) {
+                              <div class="kd-cause-item">
+                                @let parsed = parseIshikawaCause(cause);
+                                @if (parsed.category) {
+                                  <span class="kd-ishi-badge"
+                                        [ngClass]="'kib-' + getCategoryClass(parsed.category)">
+                                    {{ parsed.category | titlecase }}
+                                  </span>
+                                }
+                                <span class="kd-cause-text">{{ parsed.text }}</span>
                               </div>
+                            }
+                          </div>
+                        </div>
+
+                        <div class="kd-box">
+                          <div class="kd-box-head">
+                            <span class="kd-box-label">Plan d'actions</span>
+                          </div>
+                          <div class="kd-box-body">
+                            @if (kpi.structuredAction) {
+                              <div class="kd-action-imm">
+                                <span class="kd-action-label">Immédiate</span>
+                                <span class="kd-action-text">{{ kpi.structuredAction }}</span>
+                              </div>
+                            }
+                            @if (kpi.structuredDue) {
+                              <div class="kd-horizon-row">
+                                <span class="kd-horizon-chip">
+                                  <mat-icon>schedule</mat-icon>
+                                  {{ kpi.structuredDue }}
+                                </span>
+                              </div>
+                            }
+                          </div>
+                        </div>
+
+                      </div>
+
+                      <div class="kd-grid">
+
+                        <div class="kd-box">
+                          <div class="kd-box-head">
+                            <span class="kd-box-label">Recommandations</span>
+                          </div>
+                          <div class="kd-box-body">
+                            @if (!kpi.structuredRecos.length) {
+                              <span class="kd-empty">Aucune recommandation.</span>
+                            }
+                            @for (reco of kpi.structuredRecos; track reco) {
+                              <div class="kd-reco-item">
+                                <span class="kd-reco-dot"></span>
+                                <span class="kd-reco-text">{{ reco }}</span>
+                              </div>
+                            }
+                          </div>
+                        </div>
+
+                        <div class="kd-box">
+                          <div class="kd-box-head">
+                            <span class="kd-box-label">Objectifs & risques</span>
+                          </div>
+                          <div class="kd-box-body">
+                            <div class="kd-obj-grid">
+                              @if (kpi.structuredSuccess) {
+                                <div class="kd-obj-item kd-obj-success">
+                                  <span class="kd-obj-label kd-obj-label-s">Métrique de succès</span>
+                                  <span class="kd-obj-text">{{ kpi.structuredSuccess }}</span>
+                                </div>
+                              }
+                              @if (kpi.structuredRisk) {
+                                <div class="kd-obj-item kd-obj-risk">
+                                  <span class="kd-obj-label kd-obj-label-r">Risque si non traité</span>
+                                  <span class="kd-obj-text">{{ kpi.structuredRisk }}</span>
+                                </div>
+                              }
                             </div>
                           </div>
-                        }
-
-                        @if (kpi.structuredRecos.length) {
-                          <div class="detail-card dc-recos">
-                            <div class="dc-head">Recommandations</div>
-                            <ul class="dc-list">
-                              @for (r of kpi.structuredRecos; track $index) {
-                                <li>{{ formatDisplayText(r) }}</li>
-                              }
-                            </ul>
-                          </div>
-                        }
-
-                        @if (kpi.structuredSuccess || kpi.structuredRisk || kpi.structuredOwner || kpi.structuredDue) {
-                          <div class="detail-card dc-outcome">
-                            <div class="dc-head">Objectifs & Risques</div>
-                            @if (kpi.structuredOwner || kpi.structuredDue) {
-                              <div class="owner-row">
-                                @if (kpi.structuredOwner) {
-                                  <span class="owner-badge">
-                                    <mat-icon>person</mat-icon>
-                                    {{ kpi.structuredOwner }}
-                                  </span>
-                                }
-                                @if (kpi.structuredDue) {
-                                  <span class="horizon-badge">
-                                    <mat-icon>schedule</mat-icon>
-                                    {{ kpi.structuredDue }}
-                                  </span>
-                                }
-                              </div>
-                            }
-                            @if (kpi.structuredSuccess) {
-                              <div class="dc-outcome-row dc-success">
-                                <div class="dc-outcome-label">Métrique de succès</div>
-                                <p>{{ formatDisplayText(kpi.structuredSuccess) }}</p>
-                              </div>
-                            }
-                            @if (kpi.structuredRisk) {
-                              <div class="dc-outcome-row dc-risk-row">
-                                <div class="dc-outcome-label">Risque si non traité</div>
-                                <p>{{ formatDisplayText(kpi.structuredRisk) }}</p>
-                              </div>
-                            }
-                          </div>
-                        }
+                        </div>
 
                       </div>
 
                       @if (kpi.note) {
-                        <div class="kpi-note">
-                          <mat-icon class="note-icon">info_outline</mat-icon>
-                          <span class="note-text">{{ kpi.note }}</span>
+                        <div class="kd-note">
+                          <mat-icon>info_outline</mat-icon>
+                          {{ kpi.note }}
                         </div>
                       }
 
@@ -392,44 +393,36 @@
           </ng-template>
 
           <div class="tab-content">
-            @if (!probableCausesList().length) {
+            @if (!structured()?.probableCauses?.length) {
               <div class="tab-empty">
-                <mat-icon>search_off</mat-icon>
                 <p>Aucune cause probable identifiée.</p>
               </div>
             } @else {
-              <div class="causes-panel">
-                <div class="panel-head">
-                  <mat-icon>search</mat-icon>
-                  <h3>Causes transversales classées par catégorie</h3>
-                  <span class="head-count">{{ probableCausesList().length }}</span>
-                </div>
-                @if (groupedCauses().length > 1) {
-                  <div class="causes-grouped">
-                    @for (group of groupedCauses(); track group.category) {
-                      <div class="cause-group">
-                        <div class="cause-group-header" [class]="'ishikawa-' + group.cssKey">
-                          <mat-icon>{{ group.icon }}</mat-icon>
-                          <span>{{ group.category }}</span>
-                          <span class="cause-group-count">{{ group.causes.length }}</span>
+              <div class="cp-list">
+                @for (group of groupedCauses(); track group.category) {
+                  <div class="cp-group">
+                    <div class="cp-group-head">
+                      <span class="cp-category-dot"
+                            [ngClass]="'dot-' + getCategoryClass(group.category)">
+                      </span>
+                      <span class="cp-category-name"
+                            [ngClass]="'cn-' + getCategoryClass(group.category)">
+                        {{ group.category | titlecase }}
+                      </span>
+                    </div>
+                    <div class="cp-causes">
+                      @for (cause of group.causes; track cause) {
+                        <div class="cp-cause-item">
+                          <div class="cp-cause-bar"
+                               [ngClass]="'bar-' + getCategoryClass(group.category)">
+                          </div>
+                          <div class="cp-cause-body">
+                            <div class="cp-cause-text">{{ cause }}</div>
+                          </div>
                         </div>
-                        <ul class="cause-group-list">
-                          @for (cause of group.causes; track $index) {
-                            <li>{{ cause }}</li>
-                          }
-                        </ul>
-                      </div>
-                    }
+                      }
+                    </div>
                   </div>
-                } @else {
-                  <ol class="causes-list">
-                    @for (cause of probableCausesList(); track $index) {
-                      <li class="cause-item">
-                        <span class="cause-num">{{ $index + 1 }}</span>
-                        <span class="cause-text">{{ cause }}</span>
-                      </li>
-                    }
-                  </ol>
                 }
               </div>
             }

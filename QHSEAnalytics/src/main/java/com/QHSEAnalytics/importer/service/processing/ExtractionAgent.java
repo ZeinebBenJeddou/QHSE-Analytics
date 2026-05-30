@@ -84,9 +84,6 @@ public class ExtractionAgent {
             Map<String, Integer> effectiveMapping = mappingResult.effectiveMapping;
             List<ImportIssue> extractionIssues = new ArrayList<>(mappingResult.mappingIssues);
 
-            log.info("ExtractionAgent démarré : méthode={}, feuille={}, headerRow={}, mapping={}",
-                    "MANUAL", sheet.getSheetName(), headerRowIndex, effectiveMapping);
-
             int lastDataRow = sheet.getLastRowNum();
             if (lastDataRow <= headerRowIndex) {
                 throw new ImportValidationException("Le fichier ne contient aucune ligne de données après l'en-tête.");
@@ -95,8 +92,24 @@ public class ExtractionAgent {
             List<KpiRawDataDTO> rows = extractRows(sheet, effectiveMapping, headerRowIndex, evaluator, formatter);
             List<String> detectedHeaders = buildDetectedHeaders(sheet, headerRowIndex, effectiveMapping, evaluator, formatter);
 
-            log.info("ExtractionAgent terminé : totalRows={}, validRows={}",
-                    rows.size(), rows.stream().filter(KpiRawDataDTO::isValid).count());
+            long emptyIgnored = (lastDataRow - headerRowIndex) - rows.size();
+
+            String detectionStrategy = !hasRequiredIndexes(mapping) ? "SEMANTIC/SYNONYMES" : "MANUAL";
+            String colA = columnLetter(effectiveMapping.getOrDefault(MAPPING_KPI_NAME_INDEX, -1));
+            String colN1 = columnLetter(effectiveMapping.getOrDefault(MAPPING_VALUE_N1_INDEX, -1));
+            String colN  = columnLetter(effectiveMapping.getOrDefault(MAPPING_VALUE_N_INDEX, -1));
+            String colCat = columnLetter(effectiveMapping.getOrDefault(MAPPING_CATEGORY_INDEX, -1));
+            String colUnit = columnLetter(effectiveMapping.getOrDefault(MAPPING_UNIT_INDEX, -1));
+
+            log.info("\n[EXTRACTION]" +
+                            "\n  Fichier            : {}" +
+                            "\n  Stratégie détection: {}" +
+                            "\n  Mapping            : KPI_NAME→{} | VALUE_N1→{} | VALUE_N→{} | CATEGORY→{} | UNIT→{}" +
+                            "\n  Lignes extraites   : {} | Lignes vides ignorées : {}",
+                    file.getOriginalFilename(),
+                    detectionStrategy,
+                    colA, colN1, colN, colCat, colUnit,
+                    rows.size(), Math.max(0, emptyIgnored));
 
             return new ExtractionResult(rows, "MANUAL", detectedHeaders, extractionIssues);
 
@@ -612,6 +625,17 @@ public class ExtractionAgent {
 
     private String safeTrim(String value) {
         return value == null ? null : value.trim();
+    }
+
+    private static String columnLetter(int colIndex) {
+        if (colIndex < 0) return "—";
+        StringBuilder sb = new StringBuilder();
+        int n = colIndex;
+        do {
+            sb.insert(0, (char) ('A' + n % 26));
+            n = n / 26 - 1;
+        } while (n >= 0);
+        return sb.toString();
     }
 
 

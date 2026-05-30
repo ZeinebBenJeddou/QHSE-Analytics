@@ -37,14 +37,69 @@ public class CleaningAgent {
 
         log.info("CleaningAgent: démarrage pour {} lignes", rawData.size());
 
-        List<KpiRawDataDTO> cleaned = rawData.stream()
+        List<KpiRawDataDTO> sanitized = rawData.stream()
                 .filter(Objects::nonNull)
                 .map(this::sanitizeRow)
                 .collect(Collectors.toList());
 
-        cleaned = deduplicateWithIssues(cleaned);
+        List<KpiRawDataDTO> cleaned = deduplicateWithIssues(sanitized);
 
-        log.info("CleaningAgent: terminé. Lignes résultantes : {}", cleaned.size());
+        // --- counters for QHSE-EVAL block ---
+        long uppercaseConverted = rawData.stream()
+                .filter(Objects::nonNull)
+                .filter(r -> {
+                    String orig = r.getKpiName();
+                    if (orig == null || orig.isBlank()) return false;
+                    String letters = orig.replaceAll("[^a-zA-ZÀ-ÿ]", "");
+                    return !letters.isEmpty() && letters.equals(letters.toUpperCase());
+                }).count();
+
+        long exactDuplicates = cleaned.stream()
+                .flatMap(r -> (r.getIssues() == null ? List.<com.QHSEAnalytics.shared.dto.response.ImportIssue>of() : r.getIssues()).stream())
+                .filter(i -> com.QHSEAnalytics.shared.dto.response.ImportIssue.CODE_DUPLICATE_KPI.equals(i.getCode()))
+                .count();
+
+        long conflictDuplicates = cleaned.stream()
+                .flatMap(r -> (r.getIssues() == null ? List.<com.QHSEAnalytics.shared.dto.response.ImportIssue>of() : r.getIssues()).stream())
+                .filter(i -> com.QHSEAnalytics.shared.dto.response.ImportIssue.CODE_DUPLICATE_CONFLICT.equals(i.getCode()))
+                .count();
+
+        long outliers = cleaned.stream()
+                .flatMap(r -> (r.getIssues() == null ? List.<com.QHSEAnalytics.shared.dto.response.ImportIssue>of() : r.getIssues()).stream())
+                .filter(i -> com.QHSEAnalytics.shared.dto.response.ImportIssue.CODE_OUTLIER_VARIATION.equals(i.getCode()))
+                .count();
+
+        // null tokens by category: count rows whose N or N-1 raw value matches a known null token
+        java.util.Set<String> nullTokens = java.util.Set.of(
+                "n/a", "na", "nd", "nr", "nc", "–", "—", "/", "?", "x",
+                "néant", "neant", "aucun", "none", "null", "empty");
+        java.util.Map<String, Long> nullByToken = cleaned.stream()
+                .flatMap(r -> {
+                    List<String> raws = new ArrayList<>();
+                    if (r.getValeurN1Raw() != null) raws.add(r.getValeurN1Raw().trim().toLowerCase(java.util.Locale.ROOT));
+                    if (r.getValeurNRaw()  != null) raws.add(r.getValeurNRaw().trim().toLowerCase(java.util.Locale.ROOT));
+                    return raws.stream();
+                })
+                .filter(nullTokens::contains)
+                .collect(Collectors.groupingBy(t -> t, Collectors.counting()));
+
+        long totalNulls = nullByToken.values().stream().mapToLong(Long::longValue).sum();
+        String nullDetail = nullByToken.entrySet().stream()
+                .map(e -> e.getKey() + ":" + e.getValue())
+                .collect(Collectors.joining(", "));
+
+        log.info("\n[CLEANING]" +
+                        "\n  Majuscules converties    : {}" +
+                        "\n  Doublons exacts          : {} | Conflictuels : {}" +
+                        "\n  Valeurs aberrantes       : {}" +
+                        "\n  Valeurs nulles/manquantes: {} ({})" +
+                        "\n  Lignes résultantes       : {}",
+                uppercaseConverted,
+                exactDuplicates, conflictDuplicates,
+                outliers,
+                totalNulls, nullDetail.isEmpty() ? "aucune" : nullDetail,
+                cleaned.size());
+
         return cleaned;
     }
 

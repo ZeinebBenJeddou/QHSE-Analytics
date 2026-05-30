@@ -426,102 +426,112 @@
       </div>
     </section>
 
-    
-    <div class="ia-block">
+    <section class="ia-block">
 
       <div class="ia-block-header">
-        <div class="ia-block-header-left">
-          <div>
-            <div class="ia-block-title">Analyse Intelligente</div>
-          </div>
-        </div>
+        <span class="ia-block-title">Analyse Intelligente</span>
+        <span class="ia-block-badge">
+          
+          Propulsé par IA
+        </span>
       </div>
 
       @if (!hasAiData()) {
         <div class="ia-block-empty">
           <div class="ia-block-empty-icon"><mat-icon>smart_toy</mat-icon></div>
           <div class="ia-block-empty-text">Aucune analyse IA disponible pour cet import.</div>
-          <button class="ia-block-cta-header" (click)="goToIA()">
+          <button class="ia-btn-primary" style="width:auto;padding:10px 20px;" (click)="goToIA()">
             <mat-icon>play_arrow</mat-icon>
             Lancer l'analyse
           </button>
         </div>
       } @else {
 
-        <div class="ia-block-content">
+        <div class="ia-block-grid">
 
-          
-          <div class="ia-block-left">
-
-            @if (structured()?.globalSummary) {
-              <div class="ia-block-synthese">
-                <div class="ia-block-synthese-label">Synthèse</div>
-                <p class="ia-block-synthese-text">{{ structured()!.globalSummary }}</p>
-              </div>
-            } @else if (dynamicSynthese()) {
-              <div class="ia-block-synthese">
-                <div class="ia-block-synthese-label">Synthèse</div>
-                <p class="ia-block-synthese-text">{{ dynamicSynthese() }}</p>
-              </div>
-            }
-
+          <!-- Colonne gauche : Synthèse -->
+          <div class="ia-card">
+            <div class="ia-card-head">Synthèse globale</div>
+            <div class="ia-card-body">
+              @if (dynamicSynthese()) {
+                <p class="ia-synthese-text">{{ dynamicSynthese() }}</p>
+              } @else {
+                <p class="ia-empty">Aucune synthèse disponible.</p>
+              }
+            </div>
           </div>
 
-          <div class="ia-block-divider"></div>
+          <!-- Colonne droite -->
+          <div class="ia-right-col">
 
-          <div class="ia-block-right">
-
-            @if (iaGlobalScore() !== null) {
+            <!-- Score global -->
+            <div class="ia-card">
+              <div class="ia-card-head">Score global</div>
               <div class="ia-score-row">
                 <div class="ia-score-ring-wrap">
-                  <svg class="ia-score-ring" viewBox="0 0 120 120">
-                    <circle cx="60" cy="60" r="54" fill="none" stroke="#EDE9FE" stroke-width="10"/>
-                    <circle cx="60" cy="60" r="54" fill="none"
-                            [attr.stroke]="iaScoreColor()"
-                            stroke-width="10"
-                            stroke-linecap="round"
-                            [style.stroke-dasharray]="iaScoreRingDash()"
-                            transform="rotate(-90 60 60)"/>
+                  <svg viewBox="0 0 64 64" class="ia-score-svg">
+                    <circle cx="32" cy="32" r="26"
+                      fill="none" stroke="#E2E8F0" stroke-width="6"/>
+                    <circle cx="32" cy="32" r="26"
+                      fill="none" stroke="#1E40AF" stroke-width="6"
+                      [attr.stroke-dasharray]="163"
+                      [attr.stroke-dashoffset]="163 - (163 * (iaGlobalScore() || 0) / 100)"
+                      stroke-linecap="round"
+                      transform="rotate(-90 32 32)"/>
+                    <text x="32" y="30" text-anchor="middle"
+                      font-size="13" font-weight="700" fill="#0F172A">
+                      {{ iaGlobalScore() || 0 }}
+                    </text>
+                    <text x="32" y="42" text-anchor="middle"
+                      font-size="7" fill="#64748B">/100</text>
                   </svg>
-                  <div class="ia-score-center">
-                    <span class="ia-score-value" [style.color]="iaScoreColor()">{{ iaGlobalScore() }}</span>
-                    <span class="ia-score-unit">/100</span>
-                    <span class="ia-score-label" [style.color]="iaScoreColor()">{{ iaScoreLabel() }}</span>
-                  </div>
                 </div>
                 <div class="ia-score-info">
-                  <div class="ia-block-section-label">Score global</div>
-                  <p class="ia-score-desc">Performance QHSE globale basée sur le niveau de variation des {{ scorecardsData().total }} indicateurs suivis.</p>
+                  <div class="ia-score-label"
+                       [ngClass]="{
+                         'label-critique':     (iaGlobalScore() || 0) < 40,
+                         'label-satisfaisant': (iaGlobalScore() || 0) >= 40 && (iaGlobalScore() || 0) < 70,
+                         'label-bon':          (iaGlobalScore() || 0) >= 70
+                       }">
+                    {{ (iaGlobalScore() || 0) >= 70 ? 'BON' :
+                       (iaGlobalScore() || 0) >= 40 ? 'SATISFAISANT' : 'CRITIQUE' }}
+                  </div>
+                  <div class="ia-score-value">
+                    {{ iaGlobalScore() || 0 }}<span class="ia-score-denom">/100</span>
+                  </div>
+                  <div class="ia-score-sub">
+                    Performance QHSE sur {{ scorecardsData().total }} indicateurs
+                  </div>
                 </div>
               </div>
-            }
-
-            @if (iaRecommendations().length) {
-              <div class="ia-block-section-label" style="margin-top:4px">Recommandations clés</div>
-              <div class="ia-block-actions-list">
-                @for (rec of iaRecommendations(); track $index) {
-                  <div class="ia-action-row">
-                    <div class="ia-action-prio-wrap">
-                      <span class="ia-action-prio"
-                            [class.prio-high]="rec.urgency === 'HIGH' || rec.urgency === 'haute'"
-                            [class.prio-med]="rec.urgency === 'MEDIUM' || rec.urgency === 'moyenne'">
-                        {{ formatPriorityLabel(rec.urgency) }}
-                      </span>
-                    </div>
-                    <p class="ia-action-text">{{ rec.title || rec.rationale | slice:0:100 }}{{ (rec.title || rec.rationale).length > 100 ? '…' : '' }}</p>
-                  </div>
-                }
+              <div class="ia-stats-row">
+                <div class="ia-stat-item">
+                  <span class="ia-stat-val critique">{{ scorecardsData().critiques }}</span>
+                  <span class="ia-stat-lbl">Critiques</span>
+                </div>
+                <div class="ia-stat-item">
+                  <span class="ia-stat-val modere">{{ scorecardsData().moderes }}</span>
+                  <span class="ia-stat-lbl">Modérés</span>
+                </div>
+                <div class="ia-stat-item">
+                  <span class="ia-stat-val faible">{{ scorecardsData().faibles }}</span>
+                  <span class="ia-stat-lbl">Faibles</span>
+                </div>
               </div>
-            }
+            </div>
 
-            <button class="ia-block-cta-main" (click)="goToIA()">
+            
+
+            <!-- Bouton -->
+            <button class="ia-btn-primary" (click)="goToIA()">
               Voir l'analyse complète
+              <mat-icon>arrow_forward</mat-icon>
             </button>
-          </div>
 
+          </div>
         </div>
       }
-    </div>
+    </section>
 
   }
 </div>
