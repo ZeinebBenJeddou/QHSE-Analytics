@@ -15,6 +15,7 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@lombok.extern.slf4j.Slf4j
 public class RefreshTokenService {
 
     private final RefreshTokenRepository refreshTokenRepository;
@@ -39,7 +40,10 @@ public class RefreshTokenService {
                 .expiresAt(LocalDateTime.now().plusSeconds(expMs / 1000))
                 .build();
 
-        return refreshTokenRepository.save(token);
+        RefreshToken saved = refreshTokenRepository.save(token);
+        log.info("[CREATE_TOKEN] user={} rememberMe={} expiresAt={} id={}",
+                user.getEmail(), rememberMe, saved.getExpiresAt(), saved.getId());
+        return saved;
     }
 
 
@@ -68,16 +72,23 @@ public class RefreshTokenService {
     @Transactional(readOnly = true)
     public Optional<RefreshToken> findValidRememberMeToken(User user) {
         return refreshTokenRepository
-                .findTopByUserAndRevokedFalseAndRememberMeTrueOrderByExpiresAtDesc(user)
-                .filter(rt -> !rt.isExpired());
+                .findRememberMeTokensByUserId(user.getId())
+                .stream()
+                .filter(rt -> !rt.isExpired())
+                .findFirst();
     }
 
     @Transactional
     public void revokeToken(String tokenValue) {
         refreshTokenRepository.findByTokenAndRevokedFalse(tokenValue)
                 .ifPresent(rt -> {
-                    rt.setRevoked(true);
-                    refreshTokenRepository.save(rt);
+                    if (!rt.isRememberMe()) {
+                        rt.setRevoked(true);
+                        refreshTokenRepository.save(rt);
+                        log.info("[REVOKE_TOKEN] token revoked id={} user={}", rt.getId(), rt.getUser().getEmail());
+                    } else {
+                        log.info("[REVOKE_TOKEN] skipping revoke — rememberMe token preserved id={} user={}", rt.getId(), rt.getUser().getEmail());
+                    }
                 });
     }
 

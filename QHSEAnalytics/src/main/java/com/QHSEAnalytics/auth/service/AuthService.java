@@ -176,6 +176,12 @@ public class AuthService {
         }
 
         Optional<RefreshToken> existing = refreshTokenService.findValidRememberMeToken(user);
+        log.info("[REMEMBER_ME] user={} found={} token={} rememberMe={} expired={}",
+                user.getEmail(),
+                existing.isPresent(),
+                existing.map(rt -> rt.getToken().substring(0, 8)).orElse("none"),
+                existing.map(rt -> rt.isRememberMe()).orElse(false),
+                existing.map(rt -> rt.isExpired()).orElse(true));
         if (existing.isPresent()) {
             RefreshToken rotated = refreshTokenService.rotateRefreshToken(existing.get().getToken());
             String accessToken = jwtService.generateAccessToken(user);
@@ -304,9 +310,11 @@ public class AuthService {
     @Transactional
     public MessageResponse logout(String email, String refreshTokenValue) {
 
+        log.info("[LOGOUT] email={} refreshTokenPresent={}", email, refreshTokenValue != null && !refreshTokenValue.isBlank());
         if (refreshTokenValue != null && !refreshTokenValue.isBlank()) {
             refreshTokenService.revokeToken(refreshTokenValue);
         } else {
+            log.warn("[LOGOUT] no refresh_token cookie — revoking ALL tokens for user={}", email);
             userRepository.findByEmail(email)
                     .ifPresent(refreshTokenService::revokeAllForUser);
         }
