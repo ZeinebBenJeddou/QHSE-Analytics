@@ -1,141 +1,44 @@
 <div class="page-wrapper">
-
-  <div class="bg-grid"></div>
-  <div class="bg-orb orb-1"></div>
-  <div class="bg-orb orb-2"></div>
-  <div class="bg-orb orb-3"></div>
-
-  
   <nav class="navbar">
     <div class="nav-inner">
       <div class="brand">
-       
+        
         <span class="brand-name">QHSE <strong>Analytics</strong></span>
       </div>
-
       <div class="nav-cta">
-        <a routerLink="/auth/login"    class="btn-nav-outline">Connexion</a>
+        <a routerLink="/auth/login" class="btn-nav-outline">Connexion</a>
         <a routerLink="/auth/register" class="btn-nav-filled">Inscription</a>
       </div>
     </div>
   </nav>
 
-  
   <section class="hero">
+    <h1 class="hero-title">
+      Analysez vos performances<br>
+      <em>QHSE avec l'IA</em>
+    </h1>
 
-   
-    <div class="hero-content">
+    <p class="hero-desc">
+      Comparez automatiquement vos indicateurs N-1 vs N, détectez les dérives critiques
+      et générez des synthèses intelligentes grâce aux modèles de langage avancés.
+    </p>
 
-     
-
-      <h1 class="hero-title">
-        Analysez vos performances<br>
-        <span class="title-accent">QHSE avec l'IA</span>
-      </h1>
-
-      <p class="hero-desc">
-        Comparez automatiquement vos indicateurs N-1 vs N, détectez les dérives critiques
-        et générez des synthèses intelligentes grâce aux modèles de langage avancés.
-      </p>
-
-      <div class="hero-actions">
-        <a routerLink="/auth/register" class="btn-primary">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
-          </svg>
-          Démarrer gratuitement
-        </a>
-        <a routerLink="/auth/login" class="btn-ghost">Se connecter</a>
-      </div>
-
-      <div class="hero-trust">
-        <div class="trust-item">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1E6FD9" stroke-width="2.5">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
-          <span>Sécurité des données</span>
-        </div>
-        <div class="trust-sep">·</div>
-        <div class="trust-item">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1E6FD9" stroke-width="2.5">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
-          <span>Analyse en temps réel</span>
-        </div>
-        <div class="trust-sep">·</div>
-        <div class="trust-item">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1E6FD9" stroke-width="2.5">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
-          <span>Export PDF </span>
-        </div>
-      </div>
+    <div class="hero-actions">
+      <a routerLink="/auth/register" class="btn-primary">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+        Démarrer gratuitement
+      </a>
+      <a routerLink="/auth/login" class="btn-ghost">Se connecter</a>
     </div>
 
     
-    <div class="hero-visual">
-      <div class="dashboard-card">
-
-        <div class="dc-header">
-          <div class="dc-dots">
-            <span class="dot-red"></span>
-            <span class="dot-yellow"></span>
-            <span class="dot-green"></span>
-          </div>
-          <span class="dc-title">Tableau de bord QHSE — 2025</span>
-        </div>
-
-        <div class="dc-body">
-
-          <div class="kpi-row">
-            <div class="kpi-card kpi-green">
-              <div class="kpi-label">Conformité</div>
-              <div class="kpi-value">94.2%</div>
-              <div class="kpi-trend trend-up">▲ +3.1%</div>
-            </div>
-            <div class="kpi-card kpi-red">
-              <div class="kpi-label">Non-conformités</div>
-              <div class="kpi-value">12</div>
-              <div class="kpi-trend trend-down">▼ -5</div>
-            </div>
-            <div class="kpi-card kpi-blue">
-              <div class="kpi-label">Accidents</div>
-              <div class="kpi-value">2</div>
-              <div class="kpi-trend trend-up">▼ -3</div>
-            </div>
-          </div>
-
-       
-          <div class="mini-chart">
-            <div class="chart-label">Évolution  (NC)</div>
-            <div class="bars">
-              <div class="bar-group" *ngFor="let b of bars">
-                <div class="bar bar-prev" [style.height.px]="b.prev"></div>
-                <div class="bar bar-curr" [style.height.px]="b.curr"></div>
-              </div>
-            </div>
-            <div class="chart-legend">
-              <span class="leg leg-prev">2024</span>
-              <span class="leg leg-curr">2025</span>
-            </div>
-          </div>
-
-         
-          <div class="ai-insight">
-            <div class="ai-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1E6FD9" stroke-width="2">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/>
-              </svg>
-            </div>
-            <p class="ai-text">
-              <strong>Analyse IA :</strong> La baisse des non-conformités (-29 %) reflète
-              l'efficacité des actions correctives du T3.
-            </p>
-          </div>
-
-        </div>
-      </div>
-    </div>
   </section>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <span class="footer-copy">© 2025 QHSE Analytics </span>
+    </div>
+  </footer>
 </div>
