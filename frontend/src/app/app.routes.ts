@@ -6,7 +6,7 @@ import { RegisterComponent } from './features/auth/pages/register/register.compo
 import { ForgotPasswordComponent } from './features/auth/pages/forgot-password/forgot-password.component';
 import { ResetPasswordComponent } from './features/auth/pages/reset-password/reset-password.component';
 import { VerifyAccountComponent } from './features/auth/pages/verify-account/verify-account.component';
-import { DashboardComponent } from './features/auth/pages/dashboard/dashboard.component';
+
 import { AdminShellComponent } from './features/admin/admin-shell.component';
 import { AdminOverviewComponent } from './features/admin/pages/overview/overview.component';
 import { adminOverviewResolver } from './features/admin/pages/overview/admin-overview.resolver';
@@ -28,7 +28,6 @@ import { ImportMappingComponent } from './features/analyste/pages/import-mapping
 import { HistoriqueComponent } from './features/analyste/pages/historique/historique.component';
 import { DashboardAnalysteComponent } from './features/analyste/pages/dashboard/dashboard-analyste.component';
 import { AnalyseIAComponent } from './features/analyste/pages/analyse-ia/analyse-ia.component';
-import { authGuard } from './core/guards/auth.guard';
 import { adminGuard } from './core/guards/admin.guard';
 import { analysteGuard } from './core/guards/analyste.guard';
 import { ExportPdfComponent } from './features/analyste/pages/export-pdf/export-pdf.component';
@@ -43,7 +42,6 @@ export const routes: Routes = [
   { path: 'auth/forgot-password', component: ForgotPasswordComponent },
   { path: 'auth/reset-password', component: ResetPasswordComponent },
   { path: 'auth/verify', component: VerifyAccountComponent },
-  { path: 'dashboard', component: DashboardComponent, canActivate: [authGuard] },
 
  
   {

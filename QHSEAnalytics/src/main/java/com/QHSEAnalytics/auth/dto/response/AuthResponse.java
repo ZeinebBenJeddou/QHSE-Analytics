@@ -18,4 +18,11 @@ public class AuthResponse {
     private String nom;
     private String prenom;
     private String role;
+
+    @Builder.Default
+    private boolean skipOtp = false;
+
+    @JsonIgnore
+    @Builder.Default
+    private boolean rememberMe = false;
 }

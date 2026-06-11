@@ -12,7 +12,7 @@ export const adminGuard: CanActivateFn = (): boolean => {
   }
 
   if (!tokenService.isAdmin()) {
-    router.navigate(['/dashboard']);
+    router.navigate(['/analyste/dashboard']);
     return false;
   }
 

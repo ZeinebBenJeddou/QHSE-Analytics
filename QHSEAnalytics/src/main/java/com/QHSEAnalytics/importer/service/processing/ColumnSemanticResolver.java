@@ -6,7 +6,7 @@ import java.util.Set;
 
 public final class ColumnSemanticResolver {
 
-    public enum Semantic { KPI_NAME, VALUE_N, VALUE_N1, CATEGORY, UNIT, UNKNOWN }
+    public enum Semantic { KPI_NAME, VALUE_N, VALUE_N1, CATEGORY, UNIT, UNKNOWN } // concepts attendus
 
     public record Result(Semantic semantic, double confidence) {}
 
@@ -26,7 +26,9 @@ public final class ColumnSemanticResolver {
             "realise", "realise n", "valeur realisee", "performance",
             "performance n", "resultat", "resultat actuel",
             "valeur courante", "mesure n", "donnee n",
-            "current year", "this year", "actual", "current value", "value n");
+            "current year", "this year", "actual", "current value", "value n",
+            "2020", "2021", "2022", "2023", "2024", "2025", "2026"
+    );
 
     private static final Set<String> VALUE_N1_SYNONYMS = Set.of(
             "n-1", "annee n-1", "valeur n-1", "resultat n-1", "previous",
@@ -34,7 +36,9 @@ public final class ColumnSemanticResolver {
             "realise n-1", "realise n1", "performance n-1", "performance n1",
             "resultat precedent", "valeur realisee n-1",
             "mesure n-1", "donnee n-1", "base", "reference",
-            "previous year", "last year", "prior", "prior year", "baseline", "value n-1");
+            "previous year", "last year", "prior", "prior year", "baseline", "value n-1",
+            "2020", "2021", "2022", "2023", "2024", "2025", "2026"
+    );
 
     private static final Set<String> CATEGORY_SYNONYMS = Set.of(
             "categorie", "domaine", "famille", "axe", "qhse", "type",
@@ -73,8 +77,7 @@ public final class ColumnSemanticResolver {
                 || h.contains("grandeur"))
             return new Result(Semantic.UNIT, bestScore(h, UNIT_SYNONYMS));
 
-        // Aucune correspondance : score = meilleure similarité Jaro-Winkler
-        // résiduelle sur l'ensemble des synonymes connus, naturellement < 0,70.
+
         double residual = allSynonyms().stream()
                 .mapToDouble(syn -> jaroWinkler(h, syn))
                 .max()

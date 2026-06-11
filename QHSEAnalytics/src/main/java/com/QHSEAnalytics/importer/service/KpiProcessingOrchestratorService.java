@@ -40,6 +40,10 @@ public class KpiProcessingOrchestratorService {
 
 
     public ImportProcessingResponse process(MultipartFile file, Map<String, Integer> mapping, boolean allowPartialImport) {
+        return process(file, mapping, allowPartialImport, false);
+    }
+
+    public ImportProcessingResponse process(MultipartFile file, Map<String, Integer> mapping, boolean allowPartialImport, boolean hasAnalysteContext) {
         long sessionId = SESSION_COUNTER.incrementAndGet();
         long sessionStart = System.currentTimeMillis();
         String fileName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "inconnu";
@@ -101,7 +105,7 @@ public class KpiProcessingOrchestratorService {
         if (aiResponse != null && aiResponse.getOverallScore() != null) {
             aiConfidence = (int) Math.round(aiResponse.getOverallScore());
         }
-        String contexte = "ABSENT";
+        String contexte = hasAnalysteContext ? "PRÉSENT" : "ABSENT";
 
         log.info("\n═══════════════════════════════════════════════════" +
                  "\n[SYNTHÈSE SESSION #{}]" +

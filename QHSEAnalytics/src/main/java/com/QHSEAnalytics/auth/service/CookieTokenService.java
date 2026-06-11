@@ -45,14 +45,14 @@ public class CookieTokenService {
                 .secure(cookieSecure)
                 .sameSite("Strict")
                 .maxAge(Duration.ofMillis(expirationMs))
-                .path("/api/auth/refresh")
+                .path("/api/auth")
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 
     public void clearAuthCookies(HttpServletResponse response) {
         clearCookie(response, "access_token", "/");
-        clearCookie(response, "refresh_token", "/api/auth/refresh");
+        clearCookie(response, "refresh_token", "/api/auth");
     }
 
     public String extractFromCookie(HttpServletRequest request, String name) {

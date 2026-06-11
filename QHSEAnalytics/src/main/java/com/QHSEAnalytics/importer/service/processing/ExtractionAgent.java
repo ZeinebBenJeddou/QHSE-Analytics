@@ -38,7 +38,7 @@ public class ExtractionAgent {
     @Value("${import.extraction.confidence.threshold:0.4}")
     private double lowConfidenceThreshold;
 
-    @Value("${import.extraction.mapping.good.threshold:0.70}")
+    @Value("${import.extraction.mapping.good.threshold:0.85}") // seuil pour libelles de colonnes
     private double mappingGoodThreshold;
 
 
@@ -56,6 +56,7 @@ public class ExtractionAgent {
              Workbook workbook = WorkbookFactory.create(inputStream)) {
 
             DataFormatter formatter = new DataFormatter(Locale.ROOT);
+            // evaluateur des formules
             FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
 
             if (workbook.getNumberOfSheets() == 0) {
@@ -70,6 +71,7 @@ public class ExtractionAgent {
             MappingResult mappingResult = buildEffectiveMapping(
                     sheet, normalizedMapping, headerRowIndex, evaluator, formatter);
 
+            // 3 colonnes obligatoires
             if (mappingResult.hasMissingCritical) {
                 throw new ImportValidationException(
                     "Colonnes non reconnues\n" +
@@ -124,8 +126,9 @@ public class ExtractionAgent {
 
     private Optional<Sheet> selectDataSheet(Workbook workbook, DataFormatter formatter, FormulaEvaluator evaluator) {
         if (workbook == null) return Optional.empty();
-        Optional<Sheet> templateSheet = HeaderDetectionUtil.findDataSheetForTemplate(workbook, formatter, evaluator);
-        if (templateSheet.isPresent()) return templateSheet;
+        if (HeaderDetectionUtil.hasTemplateMarker(workbook, formatter, evaluator)) {
+            return HeaderDetectionUtil.findDataSheetForTemplate(workbook, formatter, evaluator);
+        }
         for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
             Sheet sheet = workbook.getSheetAt(i);
             if (sheet != null && !ExcelParserUtil.isRowBlank(sheet.getRow(sheet.getFirstRowNum()), formatter, evaluator)) {
@@ -183,6 +186,7 @@ public class ExtractionAgent {
         }
     }
 
+    //mapping
     private MappingResult buildEffectiveMapping(Sheet sheet, Map<String, Integer> mapping,
                                                 int headerRowIndex, FormulaEvaluator evaluator,
                                                 DataFormatter formatter) {
@@ -223,6 +227,7 @@ public class ExtractionAgent {
                 }
             }
 
+            //synonymes metier
             findColumnBySynonyms(effective, MAPPING_KPI_NAME_INDEX,  ColumnSemanticResolver.synonymsFor(ColumnSemanticResolver.Semantic.KPI_NAME),  normalizedHeaders, issues, headerRowIndex);
             findColumnBySynonyms(effective, MAPPING_VALUE_N_INDEX,   ColumnSemanticResolver.synonymsFor(ColumnSemanticResolver.Semantic.VALUE_N),   normalizedHeaders, issues, headerRowIndex);
             findColumnBySynonyms(effective, MAPPING_VALUE_N1_INDEX,  ColumnSemanticResolver.synonymsFor(ColumnSemanticResolver.Semantic.VALUE_N1),  normalizedHeaders, issues, headerRowIndex);
@@ -365,6 +370,8 @@ public class ExtractionAgent {
                                              int headerRowIndex, FormulaEvaluator evaluator,
                                              DataFormatter formatter) {
         List<KpiRawDataDTO> rows = new ArrayList<>();
+
+        // parcourt des lignes apres entetes , ingorer ligne vide
         for (int rowIndex = headerRowIndex + 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
             Row row = sheet.getRow(rowIndex);
             if (row == null) continue;
@@ -469,6 +476,7 @@ public class ExtractionAgent {
         ParseResult(Double value, boolean issueAdded) { this.value = value; this.issueAdded = issueAdded; }
     }
 
+    // tokens reconnus comme valeur nulle
     private static final Set<String> MISSING_VALUE_TOKENS = Set.of(
             "n/a", "na", "nd", "nr", "nc",
             "–", "—",
@@ -545,6 +553,7 @@ public class ExtractionAgent {
         }
 
 
+        // normalisation
         String cleaned = trimmed
                 .replace("\u00A0", "")
                 .replace(" ", "")

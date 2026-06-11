@@ -15,7 +15,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
-import { ImportService } from '../../../../core/services/import.service';
+import { ImportService, ImportContexte } from '../../../../core/services/import.service';
 import { ImportUploadStateService } from '../../../../core/services/import-upload-state.service';
 import {
   CategoryScoreDTO,
@@ -54,7 +54,7 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
   private uploadState = inject(ImportUploadStateService);
   private snackBar = inject(MatSnackBar);
 
-  uploadStateData = signal<{ file: File; yearN: number; yearNMinus1: number; headers: string[]; detectedHeaders?: string[] } | null>(null);
+  uploadStateData = signal<{ file: File; yearN: number; yearNMinus1: number; headers: string[]; detectedHeaders?: string[]; contexteSecteur?: string; contexteTaille?: string; contexteCertifications?: string; contexteObjectifs?: string; contexteReglementation?: string; contexteSpecifique?: string } | null>(null);
 
   kpiColumn = signal<number | null>(null);
   valueNColumn = signal<number | null>(null);
@@ -327,7 +327,7 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
     this.openProgressStream(clientId);
 
     try {
-      const response = await firstValueFrom(this.importService.confirmStrict(state.file, state.yearN, state.yearNMinus1, mapping, clientId));
+      const response = await firstValueFrom(this.importService.confirmStrict(state.file, state.yearN, state.yearNMinus1, mapping, clientId, this.getContexte()));
       this.uploadState.saveResponse(response);
       this.snackBar.open('Importation confirmée avec succès.', 'OK', { duration: 3000 });
       const sessionId = response.importSessionId;
@@ -362,7 +362,7 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
     this.openProgressStream(clientId);
 
     try {
-      const response = await firstValueFrom(this.importService.confirmPartial(state.file, state.yearN, state.yearNMinus1, mapping, clientId));
+      const response = await firstValueFrom(this.importService.confirmPartial(state.file, state.yearN, state.yearNMinus1, mapping, clientId, this.getContexte()));
       this.uploadState.saveResponse(response);
       const imported = response.qualityReport?.importedRowsCount ?? 0;
       const rejected = response.qualityReport?.rejectedRowsCount ?? 0;
@@ -548,6 +548,18 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
     if (!items.length) return 'Aucune ligne détectée.';
     const invalid = items.filter(r => !r.valid).length;
     return `${invalid} ligne(s) invalide(s) sur ${items.length} (${Math.round((invalid / items.length) * 100)}%)`;
+  }
+
+  private getContexte(): ImportContexte {
+    const s = this.uploadStateData();
+    return {
+      contexteSecteur:        s?.contexteSecteur,
+      contexteTaille:         s?.contexteTaille,
+      contexteCertifications: s?.contexteCertifications,
+      contexteObjectifs:      s?.contexteObjectifs,
+      contexteReglementation: s?.contexteReglementation,
+      contexteSpecifique:     s?.contexteSpecifique,
+    };
   }
 
   goBack() { this.router.navigate(['/analyste/import']); }

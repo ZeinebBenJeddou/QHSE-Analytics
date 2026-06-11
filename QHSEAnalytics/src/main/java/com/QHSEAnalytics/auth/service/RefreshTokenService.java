@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +35,7 @@ public class RefreshTokenService {
 
         RefreshToken token = RefreshToken.builder()
                 .user(user)
+                .rememberMe(rememberMe)
                 .expiresAt(LocalDateTime.now().plusSeconds(expMs / 1000))
                 .build();
 
@@ -51,18 +53,33 @@ public class RefreshTokenService {
         old.setRevoked(true);
         refreshTokenRepository.save(old);
 
-        boolean wasRememberMe = old.getExpiresAt()
-                .isAfter(LocalDateTime.now().plusHours(2));
-        long expMs = wasRememberMe ? refreshTokenRememberExpiration : refreshTokenExpiration;
+        long expMs = old.isRememberMe() ? refreshTokenRememberExpiration : refreshTokenExpiration;
 
         RefreshToken newToken = RefreshToken.builder()
                 .user(old.getUser())
+                .rememberMe(old.isRememberMe())
                 .expiresAt(LocalDateTime.now().plusSeconds(expMs / 1000))
                 .build();
 
         return refreshTokenRepository.save(newToken);
     }
 
+
+    @Transactional(readOnly = true)
+    public Optional<RefreshToken> findValidRememberMeToken(User user) {
+        return refreshTokenRepository
+                .findTopByUserAndRevokedFalseAndRememberMeTrueOrderByExpiresAtDesc(user)
+                .filter(rt -> !rt.isExpired());
+    }
+
+    @Transactional
+    public void revokeToken(String tokenValue) {
+        refreshTokenRepository.findByTokenAndRevokedFalse(tokenValue)
+                .ifPresent(rt -> {
+                    rt.setRevoked(true);
+                    refreshTokenRepository.save(rt);
+                });
+    }
 
     @Transactional
     public void revokeAllForUser(User user) {

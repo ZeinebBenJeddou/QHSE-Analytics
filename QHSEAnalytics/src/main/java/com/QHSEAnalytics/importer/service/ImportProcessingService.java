@@ -100,9 +100,15 @@ public class ImportProcessingService {
         ImportSession processingSession = advanceStatus(initialSession, ImportStatut.processing());
 
         importProgressService.push(clientId, "TRAITEMENT", 20, "Lecture et parsing du fichier Excel…");
+        boolean hasContext = session.getContexteSecteur() != null && !session.getContexteSecteur().isBlank()
+                || session.getContexteTaille() != null && !session.getContexteTaille().isBlank()
+                || session.getContexteCertifications() != null && !session.getContexteCertifications().isBlank()
+                || session.getContexteObjectifs() != null && !session.getContexteObjectifs().isBlank()
+                || session.getContexteReglementation() != null && !session.getContexteReglementation().isBlank()
+                || session.getContexteSpecifique() != null && !session.getContexteSpecifique().isBlank();
         ImportProcessingResponse processingResponse = orchestrator.process(
                 request.getFile(), request.getMappingIndexes(),
-                Boolean.TRUE.equals(request.getAllowPartialImport()));
+                Boolean.TRUE.equals(request.getAllowPartialImport()), hasContext);
         ImportQualityReport qualityReport = processingResponse.getQualityReport();
         boolean allowPartial = Boolean.TRUE.equals(request.getAllowPartialImport());
 

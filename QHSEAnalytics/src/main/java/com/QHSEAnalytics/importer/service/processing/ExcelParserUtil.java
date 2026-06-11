@@ -19,6 +19,7 @@ public final class ExcelParserUtil {
             return null;
         }
 
+        //parsing en cas de texte en cellule de valeur numerique
         CellType cellType = cell.getCellType();
         if (cellType == CellType.FORMULA) {
             cellType = evaluator.evaluateFormulaCell(cell);

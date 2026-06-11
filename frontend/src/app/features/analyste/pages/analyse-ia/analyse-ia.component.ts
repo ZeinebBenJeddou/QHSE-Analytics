@@ -452,6 +452,12 @@ export class AnalyseIAComponent implements OnInit, OnDestroy {
       .replace(/\bPerformance KPI\b/gi, 'indicateur de performance');
   }
 
+  private normalizeKpiName(name: string | null | undefined): string {
+    if (!name) return '';
+    return name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
+      .replace(/\s+/g, ' ').replace(/[^a-z0-9 ]/g, '');
+  }
+
   enrichedKpis = computed((): EnrichedKpi[] => {
     const legacy   = this.analyse()?.analysesKpis ?? [];
     const insights = this.structured()?.kpiInsights ?? [];
@@ -460,12 +466,12 @@ export class AnalyseIAComponent implements OnInit, OnDestroy {
     const byName = new Map<string, AiKpiInsightResponse>();
     insights.forEach(ins => {
       if (ins.kpiId != null) byId.set(ins.kpiId, ins);
-      if (ins.kpiName) byName.set(ins.kpiName.toLowerCase().trim(), ins);
+      if (ins.kpiName) byName.set(this.normalizeKpiName(ins.kpiName), ins);
     });
 
     if (legacy.length > 0) {
       return legacy.map(kpi => {
-        const ins = byId.get(kpi.kpiId) ?? byName.get(kpi.kpiNom?.toLowerCase().trim() ?? '');
+        const ins = byId.get(kpi.kpiId) ?? byName.get(this.normalizeKpiName(kpi.kpiNom));
         return {
           ...kpi,
           insight:           ins?.insight ?? kpi.analyseIa ?? undefined,

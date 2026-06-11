@@ -64,13 +64,13 @@ public class QualityReportBuilder {
 
                 int rowScore;
                 if (!row.isValid() || hasError) {
-                    rowScore = scoreInvalid;
+                    rowScore = scoreInvalid; // 0 si au moins une erreur
                     invalidRows++;
                 } else if (hasWarning) {
-                    rowScore = scoreWarning;
+                    rowScore = scoreWarning; // 70 au moins un avert
                     warningRows++;
                 } else {
-                    rowScore = scoreValid;
+                    rowScore = scoreValid; // 100 si ne prenste aucune anomalie
                 }
 
                 row.setRowQualityScore(rowScore);
@@ -124,6 +124,8 @@ public class QualityReportBuilder {
         int uniqueRows = rawData == null ? 0 : rawData.size();
         int totalRows = uniqueRows + duplicateRows;
         int validRows = uniqueRows - invalidRows;
+        warningRows = allWarnings.size();
+        // Q
         double qualityScore = uniqueRows == 0 ? 0.0 : Math.round((scoreSum / uniqueRows) * 10.0) / 10.0;
 
         boolean hasHardBlocking = allErrors.stream().anyMatch(QualityReportBuilder::isHardBlockingIssue);
@@ -157,7 +159,7 @@ public class QualityReportBuilder {
         String anomaliesSummary = buildAnomaliesSummary(cappedErrors, cappedWarnings);
         log.info("\n[QUALITY]" +
                         "\n  Score global  : {}/100" +
-                        "\n  Lignes valides: {} | Avertissements : {} | Invalides : {}" +
+                        "\n  Lignes valides: {} | Issues WARNING : {} | Invalides : {}" +
                         "\n  Anomalies     : {}",
                 qualityScore,
                 validRows, warningRows, invalidRows,

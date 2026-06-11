@@ -100,7 +100,6 @@ public class AnalysisAgent {
                 int recCount   = parsedResponse.getRecommendations() != null ? parsedResponse.getRecommendations().size() : 0;
                 double score   = parsedResponse.getOverallScore()    != null ? parsedResponse.getOverallScore()           : 0.0;
                 log.info("\n[ANALYSIS]" +
-                                "\n  Contexte analyste       : ABSENT" +
                                 "\n  Chunks envoyés          : 1 | Retries validation : 0" +
                                 "\n  Temps LLM analyse       : {} ms" +
                                 "\n  Score confiance (overall): {}/100" +
@@ -712,13 +711,13 @@ public class AnalysisAgent {
                 .traceability(AiTraceabilityResponse.builder()
                         .modelName("fallback")
                         .generatedAt(OffsetDateTime.now(ZoneOffset.UTC).toString())
-                        .schemaVersion("1.1")
+                        .schemaVersion("1.2")
                         .promptVersion(structuredAnalysisPromptBuilder.getPromptVersion())
                         .importSessionId(null)
                         .build())
                 .status(status)
                 .fallbackReason(fallbackReason)
-                .schemaVersion("1.1")
+                .schemaVersion("1.2")
                 .promptVersion(structuredAnalysisPromptBuilder.getPromptVersion())
                 .build();
     }

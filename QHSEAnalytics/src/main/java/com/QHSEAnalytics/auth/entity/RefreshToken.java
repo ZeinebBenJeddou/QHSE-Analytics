@@ -32,6 +32,10 @@ public class RefreshToken {
     @Builder.Default
     private boolean revoked = false;
 
+    @Column(name = "remember_me", nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private boolean rememberMe = false;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

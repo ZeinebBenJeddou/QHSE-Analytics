@@ -18,8 +18,10 @@ public class MetadataEnrichmentAgent {
     private final LlmProviderChain llmProviderChain;
     private final ObjectMapper objectMapper;
 
+    //enrichissement des indicateurs non reconnus
     public List<KpiCalculatedDTO> enrichMetadata(List<KpiCalculatedDTO> data) {
         List<KpiCalculatedDTO> toEnrich = data.stream()
+                .filter(k -> k.getKpiName() != null && !k.getKpiName().isBlank())
                 .filter(k -> k.getDefinition() == null || k.getDefinition().isBlank() ||
                         k.getCategorie() == null || k.getCategorie().isBlank() || "AUTO".equals(k.getCategorieCode()) ||
                         k.getUnite() == null || k.getUnite().isBlank() ||
@@ -99,7 +101,8 @@ public class MetadataEnrichmentAgent {
                             || "LOWER_IS_BETTER".equals(direction);
 
                     data.stream()
-                        .filter(k -> k.getKpiName().equalsIgnoreCase(name))
+                        .filter(k -> k.getKpiName() != null && k.getKpiName().equalsIgnoreCase(name))
+                            // aucun champ déjà renseigné n'est écrasé , Chaque champ est appliqué uniquement si absent
                         .forEach(k -> {
                             if (k.getDefinition() == null || k.getDefinition().isBlank()) k.setDefinition(definition);
                             if (k.getCategorie() == null || k.getCategorie().isBlank() || "AUTO".equals(k.getCategorieCode())) k.setCategorie(category);
@@ -142,6 +145,7 @@ public class MetadataEnrichmentAgent {
         sb.append(" LOWER_IS_BETTER (improvement = decrease, e.g. accident count).");
         sb.append("\n- If uncertain, return null for direction.");
         sb.append("\nReturn ONLY a valid JSON object with exactly this structure: "
+                // 8 champs structurés dans un objet JSON
                 + "{\"items\":[{\"name\":string,\"category\":string,\"definition\":string,\"unite\":string,"
                 + "\"seuilFaible\":number|null,\"seuilModere\":number|null,\"seuilCritique\":number|null,"
                 + "\"direction\":\"HIGHER_IS_BETTER|LOWER_IS_BETTER\"|null}]}. No other text.");

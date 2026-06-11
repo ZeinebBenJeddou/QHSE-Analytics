@@ -14,7 +14,8 @@ import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
-public class StructuredAnalysisPromptBuilder {
+public class
+StructuredAnalysisPromptBuilder {
 
     public static final String GENERIC_RETRY_SUFFIX =
             "\n\nATTENTION : ta réponse précédente contenait des champs vides ou génériques. " +

@@ -455,15 +455,6 @@ public class PdfTemplateBuilder {
         appendFooter(html, dateFormatted);
         html.append("</div>");
 
-        String synthese = analyseGlobale == null ? "Synthese indisponible." : nullSafe(analyseGlobale.getSynthese(), "Synthese indisponible.");
-        html.append("<div class=\"page-break\">")
-                .append("<div class=\"section-title\">Synthese Globale</div>")
-                .append("<div class=\"card\">")
-                .append(nl2br(synthese))
-                .append("</div>");
-        appendFooter(html, dateFormatted);
-        html.append("</div>");
-
         PlanSections sections = extractPlanSections(analyseGlobale == null ? null : analyseGlobale.getPlanActions());
         html.append("<div>")
                 .append("<div class=\"section-title\">Plan d'Actions Priorise</div>")
@@ -525,9 +516,6 @@ public class PdfTemplateBuilder {
                 .append("</div></div>")
                 .append("<div class=\"card\"><div class=\"card-title\">Analystes actifs</div><div style=\"font-size:22px;\">")
                 .append(safeStats.getNombreAnalystesActifs())
-                .append("</div></div>")
-                .append("<div class=\"card\"><div class=\"card-title\">Nombre admins</div><div style=\"font-size:22px;\">")
-                .append(safeStats.getNombreAdmins())
                 .append("</div></div>");
         appendFooter(html, dateFormatted);
         html.append("</div>");

@@ -8,6 +8,7 @@ export interface AuthResponse {
   nom: string;
   prenom: string;
   role: string;
+  skipOtp: boolean;
   message?: string;
 }
 

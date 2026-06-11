@@ -27,7 +27,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -40,6 +43,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final OtpService otpService;
     private final RefreshTokenService refreshTokenService;
+    private final CookieTokenService cookieTokenService;
     private final EmailService emailService;
     private final AuthenticationManager authenticationManager;
     private final InMemoryRateLimiter rateLimiter;
@@ -149,7 +153,7 @@ public class AuthService {
 
 
     @Transactional
-    public MessageResponse login(LoginRequest request) {
+    public Object login(LoginRequest request, HttpServletResponse httpResponse) {
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new UserNotFoundException("Email ou mot de passe incorrect."));
@@ -169,6 +173,21 @@ public class AuthService {
         } catch (AuthenticationException e) {
             log.warn("[AUTH] Tentative de connexion échouée — email={}", request.getEmail());
             throw new BadCredentialsException("Email ou mot de passe incorrect.");
+        }
+
+        Optional<RefreshToken> existing = refreshTokenService.findValidRememberMeToken(user);
+        if (existing.isPresent()) {
+            RefreshToken rotated = refreshTokenService.rotateRefreshToken(existing.get().getToken());
+            String accessToken = jwtService.generateAccessToken(user);
+            cookieTokenService.setAccessTokenCookie(httpResponse, accessToken);
+            cookieTokenService.setRefreshTokenCookie(httpResponse, rotated.getToken(), true);
+            return AuthResponse.builder()
+                    .email(user.getEmail())
+                    .nom(user.getNom())
+                    .prenom(user.getPrenom())
+                    .role(user.getRole().name())
+                    .skipOtp(true)
+                    .build();
         }
 
         otpService.generateAndSendOtp(user);
@@ -233,6 +252,7 @@ public class AuthService {
         return AuthResponse.builder()
                 .accessToken(newAccessToken)
                 .refreshToken(newRefreshToken.getToken())
+                .rememberMe(newRefreshToken.isRememberMe())
                 .email(user.getEmail())
                 .nom(user.getNom())
                 .prenom(user.getPrenom())
@@ -282,10 +302,14 @@ public class AuthService {
 
 
     @Transactional
-    public MessageResponse logout(String email) {
+    public MessageResponse logout(String email, String refreshTokenValue) {
 
-        userRepository.findByEmail(email)
-                .ifPresent(refreshTokenService::revokeAllForUser);
+        if (refreshTokenValue != null && !refreshTokenValue.isBlank()) {
+            refreshTokenService.revokeToken(refreshTokenValue);
+        } else {
+            userRepository.findByEmail(email)
+                    .ifPresent(refreshTokenService::revokeAllForUser);
+        }
 
         return new MessageResponse("Déconnexion réussie.");
     }

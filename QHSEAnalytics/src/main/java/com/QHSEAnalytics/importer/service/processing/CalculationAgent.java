@@ -300,12 +300,13 @@ public class CalculationAgent {
         if (row.getKpiName() == null || row.getKpiName().isBlank()) return new MatchResult(null, null);
         String normalized = normalize(row.getKpiName());
 
+        // correspondance exacte
         if (byName.containsKey(normalized)) return new MatchResult(byName.get(normalized), 1.0);
 
         for (Map.Entry<String, Kpi> entry : byName.entrySet()) {
             String key = entry.getKey();
             if (normalized.contains(key) || key.contains(normalized)) {
-                return new MatchResult(entry.getValue(), 0.9);
+                return new MatchResult(entry.getValue(), 0.9); // correspondance par inclusion
             }
         }
 
@@ -313,12 +314,13 @@ public class CalculationAgent {
         double bestScore = 0.0;
         for (Map.Entry<String, Kpi> entry : byName.entrySet()) {
             double score = jaroWinkler(normalized, entry.getKey());
-            if (score > bestScore) { bestScore = score; best = entry.getValue(); }
+            if (score > bestScore) { bestScore = score; best = entry.getValue(); } // jaro-winkler
         }
         if (bestScore >= 0.82) return new MatchResult(best, bestScore);
         return new MatchResult(null, null);
     }
 
+    // ponderation supp pour les correspondances en debut de chaine (prefixe jus a 4 caracteres)
     private double jaroWinkler(String s1, String s2) {
         double j = jaro(s1, s2);
         int prefix = 0;

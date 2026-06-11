@@ -14,23 +14,10 @@ import java.util.stream.Collectors;
 @Slf4j
 public class CleaningAgent {
 
+    //seuil val abberantes configurable
     @Value("${import.cleaning.outlier.threshold.percent:500.0}")
     private double outlierThresholdPercent;
 
-    @Value("${import.cleaning.score.base:100}")
-    private int scoreBase;
-
-    @Value("${import.cleaning.score.penalty.invalid:50}")
-    private int penaltyInvalid;
-
-    @Value("${import.cleaning.score.penalty.error:30}")
-    private int penaltyError;
-
-    @Value("${import.cleaning.score.penalty.warning:10}")
-    private int penaltyWarning;
-
-    @Value("${import.cleaning.score.penalty.info:5}")
-    private int penaltyInfo;
 
     public List<KpiRawDataDTO> clean(List<KpiRawDataDTO> rawData) {
         if (rawData == null || rawData.isEmpty()) return new ArrayList<>();
@@ -44,7 +31,7 @@ public class CleaningAgent {
 
         List<KpiRawDataDTO> cleaned = deduplicateWithIssues(sanitized);
 
-        // --- counters for QHSE-EVAL block ---
+
         long uppercaseConverted = rawData.stream()
                 .filter(Objects::nonNull)
                 .filter(r -> {
@@ -121,10 +108,12 @@ public class CleaningAgent {
 
         String validationMessage = row.getValidationMessage();
 
+        // lignes valides ==> ref stric non null
         if (row.isValid() && row.getValeurN1() != null && row.getValeurN() != null) {
             double v1 = row.getValeurN1();
             double v  = row.getValeurN();
             if (v1 != 0) {
+                // val aberantes
                 double variation = Math.abs((v - v1) / v1) * 100;
                 if (variation > outlierThresholdPercent) {
                     String msg = String.format(
@@ -145,17 +134,6 @@ public class CleaningAgent {
             }
         }
 
-        int score = scoreBase;
-        if (!row.isValid()) score -= penaltyInvalid;
-        for (ImportIssue issue : issues) {
-            switch (issue.getSeverity()) {
-                case ERROR   -> score -= penaltyError;
-                case WARNING -> score -= penaltyWarning;
-                case INFO    -> score -= penaltyInfo;
-            }
-        }
-        score = Math.max(0, score);
-
         return KpiRawDataDTO.builder()
                 .rowIndex(row.getRowIndex())
                 .kpiName(cleanedName)
@@ -171,7 +149,6 @@ public class CleaningAgent {
                 .validationMessage(validationMessage)
                 .methodeExtraction(row.getMethodeExtraction())
                 .scoreConfiance(row.getScoreConfiance())
-                .rowQualityScore(score)
                 .issues(issues)
                 .build();
     }
@@ -185,6 +162,7 @@ public class CleaningAgent {
         for (KpiRawDataDTO row : rows) {
             String key = buildDedupeKey(row);
 
+            // premiere occ conservée
             if (!seen.containsKey(key)) {
                 seen.put(key, row);
                 result.add(row);
@@ -203,7 +181,7 @@ public class CleaningAgent {
                                 .rowIndex(row.getRowIndex())
                                 .column("KPI")
                                 .code(ImportIssue.CODE_DUPLICATE_KPI)
-                                .severity(ImportIssue.Severity.INFO)
+                                .severity(ImportIssue.Severity.INFO)  // doublon exacte ==>information
                                 .message(String.format(
                                         "Doublon exact ignoré : '%s' (ligne %d est identique à la ligne %d)",
                                         row.getKpiName(), row.getRowIndex(), existing.getRowIndex()))
@@ -217,7 +195,7 @@ public class CleaningAgent {
                                 .rowIndex(row.getRowIndex())
                                 .column("KPI")
                                 .code(ImportIssue.CODE_DUPLICATE_CONFLICT)
-                                .severity(ImportIssue.Severity.WARNING)
+                                .severity(ImportIssue.Severity.WARNING) //doublon conflictuel ==> avertissement
                                 .message(String.format(
                                         "Doublon conflictuel : '%s' présent en lignes %d et %d avec des valeurs différentes. Première occurrence conservée.",
                                         row.getKpiName(), existing.getRowIndex(), row.getRowIndex()))
@@ -229,13 +207,13 @@ public class CleaningAgent {
     }
 
 
+    // construction d cle de deduplication a partir du nom normalisé
     private String buildDedupeKey(KpiRawDataDTO row) {
         String norm = row.getNormalizedKpiName();
         if (norm == null || norm.isBlank()) {
             return "UNKNOWN_" + row.getRowIndex();
         }
-        String cat = row.getCategorie() != null ? row.getCategorie().trim().toLowerCase() : "unknown";
-        return norm + "|" + cat;
+        return norm;
     }
 
     private boolean isExactDuplicate(KpiRawDataDTO a, KpiRawDataDTO b) {
@@ -253,9 +231,12 @@ public class CleaningAgent {
 
     private String trimAndNormalize(String value) {
         if (value == null) return null;
+
+        // debarassement des espaces superflus
         return value.trim().replaceAll("\\s+", " ");
     }
 
+    // majuscules converties en casse de titre
     private String toTitleCaseIfAllCaps(String value) {
         if (value == null || value.isBlank()) return value;
         String letters = value.replaceAll("[^a-zA-ZÀ-ÿ]", "");

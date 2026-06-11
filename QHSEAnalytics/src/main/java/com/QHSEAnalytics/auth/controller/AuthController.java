@@ -50,8 +50,8 @@ public class AuthController {
 
     @Operation(summary = "Initier la connexion", description = "Vérifie les identifiants et envoie un OTP par email")
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
-        return ResponseEntity.ok(authService.login(request));
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
+        return ResponseEntity.ok(authService.login(request, response));
     }
 
     @Operation(summary = "Valider l'OTP et obtenir les tokens", description = "Vérifie l'OTP et retourne JWT + refresh token")
@@ -81,7 +81,7 @@ public class AuthController {
         }
         AuthResponse auth = authService.refreshToken(refreshToken);
         cookieTokenService.setAccessTokenCookie(response, auth.getAccessToken());
-        cookieTokenService.setRefreshTokenCookie(response, auth.getRefreshToken(), false);
+        cookieTokenService.setRefreshTokenCookie(response, auth.getRefreshToken(), auth.isRememberMe());
         return ResponseEntity.ok(auth);
     }
 
@@ -98,8 +98,9 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(HttpServletResponse response) {
-        MessageResponse result = authService.logout(securityUtils.getCurrentUserEmail());
+    public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response) {
+        String refreshToken = cookieTokenService.extractFromCookie(request, "refresh_token");
+        MessageResponse result = authService.logout(securityUtils.getCurrentUserEmail(), refreshToken);
         cookieTokenService.clearAuthCookies(response);
         return ResponseEntity.ok(result);
     }

@@ -36,7 +36,7 @@ public class ComparativeCalculator {
         Direction direction = resolveDirection(kpi);
 
         if (valN != null && valN1 != null) {
-            absGap = valN - valN1;
+            absGap = valN - valN1; // var absolue
         } else {
             flags.add(DataFlag.MISSING_CONTEXT);
         }
@@ -66,9 +66,12 @@ public class ComparativeCalculator {
 
         } else {
             if (valN != null) {
-                rel = ((valN - valN1) / Math.abs(valN1)) * 100.0;
+                rel = ((valN - valN1) / Math.abs(valN1)) * 100.0; //var relative
                 if (valN == 0d) {
-                    special = "STRONG_IMPROVEMENT";
+                    // vN=0 is only a STRONG_IMPROVEMENT when lowering is favorable
+                    if (direction == Direction.LOWER_IS_BETTER) {
+                        special = "STRONG_IMPROVEMENT";
+                    }
                 }
             }
         }
@@ -79,6 +82,7 @@ public class ComparativeCalculator {
 
 
 
+        //score de confiance
         int confidence = 60;
         if (kpi != null) confidence += 20;
         if (flags.contains(DataFlag.MISSING_CONTEXT)) confidence -= 25;

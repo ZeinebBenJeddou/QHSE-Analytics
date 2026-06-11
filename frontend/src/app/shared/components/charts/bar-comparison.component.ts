@@ -37,10 +37,14 @@ export class BarComparisonComponent implements AfterViewInit, OnChanges, OnDestr
   ngOnChanges(c: SimpleChanges): void {
     if (c['data'] || c['labelN1'] || c['labelN']) this.buildChart();
   }
-  ngOnDestroy(): void { this.chart?.destroy(); }
+  ngOnDestroy(): void {
+    this.chart?.destroy();
+    this.chart = undefined;
+  }
 
   private buildChart(): void {
     this.chart?.destroy();
+    this.chart = undefined;
     if (!this.canvas || !this.data?.length) return;
     const ctx = this.canvas.nativeElement.getContext('2d');
     if (!ctx) return;

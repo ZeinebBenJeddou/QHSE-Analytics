@@ -174,18 +174,18 @@ public class ClassificationEngine {
             }
             if (degradationMagnitude > p75) {
                 r.setClassification(MODERE);
-                r.setReason("Dégradation notable dans l'historique (p75)");
+                r.setReason("Dégradation notable dans l'historique (entre p75 et p95)");
                 r.setReviewRequired(comp.isReviewRequired());
                 return r;
             }
             if (degradationMagnitude > p75 * 0.85) {
                 r.setClassification(CRITIQUE);
-                r.setReason("Dégradation pré-critique dans l'historique (approche p75)");
+                r.setReason("Dégradation pré-critique dans l'historique (0.85×p75 < magnitude ≤ p75)");
                 r.setReviewRequired(true);
                 return r;
             }
             r.setClassification(FAIBLE);
-            r.setReason("Dégradation contenue dans l'historique");
+            r.setReason("Dégradation contenue dans l'historique (en deçà de 0.85×p75)");
             r.setReviewRequired(comp.isReviewRequired());
             return r;
         }
@@ -243,6 +243,7 @@ public class ClassificationEngine {
                 && kpi.getSeuilCritique() != null;
     }
 
+    //Seuils avec direction d'évolution souhaitée
     private String computeAbsolutePosition(Direction dir, Double currentValue, double faible, double modere, double critique) {
         if (currentValue == null) return "UNKNOWN";
         double v = currentValue;

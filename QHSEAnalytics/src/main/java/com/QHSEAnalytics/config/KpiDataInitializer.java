@@ -91,18 +91,18 @@ public class KpiDataInitializer implements CommandLineRunner {
             kpi("Heures de Formation Sécurité",     "Total heures formation par employé",           UniteKpi.NOMBRE,      s,   5.0,   10.0,   20.0, Direction.HIGHER_IS_BETTER),
             kpi("Taux de Port des EPI",             "Conformité observée lors des rondes",          UniteKpi.POURCENTAGE, s,  90.0,   95.0,  100.0, Direction.HIGHER_IS_BETTER),
             kpi("Nombre de Situations Dangereuses", "Situations à risque signalées",                UniteKpi.NOMBRE,      s,  10.0,   25.0,   50.0, Direction.LOWER_IS_BETTER),
-            kpi("Délai Levée des Non-Conformités",  "Temps pour corriger une faille sécurité (j)",  UniteKpi.NOMBRE,      s,   2.0,    7.0,   15.0, Direction.LOWER_IS_BETTER),
+            kpi("Délai de Levée des Non-Conformités",  "Temps pour corriger une faille sécurité (j)",  UniteKpi.NOMBRE,      s,   2.0,    7.0,   15.0, Direction.LOWER_IS_BETTER),
             kpi("Nombre de Visites Sécurité (VMS)", "Total des visites managériales terrain",       UniteKpi.NOMBRE,      s,   4.0,    8.0,   12.0, Direction.HIGHER_IS_BETTER),
 
             // ── Environnement ────────────────────────────────────────
             kpi("Consommation Électricité",         "kWh consommés par tonne produite",             UniteKpi.KWH,         e, 100.0,  200.0,  500.0, Direction.LOWER_IS_BETTER),
             kpi("Consommation Eau",                 "Mètres cubes d'eau consommés",                 UniteKpi.NOMBRE,      e,  50.0,  150.0,  300.0, Direction.LOWER_IS_BETTER),
             kpi("Taux de Valorisation Déchets",     "Déchets recyclés / Déchets totaux",            UniteKpi.POURCENTAGE, e,  50.0,   70.0,   85.0, Direction.HIGHER_IS_BETTER),
-            kpi("Émissions CO2 (Scope 1&2)",        "Tonnes de CO2 équivalent",                     UniteKpi.KG,          e,1000.0, 5000.0,10000.0, Direction.LOWER_IS_BETTER),
+            kpi("Émissions CO2",                     "Tonnes de CO2 équivalent",                     UniteKpi.KG,          e,1000.0, 5000.0,10000.0, Direction.LOWER_IS_BETTER),
             kpi("Volume Déchets Dangereux",         "Total déchets toxiques ou polluants",          UniteKpi.KG,          e,  50.0,  200.0,  500.0, Direction.LOWER_IS_BETTER),
             kpi("Consommation de Papier",           "Nombre de rames par collaborateur",            UniteKpi.NOMBRE,      e,   1.0,    3.0,    5.0, Direction.LOWER_IS_BETTER),
             kpi("Incidents Environnementaux",       "Déversements ou fuites accidentelles",         UniteKpi.NOMBRE,      e,   0.0,    1.0,    2.0, Direction.LOWER_IS_BETTER),
-            kpi("Part Énergie Renouvelable",        "Pourcentage d'énergie propre utilisée",        UniteKpi.POURCENTAGE, e,  10.0,   30.0,   50.0, Direction.HIGHER_IS_BETTER)
+            kpi("Part d'Énergie Renouvelable",      "Pourcentage d'énergie propre utilisée",        UniteKpi.POURCENTAGE, e,  10.0,   30.0,   50.0, Direction.HIGHER_IS_BETTER)
         );
 
         int created = 0;

@@ -6,6 +6,8 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { HttpErrorResponse } from '@angular/common/http';
 import { AuthService } from '../../../../core/services/auth.service';
+import { TokenService } from '../../../../core/services/token.service';
+import { AuthResponse } from '../../models/auth.models';
 import { finalize } from 'rxjs';
 
 @Component({
@@ -35,6 +37,7 @@ export class LoginPage implements OnInit {
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
+    private tokenService: TokenService,
     private router: Router,
     private route: ActivatedRoute,
     private snackBar: MatSnackBar
@@ -65,10 +68,18 @@ export class LoginPage implements OnInit {
     const { email, password } = this.loginForm.value;
 
     this.authService.login({ email, password }).subscribe({
-      next: () => {
+      next: (res: any) => {
         this.isLoading = false;
-        this.snackBar.open('OTP envoyé. Vérifiez votre email.', 'Fermer', { duration: 4000 });
-        this.router.navigate(['/auth/otp'], { queryParams: { email } });
+        if ((res as AuthResponse).skipOtp) {
+          const response = res as AuthResponse;
+          this.tokenService.setUserRole(response.role);
+          const target = response.role === 'ADMIN' ? '/admin/overview' : '/analyste/dashboard';
+          this.snackBar.open('Connexion réussie.', 'Fermer', { duration: 3000 });
+          this.router.navigate([target]);
+        } else {
+          this.snackBar.open('OTP envoyé. Vérifiez votre email.', 'Fermer', { duration: 4000 });
+          this.router.navigate(['/auth/otp'], { queryParams: { email } });
+        }
       },
       error: (err: HttpErrorResponse) => {
         this.isLoading = false;

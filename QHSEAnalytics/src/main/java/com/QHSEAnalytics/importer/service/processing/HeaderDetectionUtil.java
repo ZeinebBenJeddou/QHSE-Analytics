@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
 
 public final class HeaderDetectionUtil {
 
-    private static final Pattern YEAR_PATTERN = Pattern.compile("\\b(19|20)(\\d{2})\\b");
+    private static final Pattern YEAR_PATTERN = Pattern.compile("\\b20\\d{2}\\b");
     private static final List<String> METADATA_MARKERS = List.of("qhse_analytics_template_v1", "template_v1", "template");
 
     private HeaderDetectionUtil() {
@@ -31,7 +31,7 @@ public final class HeaderDetectionUtil {
         }
 
         int firstRow = sheet.getFirstRowNum();
-        int lastRow = Math.min(firstRow + 50, sheet.getLastRowNum());
+        int lastRow = Math.min(firstRow + 50, sheet.getLastRowNum()); // parcourt au max les 50 premiers lignes
         HeaderDetectionResult fallback = null;
 
         for (int rowIndex = firstRow; rowIndex <= lastRow; rowIndex++) {
@@ -41,6 +41,8 @@ public final class HeaderDetectionUtil {
             }
 
             Map<Integer, ColumnRole> labels = classifyHeaderRow(row, formatter, evaluator);
+
+            // analyse semantique
             if (labels.containsValue(ColumnRole.KPI) && labels.containsValue(ColumnRole.VALUE_N)) {
                 return Optional.of(buildResult(rowIndex, labels));
             }
@@ -84,6 +86,7 @@ public final class HeaderDetectionUtil {
         return Optional.empty();
     }
 
+    // retrnir en premier une feuille marquée par un marqueur de gabarait
     public static boolean hasTemplateMarker(Workbook workbook, DataFormatter formatter, FormulaEvaluator evaluator) {
         if (workbook == null) {
             return false;
@@ -117,6 +120,7 @@ public final class HeaderDetectionUtil {
         return false;
     }
 
+    // selectionner premiere feuille dont le contenu nest pas feuille de metadonnee ou gabarit
     public static Optional<Sheet> findDataSheetForTemplate(Workbook workbook, DataFormatter formatter, FormulaEvaluator evaluator) {
         if (workbook == null) {
             return Optional.empty();

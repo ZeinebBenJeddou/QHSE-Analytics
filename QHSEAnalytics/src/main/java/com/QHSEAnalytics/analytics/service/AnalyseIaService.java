@@ -212,9 +212,10 @@ public class AnalyseIaService {
             importSessionRepository.save(session);
 
             // Persister l'analyse structurée et enrichir les KpiAnalysis manquants
+            AiAnalysisStructuredResponse structured = null;
             if (!iaUnavailable) {
                 try {
-                    AiAnalysisStructuredResponse structured =
+                    structured =
                             analysisAgent.analyzeStructured(cleanedData, importSessionId, bypassStructuredCache, session);
                     if (structured != null) {
                         analyseGlobale.setStructuredResponseJson(objectMapper.writeValueAsString(structured));
@@ -232,8 +233,65 @@ public class AnalyseIaService {
                 }
             }
 
-            log.info("Analyse IA complète générée pour la session {} en {} ms", importSessionId,
-                    System.currentTimeMillis() - startAt);
+            long totalMs = System.currentTimeMillis() - startAt;
+
+            // ── Contexte analyste : PRÉSENT si au moins un champ renseigné
+            boolean hasContexte = (session.getContexteSecteur() != null && !session.getContexteSecteur().isBlank())
+                    || (session.getContexteTaille() != null && !session.getContexteTaille().isBlank())
+                    || (session.getContexteCertifications() != null && !session.getContexteCertifications().isBlank())
+                    || (session.getContexteObjectifs() != null && !session.getContexteObjectifs().isBlank())
+                    || (session.getContexteReglementation() != null && !session.getContexteReglementation().isBlank())
+                    || (session.getContexteSpecifique() != null && !session.getContexteSpecifique().isBlank());
+            String contexteLabel = hasContexte ? "PRÉSENT" : "ABSENT";
+
+            int confiance = 0;
+            int couvertureOk = 0;
+            int couvertureTotal = cleanedData.size();
+            String structuredStatus = "N/A";
+            if (structured != null) {
+                if (structured.getConfidence() != null && structured.getConfidence().getOverall() != null) {
+                    confiance = structured.getConfidence().getOverall().intValue();
+                }
+                structuredStatus = structured.getStatus() != null ? structured.getStatus() : "UNKNOWN";
+                if (structured.getKpiInsights() != null) {
+                    couvertureOk = structured.getKpiInsights().size();
+                }
+                // Traceability peut contenir le modèle utilisé
+            }
+
+            int critiqueCount = (int) resultats.stream()
+                    .filter(r -> r.getNiveauVariation() != null && "CRITIQUE".equals(r.getNiveauVariation().name()))
+                    .count();
+            int modereCount = (int) resultats.stream()
+                    .filter(r -> r.getNiveauVariation() != null && "MODERE".equals(r.getNiveauVariation().name()))
+                    .count();
+
+            log.info("\n═══════════════════════════════════════════════════" +
+                     "\n[SYNTHÈSE ANALYSE IA — session {}]" +
+                     "\n  Fichier            : {}" +
+                     "\n  Contexte analyste  : {}" +
+                     (hasContexte ? "\n    secteur={} | taille={} | certif={}" : "") +
+                     "\n  KPIs analysés      : {}" +
+                     "\n  CRITIQUE / MODERE  : {} / {}" +
+                     "\n  Couverture struct. : {}/{}" +
+                     "\n  Score confiance    : {}/100" +
+                     "\n  Statut structuré   : {}" +
+                     "\n  Durée totale       : {} ms" +
+                     "\n═══════════════════════════════════════════════════",
+                    importSessionId,
+                    session.getNomFichier() != null ? session.getNomFichier() : "inconnu",
+                    contexteLabel,
+                    hasContexte ? session.getContexteSecteur() : null,
+                    hasContexte ? session.getContexteTaille() : null,
+                    hasContexte ? session.getContexteCertifications() : null,
+                    resultats.size(),
+                    critiqueCount, modereCount,
+                    couvertureOk, couvertureTotal,
+                    confiance,
+                    structuredStatus,
+                    totalMs);
+
+            log.info("Analyse IA complète générée pour la session {} en {} ms", importSessionId, totalMs);
         } catch (Exception ex) {
             log.error("Erreur inattendue génération analyses session {} : {}", importSessionId, ex.getMessage(), ex);
             if (session != null) {

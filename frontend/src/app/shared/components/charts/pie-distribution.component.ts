@@ -41,6 +41,7 @@ export class PieDistributionComponent implements AfterViewInit, OnChanges, OnDes
 
   @ViewChild('chartCanvas') canvas?: ElementRef<HTMLCanvasElement>;
   private chart?: Chart<'doughnut'>;
+  private buildTimer?: ReturnType<typeof setTimeout>;
 
   isEmpty = signal(false);
 
@@ -50,23 +51,31 @@ export class PieDistributionComponent implements AfterViewInit, OnChanges, OnDes
       this.buildChart();
     }
   }
-  ngOnDestroy(): void { this.chart?.destroy(); }
+  ngOnDestroy(): void {
+    clearTimeout(this.buildTimer);
+    this.chart?.destroy();
+    this.chart = undefined;
+  }
 
   private get total(): number {
     return this.enHausseCritique + this.enHausseModeree + this.enBaisseModeree + this.enBaisseFaible;
   }
 
   private buildChart(): void {
-    this.chart?.destroy();
+    clearTimeout(this.buildTimer);
     if (this.total === 0) {
       this.isEmpty.set(true);
+      this.chart?.destroy();
+      this.chart = undefined;
       return;
     }
     this.isEmpty.set(false);
-    setTimeout(() => {
+    this.buildTimer = setTimeout(() => {
       if (!this.canvas) return;
       const ctx = this.canvas.nativeElement.getContext('2d');
       if (!ctx) return;
+      this.chart?.destroy();
+      this.chart = undefined;
       this.renderChart(ctx);
     });
   }
