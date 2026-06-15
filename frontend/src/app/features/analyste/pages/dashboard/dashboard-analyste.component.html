@@ -458,76 +458,12 @@
               }
             </div>
           </div>
-
-          <!-- Colonne droite -->
-          <div class="ia-right-col">
-
-            <!-- Score global -->
-            <div class="ia-card">
-              <div class="ia-card-head">Score global</div>
-              <div class="ia-score-row">
-                <div class="ia-score-ring-wrap">
-                  <svg viewBox="0 0 64 64" class="ia-score-svg">
-                    <circle cx="32" cy="32" r="26"
-                      fill="none" stroke="#E2E8F0" stroke-width="6"/>
-                    <circle cx="32" cy="32" r="26"
-                      fill="none" stroke="#1E40AF" stroke-width="6"
-                      [attr.stroke-dasharray]="163"
-                      [attr.stroke-dashoffset]="163 - (163 * (iaGlobalScore() || 0) / 100)"
-                      stroke-linecap="round"
-                      transform="rotate(-90 32 32)"/>
-                    <text x="32" y="30" text-anchor="middle"
-                      font-size="13" font-weight="700" fill="#0F172A">
-                      {{ iaGlobalScore() || 0 }}
-                    </text>
-                    <text x="32" y="42" text-anchor="middle"
-                      font-size="7" fill="#64748B">/100</text>
-                  </svg>
-                </div>
-                <div class="ia-score-info">
-                  <div class="ia-score-label"
-                       [ngClass]="{
-                         'label-critique':     (iaGlobalScore() || 0) < 40,
-                         'label-satisfaisant': (iaGlobalScore() || 0) >= 40 && (iaGlobalScore() || 0) < 70,
-                         'label-bon':          (iaGlobalScore() || 0) >= 70
-                       }">
-                    {{ (iaGlobalScore() || 0) >= 70 ? 'BON' :
-                       (iaGlobalScore() || 0) >= 40 ? 'SATISFAISANT' : 'CRITIQUE' }}
-                  </div>
-                  <div class="ia-score-value">
-                    {{ iaGlobalScore() || 0 }}<span class="ia-score-denom">/100</span>
-                  </div>
-                  <div class="ia-score-sub">
-                    Performance QHSE sur {{ scorecardsData().total }} indicateurs
-                  </div>
-                </div>
-              </div>
-              <div class="ia-stats-row">
-                <div class="ia-stat-item">
-                  <span class="ia-stat-val critique">{{ scorecardsData().critiques }}</span>
-                  <span class="ia-stat-lbl">Critiques</span>
-                </div>
-                <div class="ia-stat-item">
-                  <span class="ia-stat-val modere">{{ scorecardsData().moderes }}</span>
-                  <span class="ia-stat-lbl">Modérés</span>
-                </div>
-                <div class="ia-stat-item">
-                  <span class="ia-stat-val faible">{{ scorecardsData().faibles }}</span>
-                  <span class="ia-stat-lbl">Faibles</span>
-                </div>
-              </div>
-            </div>
-
-            
-
-            <!-- Bouton -->
-            <button class="ia-btn-primary" (click)="goToIA()">
-              Voir l'analyse complète
-              <mat-icon>arrow_forward</mat-icon>
-            </button>
-
-          </div>
         </div>
+
+        <button class="ia-btn-primary ia-btn-primary--full" (click)="goToIA()">
+          Voir l'analyse complète
+          <mat-icon>arrow_forward</mat-icon>
+        </button>
       }
     </section>
 

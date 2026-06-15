@@ -431,7 +431,7 @@ h1 {
 
 .ia-block-grid {
   display: grid;
-  grid-template-columns: 1.4fr 1fr;
+  grid-template-columns: 1fr;
   gap: 14px;
   align-items: start;
 }
@@ -474,96 +474,6 @@ h1 {
   font-style: italic;
   font-family: 'DM Sans', system-ui;
   margin: 0;
-}
-
-.ia-right-col {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.ia-score-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px;
-}
-
-.ia-score-svg {
-  width: 64px;
-  height: 64px;
-  flex-shrink: 0;
-}
-
-.ia-score-ring-wrap { flex-shrink: 0; }
-
-.ia-score-info { flex: 1; }
-
-.ia-score-label {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  margin-bottom: 2px;
-  font-family: 'DM Sans', system-ui;
-}
-
-.ia-score-label.label-critique     { color: var(--qhse-danger); }
-.ia-score-label.label-satisfaisant { color: var(--qhse-warning); }
-.ia-score-label.label-bon          { color: var(--qhse-success); }
-
-.ia-score-value {
-  font-size: 26px;
-  font-weight: 800;
-  color: var(--qhse-text-primary);
-  line-height: 1;
-  margin-bottom: 4px;
-  font-family: 'DM Sans', system-ui;
-}
-
-.ia-score-denom {
-  font-size: 14px;
-  font-weight: 400;
-  color: var(--qhse-text-secondary);
-}
-
-.ia-score-sub {
-  font-size: 11px;
-  color: var(--qhse-text-secondary);
-  line-height: 1.4;
-  font-family: 'DM Sans', system-ui;
-}
-
-.ia-stats-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 8px;
-  padding: 10px 14px 14px;
-  border-top: 1px solid var(--qhse-border);
-}
-
-.ia-stat-item { text-align: center; }
-
-.ia-stat-val {
-  font-size: 20px;
-  font-weight: 800;
-  display: block;
-  line-height: 1;
-  font-family: 'DM Sans', system-ui;
-}
-
-.ia-stat-val.critique { color: var(--qhse-danger); }
-.ia-stat-val.modere   { color: var(--qhse-warning); }
-.ia-stat-val.faible   { color: var(--qhse-success); }
-
-.ia-stat-lbl {
-  font-size: 10px;
-  color: var(--qhse-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-top: 3px;
-  display: block;
-  font-family: 'DM Sans', system-ui;
 }
 
 .ia-reco-list { display: flex; flex-direction: column; }
@@ -617,6 +527,11 @@ h1 {
   cursor: pointer;
   font-family: 'DM Sans', system-ui;
   transition: background 0.15s, transform 0.12s;
+}
+
+.ia-btn-primary--full {
+  width: 100%;
+  margin-top: 14px;
 }
 
 .ia-btn-primary mat-icon {
