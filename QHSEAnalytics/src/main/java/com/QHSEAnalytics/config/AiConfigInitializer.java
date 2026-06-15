@@ -10,10 +10,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-/**
- * Initialise la configuration IA au démarrage.
- * Idempotent : ne recrée pas les clés déjà présentes.
- */
 @Component
 @Order(3)
 @RequiredArgsConstructor

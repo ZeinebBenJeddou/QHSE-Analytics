@@ -27,6 +27,12 @@ public class AuditLogService {
     public static final String PROMOTE_ADMIN     = "PROMOUVOIR_ADMIN";
     public static final String DEMOTE_ANALYSTE   = "RETROGRADER_ANALYSTE";
     public static final String RESET_PASSWORD    = "REINITIALISER_MDP";
+    public static final String CREATE_KPI        = "CREER_KPI";
+    public static final String UPDATE_KPI        = "MODIFIER_KPI";
+    public static final String DELETE_KPI        = "SUPPRIMER_KPI";
+    public static final String DEACTIVATE_KPI    = "DESACTIVER_KPI";
+    public static final String REACTIVATE_KPI    = "REACTIVER_KPI";
+    public static final String RESTORE_KPI       = "RESTAURER_KPI";
 
     private final AuditLogRepository auditLogRepository;
     private final SecurityUtils securityUtils;
@@ -39,6 +45,18 @@ public class AuditLogService {
                 .action(action)
                 .targetUserId(targetUserId)
                 .targetEmail(targetEmail)
+                .targetLabel(targetEmail)
+                .details(details)
+                .build());
+    }
+
+    @Transactional
+    public void logKpi(String action, Long targetKpiId, String kpiName, String details) {
+        String adminEmail = securityUtils.getCurrentUserEmail();
+        auditLogRepository.save(AuditLog.builder()
+                .adminEmail(adminEmail)
+                .action(action)
+                .targetLabel(kpiName == null || kpiName.isBlank() ? "KPI" : "KPI: " + kpiName)
                 .details(details)
                 .build());
     }
@@ -74,6 +92,7 @@ public class AuditLogService {
                 .action(a.getAction())
                 .targetUserId(a.getTargetUserId())
                 .targetEmail(a.getTargetEmail())
+                .targetLabel(a.getTargetLabel())
                 .details(a.getDetails())
                 .timestamp(a.getTimestamp())
                 .build();

@@ -3,6 +3,8 @@ package com.QHSEAnalytics.shared.dto.response;
 import lombok.Builder;
 import lombok.Data;
 
+import com.QHSEAnalytics.shared.enums.KpiMatchingType;
+
 @Data
 @Builder
 public class KpiCalculatedDTO {
@@ -27,6 +29,7 @@ public class KpiCalculatedDTO {
     private String tendance;
     private String matchedKpi;
     private Long matchedKpiId;
+    private KpiMatchingType matchingType;
 
 
     private String direction;
@@ -38,6 +41,7 @@ public class KpiCalculatedDTO {
     private String classificationReason;
 
     private Boolean reviewRequired;
+    private boolean aiEnriched;
 
     private java.util.List<String> dataFlags;
 

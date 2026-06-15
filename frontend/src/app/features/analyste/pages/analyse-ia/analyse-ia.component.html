@@ -59,6 +59,13 @@
         @if (createdAt) {
           <p class="page-subtitle">Dernière analyse générée le {{ createdAt }}</p>
         }
+        <div class="context-pill" [class.context-pill--success]="contextSummary().hasContext" [class.context-pill--warning]="!contextSummary().hasContext">
+          <mat-icon>{{ contextSummary().icon }}</mat-icon>
+          <div class="context-pill-body">
+            <div class="context-pill-title">{{ contextSummary().label }}</div>
+            <div class="context-pill-detail">{{ contextSummary().detail }}</div>
+          </div>
+        </div>
       </div>
 
       <div class="page-header-right">
@@ -78,10 +85,17 @@
 
     <!-- ── Stats strip ── -->
     <div class="stats-strip">
-      <div class="stat-card">
+      <div class="stat-card stat-card-total">
         <div class="stat-body">
           <div class="stat-value">{{ heroStats().total }}</div>
           <div class="stat-label">Indicateurs analysés</div>
+        </div>
+      </div>
+      <div class="stat-card stat-card-ai">
+        <div class="stat-body">
+          <div class="stat-value stat-value-green">{{ llmCoverageStats().analyzed }}</div>
+          <div class="stat-label">KPIs analysés par IA</div>
+          <div class="stat-note">{{ llmCoverageStats().coveragePct }}% couverts</div>
         </div>
       </div>
       <div class="stat-card stat-card-danger">
@@ -96,6 +110,39 @@
           <div class="stat-label">KPIs modérés</div>
         </div>
       </div>
+      @if (aiConfidence() !== null) {
+        <div class="stat-card stat-card-confidence">
+          <div class="confidence-layout">
+            <div class="confidence-left">
+              <div class="stat-value stat-value-confidence">{{ aiConfidence() }}<span class="stat-confidence-max">/100</span></div>
+              <div class="stat-label">Confiance IA</div>
+              <div class="stat-confidence-bar">
+                <div class="stat-confidence-fill"
+                     [style.width.%]="aiConfidence()"
+                     [class.conf-low]="aiConfidence()! < 50"
+                     [class.conf-mid]="aiConfidence()! >= 50 && aiConfidence()! < 75"
+                     [class.conf-high]="aiConfidence()! >= 75">
+                </div>
+              </div>
+            </div>
+            @if (structured()?.confidence?.sections) {
+              <div class="confidence-right">
+                @for (entry of confidenceSections(); track entry.key) {
+                  <div class="conf-section-row">
+                    <span class="conf-section-label">{{ entry.label }}</span>
+                    <span class="conf-section-val"
+                          [class.conf-text-low]="entry.value < 50"
+                          [class.conf-text-mid]="entry.value >= 50 && entry.value < 75"
+                          [class.conf-text-high]="entry.value >= 75">
+                      {{ entry.value }}%
+                    </span>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      }
     </div>
 
     <!-- ── Hero: score ring + global summary + category mini-cards ── -->
@@ -136,11 +183,18 @@
                   <div class="cat-mini-card"
                        [style.background]="stat.bgLight"
                        [style.border-color]="stat.color">
+                    <mat-icon [style.color]="stat.color">{{ stat.icon }}</mat-icon>
                     <div class="cat-mini-info">
                       <span class="cat-mini-label" [style.color]="stat.color">{{ stat.libelle }}</span>
                       <div class="cat-mini-counts">
                         @if (stat.critique > 0) {
                           <span class="mini-count mini-c">{{ stat.critique }} critique{{ stat.critique > 1 ? 's' : '' }}</span>
+                        }
+                        @if (stat.modere > 0) {
+                          <span class="mini-count mini-m">{{ stat.modere }} modéré{{ stat.modere > 1 ? 's' : '' }}</span>
+                        }
+                        @if (stat.faible > 0) {
+                          <span class="mini-count mini-ok">{{ stat.faible }} faible{{ stat.faible > 1 ? 's' : '' }}</span>
                         }
                       </div>
                     </div>
@@ -196,7 +250,7 @@
                               (click)="setCatFilter(cat.code)">
                         {{ cat.libelle }}
                         <span class="kct-count"
-                              [class.has-critique]="(catStats()[CATEGORIES.indexOf(cat)]?.critique ?? 0) > 0">
+                          [class.has-critique]="(catStats()[CATEGORIES.indexOf(cat)]?.critique || 0) > 0">
                           {{ catCountAll(cat.code) }}
                         </span>
                       </button>
@@ -210,6 +264,7 @@
                   <button class="nv-chip nv-faible" [class.active]="niveauKpiFilter() === 'FAIBLE'" (click)="setNiveauFilter('FAIBLE')">Faible</button>
                   <button class="nv-chip nv-modere" [class.active]="niveauKpiFilter() === 'MODERE'" (click)="setNiveauFilter('MODERE')">Modéré</button>
                   <button class="nv-chip nv-critique" [class.active]="niveauKpiFilter() === 'CRITIQUE'" (click)="setNiveauFilter('CRITIQUE')">Critique</button>
+                  <button class="nv-chip nv-indetermine" [class.active]="niveauKpiFilter() === 'INDETERMINE'" (click)="setNiveauFilter('INDETERMINE')">Indéterminé</button>
                 </div>
                 <div class="kpi-search">
                   <mat-icon>search</mat-icon>
@@ -248,7 +303,7 @@
                     </div>
 
                     <div class="kpi-right">
-                      @if (kpi.valeurN1 !== 0 || kpi.valeurN !== 0) {
+                      @if (kpi.valeurN1 != null && kpi.valeurN != null) {
                         <div class="kpi-values">
                           <span class="val-n1">{{ kpi.valeurN1 | number:'1.0-2' }}</span>
                           <mat-icon class="val-arrow">arrow_forward</mat-icon>
@@ -257,6 +312,19 @@
                         <span class="kpi-var-chip" [class]="getVariationClass(kpi.variationRelative)">
                           <mat-icon [class]="getTendanceClass(kpi.tendance)">{{ getTendanceIcon(kpi.tendance) }}</mat-icon>
                           {{ formatVariation(kpi.variationRelative) }}
+                        </span>
+                      }
+                      @if (kpi.urgency) {
+                        <span class="kpi-urgency-chip"
+                              [class.urg-haute]="kpi.urgency === 'HIGH'"
+                              [class.urg-moyenne]="kpi.urgency === 'MEDIUM'"
+                              [class.urg-faible]="kpi.urgency === 'LOW'">
+                          {{ kpi.urgency === 'HIGH' ? 'Urgence haute' : kpi.urgency === 'MEDIUM' ? 'Urgence moyenne' : 'Urgence faible' }}
+                        </span>
+                      }
+                      @if (kpi.structuredOwner) {
+                        <span class="kpi-owner-chip" [matTooltip]="'Responsable : ' + kpi.structuredOwner">
+                          <mat-icon>person</mat-icon>{{ kpi.structuredOwner }}
                         </span>
                       }
                       @if (kpi.insight) {
@@ -641,7 +709,6 @@
 
       </mat-tab-group>
     </div>
-
 
   }
 </div>

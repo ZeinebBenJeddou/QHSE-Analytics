@@ -280,6 +280,15 @@
                       }
                     </div>
                   </div>
+                  @if (a.confidenceScore != null) {
+                    <span class="confidence-chip"
+                          [class.conf-chip-high]="a.confidenceScore >= 75"
+                          [class.conf-chip-mid]="a.confidenceScore >= 50 && a.confidenceScore < 75"
+                          [class.conf-chip-low]="a.confidenceScore < 50"
+                          [matTooltip]="'Confiance IA : ' + a.confidenceScore + '/100'">
+                      {{ a.confidenceScore }}/100
+                    </span>
+                  }
                   <span class="statut-chip"
                         [class.chip-critique]="a.statut === 'ALERTE'"
                         [class.chip-faible]="a.statut === 'OK'">

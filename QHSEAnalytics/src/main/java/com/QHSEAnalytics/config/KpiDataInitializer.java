@@ -14,10 +14,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-/**
- * Initialise les catégories QHSE et les KPIs standard au démarrage.
- * Idempotent : ne recrée pas ce qui existe déjà.
- */
+
 @Component
 @Order(2)
 @RequiredArgsConstructor
@@ -31,11 +28,10 @@ public class KpiDataInitializer implements CommandLineRunner {
     public void run(String... args) {
         initCategories();
         initKpis();
+        normalizeExistingSources();
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // Catégories
-    // ─────────────────────────────────────────────────────────────
+
 
     private void initCategories() {
         seedCategorie("Q", "Qualité",         "Maîtrise opérationnelle et satisfaction");
@@ -52,9 +48,7 @@ public class KpiDataInitializer implements CommandLineRunner {
         }
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // KPIs
-    // ─────────────────────────────────────────────────────────────
+
 
     private void initKpis() {
         CategorieKpi q = categorieRepo.findByCode("Q").orElseThrow();
@@ -64,7 +58,7 @@ public class KpiDataInitializer implements CommandLineRunner {
 
         List<Kpi> kpis = List.of(
 
-            // ── Qualité ───────────────────────────────────────────────
+
             kpi("Taux de Non-Conformité",         "Ratio produits non conformes / total produit",   UniteKpi.POURCENTAGE, q,   2.0,    5.0,   10.0, Direction.LOWER_IS_BETTER),
             kpi("Coût de la Non-Qualité",         "Coûts des rebuts et retouches en k€",            UniteKpi.NOMBRE,      q, 500.0, 2000.0, 5000.0, Direction.LOWER_IS_BETTER),
             kpi("Taux de Satisfaction Client",    "Indice de satisfaction global",                  UniteKpi.POURCENTAGE, q,  70.0,   80.0,   90.0, Direction.HIGHER_IS_BETTER),
@@ -74,7 +68,7 @@ public class KpiDataInitializer implements CommandLineRunner {
             kpi("Nombre de Réclamations Clients", "Total des plaintes enregistrées",                UniteKpi.NOMBRE,      q,   2.0,   10.0,   25.0, Direction.LOWER_IS_BETTER),
             kpi("Taux de Réussite des Audits",    "Score moyen des audits qualité internes",        UniteKpi.POURCENTAGE, q,  75.0,   85.0,   95.0, Direction.HIGHER_IS_BETTER),
 
-            // ── Hygiène & Santé ───────────────────────────────────────
+
             kpi("Taux d'Absentéisme",               "Heures d'absence / Heures théoriques",        UniteKpi.POURCENTAGE, h,   3.0,    6.0,   10.0, Direction.LOWER_IS_BETTER),
             kpi("Taux de Maladies Professionnelles","Cas déclarés pour 1000 salariés",              UniteKpi.NOMBRE,      h,   0.0,    1.0,    2.0, Direction.LOWER_IS_BETTER),
             kpi("Conformité Ergonomique",           "Postes de travail adaptés aux normes",         UniteKpi.POURCENTAGE, h,  80.0,   90.0,  100.0, Direction.HIGHER_IS_BETTER),
@@ -84,8 +78,8 @@ public class KpiDataInitializer implements CommandLineRunner {
             kpi("Indice d'Exposition au Bruit",     "Moyenne des niveaux sonores en dB(A)",         UniteKpi.NOMBRE,      h,  80.0,   85.0,   90.0, Direction.LOWER_IS_BETTER),
             kpi("Usage des Équipements de Repos",   "Fréquence d'utilisation des zones de pause",   UniteKpi.POURCENTAGE, h,  40.0,   60.0,   80.0, Direction.HIGHER_IS_BETTER),
 
-            // ── Sécurité ─────────────────────────────────────────────
-            kpi("Taux de Fréquence (TF1)",          "Accidents avec arrêt / million d'heures",      UniteKpi.NOMBRE,      s,   5.0,   15.0,   30.0, Direction.LOWER_IS_BETTER),
+
+            kpi("Taux de Fréquence (TF)",           "Accidents avec arrêt / million d'heures",      UniteKpi.NOMBRE,      s,   5.0,   15.0,   30.0, Direction.LOWER_IS_BETTER),
             kpi("Taux de Gravité (TG)",             "Jours perdus / millier d'heures",              UniteKpi.NOMBRE,      s,   0.5,    1.0,    2.0, Direction.LOWER_IS_BETTER),
             kpi("Nombre de Presque-accidents",      "Near-miss signalés (vigilance)",               UniteKpi.NOMBRE,      s,   5.0,   10.0,   20.0, Direction.HIGHER_IS_BETTER),
             kpi("Heures de Formation Sécurité",     "Total heures formation par employé",           UniteKpi.NOMBRE,      s,   5.0,   10.0,   20.0, Direction.HIGHER_IS_BETTER),
@@ -94,7 +88,7 @@ public class KpiDataInitializer implements CommandLineRunner {
             kpi("Délai de Levée des Non-Conformités",  "Temps pour corriger une faille sécurité (j)",  UniteKpi.NOMBRE,      s,   2.0,    7.0,   15.0, Direction.LOWER_IS_BETTER),
             kpi("Nombre de Visites Sécurité (VMS)", "Total des visites managériales terrain",       UniteKpi.NOMBRE,      s,   4.0,    8.0,   12.0, Direction.HIGHER_IS_BETTER),
 
-            // ── Environnement ────────────────────────────────────────
+
             kpi("Consommation Électricité",         "kWh consommés par tonne produite",             UniteKpi.KWH,         e, 100.0,  200.0,  500.0, Direction.LOWER_IS_BETTER),
             kpi("Consommation Eau",                 "Mètres cubes d'eau consommés",                 UniteKpi.NOMBRE,      e,  50.0,  150.0,  300.0, Direction.LOWER_IS_BETTER),
             kpi("Taux de Valorisation Déchets",     "Déchets recyclés / Déchets totaux",            UniteKpi.POURCENTAGE, e,  50.0,   70.0,   85.0, Direction.HIGHER_IS_BETTER),
@@ -115,6 +109,47 @@ public class KpiDataInitializer implements CommandLineRunner {
         log.info("KPIs initialisés : {} créés", created);
     }
 
+    private void normalizeExistingSources() {
+        List<Kpi> allKpis = kpiRepo.findAll();
+        int updated = 0;
+
+        for (Kpi kpi : allKpis) {
+            String normalized = normalizeSource(kpi.getSource());
+            if (!normalized.equals(kpi.getSource())) {
+                kpi.setSource(normalized);
+                updated++;
+            }
+        }
+
+        if (updated > 0) {
+            kpiRepo.saveAll(allKpis);
+            log.info("Sources KPI normalisées : {} enregistrements mis à jour", updated);
+        }
+    }
+
+    private String normalizeSource(String value) {
+        if (value == null || value.isBlank()) {
+            return Kpi.SOURCE_REFERENTIEL;
+        }
+
+        String trimmed = value.trim();
+        if (trimmed.equalsIgnoreCase("Référentiel") || trimmed.equalsIgnoreCase("Referentiel")) {
+            return Kpi.SOURCE_REFERENTIEL;
+        }
+        if (trimmed.equalsIgnoreCase("LLM")) {
+            return Kpi.SOURCE_IMPORT;
+        }
+        if (trimmed.equalsIgnoreCase("Admin") || trimmed.toUpperCase().startsWith("ADMIN")) {
+            return Kpi.SOURCE_ADMIN;
+        }
+        if (trimmed.equalsIgnoreCase(Kpi.SOURCE_REFERENTIEL)
+                || trimmed.equalsIgnoreCase(Kpi.SOURCE_ADMIN)
+                || trimmed.equalsIgnoreCase(Kpi.SOURCE_IMPORT)) {
+            return trimmed.toUpperCase();
+        }
+        return trimmed;
+    }
+
     private Kpi kpi(String nom, String definition, UniteKpi unite, CategorieKpi cat,
                     double sf, double sm, double sc, Direction direction) {
         return Kpi.builder()
@@ -126,6 +161,7 @@ public class KpiDataInitializer implements CommandLineRunner {
                 .seuilModere(sm)
                 .seuilCritique(sc)
                 .direction(direction)
+                .source(Kpi.SOURCE_REFERENTIEL)
                 .isActive(true)
                 .build();
     }

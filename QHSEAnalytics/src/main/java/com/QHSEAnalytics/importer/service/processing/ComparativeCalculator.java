@@ -68,7 +68,7 @@ public class ComparativeCalculator {
             if (valN != null) {
                 rel = ((valN - valN1) / Math.abs(valN1)) * 100.0; //var relative
                 if (valN == 0d) {
-                    // vN=0 is only a STRONG_IMPROVEMENT when lowering is favorable
+
                     if (direction == Direction.LOWER_IS_BETTER) {
                         special = "STRONG_IMPROVEMENT";
                     }
@@ -150,10 +150,13 @@ public class ComparativeCalculator {
             return null;
         }
         String n = normalize(text);
-        if (containsAny(n, "accident", "incident", "nc", "nonconform", "reclamation", "rejet", "defaut", "retard", "anomal")) {
+        if (containsAny(n, "accident", "incident", "nc", "nonconform", "reclamation", "rejet", "defaut", "retard", "anomal",
+                           "dangereux", "danger", "risque", "panne", "absenteisme", "absence", "maladie",
+                           "emission", "dechet", "pollution", "fuite", "deversement", "penalite")) {
             return Direction.LOWER_IS_BETTER;
         }
-        if (containsAny(n, "conformite", "tauxdereussite", "reussite", "disponibilite", "satisfaction", "performance")) {
+        if (containsAny(n, "conformite", "tauxdereussite", "reussite", "disponibilite", "satisfaction", "performance",
+                           "formation", "epi", "recyclage", "valorisation", "energierenouvelable", "visite")) {
             return Direction.HIGHER_IS_BETTER;
         }
         return null;

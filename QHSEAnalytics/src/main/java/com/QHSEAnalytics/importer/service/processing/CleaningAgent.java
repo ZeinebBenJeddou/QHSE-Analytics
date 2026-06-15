@@ -56,7 +56,7 @@ public class CleaningAgent {
                 .filter(i -> com.QHSEAnalytics.shared.dto.response.ImportIssue.CODE_OUTLIER_VARIATION.equals(i.getCode()))
                 .count();
 
-        // null tokens by category: count rows whose N or N-1 raw value matches a known null token
+
         java.util.Set<String> nullTokens = java.util.Set.of(
                 "n/a", "na", "nd", "nr", "nc", "–", "—", "/", "?", "x",
                 "néant", "neant", "aucun", "none", "null", "empty");
@@ -97,12 +97,12 @@ public class CleaningAgent {
         String cleanedCategorie = trimAndNormalize(row.getCategorie());
         String cleanedUnite    = trimAndNormalize(row.getUnite());
 
-        // normalizedKpiName calculé sur le nom déjà nettoyé, pas sur l'original
+
         String normalizedName = (row.getNormalizedKpiName() != null)
                 ? row.getNormalizedKpiName()
                 : (cleanedName != null ? ExtractionAgent.normalizeForMatching(cleanedName) : null);
 
-        // Copie défensive de la liste d'issues — ne jamais toucher l'original
+
         List<ImportIssue> issues = new ArrayList<>(
                 row.getIssues() == null ? List.of() : row.getIssues());
 

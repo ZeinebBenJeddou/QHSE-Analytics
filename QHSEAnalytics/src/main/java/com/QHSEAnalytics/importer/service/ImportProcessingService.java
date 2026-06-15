@@ -20,6 +20,7 @@ import com.QHSEAnalytics.shared.enums.NiveauVariation;
 import com.QHSEAnalytics.shared.enums.QualityStatus;
 import com.QHSEAnalytics.shared.enums.Tendance;
 import com.QHSEAnalytics.shared.enums.Direction;
+import com.QHSEAnalytics.shared.enums.KpiMatchingType;
 import com.QHSEAnalytics.shared.enums.UniteKpi;
 import com.QHSEAnalytics.shared.exception.ImportNotFoundException;
 import com.QHSEAnalytics.shared.exception.ImportTransitionException;
@@ -35,6 +36,7 @@ import com.QHSEAnalytics.shared.repository.KpiRepository;
 import com.QHSEAnalytics.shared.repository.ResultatKpiRepository;
 import com.QHSEAnalytics.shared.repository.StagingDonneeRepository;
 import com.QHSEAnalytics.analytics.service.AnalyseIaService;
+import com.QHSEAnalytics.shared.entity.Kpi;
 import com.QHSEAnalytics.importer.service.processing.CalculationAgent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -172,7 +174,7 @@ public class ImportProcessingService {
 
         importProgressService.push(clientId, "CALCUL", 75, "Enregistrement des résultats KPI…");
 
-        // Préchargement en lot — évite le N+1 sur kpiRepository.findById()
+
         List<Long> matchedIds = calcToProcess.stream()
                 .map(KpiCalculatedDTO::getMatchedKpiId)
                 .filter(Objects::nonNull)
@@ -268,9 +270,7 @@ public class ImportProcessingService {
                 .findByIdAndUserId(importId, userId)
                 .orElseThrow(() -> new ImportNotFoundException("Import introuvable"));
 
-        // IMPORTANT : ordre de suppression à respecter
-        // Toutes les tables FK vers import_sessions
-        // Si nouvelle table ajoutée → ajouter ici AVANT importSessionRepository.delete()
+
         analyseCategorieRepository.deleteByImportSessionId(importId);
         analyseGlobaleRepository.deleteByImportSessionId(importId);
         resultatKpiRepository.deleteByImportSessionId(importId);
@@ -387,19 +387,19 @@ public class ImportProcessingService {
                         .riskLevel(mapClassificationToRiskLevel(classification))
                         .riskJustification(riskJustification)
                         .identificationRisque(insight.getIdentificationRisque())
-                        // FR (source prompts IA) + EN (lu par le frontend) — synchronisés
+
                         .problemeDetecte(firstNonBlank(insight.getProblemeDetecte(), insight.getIssueDetected()))
-                        .issueDetected(firstNonBlank(insight.getProblemeDetecte(), insight.getIssueDetected())) // alias EN → même valeur
-                        // FR (source prompts IA) + EN (lu par le frontend) — synchronisés
+                        .issueDetected(firstNonBlank(insight.getProblemeDetecte(), insight.getIssueDetected()))
+
                         .actionsPreventives(firstNonBlank(insight.getActionsPreventives(), insight.getPreventiveAction()))
-                        .preventiveAction(firstNonBlank(insight.getActionsPreventives(), insight.getPreventiveAction())) // alias EN → même valeur
-                        // FR (source prompts IA) + EN (lu par le frontend) — synchronisés
+                        .preventiveAction(firstNonBlank(insight.getActionsPreventives(), insight.getPreventiveAction()))
+
                         .actionImmediate(insight.getActionImmediate())
-                        .immediateAction(insight.getActionImmediate()) // alias EN → même valeur
+                        .immediateAction(insight.getActionImmediate())
                         .prioriteAction(insight.getPrioriteAction())
-                        // FR (source prompts IA) + EN (lu par le frontend) — synchronisés
+
                         .methode8D(insight.getMethode8D())
-                        .eightDDetails(insight.getMethode8D()) // alias EN → même valeur
+                        .eightDDetails(insight.getMethode8D())
                         .aiNote(aiNote)
                         .noteFinale(firstNonBlank(insight.getNoteFinale(), aiNote))
                         .requires8d(false)
@@ -573,6 +573,8 @@ public class ImportProcessingService {
                     .seuilModere(dto.getSeuilModere() != null ? dto.getSeuilModere() : defaultSeuilModere)
                     .seuilCritique(dto.getSeuilCritique() != null ? dto.getSeuilCritique() : defaultSeuilCritique)
                     .direction(parseDirection(dto.getDirection()))
+                    .source(Kpi.SOURCE_IMPORT)
+                    .aiEnriched(dto.isAiEnriched() && dto.getMatchingType() == KpiMatchingType.NON_RECONNU)
                     .isActive(true)
                     .build();
 

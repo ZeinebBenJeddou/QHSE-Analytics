@@ -133,6 +133,18 @@ export class AnalyseIAComponent implements OnInit, OnDestroy {
     });
   });
 
+  contextSummary = computed(() => {
+    const sources = this.structured()?.traceability?.contextSourcesUsed ?? [];
+    const count = sources.length;
+    return {
+      hasContext: count > 0,
+      label: count > 0 ? 'Analyse avec contexte métier' : 'Analyse sans contexte métier',
+      detail: count > 0 ? `${count} source${count > 1 ? 's' : ''} de contexte` : 'Aucune source métier détectée',
+      icon: count > 0 ? 'business_center' : 'hourglass_empty',
+      tone: count > 0 ? 'success' : 'warning',
+    };
+  });
+
   kpisCritiques = computed(() =>
     (this.analyse()?.analysesKpis ?? []).filter(k => k.niveauVariation === 'CRITIQUE')
   );
@@ -346,12 +358,14 @@ export class AnalyseIAComponent implements OnInit, OnDestroy {
     return 'icon-blue';
   }
 
-  formatVariation(v: number): string {
+  formatVariation(v: number | null | undefined): string {
+    if (v == null) return '—';
     const sign = v > 0 ? '+' : '';
     return `${sign}${v.toFixed(1)}%`;
   }
 
-  getVariationClass(v: number): string {
+  getVariationClass(v: number | null | undefined): string {
+    if (v == null) return 'var-neutral';
     if (v > 10)  return 'var-neg';
     if (v < -10) return 'var-pos';
     return 'var-neutral';
@@ -435,7 +449,7 @@ export class AnalyseIAComponent implements OnInit, OnDestroy {
   }
 
   clampConfidence(value: number): number {
-    return Math.max(0, Math.min(100, value ?? 0));
+    return Math.round(Math.max(0, Math.min(100, value ?? 0)));
   }
 
   formatDisplayText(value: string | null | undefined): string {
@@ -517,8 +531,30 @@ export class AnalyseIAComponent implements OnInit, OnDestroy {
     return all.filter(k =>
       (!search || k.kpiNom?.toLowerCase().includes(search)) &&
       (!cat    || k.categorieCode === cat) &&
-      (!niveau || k.niveauVariation === niveau)
+      (!niveau || (k.niveauVariation ?? 'INDETERMINE') === niveau)
     );
+  });
+
+  aiConfidence = computed(() => {
+    const overall = this.structured()?.confidence?.overall;
+    return (overall != null) ? this.clampConfidence(overall) : null;
+  });
+
+  private static readonly SECTION_LABELS: Record<string, string> = {
+    summary:         'Synthèse',
+    probableCauses:  'Causes',
+    recommendations: 'Recommandations',
+    actionPlan:      'Plan d\'action',
+  };
+
+  confidenceSections = computed((): { key: string; label: string; value: number }[] => {
+    const sections = this.structured()?.confidence?.sections;
+    if (!sections) return [];
+    return Object.entries(sections).map(([key, value]) => ({
+      key,
+      label: AnalyseIAComponent.SECTION_LABELS[key] ?? key,
+      value: this.clampConfidence(value),
+    }));
   });
 
   heroStats = computed(() => {
@@ -530,6 +566,15 @@ export class AnalyseIAComponent implements OnInit, OnDestroy {
     const withAi    = kpis.filter(k => k.analyseIa).length
                     + (this.structured()?.kpiInsights?.length ?? 0);
     return { total, critiques, moderes, faibles, withAi: Math.min(withAi, total) };
+  });
+
+  llmCoverageStats = computed(() => {
+    const total = this.heroStats().total;
+    const analyzed = this.enrichedKpis().filter(k => (k.insight ?? '').trim().length > 0).length;
+    return {
+      analyzed: Math.min(analyzed, total),
+      coveragePct: total > 0 ? +(Math.min(analyzed, total) / total * 100).toFixed(1) : 0,
+    };
   });
 
   globalSummaryText = computed(() =>

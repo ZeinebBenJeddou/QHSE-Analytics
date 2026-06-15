@@ -490,6 +490,19 @@ h1 {
   flex-shrink: 0;
 }
 
+.confidence-chip {
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.conf-chip-high { background: #EBF8F1; color: #276749; }
+.conf-chip-mid  { background: #FFFBEB; color: #975A16; }
+.conf-chip-low  { background: #FFF5F5; color: #C53030; }
+
 .user-meta {
   display: flex;
   align-items: center;

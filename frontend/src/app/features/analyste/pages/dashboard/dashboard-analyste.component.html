@@ -146,7 +146,7 @@
                   [enBaisseFaible]="donutChartData.enBaisseFaible"
                 />
                 <div class="donut-center-label">
-                  <div class="donut-total">{{ stats.total }}</div>
+                  <div class="donut-total">{{ (comparatif()?.lignes ?? []).length }}</div>
                   <div class="donut-total-label">KPIs</div>
                 </div>
               </div>
@@ -297,9 +297,7 @@
           <option value="CRITIQUE">Critique</option>
           <option value="MODERE">Modéré</option>
           <option value="FAIBLE">Faible</option>
-          @if (nombreIndetermines() > 0) {
-            <option value="INDETERMINE">Indéterminés ({{ nombreIndetermines() }})</option>
-          }
+          <option value="INDETERMINE">Indéterminés @if (nombreIndetermines() > 0) { ({{ nombreIndetermines() }}) }</option>
         </select>
 
         <select class="filter-select" [(ngModel)]="statutFilter">

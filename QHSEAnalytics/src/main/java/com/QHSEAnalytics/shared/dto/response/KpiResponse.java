@@ -27,4 +27,6 @@ public class KpiResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private Direction direction;
+    private String source;
+    private boolean aiEnriched;
 }

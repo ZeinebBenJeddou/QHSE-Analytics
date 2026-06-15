@@ -87,18 +87,27 @@ export class AdminKpisComponent implements OnInit {
 
   // ─── Recherche & pagination ───────────────────────────────────────────────
   searchQuery       = '';
-  filterCategorie   = '';
+  sortRecent        = 'desc';
   readonly PAGE_SIZE = 8;
   currentPage       = 0;
 
+  get sortOptions(): Array<{ value: string; label: string }> {
+    return [
+      { value: 'desc', label: 'Plus récents' },
+      { value: 'asc', label: 'Moins récents' },
+    ];
+  }
+
   get filteredKpis(): KpiResponse[] {
-    const q   = this.searchQuery.trim().toLowerCase();
-    const cat = this.filterCategorie;
-    return this.kpis.filter(k => {
-      const matchSearch = !q || k.nom.toLowerCase().includes(q) || k.definition.toLowerCase().includes(q);
-      const matchCat    = !cat || k.categorieCode === cat;
-      return matchSearch && matchCat;
+    const q   = this.normalizeText(this.searchQuery);
+    const filtered = this.kpis.filter(k => {
+      const matchSearch = !q
+        || this.normalizeText(k.nom).includes(q)
+        || this.normalizeText(k.definition).includes(q);
+      return matchSearch;
     });
+
+    return this.sortKpis(filtered);
   }
 
   get pagedKpis(): KpiResponse[] {
@@ -128,6 +137,60 @@ export class AdminKpisComponent implements OnInit {
 
   get pageRangeEnd(): number {
     return Math.min((this.currentPage + 1) * this.PAGE_SIZE, this.filteredKpis.length);
+  }
+
+  formatSource(source: string | null | undefined): string {
+    const value = source?.trim();
+    if (!value) {
+      return 'Référentiel';
+    }
+
+    if (/^(référentiel|referentiel|referentiel)$/i.test(value)) {
+      return 'Référentiel';
+    }
+
+    if (/^import$/i.test(value) || /^llm$/i.test(value)) {
+      return 'Import';
+    }
+
+    if (/^admin$/i.test(value) || /^admin(?:\b|[\s\-:(])/i.test(value)) {
+      return 'Administrateur';
+    }
+
+    return value;
+  }
+
+  private normalizeText(value: string): string {
+    return value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+  }
+
+  private sortKpis(kpis: KpiResponse[]): KpiResponse[] {
+    const direction = this.sortRecent === 'asc' ? 1 : -1;
+
+    return [...kpis].sort((left, right) => {
+      const leftDate = this.resolveSortDate(left);
+      const rightDate = this.resolveSortDate(right);
+
+      if (leftDate !== rightDate) {
+        return (leftDate - rightDate) * direction;
+      }
+
+      return left.nom.localeCompare(right.nom, 'fr') * direction;
+    });
+  }
+
+  private resolveSortDate(kpi: KpiResponse): number {
+    const updatedAt = Date.parse(kpi.updatedAt ?? '');
+    if (!Number.isNaN(updatedAt)) {
+      return updatedAt;
+    }
+
+    const createdAt = Date.parse(kpi.createdAt ?? '');
+    return Number.isNaN(createdAt) ? 0 : createdAt;
   }
  
   kpiForm = this.fb.group({

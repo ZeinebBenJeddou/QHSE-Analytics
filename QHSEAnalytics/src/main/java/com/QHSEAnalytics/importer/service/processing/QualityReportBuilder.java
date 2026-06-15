@@ -34,9 +34,12 @@ public class QualityReportBuilder {
         List<ImportIssue> allWarnings = new ArrayList<>();
         List<ImportIssue> allInfos    = new ArrayList<>();
 
+        int uppercaseConverted = 0;
         int invalidRows = 0;
         int warningRows = 0;
         int duplicateRows = 0;
+        int exactDuplicateRows = 0;
+        int conflictDuplicateRows = 0;
         int outlierRows = 0;
         double scoreSum = 0.0;
 
@@ -47,6 +50,12 @@ public class QualityReportBuilder {
             for (KpiRawDataDTO row : rawData) {
                 List<ImportIssue> issues = row.getIssues() == null ? List.of() : row.getIssues();
 
+                if (row.getOriginalKpiName() != null && row.getKpiName() != null
+                        && !row.getOriginalKpiName().equals(row.getKpiName())
+                        && isAllCaps(row.getOriginalKpiName())) {
+                    uppercaseConverted++;
+                }
+
                 boolean hasError   = issues.stream().anyMatch(i -> i.getSeverity() == ImportIssue.Severity.ERROR);
                 boolean hasWarning = issues.stream().anyMatch(i -> i.getSeverity() == ImportIssue.Severity.WARNING);
 
@@ -55,6 +64,13 @@ public class QualityReportBuilder {
                         ImportIssue.CODE_DUPLICATE_KPI.equals(i.getCode()) ||
                         ImportIssue.CODE_DUPLICATE_CONFLICT.equals(i.getCode())).count();
                 duplicateRows += duplicatesInThisRow;
+
+                exactDuplicateRows += issues.stream()
+                        .filter(i -> ImportIssue.CODE_DUPLICATE_KPI.equals(i.getCode()))
+                        .count();
+                conflictDuplicateRows += issues.stream()
+                        .filter(i -> ImportIssue.CODE_DUPLICATE_CONFLICT.equals(i.getCode()))
+                        .count();
 
                 boolean isOutlier = issues.stream().anyMatch(i ->
                         ImportIssue.CODE_OUTLIER_VARIATION.equals(i.getCode()));
@@ -124,7 +140,28 @@ public class QualityReportBuilder {
         int uniqueRows = rawData == null ? 0 : rawData.size();
         int totalRows = uniqueRows + duplicateRows;
         int validRows = uniqueRows - invalidRows;
+        int resultingRowsCount = uniqueRows;
         warningRows = allWarnings.size();
+        long nullValuesCount = 0L;
+        java.util.Map<String, Long> nullByToken = new java.util.LinkedHashMap<>();
+        if (rawData != null) {
+            java.util.Set<String> nullTokens = java.util.Set.of(
+                    "n/a", "na", "nd", "nr", "nc", "–", "—", "/", "?", "x",
+                    "néant", "neant", "aucun", "none", "null", "empty");
+            nullByToken = rawData.stream()
+                    .flatMap(r -> {
+                        List<String> raws = new ArrayList<>();
+                        if (r.getValeurN1Raw() != null) raws.add(r.getValeurN1Raw().trim().toLowerCase(java.util.Locale.ROOT));
+                        if (r.getValeurNRaw()  != null) raws.add(r.getValeurNRaw().trim().toLowerCase(java.util.Locale.ROOT));
+                        return raws.stream();
+                    })
+                    .filter(nullTokens::contains)
+                    .collect(java.util.stream.Collectors.groupingBy(t -> t, java.util.LinkedHashMap::new, java.util.stream.Collectors.counting()));
+            nullValuesCount = nullByToken.values().stream().mapToLong(Long::longValue).sum();
+        }
+        String nullValuesDetail = nullByToken.entrySet().stream()
+                .map(e -> e.getKey() + ":" + e.getValue())
+                .collect(java.util.stream.Collectors.joining(", "));
         // Q
         double qualityScore = uniqueRows == 0 ? 0.0 : Math.round((scoreSum / uniqueRows) * 10.0) / 10.0;
 
@@ -155,7 +192,7 @@ public class QualityReportBuilder {
             }
         }
 
-        // --- QHSE-EVAL quality block ---
+
         String anomaliesSummary = buildAnomaliesSummary(cappedErrors, cappedWarnings);
         log.info("\n[QUALITY]" +
                         "\n  Score global  : {}/100" +
@@ -179,7 +216,13 @@ public class QualityReportBuilder {
                 .invalidRows(invalidRows)
                 .warningRows(warningRows)
                 .duplicateRows(duplicateRows)
+                .exactDuplicateRows(exactDuplicateRows)
+                .conflictDuplicateRows(conflictDuplicateRows)
                 .outlierRows(outlierRows)
+                .uppercaseConvertedRows(uppercaseConverted)
+                .nullValuesCount((int) nullValuesCount)
+                .nullValuesDetail(nullValuesDetail.isBlank() ? "aucune" : nullValuesDetail)
+                .resultingRowsCount(resultingRowsCount)
                 .qualityScore(qualityScore)
                 .blocking(blocking)
                 .errors(cappedErrors)
@@ -187,6 +230,14 @@ public class QualityReportBuilder {
                 .infos(cappedInfos)
                 .issuesTruncated(issuesTruncated)
                 .build();
+    }
+
+    private boolean isAllCaps(String value) {
+        if (value == null || value.isBlank()) {
+            return false;
+        }
+        String letters = value.replaceAll("[^a-zA-ZÀ-ÿ]", "");
+        return !letters.isEmpty() && letters.equals(letters.toUpperCase());
     }
 
     private static String buildAnomaliesSummary(List<ImportIssue> errors, List<ImportIssue> warnings) {

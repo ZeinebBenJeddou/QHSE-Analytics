@@ -1,0 +1,6 @@
+Secteur d'activite : Agroalimentaire - Transformation et conditionnement de produits laitiers
+Taille du site : 250-500
+Certifications : IFS Food niveau superieur, BRC Grade A, ISO 22000:2018, ISO 45001:2018
+Objectifs QHSE : Maintenir le taux de reussite des audits au-dessus de 95%. Reduire les reclamations clients de 30%. Ameliorer la conformite ergonomique des postes de conditionnement. Atteindre zero maladie professionnelle.
+Reglementation applicable : Paquet hygiene europeen CE 852/2004, reglementation F-Gaz, normes HACCP, arrete du 21 decembre 2009 sur les temperatures de conservation
+Contexte specifique : Migration ERP en milieu d'annee 2022 ayant entraine des lacunes dans la saisie (valeurs manquantes S1 2022). Pic de production estival multiplie les volumes par 2. Audit de renouvellement BRC prevu en septembre 2023.

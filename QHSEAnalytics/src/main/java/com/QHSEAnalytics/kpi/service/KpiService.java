@@ -1,5 +1,6 @@
 package com.QHSEAnalytics.kpi.service;
 
+import com.QHSEAnalytics.auth.service.AuditLogService;
 import com.QHSEAnalytics.shared.dto.request.CreateKpiRequest;
 import com.QHSEAnalytics.shared.dto.request.UpdateKpiRequest;
 import com.QHSEAnalytics.shared.dto.response.CategorieKpiResponse;
@@ -34,6 +35,7 @@ public class KpiService {
 
     private final KpiRepository kpiRepository;
     private final CategorieKpiRepository categorieKpiRepository;
+    private final AuditLogService auditLogService;
 
     public Page<KpiResponse> getKpis(String categorie, Pageable pageable) {
         if (categorie != null && !categorie.isBlank()) {
@@ -93,7 +95,7 @@ public class KpiService {
 
         validateSeuils(request.getSeuilFaible(), request.getSeuilModere(), request.getSeuilCritique());
 
-        // Si un KPI inactif existe déjà avec ce nom dans cette catégorie → le réactiver + màj
+
         Optional<Kpi> existing = kpiRepository.findByNomAndCategorieKpi(request.getNom().trim(), categorie);
         if (existing.isPresent()) {
             Kpi kpi = existing.get();
@@ -108,6 +110,8 @@ public class KpiService {
             kpi.setSeuilCritique(request.getSeuilCritique());
             if (request.getDirection() != null) kpi.setDirection(request.getDirection());
             Kpi saved = kpiRepository.save(kpi);
+            auditLogService.logKpi(AuditLogService.REACTIVATE_KPI, saved.getId(), saved.getNom(),
+                    "KPI réactivé dans la catégorie " + normalizedCode);
             log.info("KPI réactivé id={} catégorie={} nom={}", saved.getId(), normalizedCode, saved.getNom());
             return toKpiResponse(saved);
         }
@@ -121,10 +125,14 @@ public class KpiService {
                 .seuilModere(request.getSeuilModere())
                 .seuilCritique(request.getSeuilCritique())
                 .direction(request.getDirection())
+                .source(Kpi.SOURCE_ADMIN)
+                .aiEnriched(false)
                 .isActive(true)
                 .build();
 
         Kpi saved = kpiRepository.save(kpi);
+        auditLogService.logKpi(AuditLogService.CREATE_KPI, saved.getId(), saved.getNom(),
+                "KPI créé manuellement dans la catégorie " + normalizedCode);
         log.info("KPI créé id={} catégorie={} nom={}", saved.getId(), normalizedCode, saved.getNom());
 
         return toKpiResponse(saved);
@@ -180,6 +188,8 @@ public class KpiService {
         }
 
         Kpi saved = kpiRepository.save(kpi);
+        auditLogService.logKpi(AuditLogService.UPDATE_KPI, saved.getId(), saved.getNom(),
+                "KPI mis à jour");
         log.info("KPI mis à jour id={}", saved.getId());
 
         return toKpiResponse(saved);
@@ -193,6 +203,8 @@ public class KpiService {
         boolean hasLinkedData = kpiRepository.hasLinkedData(id);
         if (!hasLinkedData) {
             kpiRepository.deleteById(id);
+            auditLogService.logKpi(AuditLogService.DELETE_KPI, kpi.getId(), kpi.getNom(),
+                    "KPI supprimé définitivement");
             log.info("KPI supprimé définitivement id={}", id);
             return KpiDeleteResponse.builder()
                     .message("KPI supprimé définitivement")
@@ -202,6 +214,8 @@ public class KpiService {
 
         kpi.setActive(false);
         kpiRepository.save(kpi);
+        auditLogService.logKpi(AuditLogService.DEACTIVATE_KPI, kpi.getId(), kpi.getNom(),
+                "KPI désactivé car il possède des données historiques");
         log.warn("KPI désactivé (données historiques) id={}", id);
         return KpiDeleteResponse.builder()
                 .message("KPI désactivé car il possède des données historiques")
@@ -220,6 +234,8 @@ public class KpiService {
 
         kpi.setActive(true);
         Kpi saved = kpiRepository.save(kpi);
+        auditLogService.logKpi(AuditLogService.RESTORE_KPI, saved.getId(), saved.getNom(),
+                "KPI restauré manuellement");
         log.info("KPI restauré id={}", id);
         return toKpiResponse(saved);
     }
@@ -258,6 +274,8 @@ public class KpiService {
                 .createdAt(kpi.getCreatedAt())
                 .updatedAt(kpi.getUpdatedAt())
                 .direction(kpi.getDirection())
+                .source(kpi.getSource())
+                .aiEnriched(kpi.isAiEnriched())
                 .build();
     }
 

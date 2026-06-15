@@ -33,9 +33,15 @@ public class ImportQualityReport {
 
 
     private int duplicateRows;
+    private int exactDuplicateRows;
+    private int conflictDuplicateRows;
 
 
     private int outlierRows;
+    private int uppercaseConvertedRows;
+    private int nullValuesCount;
+    private String nullValuesDetail;
+    private int resultingRowsCount;
 
 
     private double qualityScore;

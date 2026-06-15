@@ -6,6 +6,7 @@ import com.QHSEAnalytics.shared.dto.response.ChartResponseDTO;
 import com.QHSEAnalytics.shared.dto.response.ImportProcessingResponse;
 import com.QHSEAnalytics.shared.dto.response.ImportQualityReport;
 import com.QHSEAnalytics.shared.dto.response.KpiCalculatedDTO;
+import com.QHSEAnalytics.shared.enums.KpiMatchingType;
 import com.QHSEAnalytics.importer.service.processing.CalculationAgent;
 import com.QHSEAnalytics.importer.service.processing.CleaningAgent;
 import com.QHSEAnalytics.importer.service.processing.ExtractionAgent;
@@ -61,7 +62,11 @@ public class KpiProcessingOrchestratorService {
         qualityReport.setExtractionIssues(result.getExtractionIssues() == null ? List.of() : List.copyOf(result.getExtractionIssues()));
 
         List<KpiCalculatedDTO> calculatedData = calculationAgent.calculate(rawData);
-        List<KpiCalculatedDTO> enrichedData   = metadataEnrichmentAgent.enrichMetadata(calculatedData);
+        List<KpiCalculatedDTO> nonRecognizedData = calculatedData.stream()
+                .filter(k -> k.getMatchingType() == KpiMatchingType.NON_RECONNU)
+                .toList();
+        metadataEnrichmentAgent.enrichMetadata(nonRecognizedData);
+        List<KpiCalculatedDTO> enrichedData = calculatedData;
 
         RiskDetectionAgent.RiskAnalysisResult riskAnalysis = riskDetectionAgent.detect(enrichedData);
         List<KpiCalculatedDTO> criticalRisks = riskAnalysis.getCriticalKpis();
@@ -152,7 +157,10 @@ public class KpiProcessingOrchestratorService {
         qualityReport.setExtractionIssues(result.getExtractionIssues() == null ? List.of() : List.copyOf(result.getExtractionIssues()));
 
         List<KpiCalculatedDTO> calculatedData = calculationAgent.calculate(rawData);
-        calculatedData = metadataEnrichmentAgent.enrichMetadata(calculatedData);
+        List<KpiCalculatedDTO> nonRecognizedData = calculatedData.stream()
+                .filter(k -> k.getMatchingType() == KpiMatchingType.NON_RECONNU)
+                .toList();
+        metadataEnrichmentAgent.enrichMetadata(nonRecognizedData);
 
         return ImportProcessingResponse.builder()
                 .rawData(rawData)

@@ -3,6 +3,8 @@ package com.QHSEAnalytics.analytics.service;
 import com.QHSEAnalytics.auth.entity.User;
 import com.QHSEAnalytics.auth.exception.UserNotFoundException;
 import com.QHSEAnalytics.auth.repository.UserRepository;
+import com.QHSEAnalytics.auth.dto.AnalysteProfilDTO;
+import com.QHSEAnalytics.auth.service.AnalysteProfilService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.QHSEAnalytics.shared.dto.response.AnalyseCategorieResponse;
 import com.QHSEAnalytics.shared.dto.response.AiAnalysisStructuredResponse;
@@ -55,6 +57,7 @@ public class AnalyseIaService {
     private final LlmProviderChain llmProviderChain;
     private final ImportSessionRepository importSessionRepository;
     private final UserRepository userRepository;
+    private final AnalysteProfilService analysteProfilService;
     private final ObjectMapper objectMapper;
 
     @Transactional
@@ -211,7 +214,7 @@ public class AnalyseIaService {
             }
             importSessionRepository.save(session);
 
-            // Persister l'analyse structurée et enrichir les KpiAnalysis manquants
+
             AiAnalysisStructuredResponse structured = null;
             if (!iaUnavailable) {
                 try {
@@ -225,7 +228,7 @@ public class AnalyseIaService {
                         analyseGlobaleRepository.save(analyseGlobale);
                         log.info("[IA] Analyse structurée persistée pour session {}", importSessionId);
 
-                        // Enrichir les KpiAnalysis manquants depuis les kpiInsights structurés
+
                         enrichKpiAnalysisFromStructured(session, structured, resultats);
                     }
                 } catch (Exception e) {
@@ -235,7 +238,7 @@ public class AnalyseIaService {
 
             long totalMs = System.currentTimeMillis() - startAt;
 
-            // ── Contexte analyste : PRÉSENT si au moins un champ renseigné
+
             boolean hasContexte = (session.getContexteSecteur() != null && !session.getContexteSecteur().isBlank())
                     || (session.getContexteTaille() != null && !session.getContexteTaille().isBlank())
                     || (session.getContexteCertifications() != null && !session.getContexteCertifications().isBlank())
@@ -256,7 +259,7 @@ public class AnalyseIaService {
                 if (structured.getKpiInsights() != null) {
                     couvertureOk = structured.getKpiInsights().size();
                 }
-                // Traceability peut contenir le modèle utilisé
+
             }
 
             int critiqueCount = (int) resultats.stream()
@@ -376,13 +379,13 @@ public class AnalyseIaService {
     public AiAnalysisStructuredResponse getAnalyseStructured(Long importSessionId, Long userId, boolean isAdmin) {
         ImportSession session = loadSessionWithOwnership(importSessionId, userId, isAdmin);
 
-        // Analyse encore en cours → ne pas déclencher un appel LLM concurrent
+
         if (session.getStatut() == ImportStatut.READY_FOR_AI) {
             log.info("[AnalyseStructured] Session {} encore en READY_FOR_AI — analyse en cours, structured non disponible.", importSessionId);
             return null;
         }
 
-        // Lire depuis la base si déjà générée — ne pas relancer le LLM
+
         var analyseGlobaleOpt = analyseGlobaleRepository.findByImportSessionId(importSessionId);
         if (analyseGlobaleOpt.isPresent()) {
             String json = analyseGlobaleOpt.get().getStructuredResponseJson();
@@ -418,7 +421,7 @@ public class AnalyseIaService {
         AiAnalysisStructuredResponse result = analysisAgent.analyzeStructured(cleanedData, importSessionId, false, session);
 
         if (result != null) {
-            // Persister pour les consultations futures
+
             analyseGlobaleRepository.findByImportSessionId(importSessionId).ifPresent(ag -> {
                 try {
                     ag.setStructuredResponseJson(objectMapper.writeValueAsString(result));
@@ -444,6 +447,9 @@ public class AnalyseIaService {
         }
 
         try {
+            syncSessionContextFromCurrentProfile(session, userId);
+            importSessionRepository.save(session);
+
             analyseCategorieRepository.deleteByImportSessionId(importSessionId);
             analyseGlobaleRepository.deleteByImportSessionId(importSessionId);
             llmProviderChain.clearKpiAnalysisCache();
@@ -473,6 +479,9 @@ public class AnalyseIaService {
         Long sessionOwnerId = session.getUser().getId();
 
         try {
+            syncSessionContextFromCurrentProfile(session, sessionOwnerId);
+            importSessionRepository.save(session);
+
             analyseCategorieRepository.deleteByImportSessionId(importSessionId);
             analyseGlobaleRepository.deleteByImportSessionId(importSessionId);
             llmProviderChain.clearKpiAnalysisCache();
@@ -490,12 +499,22 @@ public class AnalyseIaService {
         return getAnalyseComplete(importSessionId, sessionOwnerId, true);
     }
 
+    private void syncSessionContextFromCurrentProfile(ImportSession session, Long userId) {
+        AnalysteProfilDTO profil = analysteProfilService.getProfil(userId);
+        session.setContexteSecteur(profil.getSecteurActivite());
+        session.setContexteTaille(profil.getTailleSite());
+        session.setContexteCertifications(profil.getCertifications());
+        session.setContexteObjectifs(profil.getObjectifsQhse());
+        session.setContexteReglementation(profil.getReglementation());
+        session.setContexteSpecifique(profil.getContexteSpecifique());
+    }
+
     private void enrichKpiAnalysisFromStructured(ImportSession session,
                                                    AiAnalysisStructuredResponse structured,
                                                    List<ResultatKpi> resultats) {
         if (structured.getKpiInsights() == null || structured.getKpiInsights().isEmpty()) return;
 
-        // Index des KpiAnalysis déjà persistés pour cet import
+
         Map<String, com.QHSEAnalytics.shared.entity.KpiAnalysis> existingByName =
                 kpiAnalysisRepository.findByImportSessionIdOrderByIdAsc(session.getId()).stream()
                         .filter(a -> a.getKpiName() != null)
@@ -504,7 +523,7 @@ public class AnalyseIaService {
                                 a -> a,
                                 (first, second) -> first));
 
-        // Index des ResultatKpi pour retrouver les infos de classification
+
         Map<String, ResultatKpi> resultatByName = resultats.stream()
                 .filter(r -> r.getKpi() != null && r.getKpi().getNom() != null)
                 .collect(Collectors.toMap(
@@ -521,7 +540,7 @@ public class AnalyseIaService {
             com.QHSEAnalytics.shared.entity.KpiAnalysis analysis = existingByName.get(key);
 
             if (analysis == null) {
-                // Créer un nouveau KpiAnalysis depuis la réponse structurée
+
                 ResultatKpi resultat = resultatByName.get(key);
                 String riskLevel = resultat != null && resultat.getNiveauVariation() != null
                         ? mapNiveauToRiskLevel(resultat.getNiveauVariation().name())
@@ -545,7 +564,7 @@ public class AnalyseIaService {
                 toSave.add(analysis);
                 log.debug("[IA-Enrich] KpiAnalysis créé pour '{}' (session {})", insight.getKpiName(), session.getId());
             } else {
-                // Enrichir les champs vides depuis la réponse structurée
+
                 boolean updated = false;
                 if (isBlankOrNull(analysis.getImmediateAction()) && insight.getActionImmediate() != null) {
                     analysis.setImmediateAction(insight.getActionImmediate());

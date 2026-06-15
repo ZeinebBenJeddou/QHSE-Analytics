@@ -141,7 +141,7 @@
 
       <mat-card-content>
 
-        <!-- ─── Barre recherche + filtre catégorie ─── -->
+        <!-- ─── Barre recherche + filtres ─── -->
         <div class="search-bar">
           <div class="search-input-wrap">
             <mat-icon class="search-icon">search</mat-icon>
@@ -159,12 +159,13 @@
             }
           </div>
 
-          <select class="cat-filter" [(ngModel)]="filterCategorie" (ngModelChange)="onSearch()">
-            <option value="">Toutes les catégories</option>
-            @for (cat of categories; track cat.code) {
-              <option [value]="cat.code">{{ cat.libelle }}</option>
-            }
-          </select>
+          <div class="filter-selects">
+            <select class="cat-filter" [(ngModel)]="sortRecent" (ngModelChange)="onSearch()">
+              @for (option of sortOptions; track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+              }
+            </select>
+          </div>
         </div>
 
         <!-- Loader -->
@@ -186,12 +187,24 @@
         </div>
 
         <!-- KPIs actifs paginés -->
+        <div class="kpi-table-head">
+          <span>Indicateur</span>
+          <span>Catégorie</span>
+          <span>Source</span>
+          <span>Unité</span>
+          <span>Seuils</span>
+          <span></span>
+        </div>
         <div *ngIf="!loading && pagedKpis.length" class="kpi-list">
           <div class="kpi-row" *ngFor="let kpi of pagedKpis">
             <div class="kpi-row-left">
               <span class="kpi-name">{{ kpi.nom }}</span>
               <div class="kpi-meta">
                 <span class="kpi-badge">{{ kpi.categorieLibelle }}</span>
+                <span class="kpi-source">{{ formatSource(kpi.source) }}</span>
+                @if (kpi.aiEnriched) {
+                  <span class="kpi-badge kpi-badge--ai">IA</span>
+                }
                 <span class="kpi-unite">{{ kpi.unite }}</span>
                 <div class="kpi-thresholds">
                   <span class="threshold-chip low">↓ {{ kpi.seuilFaible }}</span>
@@ -246,6 +259,13 @@
               <mat-icon>archive</mat-icon>
               Désactivés ({{ inactiveKpis.length }})
             </div>
+            <div class="kpi-table-head kpi-table-head--inactive">
+              <span>Indicateur</span>
+              <span>Catégorie</span>
+              <span>Source</span>
+              <span>Unité</span>
+              <span></span>
+            </div>
             <div class="kpi-list">
               @for (kpi of inactiveKpis; track kpi.id) {
                 <div class="kpi-row kpi-row--inactive">
@@ -254,6 +274,10 @@
                     <div class="kpi-meta">
                       <span class="kpi-badge inactive">Inactif</span>
                       <span class="kpi-badge">{{ kpi.categorieLibelle }}</span>
+                      <span class="kpi-source">{{ formatSource(kpi.source) }}</span>
+                      @if (kpi.aiEnriched) {
+                        <span class="kpi-badge kpi-badge--ai">IA</span>
+                      }
                       <span class="kpi-unite">{{ kpi.unite }}</span>
                     </div>
                   </div>

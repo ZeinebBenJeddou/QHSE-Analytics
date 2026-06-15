@@ -25,7 +25,7 @@ public class RiskDetectionAgent {
         List<KpiCalculatedDTO> criticalKpis    = filterCriticalRisks(enrichedData);
         List<KpiCalculatedDTO> prioritizedRisks = prioritizeRisks(criticalKpis);
 
-        // classify by level
+
         List<KpiCalculatedDTO> critique     = enrichedData.stream().filter(k -> "CRITIQUE".equals(k.getClassification())).toList();
         List<KpiCalculatedDTO> modere       = enrichedData.stream().filter(k -> "MODERE".equals(k.getClassification())).toList();
         long faible                          = enrichedData.stream().filter(k -> "FAIBLE".equals(k.getClassification())).count();
@@ -38,7 +38,7 @@ public class RiskDetectionAgent {
                 .map(k -> k.getKpiName() + " " + formatVariation(k.getVariationPercentage()))
                 .collect(Collectors.joining(" | "));
 
-        // compute an aggregate risk score 0-100 from individual riskScores
+
         int aggregateRisk100 = enrichedData.stream()
                 .mapToInt(k -> k.getRiskScore() != null ? k.getRiskScore() : 0)
                 .sum();

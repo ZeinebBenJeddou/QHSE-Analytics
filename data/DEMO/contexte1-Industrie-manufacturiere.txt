@@ -1,0 +1,6 @@
+Secteur d'activite : Industrie manufacturiere - Production d'emballages plastiques
+Taille du site : 200-500
+Certifications : ISO 9001:2015, ISO 14001:2015, OHSAS 18001
+Objectifs QHSE : Reduire le taux de non-conformite sous 2%. Atteindre zero accident avec arret. Ameliorer le taux de satisfaction client au-dela de 90%. Reduire les emissions CO2 de 15%.
+Reglementation applicable : Conformite REACH, reglementation dechets industriels banals (DIB), directive emballages 94/62/CE, code du travail Art. L4121
+Contexte specifique : Programme Lean Manufacturing lance en 2023 ayant impact positif sur les KPIs qualite. Site B a subi un arret technique en mars 2023 affectant les indicateurs securite du S1. Objectif zero papier sur le site A a partir de 2025.

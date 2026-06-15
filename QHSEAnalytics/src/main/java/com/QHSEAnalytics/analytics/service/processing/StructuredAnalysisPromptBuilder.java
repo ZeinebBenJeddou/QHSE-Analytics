@@ -3,6 +3,7 @@ package com.QHSEAnalytics.analytics.service.processing;
 import com.QHSEAnalytics.shared.dto.response.KpiCalculatedDTO;
 import com.QHSEAnalytics.shared.entity.ImportSession;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -14,6 +15,7 @@ import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class
 StructuredAnalysisPromptBuilder {
 
@@ -466,7 +468,10 @@ StructuredAnalysisPromptBuilder {
         if (hasValue(reglementation)) sb.append("Réglementation : ").append(reglementation).append("\n");
         if (hasValue(specifique))     sb.append("Contexte spécifique : ").append(specifique).append("\n");
         if (sb.isEmpty()) return "";
-        return "=== CONTEXTE DE L'ORGANISATION ===\n" + sb + "===================================\n\n";
+
+        String contextBlock = "=== CONTEXTE DE L'ORGANISATION ===\n" + sb + "===================================\n\n";
+        log.info("[StructuredAnalysisPrompt] Contexte QHSE injecté dans le prompt:\n{}", contextBlock.trim());
+        return contextBlock;
     }
 
     /**
@@ -483,7 +488,7 @@ StructuredAnalysisPromptBuilder {
                 .sorted(Comparator.comparingDouble(k -> -Math.abs(k.getVariationPercentage() == null ? 0.0 : k.getVariationPercentage())))
                 .collect(Collectors.toList());
 
-        // Compute scores on the full session KPI list so globalSummary always reflects the real totals
+
         List<KpiCalculatedDTO> scoreSource = (allKpis != null && !allKpis.isEmpty()) ? allKpis : orderedKpis;
         ScoreSummary scores = computeScores(scoreSource);
         int reportedTotal = totalKpiCount > 0 ? totalKpiCount : orderedKpis.size();
@@ -498,7 +503,7 @@ StructuredAnalysisPromptBuilder {
 
         prompt.append("=== ANALYSE QHSE — DONNÉES À ANALYSER ===\n\n");
 
-        // Resolve actual years from KPI data
+
         String periodeN1Str = scoreSource.stream()
                 .map(KpiCalculatedDTO::getPeriodeN1).filter(p -> p != null && p > 0)
                 .findFirst().map(String::valueOf).orElse("N-1");
@@ -506,7 +511,7 @@ StructuredAnalysisPromptBuilder {
                 .map(KpiCalculatedDTO::getPeriodeN).filter(p -> p != null && p > 0)
                 .findFirst().map(String::valueOf).orElse("N");
 
-        // Inject pre-computed scores as ground truth for globalSummary
+
         prompt.append("=== SCORES CALCULÉS (à citer tels quels dans globalSummary) ===\n");
         prompt.append(String.format("Période analysée : %s → %s\n", periodeN1Str, periodeNStr));
         prompt.append(String.format("Score global : %d/100 (%s) | KPIs totaux session : %d | Critiques : %d | Modérés : %d | Faibles/OK : %d\n",
@@ -524,9 +529,7 @@ StructuredAnalysisPromptBuilder {
         }
         prompt.append("\n");
 
-        // Names-only overview of all session KPIs so the LLM can write a globalSummary that covers
-        // all KPIs, not just the chunk being analyzed. Full data is intentionally omitted to prevent
-        // the LLM from generating kpiInsights for KPIs outside the chunk.
+
         if (allKpis != null && allKpis.size() > orderedKpis.size()) {
             prompt.append("=== PÉRIMÈTRE GLOBAL DE LA SESSION (référence pour globalSummary UNIQUEMENT) ===\n");
             prompt.append("⚠️ IMPORTANT : Cette liste sert UNIQUEMENT à rédiger le champ globalSummary.\n");
@@ -666,7 +669,7 @@ StructuredAnalysisPromptBuilder {
         return safeName.isBlank() ? "unknown" : safeName.replaceAll("\\s+", "_");
     }
 
-    // ── Score pre-computation ─────────────────────────────────────────────────
+
 
     public static class ScoreSummary {
         public int globalScore;
@@ -694,7 +697,7 @@ StructuredAnalysisPromptBuilder {
     private ScoreSummary computeScores(List<KpiCalculatedDTO> kpis) {
         ScoreSummary s = new ScoreSummary();
 
-        // Global counts
+
         for (KpiCalculatedDTO k : kpis) {
             String cls = k.getClassification() == null ? "" : k.getClassification().toUpperCase();
             if (cls.contains("CRITIQUE")) s.critiques++;
@@ -702,7 +705,7 @@ StructuredAnalysisPromptBuilder {
             else s.faibledOk++;
         }
 
-        // Weighted global score (CRITIQUE counts double)
+
         double weightedSum = 0;
         double totalWeight = 0;
         for (KpiCalculatedDTO k : kpis) {
@@ -718,7 +721,7 @@ StructuredAnalysisPromptBuilder {
         else if (s.globalScore >= 40) s.globalLabel = "À SURVEILLER";
         else                          s.globalLabel = "CRITIQUE";
 
-        // Worst KPI by absolute variation
+
         kpis.stream()
             .filter(k -> k.getVariationPercentage() != null)
             .max(Comparator.comparingDouble(k -> Math.abs(((KpiCalculatedDTO) k).getVariationPercentage())))
@@ -727,7 +730,7 @@ StructuredAnalysisPromptBuilder {
                 s.worstVariation = k.getVariationPercentage();
             });
 
-        // Per-category scores
+
         Map<String, List<KpiCalculatedDTO>> byCat = kpis.stream()
             .filter(k -> k.getCategorie() != null)
             .collect(Collectors.groupingBy(KpiCalculatedDTO::getCategorie, LinkedHashMap::new, Collectors.toList()));

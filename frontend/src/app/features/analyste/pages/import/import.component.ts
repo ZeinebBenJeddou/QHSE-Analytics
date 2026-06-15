@@ -51,7 +51,7 @@ export class ImportComponent implements OnInit, AfterViewInit, OnDestroy {
   private uploadState = inject(ImportUploadStateService);
 
   readonly tableColumns = ['kpi', 'categorieCode', 'valeurN1', 'valeurN', 'variationPercentage', 'classification', 'seuilFaible', 'seuilCritique'];
-  readonly tailleSiteOptions = ['< 50', '50-200', '200-500', '500+'];
+  readonly tailleSiteOptions = ['< 50', '50-200', '200-500', '250-500', '500+'];
 
   selectedFile = signal<File | null>(null);
   yearN = signal<number | null>(null);

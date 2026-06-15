@@ -6,6 +6,7 @@ import com.QHSEAnalytics.shared.dto.response.KpiCalculatedDTO;
 import com.QHSEAnalytics.shared.entity.Kpi;
 import com.QHSEAnalytics.shared.enums.UniteKpi;
 import com.QHSEAnalytics.shared.enums.Direction;
+import com.QHSEAnalytics.shared.enums.KpiMatchingType;
 import com.QHSEAnalytics.shared.enums.Tendance;
 import com.QHSEAnalytics.shared.repository.KpiRepository;
 import com.QHSEAnalytics.shared.repository.ResultatKpiRepository;
@@ -19,6 +20,13 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class CalculationAgent {
+
+    private static final Set<String> GENERIC_MATCH_TOKENS = Set.of(
+            "taux", "nombre", "nb", "indice", "niveau", "total", "global",
+            "moyen", "moyenne", "ratio", "part", "pourcentage", "consommation",
+            "volume", "quantite", "qualite", "score", "cout", "couts", "delai",
+            "delais", "temps", "frequence", "somme", "mesure", "valeur"
+    );
 
     private final KpiRepository kpiRepository;
     private final ResultatKpiRepository resultatKpiRepository;
@@ -70,7 +78,7 @@ public class CalculationAgent {
         int total = calculated.size();
         List<String> exactNames      = new ArrayList<>();
         List<String> inclusionNames  = new ArrayList<>();
-        List<String[]> jwNames       = new ArrayList<>(); // [name, score]
+        List<String[]> jwNames       = new ArrayList<>();
         List<String> unrecognized    = new ArrayList<>();
 
         for (int i = 0; i < rawData.size() && i < calculated.size(); i++) {
@@ -167,6 +175,7 @@ public class CalculationAgent {
         MatchResult matchResult = findMatchingKpi(row, byName);
         Kpi matchedKpi = matchResult.kpi();
         Double matchConf = matchResult.confidence();
+        KpiMatchingType matchingType = matchResult.matchingType();
 
         boolean isBoolean = (matchedKpi != null && matchedKpi.getUnite() == UniteKpi.BOOLEAN) ||
                             isBooleanValue(row.getValeurNRaw()) ||
@@ -222,10 +231,15 @@ public class CalculationAgent {
         }
 
         String definition    = effectiveKpi != null ? effectiveKpi.getDefinition() : null;
-        String categorie     = effectiveKpi != null && effectiveKpi.getCategorieKpi() != null
-                               ? effectiveKpi.getCategorieKpi().getLibelle() : row.getCategorie();
-        String categorieCode = effectiveKpi != null && effectiveKpi.getCategorieKpi() != null
-                               ? effectiveKpi.getCategorieKpi().getCode() : "AUTO";
+        String excelCategorie = row.getCategorie();
+        String categorie     = (excelCategorie != null && !excelCategorie.isBlank())
+                               ? excelCategorie
+                               : (effectiveKpi != null && effectiveKpi.getCategorieKpi() != null
+                                  ? effectiveKpi.getCategorieKpi().getLibelle() : null);
+        String categorieCode = (excelCategorie != null && !excelCategorie.isBlank())
+                               ? "EXCEL"
+                               : (effectiveKpi != null && effectiveKpi.getCategorieKpi() != null
+                                  ? effectiveKpi.getCategorieKpi().getCode() : "AUTO");
 
         String classification = classRes != null ? classRes.getClassification() : "INDETERMINE";
         String tendance = isBoolean
@@ -269,6 +283,7 @@ public class CalculationAgent {
                 .isBoolean(isBoolean)
                 .matchedKpi(Optional.ofNullable(matchedKpi).map(Kpi::getNom).orElse(null))
                 .matchedKpiId(Optional.ofNullable(matchedKpi).map(Kpi::getId).orElse(null))
+                .matchingType(matchingType)
                 .matchConfidence(matchConf)
                 .spcMean(spcMean).spcStd(spcStd).spcUcl(spcUcl).spcLcl(spcLcl)
                 .spcOutOfControl(spcOutOfControl)
@@ -294,30 +309,80 @@ public class CalculationAgent {
 
 
 
-    private record MatchResult(Kpi kpi, Double confidence) {}
+    private record MatchResult(Kpi kpi, Double confidence, KpiMatchingType matchingType) {}
 
     private MatchResult findMatchingKpi(KpiRawDataDTO row, Map<String, Kpi> byName) {
-        if (row.getKpiName() == null || row.getKpiName().isBlank()) return new MatchResult(null, null);
+        if (row.getKpiName() == null || row.getKpiName().isBlank()) {
+            return new MatchResult(null, null, KpiMatchingType.NON_RECONNU);
+        }
         String normalized = normalize(row.getKpiName());
 
         // correspondance exacte
-        if (byName.containsKey(normalized)) return new MatchResult(byName.get(normalized), 1.0);
+        if (byName.containsKey(normalized)) {
+            return new MatchResult(byName.get(normalized), 1.0, KpiMatchingType.EXACT);
+        }
 
         for (Map.Entry<String, Kpi> entry : byName.entrySet()) {
             String key = entry.getKey();
             if (normalized.contains(key) || key.contains(normalized)) {
-                return new MatchResult(entry.getValue(), 0.9); // correspondance par inclusion
+                return new MatchResult(entry.getValue(), 0.9, KpiMatchingType.INCLUSION); // correspondance par inclusion
             }
         }
 
         Kpi best = null;
         double bestScore = 0.0;
+        double bestSemanticScore = 0.0;
+        String sourceName = row.getKpiName();
         for (Map.Entry<String, Kpi> entry : byName.entrySet()) {
-            double score = jaroWinkler(normalized, entry.getKey());
-            if (score > bestScore) { bestScore = score; best = entry.getValue(); } // jaro-winkler
+            String candidate = entry.getKey();
+            double score = jaroWinkler(normalized, candidate);
+            double semanticScore = jaroWinkler(
+                    semanticSignature(sourceName),
+                    semanticSignature(entry.getValue().getNom()));
+            if (!isReliableJaroMatch(sourceName, entry.getValue().getNom(), score, semanticScore)) {
+                continue;
+            }
+            if (best == null || semanticScore > bestSemanticScore
+                    || (Double.compare(semanticScore, bestSemanticScore) == 0 && score > bestScore)) {
+                bestScore = score;
+                bestSemanticScore = semanticScore;
+                best = entry.getValue();
+            }
         }
-        if (bestScore >= 0.82) return new MatchResult(best, bestScore);
-        return new MatchResult(null, null);
+        if (best != null) {
+            return new MatchResult(best, bestScore, KpiMatchingType.JARO_WINKLER);
+        }
+        return new MatchResult(null, null, KpiMatchingType.NON_RECONNU);
+    }
+
+    private boolean isReliableJaroMatch(String sourceName, String candidateName, double rawScore, double semanticScore) {
+        if (sourceName == null || candidateName == null) {
+            return false;
+        }
+
+        List<String> sourceTokens = meaningfulTokens(sourceName);
+        List<String> candidateTokens = meaningfulTokens(candidateName);
+        if (sourceTokens.isEmpty() || candidateTokens.isEmpty()) {
+            return false;
+        }
+
+        Set<String> sourceSet = new HashSet<>(sourceTokens);
+        Set<String> candidateSet = new HashSet<>(candidateTokens);
+        long sharedTokens = sourceSet.stream().filter(candidateSet::contains).count();
+
+        if (sharedTokens >= 2) {
+            return rawScore >= 0.82 && semanticScore >= 0.82;
+        }
+
+        if (sharedTokens == 1) {
+            return rawScore >= 0.84 && semanticScore >= 0.93;
+        }
+
+        if (sourceTokens.size() == 1 && candidateTokens.size() == 1) {
+            return rawScore >= 0.95 && semanticScore >= 0.95;
+        }
+
+        return false;
     }
 
     // ponderation supp pour les correspondances en debut de chaine (prefixe jus a 4 caracteres)
@@ -444,6 +509,37 @@ public class CalculationAgent {
         return Normalizer.normalize(value.trim().toLowerCase(Locale.ROOT), Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "")
                 .replaceAll("[^a-z0-9]", "");
+    }
+
+    private String semanticSignature(String value) {
+        List<String> tokens = meaningfulTokens(value);
+        return tokens.isEmpty() ? normalize(value) : String.join("", tokens);
+    }
+
+    private List<String> meaningfulTokens(String value) {
+        if (value == null) {
+            return List.of();
+        }
+
+        String normalized = Normalizer.normalize(value.trim().toLowerCase(Locale.ROOT), Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .replaceAll("[^a-z0-9]+", " ")
+                .trim();
+        if (normalized.isEmpty()) {
+            return List.of();
+        }
+
+        List<String> tokens = new ArrayList<>();
+        for (String token : normalized.split("\\s+")) {
+            if (token.isBlank() || token.length() < 2) {
+                continue;
+            }
+            if (GENERIC_MATCH_TOKENS.contains(token)) {
+                continue;
+            }
+            tokens.add(token);
+        }
+        return tokens;
     }
 
     private boolean isBooleanValue(String value) {

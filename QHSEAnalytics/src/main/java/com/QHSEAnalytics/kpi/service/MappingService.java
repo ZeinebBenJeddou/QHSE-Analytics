@@ -73,7 +73,7 @@ public class MappingService {
 
     @Transactional
     public void deleteTemplate(Long id, Long userId) {
-        // Find the config to get the templateName
+
         MappingConfig config = mappingConfigRepository.findById(id)
                 .filter(c -> c.getUserId().equals(userId))
                 .orElseThrow(() -> new IllegalArgumentException("Template introuvable ou accès refusé."));

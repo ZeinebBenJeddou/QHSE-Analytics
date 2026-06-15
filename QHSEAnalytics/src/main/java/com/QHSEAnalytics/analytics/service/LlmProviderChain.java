@@ -66,8 +66,7 @@ public class LlmProviderChain {
             return new ProviderResult(null, "none");
         }
 
-        // Clé basée sur le contenu uniquement (sans sessionId)
-        // → permet le cache hit sur les re-analyses du même fichier
+
         String stablePrefix = cacheKeyPrefix == null ? ""
                 : cacheKeyPrefix.replaceAll("(?:^|\\|)session=[^|]*", "").replaceAll("^\\|", "").trim();
         String fullCacheKey = "llm:" + toHexString(sha256(stablePrefix + "|" + prompt));

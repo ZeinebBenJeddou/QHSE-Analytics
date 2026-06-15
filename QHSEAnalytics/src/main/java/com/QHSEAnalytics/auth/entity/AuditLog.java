@@ -31,6 +31,9 @@ public class AuditLog {
     @Column(name = "target_email")
     private String targetEmail;
 
+    @Column(name = "target_label")
+    private String targetLabel;
+
     @Column(length = 512)
     private String details;
 

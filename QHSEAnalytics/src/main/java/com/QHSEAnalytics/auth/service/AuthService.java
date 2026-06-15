@@ -156,7 +156,7 @@ public class AuthService {
     public Object login(LoginRequest request, HttpServletResponse httpResponse) {
 
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new UserNotFoundException("Email ou mot de passe incorrect."));
+                .orElseThrow(() -> new UserNotFoundException("Utilisateur introuvable. Veuillez vous inscrire."));
 
         if (!user.isVerified()) {
             throw new AccountNotVerifiedException("Compte non vérifié.");

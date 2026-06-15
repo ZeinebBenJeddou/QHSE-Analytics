@@ -58,7 +58,7 @@ public final class ColumnSemanticResolver {
                 || h.contains("intitule") || h.contains("designation"))
             return new Result(Semantic.KPI_NAME, bestScore(h, KPI_SYNONYMS));
 
-        // VALUE_N1 testé AVANT VALUE_N pour éviter que "n-1" matche "actuel"
+
         if (VALUE_N1_SYNONYMS.contains(h) || h.contains("n1") || h.contains("n-1")
                 || h.contains("precedent") || h.contains("previous") || h.contains("reference")
                 || h.contains("base"))

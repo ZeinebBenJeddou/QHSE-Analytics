@@ -21,6 +21,12 @@ const ACTION_LABELS: Record<string, string> = {
   PROMOUVOIR_ADMIN:     'Promouvoir admin',
   RETROGRADER_ANALYSTE: 'Rétrograder analyste',
   REINITIALISER_MDP:    'Réinitialiser MDP',
+  CREER_KPI:            'Créer KPI',
+  MODIFIER_KPI:         'Modifier KPI',
+  SUPPRIMER_KPI:        'Supprimer KPI',
+  DESACTIVER_KPI:       'Désactiver KPI',
+  REACTIVER_KPI:        'Réactiver KPI',
+  RESTAURER_KPI:        'Restaurer KPI',
 };
 
 const ACTION_CLASS: Record<string, string> = {
@@ -29,6 +35,12 @@ const ACTION_CLASS: Record<string, string> = {
   DESACTIVER_COMPTE:    'chip-warn',
   PROMOUVOIR_ADMIN:     'chip-promote',
   RETROGRADER_ANALYSTE: 'chip-demote',
+  CREER_KPI:            'chip-create',
+  MODIFIER_KPI:         'chip-neutral',
+  SUPPRIMER_KPI:        'chip-delete',
+  DESACTIVER_KPI:       'chip-warn',
+  REACTIVER_KPI:        'chip-promote',
+  RESTAURER_KPI:        'chip-promote',
 };
 
 @Component({
@@ -82,13 +94,13 @@ export class AdminAuditComponent implements OnInit {
   exportCsv(): void {
     if (!this.logs.length) return;
 
-    const header = ['Date', 'Heure', 'Administrateur', 'Action', 'Utilisateur cible', 'Détails'];
+    const header = ['Date', 'Heure', 'Administrateur', 'Action', 'Cible', 'Détails'];
     const rows = this.logs.map(l => [
       this.datePipe.transform(l.timestamp, 'dd/MM/yyyy') ?? '',
       this.datePipe.transform(l.timestamp, 'HH:mm:ss')  ?? '',
       l.adminEmail,
       this.actionLabel(l.action),
-      l.targetEmail ?? '',
+      l.targetLabel ?? l.targetEmail ?? '',
       (l.details ?? '').replace(/,/g, ';'),
     ]);
 

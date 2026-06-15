@@ -99,7 +99,7 @@ public class ClassificationEngine {
                 return r;
             }
 
-            // Position absolue prime sur le score composite
+
             if ("CRITIQUE".equals(absolutePosition)) {
                 r.setClassification(CRITIQUE);
                 r.setReason("Valeur en zone critique absolue selon les seuils KPI");
@@ -200,8 +200,8 @@ public class ClassificationEngine {
                 return r;
             }
             if (robustZ >= 2.4) {
-                r.setClassification(CRITIQUE);
-                r.setReason("Dégradation pré-critique (z robuste ≥ 2.4)");
+                r.setClassification(MODERE);
+                r.setReason("Anomalie probable (z robuste 2.4–3.0)");
                 r.setReviewRequired(true);
                 return r;
             }
@@ -232,9 +232,7 @@ public class ClassificationEngine {
         return r;
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // Helpers privés
-    // ─────────────────────────────────────────────────────────────
+
 
     private boolean hasThresholds(Kpi kpi) {
         return kpi != null
@@ -243,7 +241,7 @@ public class ClassificationEngine {
                 && kpi.getSeuilCritique() != null;
     }
 
-    //Seuils avec direction d'évolution souhaitée
+
     private String computeAbsolutePosition(Direction dir, Double currentValue, double faible, double modere, double critique) {
         if (currentValue == null) return "UNKNOWN";
         double v = currentValue;

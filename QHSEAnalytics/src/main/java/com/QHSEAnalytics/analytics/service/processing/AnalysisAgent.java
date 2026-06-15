@@ -9,6 +9,7 @@ import com.QHSEAnalytics.shared.dto.response.AiConfidenceResponse;
 import com.QHSEAnalytics.shared.dto.response.AiKpiInsightResponse;
 import com.QHSEAnalytics.shared.dto.response.AiRecommendationResponse;
 import com.QHSEAnalytics.shared.dto.response.AiTraceabilityResponse;
+import com.QHSEAnalytics.shared.entity.ImportSession;
 import com.QHSEAnalytics.shared.dto.response.KpiCalculatedDTO;
 import com.QHSEAnalytics.shared.entity.AnalyseGlobale;
 import com.QHSEAnalytics.shared.entity.ImportSession;
@@ -216,8 +217,7 @@ public class AnalysisAgent {
         int mergedCoverage = topKpis.size() - mergedMissingCount;
         log.info("[AnalysisAgent] analyseStructured: merged coverage {}/{}", mergedCoverage, topKpis.size());
 
-        // Generate a final globalSummary from the merged insights so it covers ALL KPIs,
-        // not just the first chunk.
+
         if (chunks.size() > 1 && !successfulChunkResponses.isEmpty()) {
             String finalSummary = generateFinalSummary(topKpis, mergedResponse, importSessionId, cacheKeyPrefix);
             if (finalSummary != null && !finalSummary.isBlank()) {
@@ -226,7 +226,7 @@ public class AnalysisAgent {
             }
         }
 
-        enrichStructuredResponse(mergedResponse, formatProviderLabel(providersUsed), importSessionId);
+        enrichStructuredResponse(mergedResponse, formatProviderLabel(providersUsed), importSessionId, session);
 
         boolean allChunksSucceeded = successfulChunkResponses.size() == chunks.size();
         if (allChunksSucceeded && mergedMissingCount == 0) {
@@ -404,7 +404,7 @@ public class AnalysisAgent {
             prompt.append("en français, sans saut de ligne, sans puces, sans titre. ");
             prompt.append("Ce paragraphe est le globalSummary d'un rapport QHSE destiné à la direction.\n\n");
 
-            // Inject scores
+
             String periodeN1 = allKpis.stream().map(KpiCalculatedDTO::getPeriodeN1).filter(p -> p != null && p > 0)
                     .findFirst().map(String::valueOf).orElse("N-1");
             String periodeN = allKpis.stream().map(KpiCalculatedDTO::getPeriodeN).filter(p -> p != null && p > 0)
@@ -418,7 +418,7 @@ public class AnalysisAgent {
                         cs.libelle, cs.score, cs.critiques, cs.moderes, cs.ok));
             }
 
-            // Inject one-line summary per KPI insight
+
             if (merged.getKpiInsights() != null && !merged.getKpiInsights().isEmpty()) {
                 prompt.append("\nRésumé des analyses par KPI :\n");
                 for (var insight : merged.getKpiInsights()) {
@@ -484,12 +484,12 @@ public class AnalysisAgent {
             if (result == null || result.response() == null || result.response().isBlank()) {
                 return null;
             }
-            // Strip any accidental JSON wrapping the LLM may produce
+
             String raw = result.response().trim();
             if (raw.startsWith("{") || raw.startsWith("[")) {
                 return null;
             }
-            // Remove markdown bold/italic
+
             raw = raw.replaceAll("[*_`#]", "").trim();
             return raw;
         } catch (Exception ex) {
@@ -499,8 +499,7 @@ public class AnalysisAgent {
     }
 
     private AiAnalysisStructuredResponse mergeChunkResponses(List<AiAnalysisStructuredResponse> chunkResponses) {
-        // Keep only the first non-blank globalSummary: each chunk generates a full synthesis
-        // from partial KPI data, so concatenating them produces duplicate sections (§1, §2... repeated N times).
+
         String mergedSummary = chunkResponses.stream()
                 .map(AiAnalysisStructuredResponse::getGlobalSummary)
                 .filter(summary -> summary != null && !summary.isBlank())
@@ -519,7 +518,7 @@ public class AnalysisAgent {
                         list -> deduplicateByNormalizedContent(list)
                 ));
 
-        // Limiter à 8 causes maximum en priorisant les plus longues
+
         List<String> mergedProbableCauses = mergedProbableCausesRaw.stream()
                 .sorted((a, b) -> Integer.compare(
                         b.trim().split("\\s+").length,
@@ -546,8 +545,7 @@ public class AnalysisAgent {
                 .probableCauses(mergedProbableCauses)
                 .recommendations(mergedRecommendations)
                 .actionPlan(mergedActionPlan)
-                .traceability(AiTraceabilityResponse.builder()
-                        .build())
+                .traceability(AiTraceabilityResponse.builder().build())
                 .build();
     }
 
@@ -601,8 +599,7 @@ public class AnalysisAgent {
         for (int i = 0; i < list.size(); i += size) {
             chunks.add(new ArrayList<>(list.subList(i, Math.min(i + size, list.size()))));
         }
-        // Merge a tiny last chunk (< 3 items) into the previous one to avoid sending
-        // a near-empty prompt that causes the LLM to produce a generic/empty response.
+
         if (chunks.size() >= 2) {
             List<T> last = chunks.get(chunks.size() - 1);
             if (last.size() < 3) {
@@ -649,7 +646,7 @@ public class AnalysisAgent {
                 .count();
     }
 
-    private void enrichStructuredResponse(AiAnalysisStructuredResponse response, String provider, Long importSessionId) {
+    private void enrichStructuredResponse(AiAnalysisStructuredResponse response, String provider, Long importSessionId, ImportSession session) {
         if (response == null) {
             return;
         }
@@ -664,9 +661,28 @@ public class AnalysisAgent {
         response.getTraceability().setSchemaVersion("1.2");
         response.getTraceability().setPromptVersion(structuredAnalysisPromptBuilder.getPromptVersion());
         response.getTraceability().setImportSessionId(importSessionId);
+        response.getTraceability().setContextSourcesUsed(extractContextSources(session));
         response.setSchemaVersion("1.2");
         response.setPromptVersion(structuredAnalysisPromptBuilder.getPromptVersion());
         response.setImportSessionId(importSessionId);
+    }
+
+    private List<String> extractContextSources(ImportSession session) {
+        if (session == null) {
+            return List.of();
+        }
+        List<String> sources = new ArrayList<>();
+        if (hasValue(session.getContexteSecteur())) sources.add("secteur");
+        if (hasValue(session.getContexteTaille())) sources.add("taille");
+        if (hasValue(session.getContexteCertifications())) sources.add("certifications");
+        if (hasValue(session.getContexteObjectifs())) sources.add("objectifs");
+        if (hasValue(session.getContexteReglementation())) sources.add("reglementation");
+        if (hasValue(session.getContexteSpecifique())) sources.add("specifique");
+        return sources;
+    }
+
+    private boolean hasValue(String value) {
+        return value != null && !value.isBlank();
     }
 
     private AiAnalysisStructuredResponse parseStructuredResponse(String rawJson) {
@@ -1002,18 +1018,17 @@ public class AnalysisAgent {
     private List<String> deduplicateByNormalizedContent(List<String> items) {
         if (items == null || items.isEmpty()) return new java.util.ArrayList<>();
 
-        // Filtre 1 — éliminer les causes trop courtes (< 8 mots)
+
         List<String> filtered = items.stream()
                 .filter(item -> item != null && !item.isBlank())
                 .filter(item -> item.trim().split("\\s+").length >= 8)
                 .collect(java.util.stream.Collectors.toList());
 
-        // Si le filtre élimine tout, garder les originaux
+
         if (filtered.isEmpty()) filtered = items.stream()
                 .filter(item -> item != null && !item.isBlank())
                 .collect(java.util.stream.Collectors.toList());
 
-        // Étape 1 — normaliser tous les items
         List<String> normalized = filtered.stream()
                 .map(this::normalizeForDedup)
                 .collect(java.util.stream.Collectors.toList());
@@ -1108,9 +1123,9 @@ public class AnalysisAgent {
 
             for (AiActionPlanItemResponse kept : result) {
                 String normKept = normalizeForDedup(kept.getAction());
-                // Seuil plus strict que les causes : 0.55
+
                 if (jaccardSimilarity(normItem, normKept) > 0.55) {
-                    // Garder la version avec le riskIfNotDone le plus long (plus détaillé)
+
                     if (item.getRiskIfNotDone() != null
                             && kept.getRiskIfNotDone() != null
                             && item.getRiskIfNotDone().length()

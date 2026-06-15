@@ -125,6 +125,8 @@ export interface KpiResponse {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  source: string | null;
+  aiEnriched: boolean;
 }
 
 export interface KpiDeleteResponse {
@@ -180,6 +182,7 @@ export interface AuditLogResponse {
   action: string;
   targetUserId: number | null;
   targetEmail: string | null;
+  targetLabel: string | null;
   details: string | null;
   timestamp: string;
 }

@@ -71,9 +71,7 @@ public class StructuredAnalysisValidator {
     private static final Set<String> VALID_URGENCY_VALUES = Set.of("HIGH", "MEDIUM", "LOW");
 
     private void validateTraceability(AiTraceabilityResponse trace, List<String> errors) {
-        // modelName, generatedAt, schemaVersion, promptVersion sont injectés côté serveur
-        // après la validation du chunk — leur présence est garantie par enrichStructuredResponse().
-        // La vérification de la présence de l'objet est effectuée par l'appelant.
+
     }
 
     private void validateKpiInsights(List<AiKpiInsightResponse> insights, List<KpiCalculatedDTO> availableKpis, List<String> errors) {

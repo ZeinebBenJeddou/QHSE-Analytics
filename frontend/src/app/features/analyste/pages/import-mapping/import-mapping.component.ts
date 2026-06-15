@@ -103,7 +103,7 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
     } catch {  }
   }
 
-  readonly previewColumns = ['rowStatus', 'kpiName', 'categorie',/* 'unite','definition',*/ 'valeurN1','valeurN',  'status', 'commentaire', 'variation', 'absoluteGap'/*, 'meta'*/];
+  readonly previewColumns = ['rowStatus', 'kpiName', 'categorie',/* 'unite','definition',*/ 'valeurN1','valeurN',  'status', 'commentaire', 'variation', 'absoluteGap', 'direction', 'matchConfidence', 'enrichmentStatus', 'classificationReason'];
   readonly resultColumns  = ['spark', 'kpiName', 'categorie', 'unite', 'valeurN', 'valeurN1', 'variation', 'absoluteGap', 'status', 'risk', 'meta'];
   readonly issueColumns   = ['severity', 'row', 'column', 'message'];
 
@@ -388,6 +388,53 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
     return this.previewResponse()?.qualityReport;
   }
 
+  private readonly previewRows = computed(() => this.previewResponse()?.calculatedData ?? []);
+
+  readonly matchingSummary = computed(() => {
+    const rows = this.previewRows();
+    const total = rows.length;
+    const exact = rows.filter(row => row.matchingType === 'EXACT').length;
+    const inclusion = rows.filter(row => row.matchingType === 'INCLUSION').length;
+    const jaroWinkler = rows.filter(row => row.matchingType === 'JARO_WINKLER').length;
+    const nonRecognizedRows = rows.filter(row => row.matchingType === 'NON_RECONNU' || row.matchingType == null);
+    const nonRecognized = nonRecognizedRows.length;
+
+    return {
+      total,
+      exact,
+      inclusion,
+      jaroWinkler,
+      nonRecognized,
+      nonRecognizedNames: [...new Set(
+        nonRecognizedRows
+          .map(row => row.kpiName)
+          .filter((name): name is string => !!name && !!name.trim())
+      )],
+    };
+  });
+
+  readonly enrichmentSummary = computed(() => {
+    const rows = this.previewRows();
+    const sentRows = rows.filter(row => row.matchingType === 'NON_RECONNU');
+    const enrichedRows = sentRows.filter(row => row.aiEnriched === true);
+    const pendingRows = sentRows.filter(row => row.aiEnriched !== true);
+    return {
+      sent: sentRows.length,
+      enriched: enrichedRows.length,
+      pending: pendingRows.length,
+      enrichedNames: [...new Set(
+        enrichedRows
+          .map(row => row.kpiName)
+          .filter((name): name is string => !!name && !!name.trim())
+      )],
+      pendingNames: [...new Set(
+        pendingRows
+          .map(row => row.kpiName)
+          .filter((name): name is string => !!name && !!name.trim())
+      )],
+    };
+  });
+
   isImportBlocking(): boolean {
     return this.qualityReport?.blocking === true;
   }
@@ -511,9 +558,9 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
 
   getConfidenceLabel(p: ColumnProfileDTO): string {
     const s = p.confidenceScore ?? 0;
-    if (s >= 0.85) return 'Sûr';
-    if (s >= 0.70) return 'Douteux';
-    return 'Inconnu';
+    if (s >= 0.85) return 'Élevée';
+    if (s >= 0.70) return 'Moyenne';
+    return 'Faible';
   }
 
   clampConfidence(value: number | undefined): number {
@@ -579,5 +626,39 @@ export class ImportMappingComponent implements OnInit, OnDestroy {
 
   getStatusClass(color: string | undefined): string {
     return `status-badge status-${color || 'gray'}`;
+  }
+
+  directionLabel(direction: string | undefined): string {
+    if (direction === 'HIGHER_IS_BETTER') return 'Hausse favorable';
+    if (direction === 'LOWER_IS_BETTER')  return 'Baisse favorable';
+    return '—';
+  }
+
+  directionClass(direction: string | undefined): string {
+    if (direction === 'HIGHER_IS_BETTER') return 'dir-badge dir-up';
+    if (direction === 'LOWER_IS_BETTER')  return 'dir-badge dir-down';
+    return '';
+  }
+
+  matchConfidencePct(value: number | null | undefined): string {
+    if (value == null) return '—';
+    return `${Math.round(value * 100)}%`;
+  }
+
+  matchConfidenceClass(value: number | null | undefined): string {
+    if (value == null) return 'match-badge match-none';
+    if (value >= 0.85) return 'match-badge match-high';
+    if (value >= 0.70) return 'match-badge match-mid';
+    return 'match-badge match-low';
+  }
+
+  enrichmentStatusLabel(row: KpiCalculatedDTO): string {
+    if (row.matchingType !== 'NON_RECONNU') return 'Non concerné';
+    return row.aiEnriched ? 'Enrichi' : 'À vérifier';
+  }
+
+  enrichmentStatusClass(row: KpiCalculatedDTO): string {
+    if (row.matchingType !== 'NON_RECONNU') return 'enrichment-badge enrichment-none';
+    return row.aiEnriched ? 'enrichment-badge enrichment-done' : 'enrichment-badge enrichment-pending';
   }
 }

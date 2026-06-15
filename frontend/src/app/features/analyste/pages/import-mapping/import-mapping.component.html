@@ -114,8 +114,9 @@
               <mat-icon class="type-icon">{{ profileTypeIcon(p.inferredType) }}</mat-icon>
               {{ p.inferredType }}
             </span>
-            <span class="col-confidence-badge" [ngClass]="getConfidenceClass(p)">
-              {{ getConfidenceLabel(p) }}
+            <span class="col-confidence-badge" [ngClass]="getConfidenceClass(p)"
+                  [matTooltip]="'Indice Jaro-Winkler : ' + (p.confidenceScore * 100 | number:'1.0-0') + '%'">
+              {{ getConfidenceLabel(p) }} · {{ p.confidenceScore * 100 | number:'1.0-0' }}%
             </span>
           </div>
 
@@ -273,6 +274,92 @@
         </div>
       </div>
 
+      <div class="preview-insights" *ngIf="matchingSummary().total || enrichmentSummary().sent">
+        <div class="preview-insight-card">
+          <div class="preview-insight-header">
+            <mat-icon>call_merge</mat-icon>
+            <div>
+              <div class="preview-insight-title">Matching</div>
+              <div class="preview-insight-subtitle">{{ matchingSummary().total }} KPI(s) analysés</div>
+            </div>
+          </div>
+
+          <div class="preview-insight-grid">
+            <div class="preview-insight-stat">
+              <span class="preview-insight-label">Reconnus EXACT</span>
+              <strong>{{ matchingSummary().exact }}/{{ matchingSummary().total }}</strong>
+            </div>
+            <div class="preview-insight-stat">
+              <span class="preview-insight-label">Reconnus INCLUSION</span>
+              <strong>{{ matchingSummary().inclusion }}/{{ matchingSummary().total }}</strong>
+            </div>
+            <div class="preview-insight-stat">
+              <span class="preview-insight-label">Reconnus JARO_WINKLER</span>
+              <strong>{{ matchingSummary().jaroWinkler }}/{{ matchingSummary().total }}</strong>
+            </div>
+            <div class="preview-insight-stat preview-insight-stat-alert">
+              <span class="preview-insight-label">NON RECONNUS</span>
+              <strong>{{ matchingSummary().nonRecognized }}/{{ matchingSummary().total }}</strong>
+            </div>
+          </div>
+
+          <div class="preview-insight-list" *ngIf="matchingSummary().nonRecognizedNames.length">
+            <span class="preview-insight-list-label">KPIs non reconnus</span>
+            <div class="preview-insight-chips">
+              <span class="preview-insight-chip" *ngFor="let name of matchingSummary().nonRecognizedNames">
+                {{ name }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="preview-insight-card preview-insight-card-accent">
+          <div class="preview-insight-header">
+            <mat-icon>auto_awesome</mat-icon>
+            <div>
+              <div class="preview-insight-title">Enrichment</div>
+              <div class="preview-insight-subtitle">{{ enrichmentSummary().sent }} KPI(s) envoyés au LLM</div>
+            </div>
+          </div>
+
+          <div class="preview-insight-grid">
+            <div class="preview-insight-stat">
+              <span class="preview-insight-label">Envoyés au LLM</span>
+              <strong>{{ enrichmentSummary().sent }}</strong>
+            </div>
+            <div class="preview-insight-stat">
+              <span class="preview-insight-label">Enrichis</span>
+              <strong>{{ enrichmentSummary().enriched }}</strong>
+            </div>
+            <div class="preview-insight-stat preview-insight-stat-alert">
+              <span class="preview-insight-label">À vérifier</span>
+              <strong>{{ enrichmentSummary().pending }}</strong>
+            </div>
+          </div>
+
+          <div class="preview-insight-list">
+            <span class="preview-insight-list-label">KPIs enrichis</span>
+            <div class="preview-insight-chips" *ngIf="enrichmentSummary().enrichedNames.length; else noEnrichment">
+              <span class="preview-insight-chip preview-insight-chip-accent" *ngFor="let name of enrichmentSummary().enrichedNames">
+                {{ name }}
+              </span>
+            </div>
+            <ng-template #noEnrichment>
+              <div class="preview-insight-empty">Aucun KPI enrichi pour le moment.</div>
+            </ng-template>
+          </div>
+
+          <div class="preview-insight-list" *ngIf="enrichmentSummary().pendingNames.length">
+            <span class="preview-insight-list-label">KPIs à vérifier</span>
+            <div class="preview-insight-chips">
+              <span class="preview-insight-chip" *ngFor="let name of enrichmentSummary().pendingNames">
+                {{ name }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="quality-header">
         <div class="quality-title-row">
           
@@ -330,6 +417,29 @@
             <div class="stat-label">Valeurs aberrantes</div>
           </div>
         </div>
+      </div>
+
+      <div class="cleaning-summary" *ngIf="qualityReport">
+        <span class="summary-item">
+          <strong>Majuscules</strong>
+          <span>{{ qualityReport.uppercaseConvertedRows ?? 0 }}</span>
+        </span>
+        <span class="summary-item">
+          <strong>Doublons exacts</strong>
+          <span>{{ qualityReport.exactDuplicateRows ?? 0 }}</span>
+        </span>
+        <span class="summary-item">
+          <strong>Conflictuels</strong>
+          <span>{{ qualityReport.conflictDuplicateRows ?? 0 }}</span>
+        </span>
+        <span class="summary-item">
+          <strong>Manquantes</strong>
+          <span>{{ qualityReport.nullValuesCount ?? 0 }}</span>
+        </span>
+        <span class="summary-item">
+          <strong>Résultantes</strong>
+          <span>{{ qualityReport.resultingRowsCount ?? qualityReport.validRows }}</span>
+        </span>
       </div>
 
       <div class="issues-table-wrap" *ngIf="allIssues.length > 0">
@@ -485,6 +595,41 @@
             <td mat-cell *matCellDef="let row">
               <span class="text-stable">
                 {{ row.absoluteGap > 0 ? '+' : '' }}{{ row.absoluteGap | number:'1.0-2' }}
+              </span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="direction">
+            <th mat-header-cell *matHeaderCellDef>Sens</th>
+            <td mat-cell *matCellDef="let row">
+              <span [ngClass]="directionClass(row.direction)">{{ directionLabel(row.direction) }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="matchConfidence">
+            <th mat-header-cell *matHeaderCellDef>Score corresp.</th>
+            <td mat-cell *matCellDef="let row">
+              <span [ngClass]="matchConfidenceClass(row.matchConfidence)"
+                    [matTooltip]="row.matchedKpi ? 'KPI reconnu : ' + row.matchedKpi + (row.matchingType ? ' (' + row.matchingType + ')' : '') : ''">
+                {{ matchConfidencePct(row.matchConfidence) }}
+              </span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="enrichmentStatus">
+            <th mat-header-cell *matHeaderCellDef>Enrich.</th>
+            <td mat-cell *matCellDef="let row">
+              <span [ngClass]="enrichmentStatusClass(row)" [matTooltip]="row.matchingType === 'NON_RECONNU' ? 'KPI envoyé au LLM pour enrichissement' : 'KPI reconnu, enrichissement non nécessaire'">
+                {{ enrichmentStatusLabel(row) }}
+              </span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="classificationReason">
+            <th mat-header-cell *matHeaderCellDef>Raison classification</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="reason-text" [matTooltip]="row.classificationReason ?? ''">
+                {{ row.classificationReason || '—' }}
               </span>
             </td>
           </ng-container>

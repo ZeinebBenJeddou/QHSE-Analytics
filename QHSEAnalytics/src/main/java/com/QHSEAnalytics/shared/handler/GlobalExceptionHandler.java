@@ -81,8 +81,13 @@ public class GlobalExceptionHandler {
         return buildError(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());
     }
 
-    @ExceptionHandler({UserNotFoundException.class, BadCredentialsException.class})
-    public ResponseEntity<?> handleUnauthorized(RuntimeException ex) {
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<?> handleUserNotFound(UserNotFoundException ex) {
+        return buildError(HttpStatus.UNAUTHORIZED, ex.getMessage());
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<?> handleBadCredentials(BadCredentialsException ex) {
         return buildError(HttpStatus.UNAUTHORIZED, "Email ou mot de passe incorrect.");
     }
 

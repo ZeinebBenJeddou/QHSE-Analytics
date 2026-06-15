@@ -101,24 +101,51 @@
           <mat-form-field appearance="outline" class="form-field">
             <mat-label>Ancien mot de passe</mat-label>
             
-            <input matInput type="password" formControlName="ancienPassword" />
+            <input matInput [type]="showAncienPassword ? 'text' : 'password'" formControlName="ancienPassword" autocomplete="current-password" />
+            <button mat-icon-button matSuffix type="button" class="toggle-password" (click)="showAncienPassword = !showAncienPassword" [attr.aria-label]="showAncienPassword ? 'Masquer le mot de passe actuel' : 'Afficher le mot de passe actuel'">
+              <mat-icon>{{ showAncienPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+            @if (ancienPassword?.hasError('required') && ancienPassword?.touched) {
+              <mat-error>L'ancien mot de passe est obligatoire.</mat-error>
+            }
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="form-field">
             <mat-label>Nouveau mot de passe</mat-label>
             
-            <input matInput type="password" formControlName="nouveauPassword" />
-            
+            <input matInput [type]="showNouveauPassword ? 'text' : 'password'" formControlName="nouveauPassword" autocomplete="new-password" />
+            <button mat-icon-button matSuffix type="button" class="toggle-password" (click)="showNouveauPassword = !showNouveauPassword" [attr.aria-label]="showNouveauPassword ? 'Masquer le nouveau mot de passe' : 'Afficher le nouveau mot de passe'">
+              <mat-icon>{{ showNouveauPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+            @if (nouveauPassword?.hasError('required') && nouveauPassword?.touched) {
+              <mat-error>Le nouveau mot de passe est obligatoire.</mat-error>
+            }
+            @if (nouveauPassword?.hasError('passwordStrength') && nouveauPassword?.touched) {
+              <mat-error>Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial.</mat-error>
+            }
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="form-field">
             <mat-label>Confirmer le mot de passe</mat-label>
             
-            <input matInput type="password" formControlName="confirmPassword" />
-            @if (passwordMismatch) {
+            <input matInput [type]="showConfirmPassword ? 'text' : 'password'" formControlName="confirmPassword" autocomplete="new-password" />
+            <button mat-icon-button matSuffix type="button" class="toggle-password" (click)="showConfirmPassword = !showConfirmPassword" [attr.aria-label]="showConfirmPassword ? 'Masquer la confirmation' : 'Afficher la confirmation'">
+              <mat-icon>{{ showConfirmPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+            @if (confirmPassword?.hasError('required') && confirmPassword?.touched) {
+              <mat-error>La confirmation du mot de passe est obligatoire.</mat-error>
+            }
+            @if (passwordsMismatch) {
               <mat-error>Les mots de passe ne correspondent pas.</mat-error>
             }
           </mat-form-field>
+
+          @if (passwordErrorMessage) {
+            <div class="password-error-banner">
+              <mat-icon>error_outline</mat-icon>
+              <span>{{ passwordErrorMessage }}</span>
+            </div>
+          }
 
           <div class="form-actions">
             <button mat-flat-button class="danger-btn" type="submit"

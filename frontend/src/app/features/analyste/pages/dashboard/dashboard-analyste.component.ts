@@ -28,6 +28,7 @@ import { DashboardService } from '../../../../core/services/dashboard.service';
 import { AiAnalysisService } from '../../../../core/services/ai-analysis.service';
 import { ImportService } from '../../../../core/services/import.service';
 import { ImportSessionStateService } from '../../../../core/services/import-session-state.service';
+import { CurrentProfileStateService } from '../../../../core/services/current-profile-state.service';
 import { AdminService } from '../../../../core/services/admin.service';
 import { ProfileResponse } from '../../../admin/models/admin.models';
 import {
@@ -97,6 +98,7 @@ export class DashboardAnalysteComponent implements OnInit, OnDestroy {
   private adminService = inject(AdminService);
   private snackBar = inject(MatSnackBar);
   private sessionState = inject(ImportSessionStateService);
+  private currentProfileState = inject(CurrentProfileStateService);
   private readonly destroy$ = new Subject<void>();
 
   importId = signal<number | null>(null);
@@ -611,9 +613,13 @@ export class DashboardAnalysteComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.adminService.getCurrentProfile()
+    this.currentProfileState.profile$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(profile => this.profile.set(profile));
+
+    this.currentProfileState.refresh()
       .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
-      .subscribe(p => { if (p) this.profile.set(p); });
+      .subscribe();
 
     this.route.paramMap.pipe(takeUntil(this.destroy$)).subscribe(params => {
       const id = params.get('id');

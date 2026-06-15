@@ -1688,6 +1688,19 @@ h1 {
 .niveau-faible    { background: #F0FDF4; color: #16A34A; }
 .niveau-default   { background: var(--surface); color: var(--ink-muted); }
 
+.risk-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  white-space: nowrap;
+  cursor: default;
+}
+.risk-badge.risk-eleve  { background: #fee2e2; color: #dc2626; }
+.risk-badge.risk-modere { background: #fef3c7; color: #d97706; }
+.risk-badge.risk-faible { background: #d1fae5; color: #059669; }
+
 .statut-label { font-size: 13px; font-weight: 600; }
 .statut-red    { color: #EF4444; }
 .statut-orange { color: #F59E0B; }

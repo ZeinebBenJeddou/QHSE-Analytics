@@ -37,12 +37,14 @@ export interface KpiCalculatedDTO {
   tendance: 'HAUSSE' | 'BAISSE' | 'STABLE' | null;
   matchedKpi?: string | null;
   matchedKpiId?: number | null;
+  matchingType?: 'EXACT' | 'INCLUSION' | 'JARO_WINKLER' | 'NON_RECONNU' | null;
   matchConfidence?: number | null;       
   
   direction?: 'HIGHER_IS_BETTER' | 'LOWER_IS_BETTER';
   calcConfidence?: number; 
   classificationReason?: string;
   reviewRequired?: boolean;
+  aiEnriched?: boolean;
   dataFlags?: string[];
   
   spcMean?: number | null;
@@ -139,7 +141,13 @@ export interface ImportQualityReport {
   invalidRows: number;
   warningRows: number;
   duplicateRows: number;
+  exactDuplicateRows?: number;
+  conflictDuplicateRows?: number;
   outlierRows: number;
+  uppercaseConvertedRows?: number;
+  nullValuesCount?: number;
+  nullValuesDetail?: string;
+  resultingRowsCount?: number;
   qualityScore: number;
   blocking: boolean;
   errors: ImportIssue[];

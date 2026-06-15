@@ -13,6 +13,7 @@ public class AuditLogResponse {
     private String action;
     private Long targetUserId;
     private String targetEmail;
+    private String targetLabel;
     private String details;
     private LocalDateTime timestamp;
 }

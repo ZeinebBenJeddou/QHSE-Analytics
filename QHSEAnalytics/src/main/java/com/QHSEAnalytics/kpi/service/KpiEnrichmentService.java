@@ -77,7 +77,7 @@ public class KpiEnrichmentService {
                 results.add(selfProvider.getObject().analyseOne(preview, importSessionId, force));
             } catch (Exception ex) {
                 log.error("[KpiEnrichment] Error analysing KPI '{}': {}", preview.getKpiName(), ex.getMessage(), ex);
-                // continue to next KPI – do not stop the whole batch
+
                 results.add(toEnrichedResponse(preview, null));
             }
         }

@@ -46,7 +46,7 @@ public class MetadataEnrichmentAgent {
                 parseAndApplyMetadata(aiResponseJson, data);
             }
 
-            // count fields still null after enrichment for the KPIs that were sent
+
             long nullFields = toEnrich.stream().mapToLong(k -> {
                 long n = 0;
                 if (k.getDefinition()  == null || k.getDefinition().isBlank())  n++;
@@ -104,18 +104,42 @@ public class MetadataEnrichmentAgent {
                         .filter(k -> k.getKpiName() != null && k.getKpiName().equalsIgnoreCase(name))
                             // aucun champ déjà renseigné n'est écrasé , Chaque champ est appliqué uniquement si absent
                         .forEach(k -> {
-                            if (k.getDefinition() == null || k.getDefinition().isBlank()) k.setDefinition(definition);
-                            if (k.getCategorie() == null || k.getCategorie().isBlank() || "AUTO".equals(k.getCategorieCode())) k.setCategorie(category);
-                            if (k.getUnite() == null || k.getUnite().isBlank() || "ND".equals(k.getUnite())) k.setUnite(unite);
+                            boolean enriched = false;
+                            if ((k.getDefinition() == null || k.getDefinition().isBlank())
+                                    && definition != null && !definition.isBlank()) {
+                                k.setDefinition(definition);
+                                enriched = true;
+                            }
+                            if ((k.getCategorie() == null || k.getCategorie().isBlank() || "AUTO".equals(k.getCategorieCode()))
+                                    && category != null && !category.isBlank()) {
+                                k.setCategorie(category);
+                                enriched = true;
+                            }
+                            if ((k.getUnite() == null || k.getUnite().isBlank() || "ND".equals(k.getUnite()))
+                                    && unite != null && !unite.isBlank()) {
+                                k.setUnite(unite);
+                                enriched = true;
+                            }
                             if (seuilFaible != null && seuilModere != null && seuilCritique != null
                                     && seuilFaible < seuilModere && seuilModere < seuilCritique) {
-                                if (k.getSeuilFaible() == null)   k.setSeuilFaible(seuilFaible);
-                                if (k.getSeuilModere() == null)   k.setSeuilModere(seuilModere);
-                                if (k.getSeuilCritique() == null) k.setSeuilCritique(seuilCritique);
+                                if (k.getSeuilFaible() == null) {
+                                    k.setSeuilFaible(seuilFaible);
+                                    enriched = true;
+                                }
+                                if (k.getSeuilModere() == null) {
+                                    k.setSeuilModere(seuilModere);
+                                    enriched = true;
+                                }
+                                if (k.getSeuilCritique() == null) {
+                                    k.setSeuilCritique(seuilCritique);
+                                    enriched = true;
+                                }
                             }
                             if (validDirection && (k.getDirection() == null || k.getDirection().isBlank())) {
                                 k.setDirection(direction);
+                                enriched = true;
                             }
+                            k.setAiEnriched(k.isAiEnriched() || enriched);
                         });
                 }
             }
