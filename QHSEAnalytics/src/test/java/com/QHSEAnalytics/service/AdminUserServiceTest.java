@@ -2,6 +2,7 @@ package com.QHSEAnalytics.service;
 
 import com.QHSEAnalytics.auth.dto.response.MessageResponse;
 import com.QHSEAnalytics.auth.entity.User;
+import com.QHSEAnalytics.auth.repository.AnalysteProfilRepository;
 import com.QHSEAnalytics.auth.repository.EmailTokenRepository;
 import com.QHSEAnalytics.auth.repository.OtpCodeRepository;
 import com.QHSEAnalytics.auth.repository.RefreshTokenRepository;
@@ -38,6 +39,7 @@ class AdminUserServiceTest {
         RefreshTokenRepository refreshTokenRepository = Mockito.mock(RefreshTokenRepository.class);
         EmailTokenRepository emailTokenRepository = Mockito.mock(EmailTokenRepository.class);
         OtpCodeRepository otpCodeRepository = Mockito.mock(OtpCodeRepository.class);
+        AnalysteProfilRepository analysteProfilRepository = Mockito.mock(AnalysteProfilRepository.class);
         ImportSessionRepository importSessionRepository = Mockito.mock(ImportSessionRepository.class);
         StagingDonneeRepository stagingDonneeRepository = Mockito.mock(StagingDonneeRepository.class);
         ResultatKpiRepository resultatKpiRepository = Mockito.mock(ResultatKpiRepository.class);
@@ -55,6 +57,7 @@ class AdminUserServiceTest {
                 refreshTokenRepository,
                 emailTokenRepository,
                 otpCodeRepository,
+                analysteProfilRepository,
                 importSessionRepository,
                 stagingDonneeRepository,
                 resultatKpiRepository,
@@ -111,6 +114,7 @@ class AdminUserServiceTest {
         inOrder.verify(stagingDonneeRepository).deleteByImportSessionId(12L);
         inOrder.verify(importSessionRepository).deleteByUserId(5L);
 
+        Mockito.verify(analysteProfilRepository).deleteByUserId(5L);
         Mockito.verify(emailTokenRepository).deleteByUserId(5L);
         Mockito.verify(otpCodeRepository).deleteByUserId(5L);
         Mockito.verify(refreshTokenRepository).deleteByUserId(5L);

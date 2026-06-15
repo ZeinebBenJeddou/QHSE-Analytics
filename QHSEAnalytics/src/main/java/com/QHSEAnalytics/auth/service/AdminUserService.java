@@ -10,6 +10,7 @@ import com.QHSEAnalytics.auth.entity.User;
 import com.QHSEAnalytics.auth.exception.EmailAlreadyExistsException;
 import com.QHSEAnalytics.auth.exception.UserAlreadyVerifiedException;
 import com.QHSEAnalytics.auth.exception.UserNotFoundException;
+import com.QHSEAnalytics.auth.repository.AnalysteProfilRepository;
 import com.QHSEAnalytics.auth.repository.EmailTokenRepository;
 import com.QHSEAnalytics.auth.repository.OtpCodeRepository;
 import com.QHSEAnalytics.auth.repository.RefreshTokenRepository;
@@ -64,6 +65,7 @@ public class AdminUserService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final EmailTokenRepository emailTokenRepository;
     private final OtpCodeRepository otpCodeRepository;
+    private final AnalysteProfilRepository analysteProfilRepository;
     private final ImportSessionRepository importSessionRepository;
     private final StagingDonneeRepository stagingDonneeRepository;
     private final ResultatKpiRepository resultatKpiRepository;
@@ -157,6 +159,8 @@ public class AdminUserService {
     public MessageResponse deleteUser(Long id) {
         User user = getUserByIdInternal(id);
         checkNotSystemAdmin(user);
+
+        analysteProfilRepository.deleteByUserId(id);
 
         List<ImportSession> sessions = importSessionRepository.findByUserId(id);
         for (ImportSession session : sessions) {
