@@ -149,27 +149,6 @@
     @if (globalSummaryText()) {
       <section class="section">
         <div class="hero-grid">
-
-          <div class="score-ring-wrap"
-               [class.score-good]="globalScore() >= 80"
-               [class.score-medium]="globalScore() >= 50 && globalScore() < 80"
-               [class.score-low]="globalScore() < 50">
-            <svg class="score-ring" viewBox="0 0 120 120">
-              <circle cx="60" cy="60" r="54" fill="none" stroke="var(--border)" stroke-width="10"/>
-              <circle cx="60" cy="60" r="54" fill="none"
-                      [attr.stroke]="scoreColor()"
-                      stroke-width="10"
-                      stroke-linecap="round"
-                      [style.stroke-dasharray]="scoreRingDash()"
-                      transform="rotate(-90 60 60)"/>
-            </svg>
-            <div class="score-center">
-              <span class="score-value" [style.color]="scoreColor()">{{ globalScore() }}</span>
-              <span class="score-unit">/100</span>
-              <span class="score-label" [style.color]="scoreColor()">{{ scoreLabel() }}</span>
-            </div>
-          </div>
-
           <div class="hero-summary">
             <div class="hero-summary-header">
               <h2>Synthèse Globale</h2>
@@ -177,32 +156,6 @@
 
             <p class="synthese-text">{{ globalSummaryText() }}</p>
 
-            <div class="cat-mini-row">
-              @for (stat of catStats(); track stat.code) {
-                @if (stat.total > 0) {
-                  <div class="cat-mini-card"
-                       [style.background]="stat.bgLight"
-                       [style.border-color]="stat.color">
-                    <mat-icon [style.color]="stat.color">{{ stat.icon }}</mat-icon>
-                    <div class="cat-mini-info">
-                      <span class="cat-mini-label" [style.color]="stat.color">{{ stat.libelle }}</span>
-                      <div class="cat-mini-counts">
-                        @if (stat.critique > 0) {
-                          <span class="mini-count mini-c">{{ stat.critique }} critique{{ stat.critique > 1 ? 's' : '' }}</span>
-                        }
-                        @if (stat.modere > 0) {
-                          <span class="mini-count mini-m">{{ stat.modere }} modéré{{ stat.modere > 1 ? 's' : '' }}</span>
-                        }
-                        @if (stat.faible > 0) {
-                          <span class="mini-count mini-ok">{{ stat.faible }} faible{{ stat.faible > 1 ? 's' : '' }}</span>
-                        }
-                      </div>
-                    </div>
-                    <span class="cat-mini-score" [style.color]="stat.color">{{ miniScore(stat) }}</span>
-                  </div>
-                }
-              }
-            </div>
           </div>
         </div>
       </section>
